@@ -32,6 +32,7 @@ function GenerateSolutionButton() {
         bounds: viewportBounds,
         background: true,
         scale: 1,
+        padding: 0, // ensure no extra margin so export matches viewport exactly
       });
 
       if (!blob) {
@@ -99,8 +100,9 @@ function GenerateSolutionButton() {
       ]);
 
       // Create an image shape using the asset:
-      // - align top-left of the image with the top-left of the viewport
-      // - scale proportionally so it covers the viewport in at least one dimension
+      // - center the image within the viewport
+      // - scale proportionally so it COVERS the viewport
+      //   (one dimension matches exactly, the other may exceed slightly)
       const shapeId = createShapeId();
       const scale = Math.max(
         viewportBounds.width / img.width,
@@ -111,9 +113,9 @@ function GenerateSolutionButton() {
 
       editor.createShape({
         id: shapeId,
-        type: 'image',
-        x: viewportBounds.x,
-        y: viewportBounds.y,
+        type: "image",
+        x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
+        y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
         props: {
           w: shapeWidth,
           h: shapeHeight,
