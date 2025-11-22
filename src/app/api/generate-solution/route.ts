@@ -47,7 +47,14 @@ export async function POST(req: NextRequest) {
             ],
           },
         ],
+        /*
+        provider: {
+          order: ['google-ai-studio'],
+          allow_fallbacks: false
+        },
+        */
         modalities: ['image', 'text'], // Required for image generation
+        reasoning_effort: 'none',
       }),
     });
 

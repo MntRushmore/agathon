@@ -4,10 +4,6 @@ import { Tldraw, useEditor, createShapeId, AssetRecordType } from "tldraw";
 import { useCallback, useState } from "react";
 import "tldraw/tldraw.css";
 
-// Manual tweak factor for how large the generated image appears on the canvas.
-// Adjust this value (e.g. 0.95, 1.02, etc.) until the overlay feels perfect.
-const GENERATED_IMAGE_SCALE_TWEAK = 1;
-
 function GenerateSolutionButton() {
   const editor = useEditor();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -110,11 +106,10 @@ function GenerateSolutionButton() {
       const shapeId = createShapeId();
       // Scale so the image FITS inside the viewport (no stretching):
       // one dimension matches the viewport, the other is smaller.
-      const baseScale = Math.min(
+      const scale = Math.min(
         viewportBounds.width / img.width,
         viewportBounds.height / img.height
       );
-      const scale = baseScale * GENERATED_IMAGE_SCALE_TWEAK;
       const shapeWidth = img.width * scale;
       const shapeHeight = img.height * scale;
 
@@ -123,15 +118,14 @@ function GenerateSolutionButton() {
         type: "image",
         x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
         y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
+        opacity: 0.3,
+        isLocked: true,
         props: {
           w: shapeWidth,
           h: shapeHeight,
           assetId: assetId,
         },
       });
-
-      // Select the new shape
-      editor.select(shapeId);
     } catch (error) {
       console.error('Error generating solution:', error);
       alert(error instanceof Error ? error.message : 'Failed to generate solution');
