@@ -98,10 +98,16 @@ function GenerateSolutionButton() {
         },
       ]);
 
-      // Create an image shape using the asset that fills the current viewport
+      // Create an image shape using the asset:
+      // - align top-left of the image with the top-left of the viewport
+      // - scale proportionally so it covers the viewport in at least one dimension
       const shapeId = createShapeId();
-      const shapeWidth = viewportBounds.width;
-      const shapeHeight = viewportBounds.height;
+      const scale = Math.max(
+        viewportBounds.width / img.width,
+        viewportBounds.height / img.height
+      );
+      const shapeWidth = img.width * scale;
+      const shapeHeight = img.height * scale;
 
       editor.createShape({
         id: shapeId,
