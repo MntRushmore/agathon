@@ -3,6 +3,7 @@
 import { Tldraw, useEditor, createShapeId, AssetRecordType } from "tldraw";
 import { useCallback, useState } from "react";
 import "tldraw/tldraw.css";
+import { Button } from "@/components/ui/button";
 
 function GenerateSolutionButton() {
   const editor = useEditor();
@@ -135,34 +136,31 @@ function GenerateSolutionButton() {
   }, [editor, isGenerating]);
 
   return (
-    <button
+    <Button
       onClick={handleGenerateSolution}
       disabled={isGenerating}
       style={{
         position: 'absolute',
         top: '10px',
-        right: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: 1000,
-        padding: '10px 20px',
-        backgroundColor: isGenerating ? '#ccc' : '#007bff',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: isGenerating ? 'not-allowed' : 'pointer',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
       }}
     >
       {isGenerating ? 'Generating...' : 'Generate Solution'}
-    </button>
+    </Button>
   );
 }
 
 export default function Home() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
-      <Tldraw>
+      <Tldraw
+        components={{
+          MenuPanel: null,
+          NavigationPanel: null,
+        }}
+      >
         <GenerateSolutionButton />
       </Tldraw>
     </div>
