@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tldraw/tldraw.css";
 
 :root {
   --background: #ffffff;
