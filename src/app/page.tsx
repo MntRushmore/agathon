@@ -1,6 +1,6 @@
 "use client";
 
-import { Tldraw, useEditor, createShapeId, AssetRecordType, getSvgAsImage } from "tldraw";
+import { Tldraw, useEditor, createShapeId, AssetRecordType } from "tldraw";
 import { useCallback, useState } from "react";
 import "tldraw/tldraw.css";
 
@@ -14,36 +14,31 @@ function GenerateSolutionButton() {
     setIsGenerating(true);
 
     try {
-      // Get all shapes on the current page
-      const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-      
-      // First, export to SVG
-      const svg = await editor.getSvgString(shapeIds, {
-        background: true,
-        padding: 0,
-        darkMode: false,
-      });
-      
-      if (!svg) {
-        throw new Error('Failed to generate SVG');
-      }
-      
-      // Get the viewport size for proper dimensions
+      // Get the viewport bounds in page space (what you're currently seeing)
       const viewportBounds = editor.getViewportPageBounds();
-      
-      // Convert SVG to PNG blob
-      const blob = await getSvgAsImage(svg.svg, {
-        type: 'png',
-        width: Math.round(viewportBounds.width),
-        height: Math.round(viewportBounds.height),
-        quality: 1,
-      });
-      
-      if (!blob) {
-        throw new Error('Failed to convert SVG to PNG');
+
+      // Get all shapes on the current page
+      const shapeIds = editor.getCurrentPageShapeIds();
+      if (shapeIds.size === 0) {
+        throw new Error("No shapes on the canvas to export");
       }
 
-      // Convert blob to base64
+      // Export exactly the current viewport as a PNG. We pass both the shapes
+      // and explicit bounds so tldraw renders a screenshot of the visible area,
+      // not a tight crop around the content. See:
+      // https://tldraw.dev/examples/export-canvas-as-image
+      const { blob } = await editor.toImage([...shapeIds], {
+        format: "png",
+        bounds: viewportBounds,
+        background: true,
+        scale: 1,
+      });
+
+      if (!blob) {
+        throw new Error("Failed to export viewport to image");
+      }
+
+      // Convert blob to base64 data URL for OpenRouter
       const base64 = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
@@ -103,20 +98,16 @@ function GenerateSolutionButton() {
         },
       ]);
 
-      // Create an image shape using the asset
+      // Create an image shape using the asset that fills the current viewport
       const shapeId = createShapeId();
-      const center = {
-        x: viewportBounds.x + viewportBounds.width / 2,
-        y: viewportBounds.y + viewportBounds.height / 2,
-      };
-      const shapeWidth = Math.min(img.width, 500);
-      const shapeHeight = (img.height / img.width) * shapeWidth;
+      const shapeWidth = viewportBounds.width;
+      const shapeHeight = viewportBounds.height;
 
       editor.createShape({
         id: shapeId,
         type: 'image',
-        x: center.x - shapeWidth / 2,
-        y: center.y - shapeHeight / 2,
+        x: viewportBounds.x,
+        y: viewportBounds.y,
         props: {
           w: shapeWidth,
           h: shapeHeight,
