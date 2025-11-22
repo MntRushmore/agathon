@@ -1,11 +1,77 @@
 "use client";
 
-import { Tldraw, useEditor, createShapeId, AssetRecordType } from "tldraw";
-import { useCallback, useState } from "react";
+import {
+  Tldraw,
+  useEditor,
+  createShapeId,
+  AssetRecordType,
+  TLShapeId,
+  type TLUiOverrides,
+} from "tldraw";
+import { useCallback, useState, type ReactElement } from "react";
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
+import {
+  Tick01Icon,
+  Cancel01Icon,
+  Cursor02Icon,
+  ThreeFinger05Icon,
+  PencilIcon,
+  EraserIcon,
+  ArrowUpRight01Icon,
+  TextIcon,
+} from "hugeicons-react";
 
-function GenerateSolutionButton() {
+const hugeIconsOverrides: TLUiOverrides = {
+  tools(_editor: unknown, tools: Record<string, any>) {
+    const toolIconMap: Record<string, ReactElement> = {
+      select: (
+        <div>
+          <Cursor02Icon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+      hand: (
+        <div>
+          <ThreeFinger05Icon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+      draw: (
+        <div>
+          <PencilIcon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+      eraser: (
+        <div>
+          <EraserIcon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+      arrow: (
+        <div>
+          <ArrowUpRight01Icon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+      text: (
+        <div>
+          <TextIcon size={22} strokeWidth={1.8} />
+        </div>
+      ),
+    };
+
+    Object.keys(toolIconMap).forEach((id) => {
+      const icon = toolIconMap[id];
+      if (!tools[id] || !icon) return;
+      tools[id].icon = icon;
+    });
+
+    return tools;
+  },
+};
+
+function GenerateSolutionButton({
+  onImageGenerated,
+}: {
+  onImageGenerated: (shapeId: TLShapeId) => void;
+}) {
   const editor = useEditor();
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -127,13 +193,16 @@ function GenerateSolutionButton() {
           assetId: assetId,
         },
       });
+
+      // Notify parent component of the new image
+      onImageGenerated(shapeId);
     } catch (error) {
       console.error('Error generating solution:', error);
       alert(error instanceof Error ? error.message : 'Failed to generate solution');
     } finally {
       setIsGenerating(false);
     }
-  }, [editor, isGenerating]);
+  }, [editor, isGenerating, onImageGenerated]);
 
   return (
     <Button
@@ -142,8 +211,7 @@ function GenerateSolutionButton() {
       style={{
         position: 'absolute',
         top: '10px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        left: '10px',
         zIndex: 1000,
       }}
     >
@@ -152,16 +220,119 @@ function GenerateSolutionButton() {
   );
 }
 
+function ImageActionButtons({
+  pendingImageIds,
+  onAccept,
+  onReject,
+}: {
+  pendingImageIds: TLShapeId[];
+  onAccept: (shapeId: TLShapeId) => void;
+  onReject: (shapeId: TLShapeId) => void;
+}) {
+  // Only show buttons when there's a pending image
+  if (pendingImageIds.length === 0) return null;
+
+  // For now, we'll just handle the most recent pending image
+  const currentImageId = pendingImageIds[pendingImageIds.length - 1];
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        gap: '8px',
+      }}
+    >
+      <Button
+        variant="default"
+        onClick={() => onAccept(currentImageId)}
+      >
+        <Tick01Icon size={20} strokeWidth={2.5} />
+        <span className="ml-2">Accept</span>
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => onReject(currentImageId)}
+      >
+        <Cancel01Icon size={20} strokeWidth={2.5} />
+        <span className="ml-2">Reject</span>
+      </Button>
+    </div>
+  );
+}
+
+function HomeContent() {
+  const editor = useEditor();
+  const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
+
+  const handleImageGenerated = useCallback((shapeId: TLShapeId) => {
+    setPendingImageIds((prev) => [...prev, shapeId]);
+  }, []);
+
+  const handleAccept = useCallback(
+    (shapeId: TLShapeId) => {
+      if (!editor) return;
+      
+      // Unlock the shape and update opacity to 100%
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        opacity: 1.0,
+        isLocked: false,
+      });
+
+      // Remove from pending list
+      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+    },
+    [editor]
+  );
+
+  const handleReject = useCallback(
+    (shapeId: TLShapeId) => {
+      if (!editor) return;
+
+      // Unlock the shape first, then delete it
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: false,
+      });
+      
+      editor.deleteShape(shapeId);
+
+      // Remove from pending list
+      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+    },
+    [editor]
+  );
+
+  return (
+    <>
+      <GenerateSolutionButton onImageGenerated={handleImageGenerated} />
+      <ImageActionButtons
+        pendingImageIds={pendingImageIds}
+        onAccept={handleAccept}
+        onReject={handleReject}
+      />
+    </>
+  );
+}
+
 export default function Home() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <Tldraw
+        overrides={hugeIconsOverrides}
         components={{
           MenuPanel: null,
           NavigationPanel: null,
         }}
       >
-        <GenerateSolutionButton />
+        <HomeContent />
       </Tldraw>
     </div>
   );
