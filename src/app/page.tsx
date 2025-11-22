@@ -4,6 +4,10 @@ import { Tldraw, useEditor, createShapeId, AssetRecordType } from "tldraw";
 import { useCallback, useState } from "react";
 import "tldraw/tldraw.css";
 
+// Manual tweak factor for how large the generated image appears on the canvas.
+// Adjust this value (e.g. 0.95, 1.02, etc.) until the overlay feels perfect.
+const GENERATED_IMAGE_SCALE_TWEAK = 1;
+
 function GenerateSolutionButton() {
   const editor = useEditor();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -104,10 +108,13 @@ function GenerateSolutionButton() {
       // - scale proportionally so it COVERS the viewport
       //   (one dimension matches exactly, the other may exceed slightly)
       const shapeId = createShapeId();
-      const scale = Math.max(
+      // Scale so the image FITS inside the viewport (no stretching):
+      // one dimension matches the viewport, the other is smaller.
+      const baseScale = Math.min(
         viewportBounds.width / img.width,
         viewportBounds.height / img.height
       );
+      const scale = baseScale * GENERATED_IMAGE_SCALE_TWEAK;
       const shapeWidth = img.width * scale;
       const shapeHeight = img.height * scale;
 
