@@ -20,6 +20,10 @@ import {
   EraserIcon,
   ArrowUpRight01Icon,
   TextIcon,
+  StickyNote01Icon,
+  Image01Icon,
+  ArrowUp01Icon,
+  AddSquareIcon,
 } from "hugeicons-react";
 
 const hugeIconsOverrides: TLUiOverrides = {
@@ -27,32 +31,47 @@ const hugeIconsOverrides: TLUiOverrides = {
     const toolIconMap: Record<string, ReactElement> = {
       select: (
         <div>
-          <Cursor02Icon size={22} strokeWidth={1.8} />
+          <Cursor02Icon size={22} strokeWidth={1.5} />
         </div>
       ),
       hand: (
         <div>
-          <ThreeFinger05Icon size={22} strokeWidth={1.8} />
+          <ThreeFinger05Icon size={22} strokeWidth={1.5} />
         </div>
       ),
       draw: (
         <div>
-          <PencilIcon size={22} strokeWidth={1.8} />
+          <PencilIcon size={22} strokeWidth={1.5} />
         </div>
       ),
       eraser: (
         <div>
-          <EraserIcon size={22} strokeWidth={1.8} />
+          <EraserIcon size={22} strokeWidth={1.5} />
         </div>
       ),
       arrow: (
         <div>
-          <ArrowUpRight01Icon size={22} strokeWidth={1.8} />
+          <ArrowUpRight01Icon size={22} strokeWidth={1.5} />
         </div>
       ),
       text: (
         <div>
-          <TextIcon size={22} strokeWidth={1.8} />
+          <TextIcon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      note: (
+        <div>
+          <StickyNote01Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      asset: (
+        <div>
+          <Image01Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      rectangle: (
+        <div>
+          <AddSquareIcon size={22} strokeWidth={1.5} />
         </div>
       ),
     };
@@ -66,6 +85,10 @@ const hugeIconsOverrides: TLUiOverrides = {
     return tools;
   },
 };
+
+// Note: The "More" button chevron-up icon override would require
+// a custom toolbar component or CSS-based solution since assetUrls
+// expects string URLs, not React components.
 
 function GenerateSolutionButton({
   onImageGenerated,
