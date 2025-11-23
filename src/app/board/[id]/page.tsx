@@ -1181,11 +1181,27 @@ function BoardContent({ id }: { id: string }) {
             }
           }
 
-          // Validate Supabase client
+          // Validate Supabase client and configuration
           if (!supabase) {
             throw new Error("Supabase client not initialized");
           }
 
+          // Check if Supabase is properly configured
+          if (typeof window !== 'undefined') {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            
+            if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
+              throw new Error("Supabase URL is not configured. Please set NEXT_PUBLIC_SUPABASE_URL in your environment variables.");
+            }
+            
+            if (!supabaseKey || supabaseKey === 'placeholder-key') {
+              throw new Error("Supabase anon key is not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.");
+            }
+          }
+
+          console.log(`Attempting to save board ${id}...`);
+          
           const { error, data } = await supabase
             .from('whiteboards')
             .update(updateData)
@@ -1193,8 +1209,20 @@ function BoardContent({ id }: { id: string }) {
             .select();
 
           if (error) {
-            console.error("Supabase update error:", error);
-            throw error;
+            // Properly extract Supabase error properties
+            const errorDetails = {
+              message: error.message,
+              code: error.code,
+              details: error.details,
+              hint: error.hint,
+              // Capture all properties
+              ...Object.getOwnPropertyNames(error).reduce((acc, key) => {
+                acc[key] = (error as any)[key];
+                return acc;
+              }, {} as Record<string, any>)
+            };
+            console.error("Supabase update error:", errorDetails);
+            throw new Error(`Supabase error: ${error.message || 'Unknown error'} (code: ${error.code || 'N/A'})`);
           }
           
           if (!data || data.length === 0) {
@@ -1203,21 +1231,37 @@ function BoardContent({ id }: { id: string }) {
           
           logger.info({ id }, "Board auto-saved successfully");
         } catch (error) {
-          // Use console.error for proper browser error logging
-          console.error("Error auto-saving board:", {
+          // Extract all error properties for proper logging
+          const errorInfo: Record<string, any> = {
             id,
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            fullError: error,
-          });
+            errorType: typeof error,
+            errorConstructor: error?.constructor?.name,
+          };
+
+          if (error instanceof Error) {
+            errorInfo.message = error.message;
+            errorInfo.name = error.name;
+            errorInfo.stack = error.stack;
+          } else if (error && typeof error === 'object') {
+            // Extract all enumerable and non-enumerable properties
+            Object.getOwnPropertyNames(error).forEach(key => {
+              try {
+                errorInfo[key] = (error as any)[key];
+              } catch (e) {
+                errorInfo[key] = '[Unable to access property]';
+              }
+            });
+          } else {
+            errorInfo.value = String(error);
+          }
+
+          // Use console.error for proper browser error logging
+          console.error("Error auto-saving board:", errorInfo);
           
           // Also log with logger for consistency
           logger.error(
             {
-              error:
-                error instanceof Error
-                  ? { message: error.message, name: error.name, stack: error.stack }
-                  : String(error),
+              error: errorInfo,
               id,
             },
             "Error auto-saving board"
