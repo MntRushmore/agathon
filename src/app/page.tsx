@@ -270,6 +270,9 @@ function HomeContent() {
 
       logger.info('Creating asset and shape...');
 
+      // Set flag to prevent these shape additions from triggering activity detection
+      isUpdatingImageRef.current = true;
+
       editor.createAssets([
         {
           id: assetId,
@@ -311,6 +314,11 @@ function HomeContent() {
 
       setPendingImageIds((prev) => [...prev, shapeId]);
       setStatus("idle");
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
     } catch (error) {
       if (signal.aborted) {
         setStatus("idle");
@@ -333,7 +341,7 @@ function HomeContent() {
   }, [editor, pendingImageIds]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
-  useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef);
+  useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef, isProcessingRef);
 
   // Cancel in-flight requests when user edits the canvas
   useEffect(() => {

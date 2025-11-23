@@ -10,7 +10,8 @@ export function useDebounceActivity(
   callback: () => void,
   delay: number = 3000,
   editor?: Editor,
-  shouldIgnoreRef?: React.MutableRefObject<boolean>
+  shouldIgnoreRef?: React.MutableRefObject<boolean>,
+  isProcessingRef?: React.MutableRefObject<boolean>
 ) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -37,10 +38,17 @@ export function useDebounceActivity(
     // This will only trigger on drawing, typing, shape changes, etc.
     // Not on panning, zooming, or clicking UI buttons
     const handleHistoryChange = () => {
-      // Ignore changes if the flag is set (e.g., during accept/reject)
+      // Ignore changes if we're updating images (accept/reject)
       if (shouldIgnoreRef?.current) {
         return;
       }
+      
+      // Ignore changes if we're currently processing/generating
+      // This prevents the generated image from triggering a new cycle
+      if (isProcessingRef?.current) {
+        return;
+      }
+      
       resetTimer();
     };
 
@@ -50,12 +58,14 @@ export function useDebounceActivity(
       scope: 'document'
     });
 
-    // Initial timer setup
-    resetTimer();
+    // Initial timer setup (only if not already processing)
+    if (!isProcessingRef?.current) {
+      resetTimer();
+    }
 
     return () => {
       clearTimer();
       dispose();
     };
-  }, [callback, delay, editor, shouldIgnoreRef]);
+  }, [callback, delay, editor, shouldIgnoreRef, isProcessingRef]);
 }
