@@ -2,8 +2,6 @@ import { Loading03Icon } from "hugeicons-react";
 
 export type StatusIndicatorState = 
   | "idle"
-  | "analyzing"
-  | "checking"
   | "generating"
   | "error";
 
@@ -13,8 +11,6 @@ interface StatusIndicatorProps {
 }
 
 const statusMessages: Record<Exclude<StatusIndicatorState, "idle">, string> = {
-  analyzing: "Analyzing handwriting...",
-  checking: "Checking if help needed...",
   generating: "Generating solution...",
   error: "Error occurred",
 };

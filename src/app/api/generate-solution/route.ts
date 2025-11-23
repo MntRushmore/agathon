@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Parse the request body
-    const { image, ocrText } = await req.json();
+    const { image } = await req.json();
 
     if (!image) {
       solutionLogger.warn({ requestId }, 'No image provided in request');
@@ -21,9 +21,7 @@ export async function POST(req: NextRequest) {
 
     solutionLogger.debug({
       requestId,
-      imageSize: image.length,
-      hasOcrText: !!ocrText,
-      ocrTextLength: ocrText?.length || 0
+      imageSize: image.length
     }, 'Request payload received');
 
     if (!process.env.OPENROUTER_API_KEY) {
@@ -51,18 +49,16 @@ export async function POST(req: NextRequest) {
           {
             role: 'user',
             content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: image, // base64 data URL
-                },
+            {
+              type: 'image_url',
+              image_url: {
+                url: image, // base64 data URL
               },
-              {
-                type: 'text',
-                text: ocrText
-                  ? `Here is the extracted text from the canvas:\n\n${ocrText}\n\nModify the image to include the solution to the problem shown, written in handwriting style.`
-                  : 'Modify the image to include the solution in handwriting.',
-              },
+            },
+            {
+              type: 'text',
+              text: 'Analyze this canvas/whiteboard image carefully. Look for incomplete work, math problems, coding challenges, questions, or any indication that the user is working through something challenging and might benefit from help.\n\nIf the user needs help:\n- Generate a solution image with the answer written in handwriting style that matches the original image.\n\nIf the user does NOT need help (e.g., just notes, completed work, casual doodles, or nothing significant):\n- Simply respond with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.',
+            },
             ],
           },
         ],

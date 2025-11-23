@@ -198,55 +198,12 @@ function HomeContent() {
 
       if (signal.aborted) return;
 
-      // Step 2: OCR - Extract handwriting
-      setStatus("analyzing");
-      const ocrResponse = await fetch('/api/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
-        signal,
-      });
-
-      if (!ocrResponse.ok || signal.aborted) {
-        throw new Error('OCR failed');
-      }
-
-      const ocrData = await ocrResponse.json();
-      const extractedText = ocrData.text || '';
-
-      if (signal.aborted) return;
-
-      // Step 3: Check if help is needed
-      setStatus("checking");
-      const checkResponse = await fetch('/api/check-help-needed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: extractedText, image: base64 }),
-        signal,
-      });
-
-      if (!checkResponse.ok || signal.aborted) {
-        throw new Error('Help check failed');
-      }
-
-      const checkData = await checkResponse.json();
-
-      if (signal.aborted) return;
-
-      // If help is not needed, stop here
-      if (!checkData.needsHelp) {
-        logger.info({ reason: checkData.reason }, 'Help not needed');
-        setStatus("idle");
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Step 4: Generate solution
+      // Step 2: Generate solution (Gemini decides if help is needed)
       setStatus("generating");
       const solutionResponse = await fetch('/api/generate-solution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, ocrText: extractedText }),
+        body: JSON.stringify({ image: base64 }),
         signal,
       });
 
@@ -256,17 +213,19 @@ function HomeContent() {
 
       const solutionData = await solutionResponse.json();
       const imageUrl = solutionData.imageUrl as string | null | undefined;
+      const textContent = solutionData.textContent || '';
 
       logger.info({ 
         hasImageUrl: !!imageUrl, 
         imageUrlLength: imageUrl?.length,
-        imageUrlStart: imageUrl?.slice(0, 50)
+        imageUrlStart: imageUrl?.slice(0, 50),
+        textContent: textContent.slice(0, 100)
       }, 'Solution data received');
 
-      // If the model didn't return an image, just stop here gracefully.
-      // We may still have textContent in the response, which we could surface later.
+      // If the model didn't return an image, it means Gemini decided help isn't needed.
+      // Log the reason and gracefully stop.
       if (!imageUrl || signal.aborted) {
-        logger.warn({ solutionData }, 'No image URL returned from solution generation');
+        logger.info({ textContent }, 'Gemini decided help is not needed');
         setStatus("idle");
         isProcessingRef.current = false;
         return;
