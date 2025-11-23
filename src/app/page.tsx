@@ -361,12 +361,11 @@ function HomeContent() {
     (shapeId: TLShapeId) => {
       if (!editor) return;
       
-      // Unlock the shape and update opacity to 100%
+      // Keep the shape locked but update opacity to 100%
       editor.updateShape({
         id: shapeId,
         type: "image",
         opacity: 1.0,
-        isLocked: false,
       });
 
       // Remove from pending list
