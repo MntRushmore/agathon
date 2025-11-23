@@ -775,12 +775,16 @@ function BoardContent({ id }: { id: string }) {
       const shapeWidth = img.width * scale;
       const shapeHeight = img.height * scale;
 
+      // In "feedback" mode, show at full opacity without accept/reject
+      // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
+      const isFeedbackMode = assistanceMode === "feedback";
+      
       editor.createShape({
         id: shapeId,
         type: "image",
         x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
         y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
-        opacity: 0.3,
+        opacity: isFeedbackMode ? 1.0 : 0.3,
         isLocked: true,
         props: {
           w: shapeWidth,
@@ -789,7 +793,10 @@ function BoardContent({ id }: { id: string }) {
         },
       });
 
-      setPendingImageIds((prev) => [...prev, shapeId]);
+      // Only add to pending list if not in feedback mode
+      if (!isFeedbackMode) {
+        setPendingImageIds((prev) => [...prev, shapeId]);
+      }
       
       // Show success message briefly, then return to idle
       setStatus("success");

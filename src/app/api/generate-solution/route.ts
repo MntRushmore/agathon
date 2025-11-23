@@ -34,21 +34,21 @@ export async function POST(req: NextRequest) {
 
     // Generate mode-specific prompt
     const getModePrompt = (mode: string): string => {
-      const baseAnalysis = 'Analyze this canvas/whiteboard image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from help.';
+      const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from some form of assistance.';
       
-      const noHelpInstruction = '\n\nIf the user does NOT need help (e.g., just notes, completed work, casual doodles, or nothing significant):\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
+      const noHelpInstruction = '\n\nIf the user does NOT seem to need help:\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
       
-      const coreRules = '\n\n**CRITICAL RULES:**\n- DO NOT remove, modify, move, or touch ANY of the user\'s existing content\n- ONLY add new content to the image\n- Match the user\'s handwriting style\n- Use different colors to distinguish your additions from the user\'s work';
+      const coreRules = '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style';
 
       switch (mode) {
         case 'feedback':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the LEAST INTRUSIVE assistance - think of adding visual annotations like a teacher marking up a paper\n- Add visual feedback elements: highlighting (use semi-transparent colors), underlining, arrows pointing to specific parts, circles around key areas, light margin notes\n- Keep suggestions brief and minimal - just enough to guide attention\n- Use colors that stand out but complement the work (e.g., soft reds, blues, greens)\n- Write in a natural handwriting style that matches the user\'s but is clearly distinguishable by color${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpInstruction}`;
         
         case 'suggest':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve everything\n- Add suggestions for what to try next, guiding questions, or directional arrows with brief explanations\n- Point out which direction to go without giving the full answer\n- If it\'s a math problem, show the next step or formula they should apply\n- If it\'s a concept, ask a leading question or provide a key insight\n- Keep it substantial enough to be helpful but stop short of complete solutions${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve the entire problem\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpInstruction}`;
         
         case 'answer':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Show all steps clearly in handwriting\n- Include explanations for each major step\n- Provide the full solution with proper work shown\n- Make it comprehensive and educational${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpInstruction}`;
         
         default:
           return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpInstruction}`;
