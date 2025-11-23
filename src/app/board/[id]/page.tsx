@@ -11,7 +11,7 @@ import {
   getSnapshot,
   loadSnapshot,
 } from "tldraw";
-import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
+import React, { useCallback, useState, useRef, useEffect, useMemo, type ReactElement } from "react";
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -159,8 +159,10 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const dataChannel = useRef<RTCDataChannel | null>(null);
   const audioEl = useRef<HTMLAudioElement | null>(null);
+  const handleServerEventRef = useRef<((event: any) => void) | null>(null);
 
-  const tools = [
+  // Memoize tools to prevent unnecessary re-renders
+  const tools = useMemo(() => [
     {
       type: "function",
       name: "solve_canvas",
@@ -178,7 +180,7 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         required: ["prompt"],
       },
     },
-  ];
+  ], []);
 
   const exportCanvasImage = useCallback(async (): Promise<string | null> => {
     if (!editor) return null;
@@ -212,7 +214,10 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
 
   const sendToolOutput = useCallback(
     (callId: string, payload: any) => {
+      console.log("[Voice Agent] Sending tool output for call:", callId, payload);
+      
       if (!dataChannel.current || dataChannel.current.readyState !== "open") {
+        console.error("[Voice Agent] Data channel not available or not open");
         return;
       }
 
@@ -227,6 +232,7 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
 
       dataChannel.current.send(JSON.stringify(toolResponse));
       dataChannel.current.send(JSON.stringify({ type: "response.create" }));
+      console.log("[Voice Agent] Tool output sent successfully");
     },
     []
   );
@@ -236,15 +242,23 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
       const { call_id, name } = event;
       const argsString: string = event.arguments ?? "";
 
-      if (name !== "solve_canvas") return;
+      console.log("[Voice Agent] handleToolCall called:", { call_id, name, argsString });
+
+      if (name !== "solve_canvas") {
+        console.log("[Voice Agent] Ignoring non-solve_canvas tool:", name);
+        return;
+      }
 
       if (!editor) {
+        console.error("[Voice Agent] Editor not ready");
         sendToolOutput(call_id, {
           status: "error",
           message: "Canvas editor is not ready.",
         });
         return;
       }
+
+      console.log("[Voice Agent] Starting canvas solve...");
 
       let prompt =
         "Modify the image to include the solution in handwriting with clear steps.";
@@ -345,13 +359,14 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
 
         setStatus("Solution added to canvas");
 
+        console.log("[Voice Agent] Solution successfully added, sending success response");
         sendToolOutput(call_id, {
           status: "ok",
           imageUrl,
           message: "Solution image has been added to the canvas.",
         });
       } catch (error) {
-        console.error("Error generating solution via tool:", error);
+        console.error("[Voice Agent] Error generating solution via tool:", error);
         setStatus("Error solving canvas");
         sendToolOutput(call_id, {
           status: "error",
@@ -367,18 +382,23 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
     (event: any) => {
       if (!event || typeof event.type !== "string") return;
 
+      // Log all events for debugging
+      console.log("[Voice Agent] Received event:", event.type, event);
+
       if (event.type === "response.function_call_arguments.delta") {
         const callId = event.call_id as string;
         const chunk = event.arguments as string;
         if (!callId || typeof chunk !== "string") return;
         pendingToolArgs.current[callId] =
           (pendingToolArgs.current[callId] || "") + chunk;
+        console.log("[Voice Agent] Accumulating args for call:", callId);
       } else if (event.type === "response.function_call_arguments.done") {
         const callId = event.call_id as string;
         const fullArgs =
           pendingToolArgs.current[callId] ??
           (typeof event.arguments === "string" ? event.arguments : "");
         delete pendingToolArgs.current[callId];
+        console.log("[Voice Agent] Tool call done, executing:", callId, fullArgs);
         handleToolCall({ ...event, arguments: fullArgs });
       } else if (event.type === "error") {
         console.error("Realtime error:", event);
@@ -387,6 +407,11 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
     },
     [handleToolCall]
   );
+
+  // Update ref whenever handleServerEvent changes
+  useEffect(() => {
+    handleServerEventRef.current = handleServerEvent;
+  }, [handleServerEvent]);
 
   const stopSession = useCallback(() => {
     if (peerConnection.current) {
@@ -447,8 +472,10 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
             modalities: ["text", "audio"],
             instructions:
               "You are an AI tutor helping the user work on a whiteboard. " +
-              "You can see an image of the canvas when you call the solve_canvas tool. " +
-              "Use this tool when the user asks you to solve or annotate something on the board.",
+              "You have a tool called solve_canvas which captures an image of the current canvas and lets you modify it. " +
+              "Whenever the user asks you to solve, add, erase, annotate, rearrange, or otherwise change anything on the board, " +
+              "you MUST call the solve_canvas tool. Each separate request to modify the board requires its own solve_canvas tool call. " +
+              "Never say that you have changed the board unless you have successfully called the solve_canvas tool.",
             tools,
             tool_choice: "auto",
           },
@@ -459,7 +486,8 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
       dc.addEventListener("message", (e) => {
         try {
           const event = JSON.parse(e.data);
-          handleServerEvent(event);
+          // Use ref to always call the current version
+          handleServerEventRef.current?.(event);
         } catch (e) {
           console.error("Failed to parse realtime event:", e);
         }
@@ -603,16 +631,18 @@ function BoardContent({ id }: { id: string }) {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"feedback" | "suggest" | "answer">("suggest");
+  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("suggest");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
 
   // Helper function to get mode-aware status messages
-  const getStatusMessage = useCallback((mode: "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
+  const getStatusMessage = useCallback((mode: "off" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
     if (statusType === "generating") {
       switch (mode) {
+        case "off":
+          return "";
         case "feedback":
           return "Adding feedback...";
         case "suggest":
@@ -622,6 +652,8 @@ function BoardContent({ id }: { id: string }) {
       }
     } else if (statusType === "success") {
       switch (mode) {
+        case "off":
+          return "";
         case "feedback":
           return "Feedback added";
         case "suggest":
@@ -634,7 +666,7 @@ function BoardContent({ id }: { id: string }) {
   }, []);
 
   const handleAutoGeneration = useCallback(async () => {
-    if (!editor || isProcessingRef.current || isVoiceSessionActive) return;
+    if (!editor || isProcessingRef.current || isVoiceSessionActive || assistanceMode === "off") return;
 
     // Check if canvas has content
     const shapeIds = editor.getCurrentPageShapeIds();
@@ -1025,10 +1057,11 @@ function BoardContent({ id }: { id: string }) {
           </Button>
           <Tabs 
             value={assistanceMode} 
-            onValueChange={(value) => setAssistanceMode(value as "feedback" | "suggest" | "answer")}
+            onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
             className="w-auto shadow-sm rounded-lg"
           >
             <TabsList>
+              <TabsTrigger value="off">Off</TabsTrigger>
               <TabsTrigger value="feedback">Feedback</TabsTrigger>
               <TabsTrigger value="suggest">Suggest</TabsTrigger>
               <TabsTrigger value="answer">Answer</TabsTrigger>
