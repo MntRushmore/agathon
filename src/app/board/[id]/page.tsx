@@ -722,7 +722,7 @@ function BoardContent({ id }: { id: string }) {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("suggest");
+  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
