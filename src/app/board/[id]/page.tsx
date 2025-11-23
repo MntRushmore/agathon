@@ -1096,6 +1096,24 @@ function BoardContent({ id }: { id: string }) {
 
         try {
           const snapshot = getSnapshot(editor.store);
+
+          // Ensure the snapshot is JSON-serializable before sending to Supabase
+          let safeSnapshot: unknown = snapshot;
+          try {
+            safeSnapshot = JSON.parse(JSON.stringify(snapshot));
+          } catch (e) {
+            logger.error(
+              {
+                error:
+                  e instanceof Error
+                    ? { message: e.message, name: e.name, stack: e.stack }
+                    : e,
+                id,
+              },
+              "Failed to serialize board snapshot for auto-save"
+            );
+            return;
+          }
           
           // Generate a thumbnail
           let previewUrl = null;
@@ -1132,12 +1150,21 @@ function BoardContent({ id }: { id: string }) {
           }
 
           const updateData: any = { 
-            data: snapshot,
+            data: safeSnapshot,
             updated_at: new Date().toISOString()
           };
 
           if (previewUrl) {
-            updateData.preview = previewUrl;
+            // Guard against oversized previews that may violate DB column limits
+            const MAX_PREVIEW_LENGTH = 8000;
+            if (previewUrl.length > MAX_PREVIEW_LENGTH) {
+              logger.warn(
+                { id, length: previewUrl.length, maxLength: MAX_PREVIEW_LENGTH },
+                "Preview too large, skipping storing preview in database"
+              );
+            } else {
+              updateData.preview = previewUrl;
+            }
           }
 
           const { error } = await supabase
@@ -1146,6 +1173,8 @@ function BoardContent({ id }: { id: string }) {
             .eq('id', id);
 
           if (error) throw error;
+          
+          logger.info({ id }, "Board auto-saved successfully");
         } catch (error) {
           logger.error(
             {
