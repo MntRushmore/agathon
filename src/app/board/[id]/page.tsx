@@ -14,6 +14,8 @@ import {
 import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   Tick01Icon,
   Cancel01Icon,
@@ -28,6 +30,7 @@ import {
   AddSquareIcon,
   Mic02Icon,
   MicOff02Icon,
+  Loading03Icon,
 } from "hugeicons-react";
 import { useDebounceActivity } from "@/hooks/useDebounceActivity";
 import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
@@ -520,29 +523,74 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
     }
   };
 
+  const statusMessages: Record<string, string> = {
+    "Requesting token...": "Connecting to voice...",
+    "Initializing WebRTC...": "Initializing voice...",
+    "Connected": "Voice connected",
+    "Listening": "Listening...",
+    "Solving canvas with AI...": "Solving canvas...",
+    "Solution added to canvas": "Solution added",
+    "No content on canvas": "No content on canvas",
+    "Error solving canvas": "Error solving canvas",
+    "Permission denied": "Microphone permission denied",
+    "Error starting session": "Error starting session",
+    "Realtime error": "Voice error",
+  };
+
+  const showStatus = status !== "Idle" && statusMessages[status];
+  const isError = status.includes("Error") || status.includes("Permission denied") || status.includes("error");
+
   return (
-    <div className="absolute bottom-6 right-6 z-[2000] flex flex-col items-end gap-2 pointer-events-auto">
-      <Button
-        onClick={handleClick}
-        variant={isSessionActive ? "destructive" : "outline"}
-        className="rounded-full shadow-lg bg-white/90 backdrop-blur hover:bg-white"
+    <>
+      {/* Status indicator at top center */}
+      {showStatus && (
+        <div
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+          }}
+        >
+          {!isError && status !== "Solution added to canvas" && (
+            <Loading03Icon 
+              size={16} 
+              strokeWidth={2} 
+              className="animate-spin text-blue-600"
+            />
+          )}
+          <span className={`text-sm font-medium ${isError ? "text-red-600" : "text-gray-700"}`}>
+            {statusMessages[status]}
+          </span>
+        </div>
+      )}
+
+      {/* Voice button at center bottom */}
+      <div 
+        className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto"
       >
-        {isSessionActive ? (
-          <>
-            <MicOff02Icon size={16} strokeWidth={2} />
-            <span className="ml-2">Stop Voice</span>
-          </>
-        ) : (
-          <>
-            <Mic02Icon size={16} strokeWidth={2} />
-            <span className="ml-2">Voice</span>
-          </>
-        )}
-      </Button>
-      <span className="text-[11px] text-gray-600 bg-white/90 px-2 py-0.5 rounded shadow-sm">
-        {status}
-      </span>
-    </div>
+        <Button
+          onClick={handleClick}
+          variant={"outline"}
+          className="rounded-full shadow-md bg-white hover:bg-gray-50"
+          size="lg"
+        >
+          {isSessionActive ? (
+            <>
+              <MicOff02Icon size={20} strokeWidth={2} />
+              <span className="ml-2 font-medium">Stop Voice</span>
+            </>
+          ) : (
+            <>
+              <Mic02Icon size={20} strokeWidth={2} />
+              <span className="ml-2 font-medium">Voice Mode</span>
+            </>
+          )}
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -907,6 +955,24 @@ function BoardContent({ id }: { id: string }) {
 
   return (
     <>
+      {/* Tabs at top left */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          zIndex: 1000,
+        }}
+        >
+        <Tabs defaultValue="suggest" className="w-auto shadow-sm rounded-lg">
+          <TabsList>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger value="suggest">Suggest</TabsTrigger>
+            <TabsTrigger value="answer">Answer</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <StatusIndicator status={status} errorMessage={errorMessage} />
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
