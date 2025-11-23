@@ -15,6 +15,14 @@ import React, { useCallback, useState, useRef, useEffect, type ReactElement } fr
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Tick01Icon,
@@ -38,7 +46,7 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Info } from "lucide-react";
 import { toast } from "sonner";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
@@ -106,14 +114,77 @@ const hugeIconsOverrides: TLUiOverrides = {
   },
 };
 
+function ModeInfoDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="How the help modes work"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Help modes</DialogTitle>
+          <DialogDescription>
+            Choose how strongly the tutor helps on your canvas.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-6">
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/feedback.png"
+              alt="Feedback mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Feedback</p>
+            <p className="text-sm text-muted-foreground">
+              Light annotations pointing out mistakes without giving away answers.
+            </p>
+          </div>
+
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/suggest.png"
+              alt="Suggest mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Suggest</p>
+            <p className="text-sm text-muted-foreground">
+              Hints and partial steps to nudge you in the right direction.
+            </p>
+          </div>
+
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/solve.png"
+              alt="Solve mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Solve</p>
+            <p className="text-sm text-muted-foreground">
+              Full worked solution overlaid on your canvas for comparison.
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ImageActionButtons({
   pendingImageIds,
   onAccept,
   onReject,
+  isVoiceSessionActive,
 }: {
   pendingImageIds: TLShapeId[];
   onAccept: (shapeId: TLShapeId) => void;
   onReject: (shapeId: TLShapeId) => void;
+  isVoiceSessionActive: boolean;
 }) {
   // Only show buttons when there's a pending image
   if (pendingImageIds.length === 0) return null;
@@ -125,7 +196,10 @@ function ImageActionButtons({
     <div
       style={{
         position: 'absolute',
-        top: '10px',
+        // In normal mode, sit at the top-center like before.
+        // When voice is active, shift down a bit so it doesn't clash
+        // with the voice status banner at the very top.
+        top: isVoiceSessionActive ? '56px' : '10px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 1000,
@@ -164,7 +238,7 @@ interface VoiceAgentControlsProps {
   onSolveWithPrompt: (
     mode: "feedback" | "suggest" | "answer",
     instructions?: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 }
 
 function VoiceAgentControls({
@@ -175,6 +249,7 @@ function VoiceAgentControls({
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [statusDetail, setStatusDetail] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -218,6 +293,7 @@ function VoiceAgentControls({
     setIsSessionActive(false);
     setStatus("idle");
     setStatusDetail(null);
+    setIsMuted(false);
     onSessionChange(false);
   }, [cleanupSession, onSessionChange]);
 
@@ -316,7 +392,11 @@ function VoiceAgentControls({
               ? args.mode
               : "suggest";
 
-          await onSolveWithPrompt(mode, args.instructions ?? undefined);
+          const success =
+            (await onSolveWithPrompt(
+              mode,
+              args.instructions ?? undefined,
+            )) ?? false;
 
           dc.send(
             JSON.stringify({
@@ -325,7 +405,7 @@ function VoiceAgentControls({
                 type: "function_call_output",
                 call_id: callId,
                 output: JSON.stringify({
-                  success: true,
+                  success,
                   mode,
                 }),
               },
@@ -621,6 +701,23 @@ function VoiceAgentControls({
     }
   };
 
+  const handleToggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+
+      // Following WebRTC best practices for Realtime:
+      // mute by disabling the outgoing microphone track(s),
+      // so no audio is sent to the agent while keeping the session alive.
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = !next;
+        });
+      }
+
+      return next;
+    });
+  };
+
   const showStatus = status !== "idle";
   const isError = status === "error";
 
@@ -655,23 +752,41 @@ function VoiceAgentControls({
         </div>
       )}
 
-      {/* Voice button at center bottom */}
+      {/* Voice controls at center bottom */}
       <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
-        <Button
-          onClick={handleClick}
-          variant={isSessionActive ? "default" : "outline"}
-          className="rounded-full shadow-md bg-white hover:bg-gray-50"
-          size="lg"
-        >
-          {isSessionActive ? (
-            <MicOff02Icon size={20} strokeWidth={2} />
-          ) : (
-            <Mic02Icon size={20} strokeWidth={2} />
+        <div className="flex items-center gap-2">
+          {isSessionActive && (
+            <Button
+              type="button"
+              onClick={handleToggleMute}
+              variant="outline"
+              size="icon"
+              className="rounded-full shadow-md bg-white hover:bg-gray-50"
+              aria-label={isMuted ? "Unmute tutor" : "Mute tutor"}
+            >
+              {isMuted ? (
+                <VolumeX className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
+            </Button>
           )}
-          <span className="ml-2 font-medium">
-            {isSessionActive ? "Stop Voice" : "Start Voice"}
-          </span>
-        </Button>
+          <Button
+            onClick={handleClick}
+            variant={"outline"}
+            className="rounded-full shadow-md bg-white hover:bg-gray-50"
+            size="lg"
+          >
+            {isSessionActive ? (
+              <MicOff02Icon size={20} strokeWidth={2} />
+            ) : (
+              <Mic02Icon size={20} strokeWidth={2} />
+            )}
+            <span className="ml-2 font-medium">
+              {isSessionActive ? "End Session" : "Voice Mode"}
+            </span>
+          </Button>
+        </div>
       </div>
     </>
   );
@@ -685,7 +800,7 @@ function BoardContent({ id }: { id: string }) {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("suggest");
+  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
@@ -724,16 +839,26 @@ function BoardContent({ id }: { id: string }) {
       modeOverride?: "feedback" | "suggest" | "answer";
       promptOverride?: string;
       force?: boolean;
-    }) => {
-      if (!editor || isProcessingRef.current || isVoiceSessionActive) return;
+      source?: "auto" | "voice";
+    }): Promise<boolean> => {
+      // Block when we don't have an editor or a generation is already running.
+      // Also block auto generations while a voice session is active, but allow
+      // explicit voice-triggered generations to proceed.
+      if (
+        !editor ||
+        isProcessingRef.current ||
+        (isVoiceSessionActive && options?.source !== "voice")
+      ) {
+        return false;
+      }
 
       const mode = options?.modeOverride ?? assistanceMode;
-      if (mode === "off") return;
+      if (mode === "off") return false;
 
       // Check if canvas has content
       const shapeIds = editor.getCurrentPageShapeIds();
       if (shapeIds.size === 0) {
-        return;
+        return false;
       }
 
       isProcessingRef.current = true;
@@ -752,7 +877,7 @@ function BoardContent({ id }: { id: string }) {
         
         if (shapesToCapture.length === 0) {
           isProcessingRef.current = false;
-          return;
+          return false;
         }
         
         const { blob } = await editor.toImage(shapesToCapture, {
@@ -763,7 +888,7 @@ function BoardContent({ id }: { id: string }) {
           padding: 0,
         });
 
-        if (!blob || signal.aborted) return;
+        if (!blob || signal.aborted) return false;
 
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -777,7 +902,7 @@ function BoardContent({ id }: { id: string }) {
           isProcessingRef.current = false;
           setStatus("idle");
           setStatusMessage("");
-          return;
+          return false;
         }
         lastCanvasImageRef.current = base64;
 
@@ -795,6 +920,10 @@ function BoardContent({ id }: { id: string }) {
         if (options?.promptOverride) {
           body.prompt = options.promptOverride;
         }
+
+        // Let the backend know whether this was triggered automatically or
+        // explicitly by the voice tutor.
+        body.source = options?.source ?? "auto";
 
         const solutionResponse = await fetch('/api/generate-solution', {
           method: 'POST',
@@ -825,12 +954,12 @@ function BoardContent({ id }: { id: string }) {
           setStatus("idle");
           setStatusMessage("");
           isProcessingRef.current = false;
-          return;
+          return false;
         }
 
         const processedImageUrl = imageUrl;
 
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
 
         // Create asset and shape
         const assetId = AssetRecordType.createId();
@@ -916,11 +1045,13 @@ function BoardContent({ id }: { id: string }) {
         setTimeout(() => {
           isUpdatingImageRef.current = false;
         }, 100);
+
+        return true;
       } catch (error) {
         if (signal.aborted) {
           setStatus("idle");
           setStatusMessage("");
-          return;
+          return false;
         }
         
         logger.error({ error }, 'Auto-generation error');
@@ -933,6 +1064,8 @@ function BoardContent({ id }: { id: string }) {
           setStatus("idle");
           setErrorMessage("");
         }, 3000);
+
+        return false;
       } finally {
         isProcessingRef.current = false;
         abortControllerRef.current = null;
@@ -942,7 +1075,7 @@ function BoardContent({ id }: { id: string }) {
   );
 
   const handleAutoGeneration = useCallback(() => {
-    void generateSolution();
+    void generateSolution({ source: "auto" });
   }, [generateSolution]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
@@ -1058,7 +1191,37 @@ function BoardContent({ id }: { id: string }) {
         }
 
         try {
+          // Validate editor state
+          if (!editor || !editor.store) {
+            console.warn("Editor or store not available for auto-save");
+            return;
+          }
+
           const snapshot = getSnapshot(editor.store);
+          
+          if (!snapshot) {
+            console.warn("Failed to get snapshot from editor");
+            return;
+          }
+
+          // Ensure the snapshot is JSON-serializable before sending to Supabase
+          let safeSnapshot: unknown = snapshot;
+          try {
+            safeSnapshot = JSON.parse(JSON.stringify(snapshot));
+          } catch (e) {
+            console.error("Failed to serialize board snapshot:", e);
+            logger.error(
+              {
+                error:
+                  e instanceof Error
+                    ? { message: e.message, name: e.name, stack: e.stack }
+                    : String(e),
+                id,
+              },
+              "Failed to serialize board snapshot for auto-save"
+            );
+            return;
+          }
           
           // Generate a thumbnail
           let previewUrl = null;
@@ -1082,12 +1245,13 @@ function BoardContent({ id }: { id: string }) {
               }
             }
           } catch (e) {
+            console.warn("Thumbnail generation failed:", e);
             logger.warn(
               {
                 error:
                   e instanceof Error
                     ? { message: e.message, name: e.name, stack: e.stack }
-                    : e,
+                    : String(e),
                 id,
               },
               "Thumbnail generation failed, continuing without preview"
@@ -1095,27 +1259,138 @@ function BoardContent({ id }: { id: string }) {
           }
 
           const updateData: any = { 
-            data: snapshot,
+            data: safeSnapshot,
             updated_at: new Date().toISOString()
           };
 
           if (previewUrl) {
-            updateData.preview = previewUrl;
+            // Guard against oversized previews that may violate DB column limits
+            const MAX_PREVIEW_LENGTH = 8000;
+            if (previewUrl.length > MAX_PREVIEW_LENGTH) {
+              console.warn(`Preview too large (${previewUrl.length} bytes), skipping`);
+              logger.warn(
+                { id, length: previewUrl.length, maxLength: MAX_PREVIEW_LENGTH },
+                "Preview too large, skipping storing preview in database"
+              );
+            } else {
+              updateData.preview = previewUrl;
+            }
           }
 
-          const { error } = await supabase
-            .from('whiteboards')
-            .update(updateData)
-            .eq('id', id);
+          // Validate Supabase client and configuration
+          if (!supabase) {
+            throw new Error("Supabase client not initialized");
+          }
 
-          if (error) throw error;
+          // Check if Supabase is properly configured
+          if (typeof window !== 'undefined') {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            
+            if (!supabaseUrl || supabaseUrl === 'https://placeholder.supabase.co') {
+              throw new Error("Supabase URL is not configured. Please set NEXT_PUBLIC_SUPABASE_URL in your environment variables.");
+            }
+            
+            if (!supabaseKey || supabaseKey === 'placeholder-key') {
+              throw new Error("Supabase anon key is not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.");
+            }
+          }
+
+          console.log(`Attempting to save board ${id}...`);
+          
+          const { error, data } = await supabase
+            .from("whiteboards")
+            .update(updateData)
+            .eq("id", id)
+            .select();
+
+          if (error) {
+            // Special-case Supabase statement timeouts (code 57014).
+            // These can happen if the user navigates away mid-request or if
+            // the database is briefly under load. Treat them as non-fatal and
+            // avoid noisy console errors.
+            const isTimeoutError =
+              (error as any)?.code === "57014" ||
+              /statement timeout/i.test(error.message ?? "");
+
+            if (isTimeoutError) {
+              console.warn("Supabase auto-save timed out, skipping noisy error log.", {
+                id,
+                code: (error as any)?.code,
+                message: error.message,
+              });
+
+              logger.warn(
+                {
+                  id,
+                  code: (error as any)?.code,
+                  message: error.message,
+                },
+                "Supabase auto-save timed out (often due to navigation away); ignoring.",
+              );
+
+              // Don't throw so the outer catch block doesn't treat this as a hard error.
+              return;
+            }
+
+            // For all other errors, log detailed information and surface a clear message.
+            const errorDetails = {
+              message: error.message,
+              code: (error as any)?.code,
+              details: (error as any)?.details,
+              hint: (error as any)?.hint,
+              // Capture all properties for richer debugging
+              ...Object.getOwnPropertyNames(error).reduce((acc, key) => {
+                acc[key] = (error as any)[key];
+                return acc;
+              }, {} as Record<string, any>),
+            };
+
+            console.error("Supabase update error:", errorDetails);
+            throw new Error(
+              `Supabase error: ${error.message || "Unknown error"} (code: ${
+                (error as any)?.code || "N/A"
+              })`,
+            );
+          }
+          
+          if (!data || data.length === 0) {
+            console.warn("No rows updated - board may not exist:", id);
+          }
+          
+          logger.info({ id }, "Board auto-saved successfully");
         } catch (error) {
+          // Extract all error properties for proper logging
+          const errorInfo: Record<string, any> = {
+            id,
+            errorType: typeof error,
+            errorConstructor: error?.constructor?.name,
+          };
+
+          if (error instanceof Error) {
+            errorInfo.message = error.message;
+            errorInfo.name = error.name;
+            errorInfo.stack = error.stack;
+          } else if (error && typeof error === 'object') {
+            // Extract all enumerable and non-enumerable properties
+            Object.getOwnPropertyNames(error).forEach(key => {
+              try {
+                errorInfo[key] = (error as any)[key];
+              } catch (e) {
+                errorInfo[key] = '[Unable to access property]';
+              }
+            });
+          } else {
+            errorInfo.value = String(error);
+          }
+
+          // Use console.error for proper browser error logging
+          console.error("Error auto-saving board:", errorInfo);
+          
+          // Also log with logger for consistency
           logger.error(
             {
-              error:
-                error instanceof Error
-                  ? { message: error.message, name: error.name, stack: error.stack }
-                  : error,
+              error: errorInfo,
               id,
             },
             "Error auto-saving board"
@@ -1157,35 +1432,48 @@ function BoardContent({ id }: { id: string }) {
           >
             <ArrowLeft01Icon size={20} strokeWidth={2} />
           </Button>
-          <Tabs 
-            value={assistanceMode} 
-            onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
-            className="w-auto shadow-sm rounded-lg"
-          >
-            <TabsList>
-              <TabsTrigger value="off">Off</TabsTrigger>
-              <TabsTrigger value="feedback">Feedback</TabsTrigger>
-              <TabsTrigger value="suggest">Suggest</TabsTrigger>
-              <TabsTrigger value="answer">Answer</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Tabs 
+              value={assistanceMode} 
+              onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
+              className="w-auto shadow-sm rounded-lg"
+            >
+              <TabsList>
+                <TabsTrigger value="off">Off</TabsTrigger>
+                <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                <TabsTrigger value="suggest">Suggest</TabsTrigger>
+                <TabsTrigger value="answer">Solve</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <ModeInfoDialog />
+          </div>
         </div>
       )}
 
-      <StatusIndicator status={status} errorMessage={errorMessage} customMessage={statusMessage} />
+      {/* When a voice session is active, let the voice banner own the top-center space. */}
+      {!isVoiceSessionActive && (
+        <StatusIndicator
+          status={status}
+          errorMessage={errorMessage}
+          customMessage={statusMessage}
+        />
+      )}
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
+        isVoiceSessionActive={isVoiceSessionActive}
         onAccept={handleAccept}
         onReject={handleReject}
       />
       <VoiceAgentControls
         onSessionChange={setIsVoiceSessionActive}
         onSolveWithPrompt={async (mode, instructions) => {
-          await generateSolution({
+          const success = await generateSolution({
             modeOverride: mode,
             promptOverride: instructions,
             force: true,
+            source: "voice",
           });
+          return success;
         }}
       />
     </>

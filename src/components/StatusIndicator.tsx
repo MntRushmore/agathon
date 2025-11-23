@@ -31,6 +31,8 @@ export function StatusIndicator({ status, errorMessage, customMessage }: StatusI
       className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
       style={{
         position: 'absolute',
+        // Default top-center position for canvas status; voice UI can choose
+        // to hide this component when a voice session is active.
         top: '10px',
         left: '50%',
         transform: 'translateX(-50%)',

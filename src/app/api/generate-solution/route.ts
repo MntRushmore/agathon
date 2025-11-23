@@ -9,7 +9,12 @@ export async function POST(req: NextRequest) {
 
   try {
     // Parse the request body
-    const { image, prompt, mode = 'suggest' } = await req.json();
+    const {
+      image,
+      prompt,
+      mode = 'suggest',
+      source = 'auto',
+    } = await req.json();
 
     if (!image) {
       solutionLogger.warn({ requestId }, 'No image provided in request');
@@ -32,30 +37,57 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate mode-specific prompt
-    const getModePrompt = (mode: string): string => {
+    // Generate mode-specific prompt.
+    // The `source` controls whether this was triggered automatically ("auto")
+    // or explicitly by the voice tutor ("voice").
+    const getModePrompt = (
+      mode: string,
+      source: 'auto' | 'voice' = 'auto',
+    ): string => {
+      const effectiveSource = source === 'voice' ? 'voice' : 'auto';
+
       const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from some form of assistance.';
       
       const noHelpInstruction = '\n\nIf the user does NOT seem to need help:\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
       
-      const coreRules = '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style';
+      // For voice-triggered generations, we always want an updated image,
+      // not a text-only answer.
+      const alwaysImageRule =
+        effectiveSource === 'voice'
+          ? '\n- ALWAYS generate an updated image of the whiteboard; do not respond with text-only.'
+          : '';
+
+      const coreRules =
+        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style\n\n- Be **creative** and **thoughtful** in how you style your annotations, handwriting, and diagrams. Use colors, highlighting, underlining, arrows, etc. if it helps improve clarity and organization.' +
+        alwaysImageRule;
+
+      // For automatic generations, allow the model to decide no help is needed
+      // and respond with text only. For voice, we omit this escape hatch.
+      const noHelpBlock = effectiveSource === 'auto' ? noHelpInstruction : '';
 
       switch (mode) {
         case 'feedback':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpBlock}`;
         
         case 'suggest':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve the entire problem\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve the entire problem\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
         
         case 'answer':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
         
         default:
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpInstruction}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpBlock}`;
       }
     };
 
-    const finalPrompt = prompt || getModePrompt(mode);
+    const effectiveSource: 'auto' | 'voice' =
+      source === 'voice' ? 'voice' : 'auto';
+
+    const basePrompt = getModePrompt(mode, effectiveSource);
+
+    const finalPrompt = prompt
+      ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
+      : basePrompt;
 
     solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
 
@@ -156,8 +188,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (!imageUrl) {
-      // This is now an expected path: Gemini may decide that no help is needed
-      // and return only text. Log at info level instead of error.
+      // This is an expected path in auto mode: Gemini may decide that no help is needed
+      // and return only text. In voice mode we strongly discouraged this in the prompt,
+      // but still handle it gracefully.
       const textContent = (message as any)?.content || '';
 
       const duration = Date.now() - startTime;
@@ -170,7 +203,9 @@ export async function POST(req: NextRequest) {
           tokensUsed: data.usage?.total_tokens,
           rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
         },
-        'Solution generation completed without image (Gemini returned text-only response)'
+        effectiveSource === 'voice'
+          ? 'Solution generation completed without image in voice mode (Gemini returned text-only response)'
+          : 'Solution generation completed without image (Gemini returned text-only response)'
       );
 
       // Return a successful response with text content (if any), but no image.
