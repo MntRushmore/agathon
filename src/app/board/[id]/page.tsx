@@ -599,11 +599,37 @@ function BoardContent({ id }: { id: string }) {
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
   const [status, setStatus] = useState<StatusIndicatorState>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
+  const [assistanceMode, setAssistanceMode] = useState<"feedback" | "suggest" | "answer">("suggest");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
+
+  // Helper function to get mode-aware status messages
+  const getStatusMessage = useCallback((mode: "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
+    if (statusType === "generating") {
+      switch (mode) {
+        case "feedback":
+          return "Adding feedback...";
+        case "suggest":
+          return "Generating suggestion...";
+        case "answer":
+          return "Solving problem...";
+      }
+    } else if (statusType === "success") {
+      switch (mode) {
+        case "feedback":
+          return "Feedback added";
+        case "suggest":
+          return "Suggestion added";
+        case "answer":
+          return "Solution added";
+      }
+    }
+    return "";
+  }, []);
 
   const handleAutoGeneration = useCallback(async () => {
     if (!editor || isProcessingRef.current || isVoiceSessionActive) return;
@@ -654,6 +680,7 @@ function BoardContent({ id }: { id: string }) {
       if (lastCanvasImageRef.current === base64) {
         isProcessingRef.current = false;
         setStatus("idle");
+        setStatusMessage("");
         return;
       }
       lastCanvasImageRef.current = base64;
@@ -662,10 +689,11 @@ function BoardContent({ id }: { id: string }) {
 
       // Step 2: Generate solution (Gemini decides if help is needed)
       setStatus("generating");
+      setStatusMessage(getStatusMessage(assistanceMode, "generating"));
       const solutionResponse = await fetch('/api/generate-solution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
+        body: JSON.stringify({ image: base64, mode: assistanceMode }),
         signal,
       });
 
@@ -689,6 +717,7 @@ function BoardContent({ id }: { id: string }) {
       if (!imageUrl || signal.aborted) {
         logger.info({ textContent }, 'Gemini decided help is not needed');
         setStatus("idle");
+        setStatusMessage("");
         isProcessingRef.current = false;
         return;
       }
@@ -761,7 +790,14 @@ function BoardContent({ id }: { id: string }) {
       });
 
       setPendingImageIds((prev) => [...prev, shapeId]);
-      setStatus("idle");
+      
+      // Show success message briefly, then return to idle
+      setStatus("success");
+      setStatusMessage(getStatusMessage(assistanceMode, "success"));
+      setTimeout(() => {
+        setStatus("idle");
+        setStatusMessage("");
+      }, 2000);
 
       // Reset flag after a brief delay
       setTimeout(() => {
@@ -770,12 +806,14 @@ function BoardContent({ id }: { id: string }) {
     } catch (error) {
       if (signal.aborted) {
         setStatus("idle");
+        setStatusMessage("");
         return;
       }
       
       logger.error({ error }, 'Auto-generation error');
       setErrorMessage(error instanceof Error ? error.message : 'Generation failed');
       setStatus("error");
+      setStatusMessage("");
       
       // Clear error after 3 seconds
       setTimeout(() => {
@@ -786,7 +824,7 @@ function BoardContent({ id }: { id: string }) {
       isProcessingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [editor, pendingImageIds, isVoiceSessionActive]);
+  }, [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
   useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef, isProcessingRef);
@@ -806,6 +844,7 @@ function BoardContent({ id }: { id: string }) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
         setStatus("idle");
+        setStatusMessage("");
         isProcessingRef.current = false;
       }
     };
@@ -956,24 +995,30 @@ function BoardContent({ id }: { id: string }) {
   return (
     <>
       {/* Tabs at top left */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          zIndex: 1000,
-        }}
+      {!isVoiceSessionActive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            zIndex: 1000,
+          }}
         >
-        <Tabs defaultValue="suggest" className="w-auto shadow-sm rounded-lg">
-          <TabsList>
-            <TabsTrigger value="feedback">Feedback</TabsTrigger>
-            <TabsTrigger value="suggest">Suggest</TabsTrigger>
-            <TabsTrigger value="answer">Answer</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+          <Tabs 
+            value={assistanceMode} 
+            onValueChange={(value) => setAssistanceMode(value as "feedback" | "suggest" | "answer")}
+            className="w-auto shadow-sm rounded-lg"
+          >
+            <TabsList>
+              <TabsTrigger value="feedback">Feedback</TabsTrigger>
+              <TabsTrigger value="suggest">Suggest</TabsTrigger>
+              <TabsTrigger value="answer">Answer</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      )}
 
-      <StatusIndicator status={status} errorMessage={errorMessage} />
+      <StatusIndicator status={status} errorMessage={errorMessage} customMessage={statusMessage} />
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
         onAccept={handleAccept}
