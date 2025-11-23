@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ocrLogger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  const requestId = crypto.randomUUID();
+
+  ocrLogger.info({ requestId }, 'OCR request started');
+
   try {
     const { image } = await req.json();
 
     if (!image) {
+      ocrLogger.warn({ requestId }, 'No image provided in request');
       return NextResponse.json(
         { error: 'No image provided' },
         { status: 400 }
       );
     }
 
+    ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
+
     if (!process.env.MISTRAL_API_KEY) {
+      ocrLogger.error({ requestId }, 'MISTRAL_API_KEY not configured');
       return NextResponse.json(
         { error: 'MISTRAL_API_KEY not configured' },
         { status: 500 }
       );
     }
+
+    ocrLogger.info({ requestId }, 'Calling Mistral Pixtral API for OCR');
 
     // Call Mistral Pixtral model for OCR via their API
     const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
@@ -48,18 +60,38 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      ocrLogger.error({
+        requestId,
+        status: response.status,
+        error: errorData
+      }, 'Mistral API error');
       throw new Error(errorData.error?.message || 'Mistral API error');
     }
 
     const data = await response.json();
     const extractedText = data.choices?.[0]?.message?.content || '';
 
+    const duration = Date.now() - startTime;
+    ocrLogger.info({
+      requestId,
+      duration,
+      textLength: extractedText.length,
+      tokensUsed: data.usage?.total_tokens
+    }, 'OCR completed successfully');
+
     return NextResponse.json({
       success: true,
       text: extractedText,
     });
   } catch (error) {
-    console.error('Error performing OCR:', error);
+    const duration = Date.now() - startTime;
+    ocrLogger.error({
+      requestId,
+      duration,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, 'Error performing OCR');
+
     return NextResponse.json(
       {
         error: 'Failed to perform OCR',
@@ -69,4 +101,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

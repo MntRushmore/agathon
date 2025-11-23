@@ -1,23 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { solutionLogger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  const requestId = crypto.randomUUID();
+
+  solutionLogger.info({ requestId }, 'Solution generation request started');
+
   try {
     // Parse the request body
     const { image, ocrText } = await req.json();
 
     if (!image) {
+      solutionLogger.warn({ requestId }, 'No image provided in request');
       return NextResponse.json(
         { error: 'No image provided' },
         { status: 400 }
       );
     }
 
+    solutionLogger.debug({
+      requestId,
+      imageSize: image.length,
+      hasOcrText: !!ocrText,
+      ocrTextLength: ocrText?.length || 0
+    }, 'Request payload received');
+
     if (!process.env.OPENROUTER_API_KEY) {
+      solutionLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
       return NextResponse.json(
         { error: 'OPENROUTER_API_KEY not configured' },
         { status: 500 }
       );
     }
+
+    solutionLogger.info({ requestId }, 'Calling OpenRouter Gemini API for image generation');
 
     // Call Gemini image generation model via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -42,7 +59,7 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: 'text',
-                text: ocrText 
+                text: ocrText
                   ? `Here is the extracted text from the canvas:\n\n${ocrText}\n\nModify the image to include the solution to the problem shown, written in handwriting style.`
                   : 'Modify the image to include the solution in handwriting.',
               },
@@ -62,6 +79,11 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json();
+      solutionLogger.error({
+        requestId,
+        status: response.status,
+        error: errorData
+      }, 'OpenRouter API error');
       throw new Error(errorData.error?.message || 'OpenRouter API error');
     }
 
@@ -72,11 +94,21 @@ export async function POST(req: NextRequest) {
     const generatedImages = message?.images;
 
     if (!generatedImages || generatedImages.length === 0) {
+      solutionLogger.error({ requestId }, 'No image generated in response');
       throw new Error('No image generated in response');
     }
 
     // Get the first generated image (base64 data URL)
     const imageUrl = generatedImages[0].image_url.url;
+
+    const duration = Date.now() - startTime;
+    solutionLogger.info({
+      requestId,
+      duration,
+      generatedImageSize: imageUrl.length,
+      hasTextContent: !!message?.content,
+      tokensUsed: data.usage?.total_tokens
+    }, 'Solution generation completed successfully');
 
     return NextResponse.json({
       success: true,
@@ -84,7 +116,14 @@ export async function POST(req: NextRequest) {
       textContent: message?.content || '',
     });
   } catch (error) {
-    console.error('Error generating solution:', error);
+    const duration = Date.now() - startTime;
+    solutionLogger.error({
+      requestId,
+      duration,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, 'Error generating solution');
+
     return NextResponse.json(
       {
         error: 'Failed to generate solution',
@@ -94,4 +133,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
