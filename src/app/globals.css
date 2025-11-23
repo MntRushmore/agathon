@@ -121,3 +121,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Force tldraw canvas to be completely white */
+.tldraw__editor {
+  background-color: #ffffff !important;
+}
+
+.tl-background {
+  background-color: #ffffff !important;
+}
+
+.tl-canvas {
+  background-color: #ffffff !important;
+}
