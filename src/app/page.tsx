@@ -147,77 +147,56 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="border-b bg-card sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-lg">
-                <FileIcon className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">
-                Infinite Canvas
-              </span>
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-6">
+        {/* Header Section */}
+        <div className="space-y-4 mb-4">
+          <h1 className="text-4xl font-bold tracking-tight">My Whiteboards</h1>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                type="text"
+                placeholder="Search boards..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  type="text"
-                  placeholder="Search boards..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
-                />
-              </div>
-              <Button 
-                onClick={createWhiteboard}
-                disabled={creating}
+            <Button 
+              onClick={createWhiteboard}
+              disabled={creating}
+              className="h-10 w-full sm:w-auto"
+            >
+              {creating ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
+              New Board
+            </Button>
+            
+            <div className="flex items-center gap-2 bg-card p-1 rounded-lg border shadow-sm">
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon-lg"
+                onClick={() => setViewMode('grid')}
               >
-                {creating ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
-                New Board
+                <LayoutGrid className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon-lg"
+                onClick={() => setViewMode('list')}
+              >
+                <ListIcon className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">My Whiteboards</h1>
-            <p className="text-muted-foreground mt-1">
-              {filteredWhiteboards.length} {filteredWhiteboards.length === 1 ? 'board' : 'boards'} found
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2 bg-card p-1 rounded-lg border shadow-sm self-start sm:self-auto">
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={() => setViewMode('grid')}
-              className="h-8 w-8"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-              className="h-8 w-8"
-            >
-              <ListIcon className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-64 bg-card rounded-xl border shadow-sm animate-pulse">
                 <div className="h-40 bg-muted rounded-t-xl" />
@@ -231,19 +210,19 @@ export default function Dashboard() {
         ) : (
           <div className={cn(
             viewMode === 'grid' 
-              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
               : "flex flex-col gap-3"
           )}>
             {/* Create New Card (Grid Only) */}
             {viewMode === 'grid' && (
               <div 
                 onClick={createWhiteboard}
-                className="group relative flex flex-col items-center justify-center h-64 bg-card border-2 border-dashed rounded-xl cursor-pointer hover:border-primary hover:bg-accent/50 transition-all duration-200"
+                className="flex flex-col items-center justify-center h-64 bg-card border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent transition-colors"
               >
-                <div className="p-4 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                  <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary" />
+                <div className="p-4 rounded-full bg-muted">
+                  <Plus className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <span className="mt-4 font-medium text-muted-foreground group-hover:text-primary">
+                <span className="mt-4 font-medium text-muted-foreground">
                   Create New Board
                 </span>
               </div>
