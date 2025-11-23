@@ -3,25 +3,28 @@ import { Loading03Icon } from "hugeicons-react";
 export type StatusIndicatorState = 
   | "idle"
   | "generating"
+  | "success"
   | "error";
 
 interface StatusIndicatorProps {
   status: StatusIndicatorState;
   errorMessage?: string;
+  customMessage?: string;
 }
 
 const statusMessages: Record<Exclude<StatusIndicatorState, "idle">, string> = {
   generating: "Generating solution...",
+  success: "Solution added",
   error: "Error occurred",
 };
 
-export function StatusIndicator({ status, errorMessage }: StatusIndicatorProps) {
+export function StatusIndicator({ status, errorMessage, customMessage }: StatusIndicatorProps) {
   // Don't render anything when idle
   if (status === "idle") return null;
 
-  const message = status === "error" && errorMessage 
+  const message = customMessage || (status === "error" && errorMessage 
     ? errorMessage 
-    : statusMessages[status];
+    : statusMessages[status]);
 
   return (
     <div
@@ -34,7 +37,7 @@ export function StatusIndicator({ status, errorMessage }: StatusIndicatorProps) 
         zIndex: 1000,
       }}
     >
-      {status !== "error" && (
+      {status === "generating" && (
         <Loading03Icon 
           size={16} 
           strokeWidth={2} 
