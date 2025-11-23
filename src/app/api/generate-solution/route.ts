@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
           : '';
 
       const coreRules =
-        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style' +
+        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style\n\n- Be creative and thoughtful in how you style your annotations, handwriting, and diagrams. Use colors, highlighting, underlining, etc. *if* it helps improve clarity and organization.' +
         alwaysImageRule;
 
       // For automatic generations, allow the model to decide no help is needed

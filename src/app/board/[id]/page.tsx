@@ -1294,26 +1294,59 @@ function BoardContent({ id }: { id: string }) {
           console.log(`Attempting to save board ${id}...`);
           
           const { error, data } = await supabase
-            .from('whiteboards')
+            .from("whiteboards")
             .update(updateData)
-            .eq('id', id)
+            .eq("id", id)
             .select();
 
           if (error) {
-            // Properly extract Supabase error properties
+            // Special-case Supabase statement timeouts (code 57014).
+            // These can happen if the user navigates away mid-request or if
+            // the database is briefly under load. Treat them as non-fatal and
+            // avoid noisy console errors.
+            const isTimeoutError =
+              (error as any)?.code === "57014" ||
+              /statement timeout/i.test(error.message ?? "");
+
+            if (isTimeoutError) {
+              console.warn("Supabase auto-save timed out, skipping noisy error log.", {
+                id,
+                code: (error as any)?.code,
+                message: error.message,
+              });
+
+              logger.warn(
+                {
+                  id,
+                  code: (error as any)?.code,
+                  message: error.message,
+                },
+                "Supabase auto-save timed out (often due to navigation away); ignoring.",
+              );
+
+              // Don't throw so the outer catch block doesn't treat this as a hard error.
+              return;
+            }
+
+            // For all other errors, log detailed information and surface a clear message.
             const errorDetails = {
               message: error.message,
-              code: error.code,
-              details: error.details,
-              hint: error.hint,
-              // Capture all properties
+              code: (error as any)?.code,
+              details: (error as any)?.details,
+              hint: (error as any)?.hint,
+              // Capture all properties for richer debugging
               ...Object.getOwnPropertyNames(error).reduce((acc, key) => {
                 acc[key] = (error as any)[key];
                 return acc;
-              }, {} as Record<string, any>)
+              }, {} as Record<string, any>),
             };
+
             console.error("Supabase update error:", errorDetails);
-            throw new Error(`Supabase error: ${error.message || 'Unknown error'} (code: ${error.code || 'N/A'})`);
+            throw new Error(
+              `Supabase error: ${error.message || "Unknown error"} (code: ${
+                (error as any)?.code || "N/A"
+              })`,
+            );
           }
           
           if (!data || data.length === 0) {
