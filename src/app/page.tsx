@@ -380,12 +380,19 @@ function HomeContent() {
       // Set flag to prevent triggering activity detection
       isUpdatingImageRef.current = true;
 
-      // When accepting, unlock the shape and make it fully opaque.
+      // First unlock to ensure we can update opacity
       editor.updateShape({
         id: shapeId,
         type: "image",
         isLocked: false,
         opacity: 1,
+      });
+
+      // Then immediately lock it again to make it non-selectable
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: true,
       });
 
       // Remove this shape from the pending list
