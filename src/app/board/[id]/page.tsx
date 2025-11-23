@@ -659,7 +659,7 @@ function VoiceAgentControls({
       <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
         <Button
           onClick={handleClick}
-          variant={isSessionActive ? "default" : "outline"}
+          variant={"outline"}
           className="rounded-full shadow-md bg-white hover:bg-gray-50"
           size="lg"
         >
@@ -669,7 +669,7 @@ function VoiceAgentControls({
             <Mic02Icon size={20} strokeWidth={2} />
           )}
           <span className="ml-2 font-medium">
-            {isSessionActive ? "Stop Voice" : "Start Voice"}
+            {isSessionActive ? "End Session" : "Voice Mode"}
           </span>
         </Button>
       </div>
