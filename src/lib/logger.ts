@@ -13,3 +13,4 @@ export const logger = pino({
 export const ocrLogger = logger.child({ module: 'ocr' });
 export const helpCheckLogger = logger.child({ module: 'help-check' });
 export const solutionLogger = logger.child({ module: 'solution-generation' });
+export const voiceLogger = logger.child({ module: 'voice' });
