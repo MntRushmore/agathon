@@ -1,159 +1,153 @@
 "use client";
 
-import { Tldraw, useEditor, createShapeId, AssetRecordType, getSnapshot, loadSnapshot } from "tldraw";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Tldraw,
+  useEditor,
+  createShapeId,
+  AssetRecordType,
+  TLShapeId,
+  DefaultColorThemePalette,
+  type TLUiOverrides,
+  getSnapshot,
+  loadSnapshot,
+} from "tldraw";
+import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
 import "tldraw/tldraw.css";
-import { supabase } from "@/lib/supabase";
-import { useParams, useRouter } from "next/navigation";
-import { 
-  ArrowLeft, 
-  Wand2, 
-  CheckCircle2,
-  Loader2,
-  Cloud,
-  Mic,
-  MicOff,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Tick01Icon,
+  Cancel01Icon,
+  Cursor02Icon,
+  ThreeFinger05Icon,
+  PencilIcon,
+  EraserIcon,
+  ArrowUpRight01Icon,
+  TextIcon,
+  StickyNote01Icon,
+  Image01Icon,
+  AddSquareIcon,
+  Mic02Icon,
+  MicOff02Icon,
+} from "hugeicons-react";
+import { useDebounceActivity } from "@/hooks/useDebounceActivity";
+import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
+import { logger } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
+import { useParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Debounce helper
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => {
-      clearTimeout(handler);
+// Ensure the tldraw canvas background is pure white in both light and dark modes
+DefaultColorThemePalette.lightMode.background = "#FFFFFF";
+DefaultColorThemePalette.darkMode.background = "#FFFFFF";
+
+const hugeIconsOverrides: TLUiOverrides = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tools(_editor: unknown, tools: Record<string, any>) {
+    const toolIconMap: Record<string, ReactElement> = {
+      select: (
+        <div>
+          <Cursor02Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      hand: (
+        <div>
+          <ThreeFinger05Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      draw: (
+        <div>
+          <PencilIcon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      eraser: (
+        <div>
+          <EraserIcon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      arrow: (
+        <div>
+          <ArrowUpRight01Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      text: (
+        <div>
+          <TextIcon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      note: (
+        <div>
+          <StickyNote01Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      asset: (
+        <div>
+          <Image01Icon size={22} strokeWidth={1.5} />
+        </div>
+      ),
+      rectangle: (
+        <div>
+          <AddSquareIcon size={22} strokeWidth={1.5} />
+        </div>
+      ),
     };
-  }, [value, delay]);
-  return debouncedValue;
-}
 
-function GenerateSolutionButton() {
-  const editor = useEditor();
-  const [isGenerating, setIsGenerating] = useState(false);
+    Object.keys(toolIconMap).forEach((id) => {
+      const icon = toolIconMap[id];
+      if (!tools[id] || !icon) return;
+      tools[id].icon = icon;
+    });
 
-  const handleGenerateSolution = useCallback(async () => {
-    if (!editor || isGenerating) return;
+    return tools;
+  },
+};
 
-    setIsGenerating(true);
+function ImageActionButtons({
+  pendingImageIds,
+  onAccept,
+  onReject,
+}: {
+  pendingImageIds: TLShapeId[];
+  onAccept: (shapeId: TLShapeId) => void;
+  onReject: (shapeId: TLShapeId) => void;
+}) {
+  // Only show buttons when there's a pending image
+  if (pendingImageIds.length === 0) return null;
 
-    try {
-      const viewportBounds = editor.getViewportPageBounds();
-      const shapeIds = editor.getCurrentPageShapeIds();
-      if (shapeIds.size === 0) {
-        toast.error("No shapes on the canvas to export");
-        return;
-      }
-
-      const { blob } = await editor.toImage([...shapeIds], {
-        format: "png",
-        bounds: viewportBounds,
-        background: true,
-        scale: 1,
-        padding: 0,
-      });
-
-      if (!blob) throw new Error("Failed to export viewport to image");
-
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-
-      const response = await fetch('/api/generate-solution', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64 }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Generation failed:", error);
-        throw new Error(error.details || error.error || 'Failed to generate solution');
-      }
-
-      const data = await response.json();
-      const imageUrl = data.imageUrl;
-
-      if (!imageUrl) throw new Error('No image URL found in response');
-
-      const assetId = AssetRecordType.createId();
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      editor.createAssets([
-        {
-          id: assetId,
-          type: 'image',
-          typeName: 'asset',
-          props: {
-            name: 'generated-solution.png',
-            src: imageUrl,
-            w: img.width,
-            h: img.height,
-            mimeType: 'image/png',
-            isAnimated: false,
-          },
-          meta: {},
-        },
-      ]);
-
-      const shapeId = createShapeId();
-      const scale = Math.min(
-        viewportBounds.width / img.width,
-        viewportBounds.height / img.height
-      );
-      const shapeWidth = img.width * scale;
-      const shapeHeight = img.height * scale;
-
-      editor.createShape({
-        id: shapeId,
-        type: "image",
-        x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
-        y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
-        opacity: 0.3,
-        isLocked: true,
-        props: {
-          w: shapeWidth,
-          h: shapeHeight,
-          assetId: assetId,
-        },
-      });
-      toast.success("Solution generated!");
-    } catch (error) {
-      console.error('Error generating solution:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate solution');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [editor, isGenerating]);
+  // For now, we'll just handle the most recent pending image
+  const currentImageId = pendingImageIds[pendingImageIds.length - 1];
 
   return (
-    <Button
-      onClick={handleGenerateSolution}
-      disabled={isGenerating}
-      className="absolute top-[80px] right-4 z-[2000] shadow-lg shadow-indigo-500/20 bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 border-0"
+    <div
+      style={{
+        position: 'absolute',
+        top: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+        display: 'flex',
+        gap: '8px',
+      }}
     >
-      {isGenerating ? (
-        <Loader2 className="animate-spin w-4 h-4 mr-2" />
-      ) : (
-        <Wand2 className="w-4 h-4 mr-2" />
-      )}
-      {isGenerating ? 'Solving...' : 'Solve with AI'}
-    </Button>
+      <Button
+        variant="default"
+        onClick={() => onAccept(currentImageId)}
+      >
+        <Tick01Icon size={20} strokeWidth={2.5} />
+        <span className="ml-2">Accept</span>
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => onReject(currentImageId)}
+      >
+        <Cancel01Icon size={20} strokeWidth={2.5} />
+        <span className="ml-2">Reject</span>
+      </Button>
+    </div>
   );
 }
 
-function VoiceAgentControls() {
+function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boolean) => void }) {
   const editor = useEditor();
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [status, setStatus] = useState("Idle");
@@ -401,7 +395,8 @@ function VoiceAgentControls() {
     }
     setIsSessionActive(false);
     setStatus("Idle");
-  }, []);
+    onSessionChange(false);
+  }, [onSessionChange]);
 
   const startSession = useCallback(async () => {
     try {
@@ -498,6 +493,7 @@ function VoiceAgentControls() {
 
       setIsSessionActive(true);
       setStatus("Listening");
+      onSessionChange(true);
     } catch (err) {
       console.error(err);
       if (err instanceof Error && err.name === "NotAllowedError") {
@@ -508,7 +504,7 @@ function VoiceAgentControls() {
       }
       stopSession();
     }
-  }, [handleServerEvent, stopSession, tools]);
+  }, [handleServerEvent, stopSession, tools, onSessionChange]);
 
   useEffect(() => {
     return () => {
@@ -525,21 +521,21 @@ function VoiceAgentControls() {
   };
 
   return (
-    <div className="absolute top-[140px] right-4 z-[2000] flex flex-col items-end gap-2 pointer-events-auto">
+    <div className="absolute bottom-6 right-6 z-[2000] flex flex-col items-end gap-2 pointer-events-auto">
       <Button
         onClick={handleClick}
         variant={isSessionActive ? "destructive" : "outline"}
-        className="shadow-lg bg-white/90 backdrop-blur hover:bg-white"
+        className="rounded-full shadow-lg bg-white/90 backdrop-blur hover:bg-white"
       >
         {isSessionActive ? (
           <>
-            <MicOff className="w-4 h-4 mr-2" />
-            Stop Voice
+            <MicOff02Icon size={16} strokeWidth={2} />
+            <span className="ml-2">Stop Voice</span>
           </>
         ) : (
           <>
-            <Mic className="w-4 h-4 mr-2" />
-            Voice Agent
+            <Mic02Icon size={16} strokeWidth={2} />
+            <span className="ml-2">Voice</span>
           </>
         )}
       </Button>
@@ -550,145 +546,375 @@ function VoiceAgentControls() {
   );
 }
 
-function TopBar({ id, initialTitle }: { id: string, initialTitle: string }) {
+function BoardContent({ id }: { id: string }) {
   const editor = useEditor();
-  const [title, setTitle] = useState(initialTitle);
-  const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const router = useRouter();
-  
-  // Debounce title updates
-  const debouncedTitle = useDebounce(title, 1000);
-  
-  // Track if we need to save canvas content
-  const [needsSave, setNeedsSave] = useState(false);
+  const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
+  const [status, setStatus] = useState<StatusIndicatorState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
+  const isProcessingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastCanvasImageRef = useRef<string | null>(null);
+  const isUpdatingImageRef = useRef(false);
 
-  const saveBoard = useCallback(async (currentTitle: string) => {
-    if (!editor) return;
-    setSaving(true);
+  const handleAutoGeneration = useCallback(async () => {
+    if (!editor || isProcessingRef.current || isVoiceSessionActive) return;
+
+    // Check if canvas has content
+    const shapeIds = editor.getCurrentPageShapeIds();
+    if (shapeIds.size === 0) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    
+    // Create abort controller for this request chain
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
-      const snapshot = getSnapshot(editor.store);
+      // Step 1: Capture viewport (excluding pending generated images)
+      const viewportBounds = editor.getViewportPageBounds();
       
-      // Generate a thumbnail
-      let previewUrl = null;
-      try {
-          const shapeIds = editor.getCurrentPageShapeIds();
-          if (shapeIds.size > 0) {
-             // Export a small preview
-             const viewportBounds = editor.getViewportPageBounds();
-             const { blob } = await editor.toImage([...shapeIds], {
+      // Filter out pending generated images from the capture
+      // so that accepting/rejecting them doesn't change the canvas hash
+      const shapesToCapture = [...shapeIds].filter(id => !pendingImageIds.includes(id));
+      
+      if (shapesToCapture.length === 0) {
+        isProcessingRef.current = false;
+        return;
+      }
+      
+      const { blob } = await editor.toImage(shapesToCapture, {
+        format: "png",
+        bounds: viewportBounds,
+        background: true,
+        scale: 1,
+        padding: 0,
+      });
+
+      if (!blob || signal.aborted) return;
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+
+      // If the canvas image hasn't changed since the last successful check,
+      // don't run the expensive OCR / help-check / generation pipeline again.
+      if (lastCanvasImageRef.current === base64) {
+        isProcessingRef.current = false;
+        setStatus("idle");
+        return;
+      }
+      lastCanvasImageRef.current = base64;
+
+      if (signal.aborted) return;
+
+      // Step 2: Generate solution (Gemini decides if help is needed)
+      setStatus("generating");
+      const solutionResponse = await fetch('/api/generate-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+        signal,
+      });
+
+      if (!solutionResponse.ok || signal.aborted) {
+        throw new Error('Solution generation failed');
+      }
+
+      const solutionData = await solutionResponse.json();
+      const imageUrl = solutionData.imageUrl as string | null | undefined;
+      const textContent = solutionData.textContent || '';
+
+      logger.info({ 
+        hasImageUrl: !!imageUrl, 
+        imageUrlLength: imageUrl?.length,
+        imageUrlStart: imageUrl?.slice(0, 50),
+        textContent: textContent.slice(0, 100)
+      }, 'Solution data received');
+
+      // If the model didn't return an image, it means Gemini decided help isn't needed.
+      // Log the reason and gracefully stop.
+      if (!imageUrl || signal.aborted) {
+        logger.info({ textContent }, 'Gemini decided help is not needed');
+        setStatus("idle");
+        isProcessingRef.current = false;
+        return;
+      }
+
+      const processedImageUrl = imageUrl;
+
+      if (signal.aborted) return;
+
+      // Create asset and shape
+      const assetId = AssetRecordType.createId();
+      const img = new Image();
+      logger.info('Loading image into asset...');
+      
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          logger.info({ width: img.width, height: img.height }, 'Image loaded successfully');
+          resolve(null);
+        };
+        img.onerror = (e) => {
+          logger.error({ error: e }, 'Image load failed');
+          reject(new Error('Failed to load generated image'));
+        };
+        img.src = processedImageUrl;
+      });
+
+      if (signal.aborted) return;
+
+      logger.info('Creating asset and shape...');
+
+      // Set flag to prevent these shape additions from triggering activity detection
+      isUpdatingImageRef.current = true;
+
+      editor.createAssets([
+        {
+          id: assetId,
+          type: 'image',
+          typeName: 'asset',
+          props: {
+            name: 'generated-solution.png',
+            src: processedImageUrl,
+            w: img.width,
+            h: img.height,
+            mimeType: 'image/png',
+            isAnimated: false,
+          },
+          meta: {},
+        },
+      ]);
+
+      const shapeId = createShapeId();
+      const scale = Math.min(
+        viewportBounds.width / img.width,
+        viewportBounds.height / img.height
+      );
+      const shapeWidth = img.width * scale;
+      const shapeHeight = img.height * scale;
+
+      editor.createShape({
+        id: shapeId,
+        type: "image",
+        x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
+        y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
+        opacity: 0.3,
+        isLocked: true,
+        props: {
+          w: shapeWidth,
+          h: shapeHeight,
+          assetId: assetId,
+        },
+      });
+
+      setPendingImageIds((prev) => [...prev, shapeId]);
+      setStatus("idle");
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
+    } catch (error) {
+      if (signal.aborted) {
+        setStatus("idle");
+        return;
+      }
+      
+      logger.error({ error }, 'Auto-generation error');
+      setErrorMessage(error instanceof Error ? error.message : 'Generation failed');
+      setStatus("error");
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setStatus("idle");
+        setErrorMessage("");
+      }, 3000);
+    } finally {
+      isProcessingRef.current = false;
+      abortControllerRef.current = null;
+    }
+  }, [editor, pendingImageIds, isVoiceSessionActive]);
+
+  // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
+  useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef, isProcessingRef);
+
+  // Cancel in-flight requests when user edits the canvas
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleEditorChange = () => {
+      // Ignore if we're just updating accepted/rejected images
+      if (isUpdatingImageRef.current) {
+        return;
+      }
+
+      // Only cancel if there's an active generation in progress
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setStatus("idle");
+        isProcessingRef.current = false;
+      }
+    };
+
+    // Listen to editor changes (actual edits)
+    const dispose = editor.store.listen(handleEditorChange, {
+      source: 'user',
+      scope: 'document'
+    });
+
+    return () => {
+      dispose();
+    };
+  }, [editor]);
+
+  const handleAccept = useCallback(
+    (shapeId: TLShapeId) => {
+      if (!editor) return;
+
+      // Set flag to prevent triggering activity detection
+      isUpdatingImageRef.current = true;
+
+      // First unlock to ensure we can update opacity
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: false,
+        opacity: 1,
+      });
+
+      // Then immediately lock it again to make it non-selectable
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: true,
+      });
+
+      // Remove this shape from the pending list
+      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
+    },
+    [editor]
+  );
+
+  const handleReject = useCallback(
+    (shapeId: TLShapeId) => {
+      if (!editor) return;
+
+      // Set flag to prevent triggering activity detection
+      isUpdatingImageRef.current = true;
+
+      // Unlock the shape first, then delete it
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: false,
+      });
+      
+      editor.deleteShape(shapeId);
+
+      // Remove from pending list
+      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
+    },
+    [editor]
+  );
+
+  // Auto-save logic
+  useEffect(() => {
+    if (!editor) return;
+
+    let saveTimeout: NodeJS.Timeout;
+
+    const handleChange = () => {
+      // Don't save during image updates
+      if (isUpdatingImageRef.current) return;
+
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(async () => {
+        try {
+          const snapshot = getSnapshot(editor.store);
+          
+          // Generate a thumbnail
+          let previewUrl = null;
+          try {
+            const shapeIds = editor.getCurrentPageShapeIds();
+            if (shapeIds.size > 0) {
+              const viewportBounds = editor.getViewportPageBounds();
+              const { blob } = await editor.toImage([...shapeIds], {
                 format: "png",
                 bounds: viewportBounds,
                 background: false,
-                scale: 0.5, // 50% scale for thumbnail
-             });
-             
-             if (blob) {
+                scale: 0.5,
+              });
+              
+              if (blob) {
                 previewUrl = await new Promise<string>((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.readAsDataURL(blob);
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.readAsDataURL(blob);
                 });
-             }
+              }
+            }
+          } catch (e) {
+            console.error("Thumbnail generation failed", e);
           }
-      } catch (e) {
-          console.error("Thumbnail generation failed", e);
-      }
 
-      const updateData: any = { 
-        title: currentTitle, 
-        data: snapshot,
-        updated_at: new Date().toISOString()
-      };
+          const updateData: any = { 
+            data: snapshot,
+            updated_at: new Date().toISOString()
+          };
 
-      if (previewUrl) {
-          updateData.preview = previewUrl;
-      }
+          if (previewUrl) {
+            updateData.preview = previewUrl;
+          }
 
-      const { error } = await supabase
-        .from('whiteboards')
-        .update(updateData)
-        .eq('id', id);
+          const { error } = await supabase
+            .from('whiteboards')
+            .update(updateData)
+            .eq('id', id);
 
-      if (error) throw error;
-      setLastSaved(new Date());
-      setNeedsSave(false);
-    } catch (error) {
-      console.error('Error saving:', error);
-      toast.error("Failed to auto-save");
-    } finally {
-      setSaving(false);
-    }
+          if (error) throw error;
+        } catch (error) {
+          console.error('Error auto-saving:', error);
+        }
+      }, 2000);
+    };
+
+    const dispose = editor.store.listen(handleChange, {
+      source: 'user',
+      scope: 'document'
+    });
+
+    return () => {
+      clearTimeout(saveTimeout);
+      dispose();
+    };
   }, [editor, id]);
 
-  // Auto-save on canvas changes
-  useEffect(() => {
-    if (!editor) return;
-    const unsubscribe = editor.store.listen(() => {
-      setNeedsSave(true);
-    });
-    return () => unsubscribe();
-  }, [editor]);
-
-  // Debounced auto-save effect
-  useEffect(() => {
-    if (needsSave) {
-      const timer = setTimeout(() => {
-        saveBoard(title);
-      }, 2000); // Save 2 seconds after last change
-      return () => clearTimeout(timer);
-    }
-  }, [needsSave, title, saveBoard]);
-
-  // Save on title change (debounced)
-  useEffect(() => {
-    if (debouncedTitle !== initialTitle) {
-      saveBoard(debouncedTitle);
-    }
-  }, [debouncedTitle, initialTitle, saveBoard]);
-
   return (
-    <div className="absolute top-0 left-0 right-0 z-[2000] h-16 px-4 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-200/50 pointer-events-auto">
-      <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => router.push('/dashboard')}
-          className="text-gray-500 hover:text-gray-900"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        
-        <div className="h-6 w-px bg-gray-200 mx-1" />
-
-        <div className="flex flex-col justify-center">
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="h-7 bg-transparent border-none text-sm font-semibold text-gray-900 px-1 -ml-1 w-64 shadow-none focus-visible:ring-0 focus-visible:bg-gray-100/50 rounded-sm"
-            placeholder="Untitled Board"
-          />
-          <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-medium px-1 h-4">
-            {saving ? (
-               <span className="flex items-center gap-1 text-blue-500">
-                 <Loader2 className="w-3 h-3 animate-spin" />
-                 Saving...
-               </span>
-            ) : lastSaved ? (
-               <span className="flex items-center gap-1 text-green-600">
-                 <Cloud className="w-3 h-3" />
-                 Saved {lastSaved.toLocaleTimeString()}
-               </span>
-            ) : (
-               <span className="flex items-center gap-1">
-                 <CheckCircle2 className="w-3 h-3" />
-                 Ready
-               </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+    <>
+      <StatusIndicator status={status} errorMessage={errorMessage} />
+      <ImageActionButtons
+        pendingImageIds={pendingImageIds}
+        onAccept={handleAccept}
+        onReject={handleReject}
+      />
+      <VoiceAgentControls onSessionChange={setIsVoiceSessionActive} />
+    </>
   );
 }
 
@@ -697,24 +923,22 @@ export default function BoardPage() {
   const id = params.id as string;
   const [loading, setLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>(null);
-  const [title, setTitle] = useState("Untitled");
 
   useEffect(() => {
     async function loadBoard() {
       try {
         const { data, error } = await supabase
           .from('whiteboards')
-          .select('title, data')
+          .select('data')
           .eq('id', id)
           .single();
 
         if (error) throw error;
 
         if (data) {
-           setTitle(data.title);
-           if (data.data && Object.keys(data.data).length > 0) {
-             setInitialData(data.data);
-           }
+          if (data.data && Object.keys(data.data).length > 0) {
+            setInitialData(data.data);
+          }
         }
       } catch (e) {
         console.error("Error loading board:", e);
@@ -738,22 +962,25 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-[#F9FAFB]">
-      <Tldraw 
+    <div style={{ position: "fixed", inset: 0 }}>
+      <Tldraw
+        overrides={hugeIconsOverrides}
+        components={{
+          MenuPanel: null,
+          NavigationPanel: null,
+        }}
         onMount={(editor) => {
-            if (initialData) {
-                try {
-                    loadSnapshot(editor.store, initialData);
-                } catch (e) {
-                    console.error("Failed to load snapshot:", e);
-                    toast.error("Failed to restore canvas state");
-                }
+          if (initialData) {
+            try {
+              loadSnapshot(editor.store, initialData);
+            } catch (e) {
+              console.error("Failed to load snapshot:", e);
+              toast.error("Failed to restore canvas state");
             }
+          }
         }}
       >
-        <TopBar id={id} initialTitle={title} />
-        <GenerateSolutionButton />
-        <VoiceAgentControls />
+        <BoardContent id={id} />
       </Tldraw>
     </div>
   );
