@@ -38,7 +38,7 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
@@ -175,6 +175,7 @@ function VoiceAgentControls({
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [statusDetail, setStatusDetail] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -218,6 +219,7 @@ function VoiceAgentControls({
     setIsSessionActive(false);
     setStatus("idle");
     setStatusDetail(null);
+    setIsMuted(false);
     onSessionChange(false);
   }, [cleanupSession, onSessionChange]);
 
@@ -621,6 +623,23 @@ function VoiceAgentControls({
     }
   };
 
+  const handleToggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+
+      // Following WebRTC best practices for Realtime:
+      // mute by disabling the outgoing microphone track(s),
+      // so no audio is sent to the agent while keeping the session alive.
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach((track) => {
+          track.enabled = !next;
+        });
+      }
+
+      return next;
+    });
+  };
+
   const showStatus = status !== "idle";
   const isError = status === "error";
 
@@ -655,23 +674,41 @@ function VoiceAgentControls({
         </div>
       )}
 
-      {/* Voice button at center bottom */}
+      {/* Voice controls at center bottom */}
       <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
-        <Button
-          onClick={handleClick}
-          variant={"outline"}
-          className="rounded-full shadow-md bg-white hover:bg-gray-50"
-          size="lg"
-        >
-          {isSessionActive ? (
-            <MicOff02Icon size={20} strokeWidth={2} />
-          ) : (
-            <Mic02Icon size={20} strokeWidth={2} />
+        <div className="flex items-center gap-2">
+          {isSessionActive && (
+            <Button
+              type="button"
+              onClick={handleToggleMute}
+              variant="outline"
+              size="icon"
+              className="rounded-full shadow-md bg-white hover:bg-gray-50"
+              aria-label={isMuted ? "Unmute tutor" : "Mute tutor"}
+            >
+              {isMuted ? (
+                <VolumeX className="w-4 h-4" />
+              ) : (
+                <Volume2 className="w-4 h-4" />
+              )}
+            </Button>
           )}
-          <span className="ml-2 font-medium">
-            {isSessionActive ? "End Session" : "Voice Mode"}
-          </span>
-        </Button>
+          <Button
+            onClick={handleClick}
+            variant={"outline"}
+            className="rounded-full shadow-md bg-white hover:bg-gray-50"
+            size="lg"
+          >
+            {isSessionActive ? (
+              <MicOff02Icon size={20} strokeWidth={2} />
+            ) : (
+              <Mic02Icon size={20} strokeWidth={2} />
+            )}
+            <span className="ml-2 font-medium">
+              {isSessionActive ? "End Session" : "Voice Mode"}
+            </span>
+          </Button>
+        </div>
       </div>
     </>
   );
