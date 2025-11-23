@@ -131,17 +131,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (!imageUrl) {
-      // If we couldn't find an image at all, log the response for debugging
-      solutionLogger.error(
-        {
-          requestId,
-          rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
-        },
-        'No image generated in response'
-      );
-
-      // Return a successful response with text content (if any), but no image.
-      // The frontend should gracefully handle the absence of imageUrl.
+      // This is now an expected path: Gemini may decide that no help is needed
+      // and return only text. Log at info level instead of error.
       const textContent = (message as any)?.content || '';
 
       const duration = Date.now() - startTime;
@@ -152,15 +143,18 @@ export async function POST(req: NextRequest) {
           generatedImageSize: 0,
           hasTextContent: !!textContent,
           tokensUsed: data.usage?.total_tokens,
+          rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
         },
-        'Solution generation completed without image'
+        'Solution generation completed without image (Gemini returned text-only response)'
       );
 
+      // Return a successful response with text content (if any), but no image.
+      // The frontend should gracefully handle the absence of imageUrl.
       return NextResponse.json({
         success: false,
         imageUrl: null,
         textContent,
-        reason: 'Model did not return an image. Check server logs for details.',
+        reason: 'Model did not return an image (likely decided help was not needed).',
       });
     }
 

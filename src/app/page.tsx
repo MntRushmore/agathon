@@ -152,6 +152,7 @@ function HomeContent() {
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
+  const isUpdatingImageRef = useRef(false); // Flag to prevent triggering during accept/reject
 
   const handleAutoGeneration = useCallback(async () => {
     if (!editor || isProcessingRef.current) return;
@@ -169,9 +170,19 @@ function HomeContent() {
     const signal = abortControllerRef.current.signal;
 
     try {
-      // Step 1: Capture viewport
+      // Step 1: Capture viewport (excluding pending generated images)
       const viewportBounds = editor.getViewportPageBounds();
-      const { blob } = await editor.toImage([...shapeIds], {
+      
+      // Filter out pending generated images from the capture
+      // so that accepting/rejecting them doesn't change the canvas hash
+      const shapesToCapture = [...shapeIds].filter(id => !pendingImageIds.includes(id));
+      
+      if (shapesToCapture.length === 0) {
+        isProcessingRef.current = false;
+        return;
+      }
+      
+      const { blob } = await editor.toImage(shapesToCapture, {
         format: "png",
         bounds: viewportBounds,
         background: true,
@@ -319,65 +330,73 @@ function HomeContent() {
       isProcessingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [editor]);
+  }, [editor, pendingImageIds]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
-  useDebounceActivity(handleAutoGeneration, 2000);
+  useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef);
 
-  // Cancel in-flight requests when user starts drawing again
-  const handleUserActivity = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setStatus("idle");
-      isProcessingRef.current = false;
-    }
-  }, []);
-
-  // Cancel in-flight requests on general user activity
+  // Cancel in-flight requests when user edits the canvas
   useEffect(() => {
-    const cancelOnActivity = () => {
-      handleUserActivity();
+    if (!editor) return;
+
+    const handleEditorChange = () => {
+      // Ignore if we're just updating accepted/rejected images
+      if (isUpdatingImageRef.current) {
+        return;
+      }
+
+      // Only cancel if there's an active generation in progress
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        setStatus("idle");
+        isProcessingRef.current = false;
+      }
     };
 
-    window.addEventListener("pointerdown", cancelOnActivity);
-    // window.addEventListener("pointermove", cancelOnActivity);
-    window.addEventListener("keydown", cancelOnActivity);
-    // window.addEventListener("wheel", cancelOnActivity);
+    // Listen to editor changes (actual edits)
+    const dispose = editor.store.listen(handleEditorChange, {
+      source: 'user',
+      scope: 'document'
+    });
 
     return () => {
-      window.removeEventListener("pointerdown", cancelOnActivity);
-      // window.removeEventListener("pointermove", cancelOnActivity);
-      window.removeEventListener("keydown", cancelOnActivity);
-      // window.removeEventListener("wheel", cancelOnActivity);
+      dispose();
     };
-  }, [handleUserActivity]);
+  }, [editor]);
 
   const handleAccept = useCallback(
-    () => {
+    (shapeId: TLShapeId) => {
       if (!editor) return;
 
-      // When accepting, make sure *all* pending generated images become fully opaque.
-      // This avoids cases where an older pending image might still appear semi-transparent.
-      if (pendingImageIds.length === 0) return;
+      // Set flag to prevent triggering activity detection
+      isUpdatingImageRef.current = true;
 
-      pendingImageIds.forEach((id) => {
-        editor.updateShape({
-          id,
-          type: "image",
-          opacity: 1,
-        });
+      // When accepting, unlock the shape and make it fully opaque.
+      editor.updateShape({
+        id: shapeId,
+        type: "image",
+        isLocked: false,
+        opacity: 1,
       });
 
-      // Clear the pending list once everything has been accepted
-      setPendingImageIds([]);
+      // Remove this shape from the pending list
+      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
     },
-    [editor, pendingImageIds]
+    [editor]
   );
 
   const handleReject = useCallback(
     (shapeId: TLShapeId) => {
       if (!editor) return;
+
+      // Set flag to prevent triggering activity detection
+      isUpdatingImageRef.current = true;
 
       // Unlock the shape first, then delete it
       editor.updateShape({
@@ -390,6 +409,11 @@ function HomeContent() {
 
       // Remove from pending list
       setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+
+      // Reset flag after a brief delay
+      setTimeout(() => {
+        isUpdatingImageRef.current = false;
+      }, 100);
     },
     [editor]
   );

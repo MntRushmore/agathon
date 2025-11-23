@@ -1,16 +1,22 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
+import { Editor } from "tldraw";
 
 /**
  * Hook that detects when the user stops drawing/writing on the canvas
  * for a specified duration (debounce period).
+ * Now uses tldraw's editor events to only trigger on actual canvas edits.
  */
 export function useDebounceActivity(
   callback: () => void,
-  delay: number = 3000
+  delay: number = 3000,
+  editor?: Editor,
+  shouldIgnoreRef?: React.MutableRefObject<boolean>
 ) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!editor) return;
+
     // Clear any existing timeout
     const clearTimer = () => {
       if (timeoutRef.current) {
@@ -27,26 +33,29 @@ export function useDebounceActivity(
       }, delay);
     };
 
-    // Consider basic input events as \"activity\" for debouncing
-    const handleActivity = () => {
+    // Listen to tldraw's history changes (actual edits)
+    // This will only trigger on drawing, typing, shape changes, etc.
+    // Not on panning, zooming, or clicking UI buttons
+    const handleHistoryChange = () => {
+      // Ignore changes if the flag is set (e.g., during accept/reject)
+      if (shouldIgnoreRef?.current) {
+        return;
+      }
       resetTimer();
     };
 
-    window.addEventListener("pointerdown", handleActivity);
-    window.addEventListener("pointermove", handleActivity);
-    window.addEventListener("keydown", handleActivity);
-    window.addEventListener("wheel", handleActivity);
+    // Listen for changes to the editor's content
+    const dispose = editor.store.listen(handleHistoryChange, {
+      source: 'user',
+      scope: 'document'
+    });
 
     // Initial timer setup
     resetTimer();
 
     return () => {
       clearTimer();
-      window.removeEventListener("pointerdown", handleActivity);
-      window.removeEventListener("pointermove", handleActivity);
-      window.removeEventListener("keydown", handleActivity);
-      window.removeEventListener("wheel", handleActivity);
+      dispose();
     };
-  }, [callback, delay]);
+  }, [callback, delay, editor, shouldIgnoreRef]);
 }
-
