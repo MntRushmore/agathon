@@ -6,6 +6,7 @@ import {
   createShapeId,
   AssetRecordType,
   TLShapeId,
+  DefaultColorThemePalette,
   type TLUiOverrides,
 } from "tldraw";
 import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
@@ -26,6 +27,12 @@ import {
 } from "hugeicons-react";
 import { useDebounceActivity } from "@/hooks/useDebounceActivity";
 import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
+import { logger } from "@/lib/logger";
+// import { correctYellowedWhites } from "@/utils/imageProcessing";
+
+// Ensure the tldraw canvas background is pure white in both light and dark modes
+DefaultColorThemePalette.lightMode.background = "#FFFFFF";
+DefaultColorThemePalette.darkMode.background = "#FFFFFF";
 
 const hugeIconsOverrides: TLUiOverrides = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,16 +151,10 @@ function HomeContent() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const lastCheckTimeRef = useRef<number>(0);
+  const lastCanvasImageRef = useRef<string | null>(null);
 
   const handleAutoGeneration = useCallback(async () => {
     if (!editor || isProcessingRef.current) return;
-
-    // Rate limiting: max 1 check per minute
-    const now = Date.now();
-    if (now - lastCheckTimeRef.current < 60000) {
-      return;
-    }
 
     // Check if canvas has content
     const shapeIds = editor.getCurrentPageShapeIds();
@@ -162,7 +163,6 @@ function HomeContent() {
     }
 
     isProcessingRef.current = true;
-    lastCheckTimeRef.current = now;
     
     // Create abort controller for this request chain
     abortControllerRef.current = new AbortController();
@@ -186,6 +186,15 @@ function HomeContent() {
         reader.onloadend = () => resolve(reader.result as string);
         reader.readAsDataURL(blob);
       });
+
+      // If the canvas image hasn't changed since the last successful check,
+      // don't run the expensive OCR / help-check / generation pipeline again.
+      if (lastCanvasImageRef.current === base64) {
+        isProcessingRef.current = false;
+        setStatus("idle");
+        return;
+      }
+      lastCanvasImageRef.current = base64;
 
       if (signal.aborted) return;
 
@@ -226,7 +235,7 @@ function HomeContent() {
 
       // If help is not needed, stop here
       if (!checkData.needsHelp) {
-        console.log('Help not needed:', checkData.reason);
+        logger.info({ reason: checkData.reason }, 'Help not needed');
         setStatus("idle");
         isProcessingRef.current = false;
         return;
@@ -246,22 +255,50 @@ function HomeContent() {
       }
 
       const solutionData = await solutionResponse.json();
-      const imageUrl = solutionData.imageUrl;
+      const imageUrl = solutionData.imageUrl as string | null | undefined;
 
+      logger.info({ 
+        hasImageUrl: !!imageUrl, 
+        imageUrlLength: imageUrl?.length,
+        imageUrlStart: imageUrl?.slice(0, 50)
+      }, 'Solution data received');
+
+      // If the model didn't return an image, just stop here gracefully.
+      // We may still have textContent in the response, which we could surface later.
       if (!imageUrl || signal.aborted) {
-        throw new Error('No image URL in response');
+        logger.warn({ solutionData }, 'No image URL returned from solution generation');
+        setStatus("idle");
+        isProcessingRef.current = false;
+        return;
       }
+
+      // Post-process image to fix yellowed whites
+      // const processedImageUrl = await correctYellowedWhites(imageUrl);
+      // Temporarily skip image post-processing and use the original image URL
+      const processedImageUrl = imageUrl;
+
+      if (signal.aborted) return;
 
       // Create asset and shape
       const assetId = AssetRecordType.createId();
       const img = new Image();
+      logger.info('Loading image into asset...');
+      
       await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
+        img.onload = () => {
+          logger.info({ width: img.width, height: img.height }, 'Image loaded successfully');
+          resolve(null);
+        };
+        img.onerror = (e) => {
+          logger.error({ error: e }, 'Image load failed');
+          reject(new Error('Failed to load generated image'));
+        };
+        img.src = processedImageUrl;
       });
 
       if (signal.aborted) return;
+
+      logger.info('Creating asset and shape...');
 
       editor.createAssets([
         {
@@ -270,7 +307,7 @@ function HomeContent() {
           typeName: 'asset',
           props: {
             name: 'generated-solution.png',
-            src: imageUrl,
+            src: processedImageUrl,
             w: img.width,
             h: img.height,
             mimeType: 'image/png',
@@ -310,7 +347,7 @@ function HomeContent() {
         return;
       }
       
-      console.error('Auto-generation error:', error);
+      logger.error({ error }, 'Auto-generation error');
       setErrorMessage(error instanceof Error ? error.message : 'Generation failed');
       setStatus("error");
       
@@ -325,8 +362,8 @@ function HomeContent() {
     }
   }, [editor]);
 
-  // Listen for user activity and trigger auto-generation after 3 seconds of inactivity
-  useDebounceActivity(handleAutoGeneration, 3000);
+  // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
+  useDebounceActivity(handleAutoGeneration, 2000);
 
   // Cancel in-flight requests when user starts drawing again
   const handleUserActivity = useCallback(() => {
@@ -345,33 +382,38 @@ function HomeContent() {
     };
 
     window.addEventListener("pointerdown", cancelOnActivity);
-    window.addEventListener("pointermove", cancelOnActivity);
+    // window.addEventListener("pointermove", cancelOnActivity);
     window.addEventListener("keydown", cancelOnActivity);
-    window.addEventListener("wheel", cancelOnActivity);
+    // window.addEventListener("wheel", cancelOnActivity);
 
     return () => {
       window.removeEventListener("pointerdown", cancelOnActivity);
-      window.removeEventListener("pointermove", cancelOnActivity);
+      // window.removeEventListener("pointermove", cancelOnActivity);
       window.removeEventListener("keydown", cancelOnActivity);
-      window.removeEventListener("wheel", cancelOnActivity);
+      // window.removeEventListener("wheel", cancelOnActivity);
     };
   }, [handleUserActivity]);
 
   const handleAccept = useCallback(
-    (shapeId: TLShapeId) => {
+    () => {
       if (!editor) return;
-      
-      // Keep the shape locked but update opacity to 100%
-      editor.updateShape({
-        id: shapeId,
-        type: "image",
-        opacity: 1.0,
+
+      // When accepting, make sure *all* pending generated images become fully opaque.
+      // This avoids cases where an older pending image might still appear semi-transparent.
+      if (pendingImageIds.length === 0) return;
+
+      pendingImageIds.forEach((id) => {
+        editor.updateShape({
+          id,
+          type: "image",
+          opacity: 1,
+        });
       });
 
-      // Remove from pending list
-      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+      // Clear the pending list once everything has been accepted
+      setPendingImageIds([]);
     },
-    [editor]
+    [editor, pendingImageIds]
   );
 
   const handleReject = useCallback(

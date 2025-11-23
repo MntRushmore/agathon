@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         },
         */
         modalities: ['image', 'text'], // Required for image generation
-        reasoning_effort: 'none',
+        reasoning_effort: 'minimal',
       }),
     });
 
@@ -89,31 +89,98 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
 
-    // Extract the generated image from the response
+    // Try to extract a generated image from the response as flexibly as possible.
+    // Different providers / models can structure image outputs differently.
     const message = data.choices?.[0]?.message;
-    const generatedImages = message?.images;
 
-    if (!generatedImages || generatedImages.length === 0) {
-      solutionLogger.error({ requestId }, 'No image generated in response');
-      throw new Error('No image generated in response');
+    let imageUrl: string | null = null;
+
+    // 1) Legacy / hypothetical format: message.images[0].image_url.url
+    const legacyImages = (message as any)?.images;
+    if (Array.isArray(legacyImages) && legacyImages.length > 0) {
+      const first = legacyImages[0];
+      imageUrl =
+        first?.image_url?.url ??
+        first?.url ??
+        null;
     }
 
-    // Get the first generated image (base64 data URL)
-    const imageUrl = generatedImages[0].image_url.url;
+    // 2) OpenAI-style content array: look for any image-like item
+    if (!imageUrl) {
+      const content = (message as any)?.content;
+
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          if (part?.type === 'image_url' && part.image_url?.url) {
+            imageUrl = part.image_url.url;
+            break;
+          }
+          if (part?.type === 'output_image' && (part.url || part.image_url?.url)) {
+            imageUrl = part.url || part.image_url?.url;
+            break;
+          }
+        }
+      } else if (typeof content === 'string') {
+        // 3) Fallback: scan text content for a plausible image URL or data URL
+        const text: string = content;
+        const dataUrlMatch = text.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
+        const httpUrlMatch = text.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
+
+        if (dataUrlMatch) {
+          imageUrl = dataUrlMatch[0];
+        } else if (httpUrlMatch) {
+          imageUrl = httpUrlMatch[0];
+        }
+      }
+    }
+
+    if (!imageUrl) {
+      // If we couldn't find an image at all, log the response for debugging
+      solutionLogger.error(
+        {
+          requestId,
+          rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
+        },
+        'No image generated in response'
+      );
+
+      // Return a successful response with text content (if any), but no image.
+      // The frontend should gracefully handle the absence of imageUrl.
+      const textContent = (message as any)?.content || '';
+
+      const duration = Date.now() - startTime;
+      solutionLogger.info(
+        {
+          requestId,
+          duration,
+          generatedImageSize: 0,
+          hasTextContent: !!textContent,
+          tokensUsed: data.usage?.total_tokens,
+        },
+        'Solution generation completed without image'
+      );
+
+      return NextResponse.json({
+        success: false,
+        imageUrl: null,
+        textContent,
+        reason: 'Model did not return an image. Check server logs for details.',
+      });
+    }
 
     const duration = Date.now() - startTime;
     solutionLogger.info({
       requestId,
       duration,
       generatedImageSize: imageUrl.length,
-      hasTextContent: !!message?.content,
+      hasTextContent: !!(message as any)?.content,
       tokensUsed: data.usage?.total_tokens
     }, 'Solution generation completed successfully');
 
     return NextResponse.json({
       success: true,
-      imageUrl: imageUrl,
-      textContent: message?.content || '',
+      imageUrl,
+      textContent: (message as any)?.content || '',
     });
   } catch (error) {
     const duration = Date.now() - startTime;

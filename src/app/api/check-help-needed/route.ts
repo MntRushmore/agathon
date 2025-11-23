@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
       text: promptText,
     });
 
-    helpCheckLogger.info({ requestId }, 'Calling OpenRouter GPT-4o-mini API');
+    helpCheckLogger.info({ requestId }, 'Calling OpenRouter GPT-4.1-mini API');
 
-    // Call GPT-4o-mini via OpenRouter
+    // Call GPT-4.1-mini via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Madhacks AI Canvas',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-4.1-mini',
         messages: [
           {
             role: 'user',
