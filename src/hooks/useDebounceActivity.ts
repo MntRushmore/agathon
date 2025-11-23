@@ -58,10 +58,8 @@ export function useDebounceActivity(
       scope: 'document'
     });
 
-    // Initial timer setup (only if not already processing)
-    if (!isProcessingRef?.current) {
-      resetTimer();
-    }
+    // DON'T set up initial timer - only trigger on actual user activity
+    // This prevents auto-generation on page load or when dependencies change
 
     return () => {
       clearTimer();
