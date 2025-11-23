@@ -230,9 +230,13 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         },
       };
 
+      console.log("[Voice Agent] Sending conversation.item.create for tool output:", toolResponse);
       dataChannel.current.send(JSON.stringify(toolResponse));
-      dataChannel.current.send(JSON.stringify({ type: "response.create" }));
-      console.log("[Voice Agent] Tool output sent successfully");
+
+      const responseCreate = { type: "response.create" };
+      console.log("[Voice Agent] Sending response.create after tool output:", responseCreate);
+      dataChannel.current.send(JSON.stringify(responseCreate));
+      console.log("[Voice Agent] Tool output and response.create sent successfully");
     },
     []
   );
@@ -401,8 +405,25 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         console.log("[Voice Agent] Tool call done, executing:", callId, fullArgs);
         handleToolCall({ ...event, arguments: fullArgs });
       } else if (event.type === "error") {
-        console.error("Realtime error:", event);
+        // Log full error payload for debugging
+        try {
+          console.error(
+            "Realtime error event:",
+            event,
+            "stringified:",
+            JSON.stringify(event)
+          );
+        } catch {
+          console.error("Realtime error (non-serializable event):", event);
+        }
         setStatus("Realtime error");
+      } else if (
+        event.type === "response.output_text.delta" ||
+        event.type === "response.text.delta"
+      ) {
+        // Text streaming (GA name: response.output_text.delta) – currently unused
+      } else {
+        console.log("[Voice Agent] Unhandled event type:", event.type, event);
       }
     },
     [handleToolCall]
@@ -436,9 +457,14 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         throw new Error("Failed to get realtime token");
       }
       const data = await tokenResponse.json();
-      const ephemeralKey = data.client_secret?.value;
+      // Support both GA client_secrets shape ({ value }) and legacy ({ client_secret: { value } })
+      const ephemeralKey =
+        data?.client_secret?.value ??
+        data?.value ??
+        null;
 
       if (!ephemeralKey) {
+        console.error("[Voice Agent] No ephemeral key in /api/voice/token response:", data);
         throw new Error("No ephemeral key returned from server");
       }
 
@@ -469,7 +495,11 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         const sessionUpdate = {
           type: "session.update",
           session: {
-            modalities: ["text", "audio"],
+            type: "realtime",
+            model: "gpt-realtime",
+            audio: {
+              output: { voice: "marin" },
+            },
             instructions:
               "You are an AI tutor helping the user work on a whiteboard. " +
               "You have a tool called solve_canvas which captures an image of the current canvas and lets you modify it. " +
@@ -477,7 +507,11 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
               "you MUST call the solve_canvas tool. Each separate request to modify the board requires its own solve_canvas tool call. " +
               "Never say that you have changed the board unless you have successfully called the solve_canvas tool.",
             tools,
-            tool_choice: "auto",
+            // Force solve_canvas usage while debugging tool plumbing
+            tool_choice: {
+              type: "function",
+              name: "solve_canvas",
+            },
           },
         };
         dc.send(JSON.stringify(sessionUpdate));
@@ -493,14 +527,24 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         }
       });
 
+      dc.addEventListener("close", () => {
+        console.warn("[Voice Agent] Data channel closed");
+        setStatus("Idle");
+        setIsSessionActive(false);
+        onSessionChange(false);
+      });
+
+      dc.addEventListener("error", (e) => {
+        console.error("[Voice Agent] Data channel error:", e);
+        setStatus("Realtime error");
+      });
+
       // Create offer and exchange SDP with OpenAI Realtime API
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const baseUrl = "https://api.openai.com/v1/realtime";
-      const model = "gpt-4o-realtime-preview-2024-12-17";
-
-      const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
+      const baseUrl = "https://api.openai.com/v1/realtime/calls";
+      const sdpResponse = await fetch(baseUrl, {
         method: "POST",
         body: offer.sdp,
         headers: {
@@ -522,6 +566,16 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
       };
 
       await pc.setRemoteDescription(answer);
+
+      pc.onconnectionstatechange = () => {
+        const state = pc.connectionState;
+        console.log("[Voice Agent] Peer connection state:", state);
+        if (state === "failed" || state === "disconnected" || state === "closed") {
+          setStatus("Realtime error");
+          setIsSessionActive(false);
+          onSessionChange(false);
+        }
+      };
 
       setIsSessionActive(true);
       setStatus("Listening");
@@ -973,6 +1027,12 @@ function BoardContent({ id }: { id: string }) {
 
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(async () => {
+        // If we're offline, skip auto-save to avoid noisy errors
+        if (typeof window !== "undefined" && window.navigator && !window.navigator.onLine) {
+          logger.warn({ id }, "Skipping auto-save while offline");
+          return;
+        }
+
         try {
           const snapshot = getSnapshot(editor.store);
           
@@ -998,7 +1058,16 @@ function BoardContent({ id }: { id: string }) {
               }
             }
           } catch (e) {
-            console.error("Thumbnail generation failed", e);
+            logger.warn(
+              {
+                error:
+                  e instanceof Error
+                    ? { message: e.message, name: e.name, stack: e.stack }
+                    : e,
+                id,
+              },
+              "Thumbnail generation failed, continuing without preview"
+            );
           }
 
           const updateData: any = { 
@@ -1017,7 +1086,16 @@ function BoardContent({ id }: { id: string }) {
 
           if (error) throw error;
         } catch (error) {
-          console.error('Error auto-saving:', error);
+          logger.error(
+            {
+              error:
+                error instanceof Error
+                  ? { message: error.message, name: error.name, stack: error.stack }
+                  : error,
+              id,
+            },
+            "Error auto-saving board"
+          );
         }
       }, 2000);
     };
