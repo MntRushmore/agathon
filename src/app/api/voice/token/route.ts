@@ -10,19 +10,28 @@ export async function GET() {
       );
     }
 
+    // Use GA-style client secrets endpoint with a full session wrapper
+    const sessionConfig = {
+      session: {
+        type: "realtime",
+        model: "gpt-realtime",
+        audio: {
+          output: {
+            voice: "marin",
+          },
+        },
+      },
+    };
+
     const response = await fetch(
-      "https://api.openai.com/v1/realtime/sessions",
+      "https://api.openai.com/v1/realtime/client_secrets",
       {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          // model: "gpt-4o-realtime-preview-2024-12-17",
-          model: "gpt-realtime",
-          voice: "alloy",
-        }),
+        body: JSON.stringify(sessionConfig),
       }
     );
 
@@ -35,7 +44,7 @@ export async function GET() {
     }
 
     const data = await response.json();
-    
+
     // The client_secret is what we need for the ephemeral token
     return NextResponse.json(data);
   } catch (error) {
