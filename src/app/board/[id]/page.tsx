@@ -417,6 +417,8 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
           console.error("Realtime error (non-serializable event):", event);
         }
         setStatus("Realtime error");
+      } else if (event.type === "response.audio.delta") {
+         // Do nothing, just receiving audio
       } else if (
         event.type === "response.output_text.delta" ||
         event.type === "response.text.delta"
@@ -476,9 +478,26 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
       // Play remote audio from the model
       audioEl.current = document.createElement("audio");
       audioEl.current.autoplay = true;
+      audioEl.current.playsInline = true;
+      audioEl.current.muted = false;
+      // Attach to DOM so browser audio policies are satisfied
+      try {
+        document.body.appendChild(audioEl.current);
+      } catch {
+        // In non-browser environments this may fail; ignore
+      }
       pc.ontrack = (e) => {
         if (audioEl.current) {
           audioEl.current.srcObject = e.streams[0];
+          console.log("[Voice Agent] Received remote audio track, starting playback");
+          audioEl.current
+            .play()
+            .then(() => {
+              console.log("[Voice Agent] Audio playback started");
+            })
+            .catch((err) => {
+              console.error("[Voice Agent] Failed to start audio playback:", err);
+            });
         }
       };
 
@@ -495,11 +514,6 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
         const sessionUpdate = {
           type: "session.update",
           session: {
-            type: "realtime",
-            model: "gpt-realtime",
-            audio: {
-              output: { voice: "marin" },
-            },
             instructions:
               "You are an AI tutor helping the user work on a whiteboard. " +
               "You have a tool called solve_canvas which captures an image of the current canvas and lets you modify it. " +
@@ -515,6 +529,23 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
           },
         };
         dc.send(JSON.stringify(sessionUpdate));
+
+        // Trigger an initial response to confirm audio is working
+        const initialMessage = {
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: "Say hello!",
+              },
+            ],
+          },
+        };
+        dc.send(JSON.stringify(initialMessage));
+        dc.send(JSON.stringify({ type: "response.create" }));
       });
 
       dc.addEventListener("message", (e) => {
@@ -543,20 +574,24 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const baseUrl = "https://api.openai.com/v1/realtime/calls";
+      // WebRTC SDP handshake with OpenAI Realtime API
+      // The model is already defined in the ephemeral token's session config
+      const baseUrl = "https://api.openai.com/v1/realtime";
       const sdpResponse = await fetch(baseUrl, {
         method: "POST",
         body: offer.sdp,
         headers: {
           Authorization: `Bearer ${ephemeralKey}`,
           "Content-Type": "application/sdp",
+          // Required for Realtime API
+          "OpenAI-Beta": "realtime=v1",
         },
       });
 
       if (!sdpResponse.ok) {
         const text = await sdpResponse.text();
-        console.error("SDP error:", text);
-        throw new Error("Failed to handshake with OpenAI");
+        console.error(`SDP error [${sdpResponse.status}]:`, text);
+        throw new Error(`Failed to handshake with OpenAI (Status: ${sdpResponse.status})`);
       }
 
       const answerSdp = await sdpResponse.text();

@@ -10,21 +10,16 @@ export async function GET() {
       );
     }
 
-    // Use GA-style client secrets endpoint with a full session wrapper
+    // Standard Realtime session config
     const sessionConfig = {
-      session: {
-        type: "realtime",
-        model: "gpt-realtime",
-        audio: {
-          output: {
-            voice: "marin",
-          },
-        },
-      },
+      model: "gpt-4o-realtime-preview",
+      voice: "alloy",
+      modalities: ["audio", "text"],
+      instructions: "You are a helpful AI assistant.",
     };
 
     const response = await fetch(
-      "https://api.openai.com/v1/realtime/client_secrets",
+      "https://api.openai.com/v1/realtime/sessions",
       {
         method: "POST",
         headers: {
