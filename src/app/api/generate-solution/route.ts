@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     // Parse the request body
-    const { image } = await req.json();
+    const { image, ocrText } = await req.json();
 
     if (!image) {
       return NextResponse.json(
@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: 'text',
-                text: 'Modify the image to include the solution in handwriting.',
+                text: ocrText 
+                  ? `Here is the extracted text from the canvas:\n\n${ocrText}\n\nModify the image to include the solution to the problem shown, written in handwriting style.`
+                  : 'Modify the image to include the solution in handwriting.',
               },
             ],
           },

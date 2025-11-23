@@ -8,7 +8,7 @@ import {
   TLShapeId,
   type TLUiOverrides,
 } from "tldraw";
-import { useCallback, useState, type ReactElement } from "react";
+import { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,11 +22,13 @@ import {
   TextIcon,
   StickyNote01Icon,
   Image01Icon,
-  ArrowUp01Icon,
   AddSquareIcon,
 } from "hugeicons-react";
+import { useDebounceActivity } from "@/hooks/useDebounceActivity";
+import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
 
 const hugeIconsOverrides: TLUiOverrides = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tools(_editor: unknown, tools: Record<string, any>) {
     const toolIconMap: Record<string, ReactElement> = {
       select: (
@@ -90,159 +92,6 @@ const hugeIconsOverrides: TLUiOverrides = {
 // a custom toolbar component or CSS-based solution since assetUrls
 // expects string URLs, not React components.
 
-function GenerateSolutionButton({
-  onImageGenerated,
-}: {
-  onImageGenerated: (shapeId: TLShapeId) => void;
-}) {
-  const editor = useEditor();
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const handleGenerateSolution = useCallback(async () => {
-    if (!editor || isGenerating) return;
-
-    setIsGenerating(true);
-
-    try {
-      // Get the viewport bounds in page space (what you're currently seeing)
-      const viewportBounds = editor.getViewportPageBounds();
-
-      // Get all shapes on the current page
-      const shapeIds = editor.getCurrentPageShapeIds();
-      if (shapeIds.size === 0) {
-        throw new Error("No shapes on the canvas to export");
-      }
-
-      // Export exactly the current viewport as a PNG. We pass both the shapes
-      // and explicit bounds so tldraw renders a screenshot of the visible area,
-      // not a tight crop around the content. See:
-      // https://tldraw.dev/examples/export-canvas-as-image
-      const { blob } = await editor.toImage([...shapeIds], {
-        format: "png",
-        bounds: viewportBounds,
-        background: true,
-        scale: 1,
-        padding: 0, // ensure no extra margin so export matches viewport exactly
-      });
-
-      if (!blob) {
-        throw new Error("Failed to export viewport to image");
-      }
-
-      // Convert blob to base64 data URL for OpenRouter
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-
-      // Send to API
-      const response = await fetch('/api/generate-solution', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image: base64 }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate solution');
-      }
-
-      const data = await response.json();
-      console.log('API Response:', data);
-
-      // Extract the image URL from the response
-      const imageUrl = data.imageUrl;
-
-      if (!imageUrl) {
-        throw new Error('No image URL found in response');
-      }
-
-      // Create an asset for the image
-      const assetId = AssetRecordType.createId();
-      
-      // Get image dimensions
-      const img = new Image();
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-
-      // Create the asset
-      editor.createAssets([
-        {
-          id: assetId,
-          type: 'image',
-          typeName: 'asset',
-          props: {
-            name: 'generated-solution.png',
-            src: imageUrl,
-            w: img.width,
-            h: img.height,
-            mimeType: 'image/png',
-            isAnimated: false,
-          },
-          meta: {},
-        },
-      ]);
-
-      // Create an image shape using the asset:
-      // - center the image within the viewport
-      // - scale proportionally so it COVERS the viewport
-      //   (one dimension matches exactly, the other may exceed slightly)
-      const shapeId = createShapeId();
-      // Scale so the image FITS inside the viewport (no stretching):
-      // one dimension matches the viewport, the other is smaller.
-      const scale = Math.min(
-        viewportBounds.width / img.width,
-        viewportBounds.height / img.height
-      );
-      const shapeWidth = img.width * scale;
-      const shapeHeight = img.height * scale;
-
-      editor.createShape({
-        id: shapeId,
-        type: "image",
-        x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
-        y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
-        opacity: 0.3,
-        isLocked: true,
-        props: {
-          w: shapeWidth,
-          h: shapeHeight,
-          assetId: assetId,
-        },
-      });
-
-      // Notify parent component of the new image
-      onImageGenerated(shapeId);
-    } catch (error) {
-      console.error('Error generating solution:', error);
-      alert(error instanceof Error ? error.message : 'Failed to generate solution');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [editor, isGenerating, onImageGenerated]);
-
-  return (
-    <Button
-      onClick={handleGenerateSolution}
-      disabled={isGenerating}
-      style={{
-        position: 'absolute',
-        top: '10px',
-        left: '10px',
-        zIndex: 1000,
-      }}
-    >
-      {isGenerating ? 'Generating...' : 'Generate Solution'}
-    </Button>
-  );
-}
-
 function ImageActionButtons({
   pendingImageIds,
   onAccept,
@@ -291,10 +140,222 @@ function ImageActionButtons({
 function HomeContent() {
   const editor = useEditor();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
+  const [status, setStatus] = useState<StatusIndicatorState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const isProcessingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const lastCheckTimeRef = useRef<number>(0);
 
-  const handleImageGenerated = useCallback((shapeId: TLShapeId) => {
-    setPendingImageIds((prev) => [...prev, shapeId]);
+  const handleAutoGeneration = useCallback(async () => {
+    if (!editor || isProcessingRef.current) return;
+
+    // Rate limiting: max 1 check per minute
+    const now = Date.now();
+    if (now - lastCheckTimeRef.current < 60000) {
+      return;
+    }
+
+    // Check if canvas has content
+    const shapeIds = editor.getCurrentPageShapeIds();
+    if (shapeIds.size === 0) {
+      return;
+    }
+
+    isProcessingRef.current = true;
+    lastCheckTimeRef.current = now;
+    
+    // Create abort controller for this request chain
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    try {
+      // Step 1: Capture viewport
+      const viewportBounds = editor.getViewportPageBounds();
+      const { blob } = await editor.toImage([...shapeIds], {
+        format: "png",
+        bounds: viewportBounds,
+        background: true,
+        scale: 1,
+        padding: 0,
+      });
+
+      if (!blob || signal.aborted) return;
+
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+
+      if (signal.aborted) return;
+
+      // Step 2: OCR - Extract handwriting
+      setStatus("analyzing");
+      const ocrResponse = await fetch('/api/ocr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+        signal,
+      });
+
+      if (!ocrResponse.ok || signal.aborted) {
+        throw new Error('OCR failed');
+      }
+
+      const ocrData = await ocrResponse.json();
+      const extractedText = ocrData.text || '';
+
+      if (signal.aborted) return;
+
+      // Step 3: Check if help is needed
+      setStatus("checking");
+      const checkResponse = await fetch('/api/check-help-needed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: extractedText, image: base64 }),
+        signal,
+      });
+
+      if (!checkResponse.ok || signal.aborted) {
+        throw new Error('Help check failed');
+      }
+
+      const checkData = await checkResponse.json();
+
+      if (signal.aborted) return;
+
+      // If help is not needed, stop here
+      if (!checkData.needsHelp) {
+        console.log('Help not needed:', checkData.reason);
+        setStatus("idle");
+        isProcessingRef.current = false;
+        return;
+      }
+
+      // Step 4: Generate solution
+      setStatus("generating");
+      const solutionResponse = await fetch('/api/generate-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, ocrText: extractedText }),
+        signal,
+      });
+
+      if (!solutionResponse.ok || signal.aborted) {
+        throw new Error('Solution generation failed');
+      }
+
+      const solutionData = await solutionResponse.json();
+      const imageUrl = solutionData.imageUrl;
+
+      if (!imageUrl || signal.aborted) {
+        throw new Error('No image URL in response');
+      }
+
+      // Create asset and shape
+      const assetId = AssetRecordType.createId();
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageUrl;
+      });
+
+      if (signal.aborted) return;
+
+      editor.createAssets([
+        {
+          id: assetId,
+          type: 'image',
+          typeName: 'asset',
+          props: {
+            name: 'generated-solution.png',
+            src: imageUrl,
+            w: img.width,
+            h: img.height,
+            mimeType: 'image/png',
+            isAnimated: false,
+          },
+          meta: {},
+        },
+      ]);
+
+      const shapeId = createShapeId();
+      const scale = Math.min(
+        viewportBounds.width / img.width,
+        viewportBounds.height / img.height
+      );
+      const shapeWidth = img.width * scale;
+      const shapeHeight = img.height * scale;
+
+      editor.createShape({
+        id: shapeId,
+        type: "image",
+        x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
+        y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
+        opacity: 0.3,
+        isLocked: true,
+        props: {
+          w: shapeWidth,
+          h: shapeHeight,
+          assetId: assetId,
+        },
+      });
+
+      setPendingImageIds((prev) => [...prev, shapeId]);
+      setStatus("idle");
+    } catch (error) {
+      if (signal.aborted) {
+        setStatus("idle");
+        return;
+      }
+      
+      console.error('Auto-generation error:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Generation failed');
+      setStatus("error");
+      
+      // Clear error after 3 seconds
+      setTimeout(() => {
+        setStatus("idle");
+        setErrorMessage("");
+      }, 3000);
+    } finally {
+      isProcessingRef.current = false;
+      abortControllerRef.current = null;
+    }
+  }, [editor]);
+
+  // Listen for user activity and trigger auto-generation after 3 seconds of inactivity
+  useDebounceActivity(handleAutoGeneration, 3000);
+
+  // Cancel in-flight requests when user starts drawing again
+  const handleUserActivity = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setStatus("idle");
+      isProcessingRef.current = false;
+    }
   }, []);
+
+  // Cancel in-flight requests on general user activity
+  useEffect(() => {
+    const cancelOnActivity = () => {
+      handleUserActivity();
+    };
+
+    window.addEventListener("pointerdown", cancelOnActivity);
+    window.addEventListener("pointermove", cancelOnActivity);
+    window.addEventListener("keydown", cancelOnActivity);
+    window.addEventListener("wheel", cancelOnActivity);
+
+    return () => {
+      window.removeEventListener("pointerdown", cancelOnActivity);
+      window.removeEventListener("pointermove", cancelOnActivity);
+      window.removeEventListener("keydown", cancelOnActivity);
+      window.removeEventListener("wheel", cancelOnActivity);
+    };
+  }, [handleUserActivity]);
 
   const handleAccept = useCallback(
     (shapeId: TLShapeId) => {
@@ -335,7 +396,7 @@ function HomeContent() {
 
   return (
     <>
-      <GenerateSolutionButton onImageGenerated={handleImageGenerated} />
+      <StatusIndicator status={status} errorMessage={errorMessage} />
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
         onAccept={handleAccept}
