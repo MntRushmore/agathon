@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
             },
             {
               type: 'text',
-              text: 'Analyze this canvas/whiteboard image carefully. Look for incomplete work, math problems, coding challenges, questions, or any indication that the user is working through something challenging and might benefit from help.\n\nIf the user needs help:\n- Generate a solution image with the answer written in handwriting style that matches the original image.\n\nIf the user does NOT need help (e.g., just notes, completed work, casual doodles, or nothing significant):\n- Simply respond with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.',
+              text: 'Analyze this canvas/whiteboard image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from help.\n\nIf the user needs help:\n- **Modify** the user\'s initial screen with edits, advice, or solutions written in their handwriting style\n- DO NOT remove any of the existing content in the image. Only add to the image. DO NOT touch, modify, or move any of the user\'s initial writing.\n\nIf the user does NOT need help (e.g., just notes, completed work, casual doodles, or nothing significant):\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.',
             },
             ],
           },
