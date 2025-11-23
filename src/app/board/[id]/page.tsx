@@ -24,6 +24,7 @@ import {
   PencilIcon,
   EraserIcon,
   ArrowUpRight01Icon,
+  ArrowLeft01Icon,
   TextIcon,
   StickyNote01Icon,
   Image01Icon,
@@ -36,7 +37,7 @@ import { useDebounceActivity } from "@/hooks/useDebounceActivity";
 import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -596,6 +597,7 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
 
 function BoardContent({ id }: { id: string }) {
   const editor = useEditor();
+  const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
   const [status, setStatus] = useState<StatusIndicatorState>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -1009,8 +1011,18 @@ function BoardContent({ id }: { id: string }) {
             top: '16px',
             left: '16px',
             zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
           }}
         >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft01Icon size={20} strokeWidth={2} />
+          </Button>
           <Tabs 
             value={assistanceMode} 
             onValueChange={(value) => setAssistanceMode(value as "feedback" | "suggest" | "answer")}
