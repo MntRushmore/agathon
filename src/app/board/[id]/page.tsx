@@ -15,6 +15,14 @@ import React, { useCallback, useState, useRef, useEffect, type ReactElement } fr
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Tick01Icon,
@@ -38,7 +46,7 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Volume2, VolumeX } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Info } from "lucide-react";
 import { toast } from "sonner";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
@@ -106,6 +114,67 @@ const hugeIconsOverrides: TLUiOverrides = {
   },
 };
 
+function ModeInfoDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="How the help modes work"
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Help modes</DialogTitle>
+          <DialogDescription>
+            Choose how strongly the tutor helps on your canvas.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-6">
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/feedback.png"
+              alt="Feedback mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Feedback</p>
+            <p className="text-sm text-muted-foreground">
+              Light annotations pointing out mistakes without giving away answers.
+            </p>
+          </div>
+
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/suggest.png"
+              alt="Suggest mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Suggest</p>
+            <p className="text-sm text-muted-foreground">
+              Hints and partial steps to nudge you in the right direction.
+            </p>
+          </div>
+
+          <div className="flex-1 flex flex-col items-start">
+            <img
+              src="/modes/solve.png"
+              alt="Solve mode example"
+              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+            />
+            <p className="text-sm font-medium mb-1">Solve</p>
+            <p className="text-sm text-muted-foreground">
+              Full worked solution overlaid on your canvas for comparison.
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ImageActionButtons({
   pendingImageIds,
   onAccept,
@@ -164,7 +233,7 @@ interface VoiceAgentControlsProps {
   onSolveWithPrompt: (
     mode: "feedback" | "suggest" | "answer",
     instructions?: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 }
 
 function VoiceAgentControls({
@@ -318,7 +387,11 @@ function VoiceAgentControls({
               ? args.mode
               : "suggest";
 
-          await onSolveWithPrompt(mode, args.instructions ?? undefined);
+          const success =
+            (await onSolveWithPrompt(
+              mode,
+              args.instructions ?? undefined,
+            )) ?? false;
 
           dc.send(
             JSON.stringify({
@@ -327,7 +400,7 @@ function VoiceAgentControls({
                 type: "function_call_output",
                 call_id: callId,
                 output: JSON.stringify({
-                  success: true,
+                  success,
                   mode,
                 }),
               },
@@ -761,16 +834,26 @@ function BoardContent({ id }: { id: string }) {
       modeOverride?: "feedback" | "suggest" | "answer";
       promptOverride?: string;
       force?: boolean;
-    }) => {
-      if (!editor || isProcessingRef.current || isVoiceSessionActive) return;
+      source?: "auto" | "voice";
+    }): Promise<boolean> => {
+      // Block when we don't have an editor or a generation is already running.
+      // Also block auto generations while a voice session is active, but allow
+      // explicit voice-triggered generations to proceed.
+      if (
+        !editor ||
+        isProcessingRef.current ||
+        (isVoiceSessionActive && options?.source !== "voice")
+      ) {
+        return false;
+      }
 
       const mode = options?.modeOverride ?? assistanceMode;
-      if (mode === "off") return;
+      if (mode === "off") return false;
 
       // Check if canvas has content
       const shapeIds = editor.getCurrentPageShapeIds();
       if (shapeIds.size === 0) {
-        return;
+        return false;
       }
 
       isProcessingRef.current = true;
@@ -789,7 +872,7 @@ function BoardContent({ id }: { id: string }) {
         
         if (shapesToCapture.length === 0) {
           isProcessingRef.current = false;
-          return;
+          return false;
         }
         
         const { blob } = await editor.toImage(shapesToCapture, {
@@ -800,7 +883,7 @@ function BoardContent({ id }: { id: string }) {
           padding: 0,
         });
 
-        if (!blob || signal.aborted) return;
+        if (!blob || signal.aborted) return false;
 
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -814,7 +897,7 @@ function BoardContent({ id }: { id: string }) {
           isProcessingRef.current = false;
           setStatus("idle");
           setStatusMessage("");
-          return;
+          return false;
         }
         lastCanvasImageRef.current = base64;
 
@@ -832,6 +915,10 @@ function BoardContent({ id }: { id: string }) {
         if (options?.promptOverride) {
           body.prompt = options.promptOverride;
         }
+
+        // Let the backend know whether this was triggered automatically or
+        // explicitly by the voice tutor.
+        body.source = options?.source ?? "auto";
 
         const solutionResponse = await fetch('/api/generate-solution', {
           method: 'POST',
@@ -862,12 +949,12 @@ function BoardContent({ id }: { id: string }) {
           setStatus("idle");
           setStatusMessage("");
           isProcessingRef.current = false;
-          return;
+          return false;
         }
 
         const processedImageUrl = imageUrl;
 
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
 
         // Create asset and shape
         const assetId = AssetRecordType.createId();
@@ -953,11 +1040,13 @@ function BoardContent({ id }: { id: string }) {
         setTimeout(() => {
           isUpdatingImageRef.current = false;
         }, 100);
+
+        return true;
       } catch (error) {
         if (signal.aborted) {
           setStatus("idle");
           setStatusMessage("");
-          return;
+          return false;
         }
         
         logger.error({ error }, 'Auto-generation error');
@@ -970,6 +1059,8 @@ function BoardContent({ id }: { id: string }) {
           setStatus("idle");
           setErrorMessage("");
         }, 3000);
+
+        return false;
       } finally {
         isProcessingRef.current = false;
         abortControllerRef.current = null;
@@ -979,7 +1070,7 @@ function BoardContent({ id }: { id: string }) {
   );
 
   const handleAutoGeneration = useCallback(() => {
-    void generateSolution();
+    void generateSolution({ source: "auto" });
   }, [generateSolution]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
@@ -1303,18 +1394,21 @@ function BoardContent({ id }: { id: string }) {
           >
             <ArrowLeft01Icon size={20} strokeWidth={2} />
           </Button>
-          <Tabs 
-            value={assistanceMode} 
-            onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
-            className="w-auto shadow-sm rounded-lg"
-          >
-            <TabsList>
-              <TabsTrigger value="off">Off</TabsTrigger>
-              <TabsTrigger value="feedback">Feedback</TabsTrigger>
-              <TabsTrigger value="suggest">Suggest</TabsTrigger>
-              <TabsTrigger value="answer">Answer</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-2">
+            <Tabs 
+              value={assistanceMode} 
+              onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
+              className="w-auto shadow-sm rounded-lg"
+            >
+              <TabsList>
+                <TabsTrigger value="off">Off</TabsTrigger>
+                <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                <TabsTrigger value="suggest">Suggest</TabsTrigger>
+                <TabsTrigger value="answer">Solve</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <ModeInfoDialog />
+          </div>
         </div>
       )}
 
@@ -1327,11 +1421,13 @@ function BoardContent({ id }: { id: string }) {
       <VoiceAgentControls
         onSessionChange={setIsVoiceSessionActive}
         onSolveWithPrompt={async (mode, instructions) => {
-          await generateSolution({
+          const success = await generateSolution({
             modeOverride: mode,
             promptOverride: instructions,
             force: true,
+            source: "voice",
           });
+          return success;
         }}
       />
     </>
