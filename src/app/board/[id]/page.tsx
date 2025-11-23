@@ -1095,19 +1095,31 @@ function BoardContent({ id }: { id: string }) {
         }
 
         try {
+          // Validate editor state
+          if (!editor || !editor.store) {
+            console.warn("Editor or store not available for auto-save");
+            return;
+          }
+
           const snapshot = getSnapshot(editor.store);
+          
+          if (!snapshot) {
+            console.warn("Failed to get snapshot from editor");
+            return;
+          }
 
           // Ensure the snapshot is JSON-serializable before sending to Supabase
           let safeSnapshot: unknown = snapshot;
           try {
             safeSnapshot = JSON.parse(JSON.stringify(snapshot));
           } catch (e) {
+            console.error("Failed to serialize board snapshot:", e);
             logger.error(
               {
                 error:
                   e instanceof Error
                     ? { message: e.message, name: e.name, stack: e.stack }
-                    : e,
+                    : String(e),
                 id,
               },
               "Failed to serialize board snapshot for auto-save"
@@ -1137,12 +1149,13 @@ function BoardContent({ id }: { id: string }) {
               }
             }
           } catch (e) {
+            console.warn("Thumbnail generation failed:", e);
             logger.warn(
               {
                 error:
                   e instanceof Error
                     ? { message: e.message, name: e.name, stack: e.stack }
-                    : e,
+                    : String(e),
                 id,
               },
               "Thumbnail generation failed, continuing without preview"
@@ -1158,6 +1171,7 @@ function BoardContent({ id }: { id: string }) {
             // Guard against oversized previews that may violate DB column limits
             const MAX_PREVIEW_LENGTH = 8000;
             if (previewUrl.length > MAX_PREVIEW_LENGTH) {
+              console.warn(`Preview too large (${previewUrl.length} bytes), skipping`);
               logger.warn(
                 { id, length: previewUrl.length, maxLength: MAX_PREVIEW_LENGTH },
                 "Preview too large, skipping storing preview in database"
@@ -1167,21 +1181,43 @@ function BoardContent({ id }: { id: string }) {
             }
           }
 
-          const { error } = await supabase
+          // Validate Supabase client
+          if (!supabase) {
+            throw new Error("Supabase client not initialized");
+          }
+
+          const { error, data } = await supabase
             .from('whiteboards')
             .update(updateData)
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
-          if (error) throw error;
+          if (error) {
+            console.error("Supabase update error:", error);
+            throw error;
+          }
+          
+          if (!data || data.length === 0) {
+            console.warn("No rows updated - board may not exist:", id);
+          }
           
           logger.info({ id }, "Board auto-saved successfully");
         } catch (error) {
+          // Use console.error for proper browser error logging
+          console.error("Error auto-saving board:", {
+            id,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            fullError: error,
+          });
+          
+          // Also log with logger for consistency
           logger.error(
             {
               error:
                 error instanceof Error
                   ? { message: error.message, name: error.name, stack: error.stack }
-                  : error,
+                  : String(error),
               id,
             },
             "Error auto-saving board"
