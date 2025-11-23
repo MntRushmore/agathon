@@ -179,10 +179,12 @@ function ImageActionButtons({
   pendingImageIds,
   onAccept,
   onReject,
+  isVoiceSessionActive,
 }: {
   pendingImageIds: TLShapeId[];
   onAccept: (shapeId: TLShapeId) => void;
   onReject: (shapeId: TLShapeId) => void;
+  isVoiceSessionActive: boolean;
 }) {
   // Only show buttons when there's a pending image
   if (pendingImageIds.length === 0) return null;
@@ -194,7 +196,10 @@ function ImageActionButtons({
     <div
       style={{
         position: 'absolute',
-        top: '10px',
+        // In normal mode, sit at the top-center like before.
+        // When voice is active, shift down a bit so it doesn't clash
+        // with the voice status banner at the very top.
+        top: isVoiceSessionActive ? '56px' : '10px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 1000,
@@ -1445,9 +1450,17 @@ function BoardContent({ id }: { id: string }) {
         </div>
       )}
 
-      <StatusIndicator status={status} errorMessage={errorMessage} customMessage={statusMessage} />
+      {/* When a voice session is active, let the voice banner own the top-center space. */}
+      {!isVoiceSessionActive && (
+        <StatusIndicator
+          status={status}
+          errorMessage={errorMessage}
+          customMessage={statusMessage}
+        />
+      )}
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
+        isVoiceSessionActive={isVoiceSessionActive}
         onAccept={handleAccept}
         onReject={handleReject}
       />
