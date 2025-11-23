@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Parse the request body
-    const { image, prompt } = await req.json();
+    const { image, prompt, mode = 'suggest' } = await req.json();
 
     if (!image) {
       solutionLogger.warn({ requestId }, 'No image provided in request');
@@ -32,7 +32,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    solutionLogger.info({ requestId }, 'Calling OpenRouter Gemini API for image generation');
+    // Generate mode-specific prompt
+    const getModePrompt = (mode: string): string => {
+      const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from some form of assistance.';
+      
+      const noHelpInstruction = '\n\nIf the user does NOT seem to need help:\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
+      
+      const coreRules = '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style';
+
+      switch (mode) {
+        case 'feedback':
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpInstruction}`;
+        
+        case 'suggest':
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve the entire problem\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpInstruction}`;
+        
+        case 'answer':
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpInstruction}`;
+        
+        default:
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpInstruction}`;
+      }
+    };
+
+    const finalPrompt = prompt || getModePrompt(mode);
+
+    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
 
     // Call Gemini image generation model via OpenRouter
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -57,7 +82,7 @@ export async function POST(req: NextRequest) {
               },
               {
                 type: 'text',
-                text: prompt || 'Analyze this canvas/whiteboard image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from help.\n\nIf the user needs help:\n- **Modify** the user\'s initial screen with edits, advice, or solutions written in their handwriting style\n- DO NOT remove any of the existing content in the image. Only add to the image. DO NOT touch, modify, or move any of the user\'s initial writing.\n\nIf the user does NOT need help (e.g., just notes, completed work, casual doodles, or nothing significant):\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.',
+                text: finalPrompt,
               },
             ],
           },
