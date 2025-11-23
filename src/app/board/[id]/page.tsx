@@ -333,7 +333,7 @@ function VoiceAgentControls({ onSessionChange }: { onSessionChange: (active: boo
           type: "image",
           x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
           y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
-          opacity: 0.3,
+          opacity: 1.0,
           isLocked: true,
           props: {
             w: shapeWidth,
