@@ -54,11 +54,11 @@ export async function POST(req: NextRequest) {
       // not a text-only answer.
       const alwaysImageRule =
         effectiveSource === 'voice'
-          ? '\n- ALWAYS generate an updated image of the whiteboard; do not respond with text-only.'
+          ? '\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.'
           : '';
 
-      const coreRules =
-        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, or touch ANY of the image\'s existing content\n- ONLY add new content to the image\n- Try your best to match the user\'s handwriting style\n\n- Be **creative** and **thoughtful** in how you style your annotations, handwriting, and diagrams. Use colors, highlighting, underlining, arrows, etc. if it helps improve clarity and organization.' +
+      const coreRules = // REMOVED: \n\n- Be **thoughtful** in how you style your annotations, handwriting, and diagrams. Use colors, highlighting, underlining, arrows, etc. if it helps improve clarity and organization.
+        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.' +
         alwaysImageRule;
 
       // For automatic generations, allow the model to decide no help is needed
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
           return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpBlock}`;
         
         case 'suggest':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t solve the entire problem\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
         
         case 'answer':
           return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
