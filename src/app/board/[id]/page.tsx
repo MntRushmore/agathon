@@ -1530,6 +1530,7 @@ export default function BoardPage() {
         components={{
           MenuPanel: null,
           NavigationPanel: null,
+          HelperButtons: null,
         }}
         onMount={(editor) => {
           if (initialData) {
