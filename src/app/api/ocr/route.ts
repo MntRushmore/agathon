@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate image format
+    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+      ocrLogger.warn({ requestId }, 'Invalid image format');
+      return NextResponse.json(
+        { error: 'Image must be a valid base64 data URL (data:image/...)' },
+        { status: 400 }
+      );
+    }
+
     ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
 
     if (!process.env.MISTRAL_API_KEY) {
@@ -38,7 +47,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'pixtral-12b-2409',
+        model: process.env.MISTRAL_OCR_MODEL || 'pixtral-12b-2409',
         messages: [
           {
             role: 'user',
@@ -54,7 +63,7 @@ export async function POST(req: NextRequest) {
             ],
           },
         ],
-        max_tokens: 1000,
+        max_tokens: parseInt(process.env.MISTRAL_OCR_MAX_TOKENS || '1000', 10),
       }),
     });
 

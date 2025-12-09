@@ -24,6 +24,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate image format
+    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+      solutionLogger.warn({ requestId }, 'Invalid image format');
+      return NextResponse.json(
+        { error: 'Image must be a valid base64 data URL (data:image/...)' },
+        { status: 400 }
+      );
+    }
+
+    // Validate mode
+    const validModes = ['feedback', 'suggest', 'answer'];
+    if (!validModes.includes(mode)) {
+      solutionLogger.warn({ requestId, mode }, 'Invalid mode');
+      return NextResponse.json(
+        { error: `Mode must be one of: ${validModes.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate source
+    if (source !== 'auto' && source !== 'voice') {
+      solutionLogger.warn({ requestId, source }, 'Invalid source');
+      return NextResponse.json(
+        { error: 'Source must be either "auto" or "voice"' },
+        { status: 400 }
+      );
+    }
+
+    // Validate prompt if provided
+    if (prompt && typeof prompt !== 'string') {
+      solutionLogger.warn({ requestId }, 'Invalid prompt format');
+      return NextResponse.json(
+        { error: 'Prompt must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (prompt && prompt.length > 5000) {
+      solutionLogger.warn({ requestId, promptLength: prompt.length }, 'Prompt too long');
+      return NextResponse.json(
+        { error: 'Prompt exceeds maximum length of 5000 characters' },
+        { status: 400 }
+      );
+    }
+
     solutionLogger.debug({
       requestId,
       imageSize: image.length
@@ -101,7 +146,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Madhacks AI Canvas',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-pro-image-preview',
+        model: process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-3-pro-image-preview',
         messages: [
           {
             role: 'user',

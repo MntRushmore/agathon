@@ -18,6 +18,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate text length
+    if (text && typeof text !== 'string') {
+      helpCheckLogger.warn({ requestId }, 'Invalid text format');
+      return NextResponse.json(
+        { error: 'Text must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (text && text.length > 50000) {
+      helpCheckLogger.warn({ requestId, textLength: text.length }, 'Text too long');
+      return NextResponse.json(
+        { error: 'Text exceeds maximum length of 50000 characters' },
+        { status: 400 }
+      );
+    }
+
+    // Validate image format
+    if (image && typeof image !== 'string') {
+      helpCheckLogger.warn({ requestId }, 'Invalid image format');
+      return NextResponse.json(
+        { error: 'Image must be a base64 data URL string' },
+        { status: 400 }
+      );
+    }
+
+    if (image && !image.startsWith('data:image/')) {
+      helpCheckLogger.warn({ requestId }, 'Invalid image data URL format');
+      return NextResponse.json(
+        { error: 'Image must be a valid base64 data URL (data:image/...)' },
+        { status: 400 }
+      );
+    }
+
     helpCheckLogger.debug({
       requestId,
       hasText: !!text,
@@ -66,7 +100,7 @@ export async function POST(req: NextRequest) {
         'X-Title': 'Madhacks AI Canvas',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-4.1-mini',
+        model: process.env.OPENROUTER_HELP_CHECK_MODEL || 'openai/gpt-4.1-mini',
         messages: [
           {
             role: 'user',

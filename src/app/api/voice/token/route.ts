@@ -24,7 +24,7 @@ export async function POST(_req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-realtime',
+        model: process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime',
       }),
     });
 

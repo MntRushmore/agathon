@@ -19,6 +19,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate image format
+    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+      voiceLogger.warn('Invalid image format in analyze-workspace route');
+      return NextResponse.json(
+        { error: 'Image must be a valid base64 data URL (data:image/...)' },
+        { status: 400 },
+      );
+    }
+
+    // Validate focus if provided
+    if (focus && typeof focus !== 'string') {
+      voiceLogger.warn('Invalid focus format');
+      return NextResponse.json(
+        { error: 'Focus must be a string' },
+        { status: 400 },
+      );
+    }
+
+    if (focus && focus.length > 1000) {
+      voiceLogger.warn({ focusLength: focus.length }, 'Focus too long');
+      return NextResponse.json(
+        { error: 'Focus exceeds maximum length of 1000 characters' },
+        { status: 400 },
+      );
+    }
+
     if (!process.env.OPENROUTER_API_KEY) {
       voiceLogger.error('OPENROUTER_API_KEY not configured');
       return NextResponse.json(
@@ -49,7 +75,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         // Model name may vary; adjust if needed in configuration.
-        model: 'google/gemini-2.5-flash',
+        model: process.env.OPENROUTER_VOICE_ANALYSIS_MODEL || 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',

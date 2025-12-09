@@ -906,7 +906,7 @@ function BoardContent({ id }: { id: string }) {
         }
         lastCanvasImageRef.current = base64;
 
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
 
         // Step 2: Generate solution (Gemini decides if help is needed)
         setStatus("generating");
@@ -978,7 +978,7 @@ function BoardContent({ id }: { id: string }) {
           img.src = processedImageUrl;
         });
 
-        if (signal.aborted) return;
+        if (signal.aborted) return false;
 
         logger.info('Creating asset and shape...');
 
