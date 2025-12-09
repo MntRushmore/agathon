@@ -1526,6 +1526,7 @@ export default function BoardPage() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <Tldraw
+        licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
         overrides={hugeIconsOverrides}
         components={{
           MenuPanel: null,
