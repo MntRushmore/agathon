@@ -170,6 +170,7 @@ export async function POST(req: NextRequest) {
           allow_fallbacks: false
         },
         */
+        max_tokens: 6000, // Limit tokens to stay within budget
         modalities: ['image', 'text'], // Required for image generation
         reasoning_effort: 'minimal',
       }),
