@@ -46,8 +46,9 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Volume2, VolumeX, Info } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Info, Eye, Users } from "lucide-react";
 import { toast } from "sonner";
+import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -792,7 +793,21 @@ function VoiceAgentControls({
   );
 }
 
-function BoardContent({ id }: { id: string }) {
+type AssignmentMeta = {
+  templateId?: string;
+  subject?: string;
+  gradeLevel?: string;
+  instructions?: string;
+  defaultMode?: "off" | "feedback" | "suggest" | "answer";
+};
+
+type HelpCheckDecision = {
+  needsHelp: boolean;
+  confidence: number;
+  reason: string;
+};
+
+function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignmentMeta?: AssignmentMeta | null; boardTitle?: string }) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -801,10 +816,95 @@ function BoardContent({ id }: { id: string }) {
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
   const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
+  const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
+  const [helpCheckReason, setHelpCheckReason] = useState<string>("");
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   const isProcessingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
+
+  // Get current user ID for realtime
+  useEffect(() => {
+    async function getUserId() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    }
+    getUserId();
+  }, []);
+
+  // Realtime collaboration (disabled for temp boards)
+  const shouldEnableRealtime = !id.startsWith('temp-') && userId;
+  const { activeUsers, isConnected } = useRealtimeBoard({
+    boardId: shouldEnableRealtime ? id : '',
+    userId: shouldEnableRealtime ? userId : '',
+    onBoardUpdate: useCallback(async (updatedBoard: any) => {
+      // Board was updated by another user - reload the canvas
+      if (!editor || !shouldEnableRealtime) return;
+
+      // Show notification
+      toast.info("Board updated by another user", {
+        description: "Reloading canvas...",
+        duration: 2000,
+      });
+
+      try {
+        if (updatedBoard.data && Object.keys(updatedBoard.data).length > 0) {
+          loadSnapshot(editor.store, updatedBoard.data);
+          logger.info({ boardId: id }, "Canvas reloaded from remote update");
+        }
+      } catch (error) {
+        console.error("Failed to reload canvas from remote update:", error);
+        toast.error("Failed to sync changes");
+      }
+    }, [editor, id, shouldEnableRealtime]),
+  });
+
+  // Detect orientation for landscape mode
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth >= 768);
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
+  // Apple Pencil detection and enhancements
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'pen') {
+        // Apple Pencil detected - could add visual feedback or special features
+        console.log('Apple Pencil detected');
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Palm rejection - ignore large touch areas
+      const touch = e.touches[0];
+      if (touch && (touch as any).radiusX > 20) {
+        // Likely a palm, but don't prevent - TLDraw handles this
+        console.log('Large touch detected (possible palm)');
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   // Helper function to get mode-aware status messages
   const getStatusMessage = useCallback((mode: "off" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
@@ -834,6 +934,46 @@ function BoardContent({ id }: { id: string }) {
     return "";
   }, []);
 
+  useEffect(() => {
+    if (assignmentMeta?.defaultMode) {
+      setAssistanceMode(assignmentMeta.defaultMode);
+    }
+  }, [assignmentMeta]);
+
+  const runHelpCheck = useCallback(
+    async (image: string, signal: AbortSignal): Promise<HelpCheckDecision | null> => {
+      try {
+        setHelpCheckStatus("checking");
+        const res = await fetch('/api/check-help-needed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image }),
+          signal,
+        });
+
+        if (!res.ok) {
+          throw new Error('Help check request failed');
+        }
+
+        const data = await res.json();
+        const decision: HelpCheckDecision = {
+          needsHelp: !!data.needsHelp,
+          confidence: Number(data.confidence ?? 0),
+          reason: data.reason || '',
+        };
+        setHelpCheckReason(decision.reason || '');
+        setHelpCheckStatus("idle");
+        return decision;
+      } catch (error) {
+        if (signal.aborted) return null;
+        logger.warn({ error }, 'Help check failed');
+        setHelpCheckStatus("idle");
+        return null;
+      }
+    },
+    [],
+  );
+
   const generateSolution = useCallback(
     async (options?: {
       modeOverride?: "feedback" | "suggest" | "answer";
@@ -852,7 +992,7 @@ function BoardContent({ id }: { id: string }) {
         return false;
       }
 
-      const mode = options?.modeOverride ?? assistanceMode;
+      let mode = options?.modeOverride ?? assistanceMode;
       if (mode === "off") return false;
 
       // Check if canvas has content
@@ -908,7 +1048,30 @@ function BoardContent({ id }: { id: string }) {
 
         if (signal.aborted) return false;
 
-        // Step 2: Generate solution (Gemini decides if help is needed)
+        // Step 2: Run a light help check for auto assistance
+        let helpDecision: HelpCheckDecision | null = null;
+        if ((options?.source ?? "auto") === "auto") {
+          helpDecision = await runHelpCheck(base64, signal);
+
+          if (helpDecision && helpDecision.needsHelp === false) {
+            setStatus("idle");
+            setStatusMessage("Looking good—keep going.");
+            isProcessingRef.current = false;
+            return false;
+          }
+
+          if (
+            helpDecision &&
+            helpDecision.needsHelp &&
+            helpDecision.confidence < 0.5 &&
+            mode === "answer"
+          ) {
+            mode = "suggest";
+            setStatusMessage("Showing hints first before full solutions.");
+          }
+        }
+
+        // Step 3: Generate solution (Gemini decides if help is needed)
         setStatus("generating");
         setStatusMessage(getStatusMessage(mode, "generating"));
 
@@ -1182,6 +1345,12 @@ function BoardContent({ id }: { id: string }) {
       // Don't save during image updates
       if (isUpdatingImageRef.current) return;
 
+      // Skip auto-save for temporary boards (no auth)
+      if (id.startsWith('temp-')) {
+        console.log('Skipping auto-save for temporary board');
+        return;
+      }
+
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(async () => {
         // If we're offline, skip auto-save to avoid noisy errors
@@ -1412,37 +1581,55 @@ function BoardContent({ id }: { id: string }) {
 
   return (
     <>
+      {/* Active users indicator */}
+      {activeUsers.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-[1000] ios-safe-bottom ios-safe-right">
+          <div className="bg-card border rounded-lg shadow-sm px-3 py-2 flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'} animate-pulse`} />
+              <Users className="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <p className="text-xs font-medium">
+                {activeUsers.length} {activeUsers.length === 1 ? 'person' : 'people'} viewing
+              </p>
+              <p className="text-xs text-muted-foreground truncate max-w-[150px]">
+                {activeUsers.map(u => u.userName).join(', ')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs at top left */}
       {!isVoiceSessionActive && (
         <div
-          style={{
-            position: 'absolute',
-            top: '16px',
-            left: '16px',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-          }}
+          className={
+            isLandscape
+              ? "fixed left-4 top-1/2 -translate-y-1/2 z-[1000] flex flex-col gap-3 ios-safe-left"
+              : "fixed top-4 left-4 z-[1000] flex items-center gap-3 ios-safe-top ios-safe-left"
+          }
         >
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
+            className="touch-target"
           >
             <ArrowLeft01Icon size={20} strokeWidth={2} />
           </Button>
-          <div className="flex items-center gap-2">
-            <Tabs 
-              value={assistanceMode} 
+          <div className={isLandscape ? "flex flex-col items-center gap-2" : "flex items-center gap-2"}>
+            <Tabs
+              value={assistanceMode}
               onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
-              className="w-auto shadow-sm rounded-lg"
+              className={isLandscape ? "w-auto shadow-sm rounded-lg" : "w-auto shadow-sm rounded-lg"}
+              orientation={isLandscape ? "vertical" : "horizontal"}
             >
-              <TabsList>
-                <TabsTrigger value="off">Off</TabsTrigger>
-                <TabsTrigger value="feedback">Feedback</TabsTrigger>
-                <TabsTrigger value="suggest">Suggest</TabsTrigger>
-                <TabsTrigger value="answer">Solve</TabsTrigger>
+              <TabsList className={isLandscape ? "flex-col" : ""}>
+                <TabsTrigger value="off" className="touch-target">Off</TabsTrigger>
+                <TabsTrigger value="feedback" className="touch-target">Feedback</TabsTrigger>
+                <TabsTrigger value="suggest" className="touch-target">Suggest</TabsTrigger>
+                <TabsTrigger value="answer" className="touch-target">Solve</TabsTrigger>
               </TabsList>
             </Tabs>
             <ModeInfoDialog />
@@ -1457,6 +1644,34 @@ function BoardContent({ id }: { id: string }) {
           errorMessage={errorMessage}
           customMessage={statusMessage}
         />
+      )}
+
+      {(assignmentMeta || helpCheckReason) && (
+        <div
+          className={
+            isLandscape
+              ? "fixed right-4 top-4 z-[1100] max-w-xs ios-safe-right ios-safe-top"
+              : "fixed top-4 right-4 z-[1100] max-w-sm ios-safe-top ios-safe-right"
+          }
+        >
+          <div className="bg-card border rounded-lg shadow-sm p-4 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground">Assignment</p>
+            <p className="font-semibold leading-tight">{boardTitle || 'Class board'}</p>
+            <p className="text-sm text-muted-foreground leading-tight">
+              {(assignmentMeta?.subject || 'Subject')}{assignmentMeta?.gradeLevel ? ` - ${assignmentMeta.gradeLevel}` : ''}{assignmentMeta?.templateId ? ` - ${assignmentMeta.templateId.replace(/-/g, ' ')}` : ''}
+            </p>
+            {assignmentMeta?.instructions && (
+              <p className="text-sm leading-relaxed mt-2">
+                {assignmentMeta.instructions}
+              </p>
+            )}
+            {helpCheckReason && helpCheckStatus === "idle" && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+                Tutor note: {helpCheckReason}
+              </p>
+            )}
+          </div>
+        </div>
       )}
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
@@ -1485,26 +1700,66 @@ export default function BoardPage() {
   const id = params.id as string;
   const [loading, setLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>(null);
+  const [assignmentMeta, setAssignmentMeta] = useState<AssignmentMeta | null>(null);
+  const [boardTitle, setBoardTitle] = useState<string>("");
+  const [canEdit, setCanEdit] = useState(true);
 
   useEffect(() => {
     async function loadBoard() {
       try {
+        // If it's a temp board (no auth), just allow editing
+        if (id.startsWith('temp-')) {
+          console.log('Loading temporary board (no auth)');
+          setBoardTitle('Temporary Board');
+          setCanEdit(true);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('whiteboards')
-          .select('data')
+          .select('data, metadata, title, user_id')
           .eq('id', id)
           .single();
 
         if (error) throw error;
 
         if (data) {
+          setBoardTitle(data.title || 'Class board');
+          setAssignmentMeta(data.metadata || null);
           if (data.data && Object.keys(data.data).length > 0) {
             setInitialData(data.data);
+          }
+
+          // Check edit permission
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (!user) {
+            // No auth - allow editing for temp boards
+            setCanEdit(true);
+            return;
+          }
+
+          const isOwner = data.user_id === user.id;
+
+          if (isOwner) {
+            setCanEdit(true);
+          } else {
+            // Check if user has share permission
+            const { data: share } = await supabase
+              .from('board_shares')
+              .select('permission')
+              .eq('board_id', id)
+              .eq('shared_with_user_id', user.id)
+              .single();
+
+            setCanEdit(share?.permission === 'edit');
           }
         }
       } catch (e) {
         console.error("Error loading board:", e);
-        toast.error("Failed to load board");
+        // Allow editing even on error (for temp boards)
+        setCanEdit(true);
       } finally {
         setLoading(false);
       }
@@ -1525,6 +1780,14 @@ export default function BoardPage() {
 
   return (
     <div style={{ position: "fixed", inset: 0 }}>
+      {/* View-only banner */}
+      {!canEdit && (
+        <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Eye className="w-4 h-4" />
+          View Only - You don't have permission to edit this board
+        </div>
+      )}
+
       <Tldraw
         licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
         overrides={hugeIconsOverrides}
@@ -1542,9 +1805,14 @@ export default function BoardPage() {
               toast.error("Failed to restore canvas state");
             }
           }
+
+          // Set read-only mode
+          if (!canEdit) {
+            editor.updateInstanceState({ isReadonly: true });
+          }
         }}
       >
-        <BoardContent id={id} />
+        <BoardContent id={id} assignmentMeta={assignmentMeta} boardTitle={boardTitle} />
       </Tldraw>
     </div>
   );
