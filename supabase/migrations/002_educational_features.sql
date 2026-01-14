@@ -200,8 +200,9 @@ BEGIN
     WHERE id = assignment_record.template_board_id;
 
     -- Create a copy of the template board for the student
-    INSERT INTO whiteboards (user_id, title, data, metadata, preview)
+    INSERT INTO whiteboards (name, user_id, title, data, metadata, preview)
     VALUES (
+      assignment_record.title || ' - My Work',
       NEW.student_id,
       assignment_record.title || ' - My Work',
       template_board.data,
@@ -264,11 +265,6 @@ CREATE POLICY "Teachers can create classes"
   ON classes FOR INSERT
   WITH CHECK (
     auth.uid() = teacher_id
-    AND EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'teacher'
-    )
   );
 
 -- Teachers can update their own classes

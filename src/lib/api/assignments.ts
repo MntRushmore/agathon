@@ -54,7 +54,7 @@ export async function getStudentAssignments() {
         *,
         class:classes(id, name, subject)
       ),
-      student_board:whiteboards!student_board_id(id, title, updated_at, preview)
+      student_board:whiteboards(id, title, updated_at, preview)
     `)
     .eq('student_id', user.id)
     .order('created_at', { ascending: false });
@@ -131,6 +131,7 @@ export async function publishAssignment(assignmentId: string) {
         const { data: newBoard, error: boardError } = await supabase
           .from('whiteboards')
           .insert({
+            name: `${assignment.title} - My Work`,
             user_id: member.student_id,
             title: `${assignment.title} - My Work`,
             data: templateBoard.data,
@@ -191,8 +192,8 @@ export async function getAssignmentSubmissions(assignmentId: string) {
     .from('submissions')
     .select(`
       *,
-      student:profiles!student_id(id, full_name, email, avatar_url),
-      student_board:whiteboards!student_board_id(id, title, updated_at, preview)
+      student:profiles(id, full_name, email, avatar_url),
+      student_board:whiteboards(id, title, updated_at, preview)
     `)
     .eq('assignment_id', assignmentId)
     .order('created_at', { ascending: false });
@@ -215,7 +216,7 @@ export async function getStudentSubmission(assignmentId: string, studentId?: str
     .select(`
       *,
       assignment:assignments(*),
-      student_board:whiteboards!student_board_id(*)
+      student_board:whiteboards(*)
     `)
     .eq('assignment_id', assignmentId)
     .eq('student_id', userId)
