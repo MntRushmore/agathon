@@ -116,9 +116,21 @@ export async function publishAssignment(assignmentId: string) {
   const assignment = await getAssignment(assignmentId);
   if (!assignment) throw new Error('Assignment not found');
 
-  // Get template board
-  const templateBoard = assignment.template_board;
-  if (!templateBoard) throw new Error('Template board not found');
+  // Get template board - need to fetch the full data separately to ensure we get everything
+  const templateBoardRef = assignment.template_board;
+  if (!templateBoardRef) throw new Error('Template board not found');
+
+  // Fetch the full template board data directly to ensure we get the canvas data
+  const { data: templateBoard, error: templateError } = await supabase
+    .from('whiteboards')
+    .select('*')
+    .eq('id', templateBoardRef.id)
+    .single();
+
+  if (templateError) throw templateError;
+  if (!templateBoard) throw new Error('Template board data not found');
+
+  console.log('Template board data size:', JSON.stringify(templateBoard.data || {}).length);
 
   // Get all students in the class
   const members = await getClassMembers(assignment.class_id);
@@ -128,13 +140,16 @@ export async function publishAssignment(assignmentId: string) {
     members.map(async (member) => {
       try {
         // Create a copy of the template board for the student
+        // Use deep copy of data to prevent reference issues
+        const boardData = templateBoard.data ? JSON.parse(JSON.stringify(templateBoard.data)) : {};
+
         const { data: newBoard, error: boardError } = await supabase
           .from('whiteboards')
           .insert({
             name: `${assignment.title} - My Work`,
             user_id: member.student_id,
             title: `${assignment.title} - My Work`,
-            data: templateBoard.data,
+            data: boardData,
             metadata: {
               ...(typeof templateBoard.metadata === 'object' && templateBoard.metadata !== null
                 ? templateBoard.metadata

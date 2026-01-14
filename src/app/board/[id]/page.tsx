@@ -819,13 +819,14 @@ type BoardContentProps = {
   assignmentMeta?: AssignmentMeta | null;
   boardTitle?: string;
   isSubmitted?: boolean;
+  isAssignmentBoard?: boolean; // If true, hide the right-side info card (banner shows it)
   assignmentRestrictions?: {
     allowAI?: boolean;
     allowedModes?: string[];
   } | null;
 };
 
-function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, assignmentRestrictions }: BoardContentProps) {
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions }: BoardContentProps) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -1713,7 +1714,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, assignmentR
         />
       )}
 
-      {(assignmentMeta || helpCheckReason) && (
+      {/* Only show right-side info card for non-assignment boards (assignments use the top banner) */}
+      {!isAssignmentBoard && (assignmentMeta || helpCheckReason) && (
         <div
           className={
             isLandscape
@@ -1856,6 +1858,14 @@ export default function BoardPage() {
     checkIfAssignment();
   }, [id]);
 
+  // Update editor read-only state when canEdit changes
+  useEffect(() => {
+    const editor = (window as any).__tldrawEditor;
+    if (editor) {
+      editor.updateInstanceState({ isReadonly: !canEdit });
+    }
+  }, [canEdit]);
+
   const handleSubmit = async () => {
     if (!submissionData) return;
 
@@ -1966,6 +1976,9 @@ export default function BoardPage() {
           HelperButtons: null,
         }}
         onMount={(editor) => {
+          // Store editor ref for later use
+          (window as any).__tldrawEditor = editor;
+
           if (initialData) {
             try {
               loadSnapshot(editor.store, initialData);
@@ -1975,7 +1988,7 @@ export default function BoardPage() {
             }
           }
 
-          // Set read-only mode
+          // Set read-only mode immediately if needed
           if (!canEdit) {
             editor.updateInstanceState({ isReadonly: true });
           }
@@ -1986,6 +1999,7 @@ export default function BoardPage() {
           assignmentMeta={assignmentMeta}
           boardTitle={boardTitle}
           isSubmitted={submissionData?.status === 'submitted'}
+          isAssignmentBoard={!!submissionData}
           assignmentRestrictions={submissionData?.assignment?.metadata}
         />
       </Tldraw>
