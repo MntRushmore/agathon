@@ -39,6 +39,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
+  // Protect teacher routes - require authentication and teacher role
+  if (request.nextUrl.pathname.startsWith('/teacher/')) {
+    if (!user) {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('auth', 'required');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Check if user has teacher role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'teacher') {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('error', 'teacher_only');
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   return supabaseResponse;
 }
 
