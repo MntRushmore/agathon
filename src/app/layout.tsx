@@ -5,6 +5,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 
+// Force dynamic rendering for all pages
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
