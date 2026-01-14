@@ -360,7 +360,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground">Manage your classes and assignments</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button 
+                <Button
                   onClick={() => router.push('/teacher/classes')}
                   variant="default"
                   className="w-full sm:w-auto"
@@ -368,13 +368,33 @@ export default function Dashboard() {
                   <Users className="w-4 h-4 mr-2" />
                   My Classes
                 </Button>
-                <Button 
+                <Button
                   onClick={() => router.push('/teacher/assignments/create')}
                   variant="outline"
                   className="w-full sm:w-auto"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   Create Assignment
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Student Quick Actions */}
+          {user && profile?.role === 'student' && (
+            <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-lg border border-green-500/20">
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-1">Student Dashboard</h2>
+                <p className="text-xs text-muted-foreground">Join classes and complete your assignments</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  onClick={() => router.push('/student/join')}
+                  variant="default"
+                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Join a Class
                 </Button>
               </div>
             </div>

@@ -481,6 +481,76 @@ CREATE TRIGGER update_submissions_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
+-- RPC FUNCTIONS
+-- ============================================
+
+-- Function to look up a class by join code (bypasses RLS for student enrollment)
+-- Students need to be able to look up a class before they're enrolled
+CREATE OR REPLACE FUNCTION get_class_by_join_code(code TEXT)
+RETURNS TABLE (
+  id UUID,
+  teacher_id UUID,
+  name TEXT,
+  description TEXT,
+  subject TEXT,
+  grade_level TEXT,
+  join_code TEXT,
+  is_active BOOLEAN,
+  created_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    c.id,
+    c.teacher_id,
+    c.name,
+    c.description,
+    c.subject,
+    c.grade_level,
+    c.join_code,
+    c.is_active,
+    c.created_at,
+    c.updated_at
+  FROM classes c
+  WHERE c.join_code = UPPER(code)
+  AND c.is_active = true;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_class_by_join_code(TEXT) TO authenticated;
+
+-- ============================================
+-- AUTO-CREATE PROFILE ON SIGNUP
+-- ============================================
+
+-- Function to create profile when user signs up
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to auto-create profile on signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- ============================================
 -- VERIFICATION QUERY
 -- ============================================
 
