@@ -266,6 +266,7 @@ export default function Dashboard() {
         .from('whiteboards')
         .insert([
           {
+            name: newTitle || selectedTemplate.defaultTitle,
             title: newTitle || selectedTemplate.defaultTitle,
             user_id: user.id,
             data: {},
