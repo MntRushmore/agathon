@@ -1903,8 +1903,21 @@ export default function BoardPage() {
     );
   }
 
+  // Compute a top offset so fixed banners never cover the canvas
+  const hasViewOnlyBanner = !canEdit && !submissionData;
+  const hasSubmittedBanner = !canEdit && submissionData?.status === 'submitted';
+  const hasAssignmentBanner = !!submissionData;
+
+  // Approximate banner heights (px): top notice (~40), assignment bar (~80)
+  const TOP_NOTICE_HEIGHT = 40; // py-2 banner
+  const ASSIGNMENT_BAR_HEIGHT = 80; // header with title, class, actions
+  const topOffset =
+    (hasViewOnlyBanner ? TOP_NOTICE_HEIGHT : 0) +
+    (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0) +
+    (hasAssignmentBanner ? ASSIGNMENT_BAR_HEIGHT : 0);
+
   return (
-    <div style={{ position: "fixed", inset: 0 }}>
+    <div style={{ position: "fixed", inset: 0, top: topOffset }}>
       {/* View-only banner */}
       {!canEdit && !submissionData && (
         <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
