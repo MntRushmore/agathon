@@ -134,6 +134,9 @@ export default function Dashboard() {
       setAuthModalOpen(true);
       toast.info('Please sign in to continue');
     }
+    if (searchParams.get('error') === 'teacher_only') {
+      toast.error('Access denied. Only teachers can access the teacher dashboard.');
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -347,6 +350,34 @@ export default function Dashboard() {
           <h1 className="text-4xl font-bold tracking-tight">
             {user ? 'My Whiteboards' : 'Welcome to AI Whiteboard'}
           </h1>
+
+          {/* Teacher Quick Actions */}
+          {user && profile?.role === 'teacher' && (
+            <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
+              <div className="flex-1">
+                <h2 className="text-sm font-semibold text-muted-foreground mb-1">Teacher Dashboard</h2>
+                <p className="text-xs text-muted-foreground">Manage your classes and assignments</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  onClick={() => router.push('/teacher/classes')}
+                  variant="default"
+                  className="w-full sm:w-auto"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  My Classes
+                </Button>
+                <Button 
+                  onClick={() => router.push('/teacher/assignments/create')}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Create Assignment
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Tabs for My Boards / Shared / Assignments (Students only) */}
           {user && (
