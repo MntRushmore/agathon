@@ -49,17 +49,17 @@ export async function getClass(classId: string) {
 
 /**
  * Get class by join code (for students joining)
+ * Uses RPC function to bypass RLS since students can't see classes they're not enrolled in
  */
 export async function getClassByJoinCode(joinCode: string) {
   const { data, error } = await supabase
-    .from('classes')
-    .select('*')
-    .eq('join_code', joinCode.toUpperCase())
-    .eq('is_active', true)
-    .single();
+    .rpc('get_class_by_join_code', { code: joinCode });
 
   if (error) throw error;
-  return data as Class;
+  if (!data || data.length === 0) {
+    throw new Error('Class not found. Please check the join code and try again.');
+  }
+  return data[0] as Class;
 }
 
 /**
