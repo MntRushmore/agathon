@@ -99,7 +99,7 @@ export function ShareBoardDialog({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, avatar_url')
+        .select('id, full_name, email, role, avatar_url, created_at, updated_at')
         .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
         .neq('id', user?.id) // Exclude current user
         .limit(5);

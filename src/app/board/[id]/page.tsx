@@ -49,6 +49,10 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2, Volume2, VolumeX, Info, Eye, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
+import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Check, Clock } from "lucide-react";
+import { formatDistance } from "date-fns";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -1339,7 +1343,7 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
   useEffect(() => {
     if (!editor) return;
 
-    let saveTimeout: NodeJS.Timeout;
+    let saveTimeout: ReturnType<typeof setTimeout>;
 
     const handleChange = () => {
       // Don't save during image updates
@@ -1402,7 +1406,7 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
                 format: "png",
                 bounds: viewportBounds,
                 background: false,
-                scale: 0.5,
+                scale: 0.75,  // Increased from 0.5 for better preview quality (50% more detail)
               });
               
               if (blob) {
@@ -1603,38 +1607,48 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
 
       {/* Tabs at top left */}
       {!isVoiceSessionActive && (
-        <div
-          className={
-            isLandscape
-              ? "fixed left-4 top-1/2 -translate-y-1/2 z-[1000] flex flex-col gap-3 ios-safe-left"
-              : "fixed top-4 left-4 z-[1000] flex items-center gap-3 ios-safe-top ios-safe-left"
-          }
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.back()}
-            className="touch-target"
+        <>
+          {/* Back button - stays on left */}
+          <div
+            className={
+              isLandscape
+                ? "fixed left-4 top-4 z-[1000] ios-safe-left ios-safe-top"
+                : "fixed top-4 left-4 z-[1000] ios-safe-top ios-safe-left"
+            }
           >
-            <ArrowLeft01Icon size={20} strokeWidth={2} />
-          </Button>
-          <div className={isLandscape ? "flex flex-col items-center gap-2" : "flex items-center gap-2"}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => router.back()}
+              className="touch-target"
+            >
+              <ArrowLeft01Icon size={20} strokeWidth={2} />
+            </Button>
+          </div>
+
+          {/* Mode tabs - horizontal at top center in landscape, next to back button in portrait */}
+          <div
+            className={
+              isLandscape
+                ? "fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 ios-safe-top"
+                : "fixed top-4 left-20 z-[1000] flex items-center gap-2 ios-safe-top ios-safe-left"
+            }
+          >
             <Tabs
               value={assistanceMode}
               onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
-              className={isLandscape ? "w-auto shadow-sm rounded-lg" : "w-auto shadow-sm rounded-lg"}
-              orientation={isLandscape ? "vertical" : "horizontal"}
+              className="w-auto rounded-xl"
             >
-              <TabsList className={isLandscape ? "flex-col" : ""}>
-                <TabsTrigger value="off" className="touch-target">Off</TabsTrigger>
-                <TabsTrigger value="feedback" className="touch-target">Feedback</TabsTrigger>
-                <TabsTrigger value="suggest" className="touch-target">Suggest</TabsTrigger>
-                <TabsTrigger value="answer" className="touch-target">Solve</TabsTrigger>
+              <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
+                <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
+                <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
+                <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
+                <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
               </TabsList>
             </Tabs>
             <ModeInfoDialog />
           </div>
-        </div>
+        </>
       )}
 
       {/* When a voice session is active, let the voice banner own the top-center space. */}
@@ -1679,7 +1693,8 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
         onAccept={handleAccept}
         onReject={handleReject}
       />
-      <VoiceAgentControls
+      {/* Voice mode hidden for now */}
+      {/* <VoiceAgentControls
         onSessionChange={setIsVoiceSessionActive}
         onSolveWithPrompt={async (mode, instructions) => {
           const success = await generateSolution({
@@ -1690,7 +1705,7 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
           });
           return success;
         }}
-      />
+      /> */}
     </>
   );
 }
@@ -1703,6 +1718,8 @@ export default function BoardPage() {
   const [assignmentMeta, setAssignmentMeta] = useState<AssignmentMeta | null>(null);
   const [boardTitle, setBoardTitle] = useState<string>("");
   const [canEdit, setCanEdit] = useState(true);
+  const [submissionData, setSubmissionData] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     async function loadBoard() {
@@ -1767,6 +1784,45 @@ export default function BoardPage() {
     loadBoard();
   }, [id]);
 
+  // Check if this board is an assignment submission
+  useEffect(() => {
+    async function checkIfAssignment() {
+      if (!id.startsWith('temp-')) {
+        try {
+          const submission = await getSubmissionByBoardId(id);
+          setSubmissionData(submission);
+        } catch (error) {
+          console.error('Error checking assignment:', error);
+        }
+      }
+    }
+    checkIfAssignment();
+  }, [id]);
+
+  const handleSubmit = async () => {
+    if (!submissionData) return;
+
+    if (!confirm('Submit this assignment? You can still make changes after submitting.')) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateSubmissionStatus(submissionData.id, 'submitted');
+      toast.success('Assignment submitted!');
+      setSubmissionData({
+        ...submissionData,
+        status: 'submitted',
+        submitted_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error submitting assignment:', error);
+      toast.error('Failed to submit assignment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -1785,6 +1841,52 @@ export default function BoardPage() {
         <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Eye className="w-4 h-4" />
           View Only - You don't have permission to edit this board
+        </div>
+      )}
+
+      {/* Assignment banner */}
+      {submissionData && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-card border-b shadow-md">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold">{submissionData.assignment.title}</h3>
+                  <Badge variant={
+                    submissionData.status === 'submitted' ? 'default' :
+                    submissionData.status === 'in_progress' ? 'secondary' :
+                    'outline'
+                  }>
+                    {submissionData.status === 'submitted' ? 'Submitted' :
+                     submissionData.status === 'in_progress' ? 'In Progress' :
+                     'Not Started'}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{submissionData.assignment.class.name}</p>
+                {submissionData.assignment.instructions && (
+                  <p className="text-sm mt-2">{submissionData.assignment.instructions}</p>
+                )}
+                {submissionData.assignment.due_date && (
+                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Due {formatDistance(new Date(submissionData.assignment.due_date), new Date(), { addSuffix: true })}
+                  </p>
+                )}
+              </div>
+
+              {submissionData.status !== 'submitted' ? (
+                <Button onClick={handleSubmit} disabled={submitting}>
+                  {submitting ? 'Submitting...' : 'Mark as Submitted'}
+                </Button>
+              ) : (
+                <div className="text-sm text-green-600 flex items-center gap-1">
+                  <Check className="h-4 w-4" />
+                  Submitted {submissionData.submitted_at && formatDistance(new Date(submissionData.submitted_at), new Date(), { addSuffix: true })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

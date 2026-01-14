@@ -4,10 +4,10 @@ import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Development: Use your local machine's IP address
+// Development: Use localhost for simulator, IP for physical device
 // Production: Use your deployed Vercel URL
 const WEB_APP_URL = __DEV__
-  ? 'http://10.0.0.95:3000'  // For development with Next.js dev server
+  ? 'http://localhost:3000'  // Use localhost for iOS Simulator
   : 'https://your-app.vercel.app'; // Replace with your production URL
 
 export default function WebViewWrapper() {

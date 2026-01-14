@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
+import { getStudentAssignments } from '@/lib/api/assignments';
 import { UserMenu } from '@/components/auth/user-menu';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
@@ -18,11 +19,14 @@ import {
   Edit2,
   MoreHorizontal,
   Share2,
-  Users
+  Users,
+  BookOpen,
+  Check
 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { toast } from "sonner";
+import { formatDistance } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -97,11 +101,12 @@ const assignmentTemplates = [
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
   const [sharedBoards, setSharedBoards] = useState<Whiteboard[]>([]);
-  const [activeTab, setActiveTab] = useState<'my-boards' | 'shared'>('my-boards');
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'my-boards' | 'assignments' | 'shared'>('my-boards');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -135,10 +140,13 @@ export default function Dashboard() {
     if (!authLoading && user) {
       fetchWhiteboards();
       fetchSharedBoards();
+      if (profile?.role === 'student') {
+        fetchAssignments();
+      }
     } else if (!authLoading && !user) {
       setLoading(false);
     }
-  }, [user, authLoading]);
+  }, [user, profile, authLoading]);
 
   async function fetchWhiteboards() {
     try {
@@ -150,9 +158,12 @@ export default function Dashboard() {
 
       if (error) throw error;
       setWhiteboards(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching whiteboards:', error);
-      toast.error('Failed to fetch whiteboards');
+      // Only show error toast if it's not a "no rows" error (new users have no boards)
+      if (error.code !== 'PGRST116') {
+        toast.error('Failed to fetch whiteboards');
+      }
     } finally {
       setLoading(false);
     }
@@ -189,6 +200,15 @@ export default function Dashboard() {
       setSharedBoards(boards);
     } catch (error) {
       console.error('Error fetching shared boards:', error);
+    }
+  }
+
+  async function fetchAssignments() {
+    try {
+      const data = await getStudentAssignments();
+      setAssignments(data || []);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
     }
   }
 
@@ -328,11 +348,22 @@ export default function Dashboard() {
             {user ? 'My Whiteboards' : 'Welcome to AI Whiteboard'}
           </h1>
 
-          {/* Tabs for My Boards / Shared */}
+          {/* Tabs for My Boards / Shared / Assignments (Students only) */}
           {user && (
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'my-boards' | 'shared')}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
               <TabsList>
                 <TabsTrigger value="my-boards">My Boards</TabsTrigger>
+                {profile?.role === 'student' && (
+                  <TabsTrigger value="assignments">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    My Assignments
+                    {assignments.length > 0 && (
+                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+                        {assignments.length}
+                      </span>
+                    )}
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="shared">
                   <Users className="w-4 h-4 mr-2" />
                   Shared With Me
@@ -403,28 +434,99 @@ export default function Dashboard() {
             </Button>
           </div>
         ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-64 bg-card rounded-xl border shadow-sm animate-pulse">
-                <div className="h-40 bg-muted rounded-t-xl" />
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-3 bg-muted rounded w-1/2" />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="overflow-hidden bg-card rounded-xl border">
+                <div className="w-full aspect-[16/10] bg-muted skeleton" />
+                <div className="p-6 space-y-3">
+                  <div className="h-6 bg-muted rounded skeleton w-3/4" />
+                  <div className="h-4 bg-muted rounded skeleton w-1/2" />
+                  <div className="h-4 bg-muted rounded skeleton w-2/3" />
                 </div>
               </div>
             ))}
           </div>
+        ) : activeTab === 'assignments' ? (
+          /* ASSIGNMENTS TAB */
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {assignments.length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                <div className="rounded-full bg-muted p-6 mb-4">
+                  <BookOpen className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No assignments yet</h3>
+                <p className="text-muted-foreground">
+                  Your teacher will assign work here
+                </p>
+              </div>
+            ) : (
+              assignments.map((submission: any) => (
+                <div
+                  key={submission.id}
+                  className="group relative bg-card border hover:border-ring/50 transition-all overflow-hidden flex flex-col rounded-xl board-card cursor-pointer"
+                  onClick={() => router.push(`/board/${submission.student_board_id}`)}
+                >
+                  {/* Preview */}
+                  <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted">
+                    {submission.student_board?.preview ? (
+                      <img
+                        src={submission.student_board.preview}
+                        alt={submission.assignment.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <BookOpen className="w-16 h-16 text-muted-foreground opacity-20" />
+                      </div>
+                    )}
+                    {/* Status Badge */}
+                    <div className={cn(
+                      "absolute top-3 right-3 px-3 py-1.5 text-xs font-medium rounded-lg backdrop-blur-sm",
+                      submission.status === 'submitted' ? 'bg-green-500/90 text-white' :
+                      submission.status === 'in_progress' ? 'bg-yellow-500/90 text-white' :
+                      'bg-gray-500/90 text-white'
+                    )}>
+                      {submission.status === 'submitted' ? '✓ Submitted' :
+                       submission.status === 'in_progress' ? 'In Progress' :
+                       'Not Started'}
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-6">
+                    <h3 className="text-xl font-medium mb-1">{submission.assignment.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {submission.assignment.class.name}
+                    </p>
+                    {submission.assignment.due_date && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Due {formatDistance(new Date(submission.assignment.due_date), new Date(), { addSuffix: true })}
+                      </p>
+                    )}
+                    {submission.submitted_at && (
+                      <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                        <Check className="h-3 w-3" />
+                        Submitted {formatDistance(new Date(submission.submitted_at), new Date(), { addSuffix: true })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         ) : (
+          /* MY BOARDS / SHARED TAB */
           <div className={cn(
-            viewMode === 'grid' 
-              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
+            viewMode === 'grid'
+              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
               : "flex flex-col gap-3"
           )}>
             {/* Create New Card (Grid Only) */}
-            {viewMode === 'grid' && (
-              <div 
+            {activeTab === 'my-boards' && viewMode === 'grid' && (
+              <div
                 onClick={() => openCreateDialog()}
-                className="flex flex-col items-center justify-center h-64 bg-card border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent transition-colors"
+                className="flex flex-col items-center justify-center aspect-[16/10] bg-card border-2 border-dashed rounded-xl cursor-pointer hover:bg-accent transition-all hover:border-ring/50"
               >
                 <div className="p-4 rounded-full bg-muted">
                   <Plus className="w-8 h-8 text-muted-foreground" />
@@ -435,13 +537,15 @@ export default function Dashboard() {
               </div>
             )}
 
-            {filteredWhiteboards.map((board) => (
-              <div 
+            {(activeTab === 'my-boards' ? whiteboards : sharedBoards)
+              .filter(board => board.title.toLowerCase().includes(searchQuery.toLowerCase()))
+              .map((board) => (
+              <div
                 key={board.id}
                 className={cn(
                   "group relative bg-card border hover:border-ring/50 transition-all overflow-hidden",
-                  viewMode === 'grid' 
-                    ? "flex flex-col h-64 rounded-xl shadow-sm hover:shadow-md" 
+                  viewMode === 'grid'
+                    ? "flex flex-col rounded-xl board-card"
                     : "flex items-center p-4 rounded-lg hover:bg-accent/50"
                 )}
               >
@@ -450,23 +554,25 @@ export default function Dashboard() {
                     onClick={() => router.push(`/board/${board.id}`)}
                 >
                     {viewMode === 'grid' ? (
-                    <div className="flex-1 h-40 bg-muted flex items-center justify-center relative overflow-hidden border-b">
+                    <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted">
                         {board.preview ? (
                             <img
                                 src={board.preview}
                                 alt={board.title}
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                             />
                         ) : (
-                            <>
-                                <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02]" />
-                                <FileIcon className="w-12 h-12 text-muted-foreground/50 group-hover:scale-110 transition-transform duration-300" />
-                            </>
+                            <div className="flex items-center justify-center h-full">
+                                <FileIcon className="w-16 h-16 text-muted-foreground opacity-20" />
+                            </div>
                         )}
+                        {/* Gradient overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         {/* Shared badge */}
                         {board.sharedPermission && (
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 text-primary-foreground text-xs font-medium rounded-md flex items-center gap-1">
-                                <Users className="w-3 h-3" />
+                            <div className="absolute top-3 left-3 px-3 py-1.5 bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg flex items-center gap-1.5 backdrop-blur-sm">
+                                <Users className="w-3.5 h-3.5" />
                                 {board.sharedPermission === 'edit' ? 'Can Edit' : 'View Only'}
                             </div>
                         )}
@@ -477,9 +583,9 @@ export default function Dashboard() {
                     </div>
                     )}
 
-                    <div className={cn("min-w-0", viewMode === 'grid' && "p-4")}>
+                    <div className={cn("min-w-0", viewMode === 'grid' && "p-6")}>
                         <div className="flex items-center gap-2">
-                            <h3 className="font-semibold truncate group-hover:text-primary transition-colors flex-1">
+                            <h3 className="text-xl font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors flex-1">
                                 {board.title}
                             </h3>
                             {board.sharedPermission && viewMode === 'list' && (
@@ -489,11 +595,11 @@ export default function Dashboard() {
                                 </span>
                             )}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                        <div className="text-sm text-muted-foreground mt-2">
                           {(board.metadata?.subject || 'Subject')}{board.metadata?.gradeLevel ? `  b7 ${board.metadata.gradeLevel}` : ''}  b7 {getTemplateTitle(board.metadata?.templateId)}
                         </div>
-                        <div className="flex items-center mt-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3 mr-1" />
+                        <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5 mr-1.5" />
                             {new Date(board.updated_at).toLocaleDateString(undefined, {
                             month: 'short',
                             day: 'numeric',
@@ -504,8 +610,8 @@ export default function Dashboard() {
                 </div>
 
                 <div className={cn(
-                    "absolute", 
-                    viewMode === 'grid' ? "top-2 right-2" : "right-4"
+                    "absolute",
+                    viewMode === 'grid' ? "top-3 right-3" : "right-4"
                 )}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -548,12 +654,23 @@ export default function Dashboard() {
             ))}
 
             {filteredWhiteboards.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <Search className="w-8 h-8 text-muted-foreground" />
+              <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
+                <div className="w-32 h-32 bg-primary/5 rounded-full flex items-center justify-center mb-6">
+                  <Search className="w-16 h-16 text-primary/40" />
                 </div>
-                <h3 className="text-lg font-medium">No boards found</h3>
-                <p className="text-muted-foreground mt-1">Try searching for something else or create a new board.</p>
+                <h2 className="text-2xl font-semibold mb-3">No boards found</h2>
+                <p className="text-muted-foreground mb-8 max-w-md">
+                  {searchQuery
+                    ? `No boards match "${searchQuery}". Try a different search.`
+                    : 'Start by creating a new whiteboard to begin drawing and learning.'
+                  }
+                </p>
+                {!searchQuery && (
+                  <Button size="lg" onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Create Board
+                  </Button>
+                )}
               </div>
             )}
           </div>

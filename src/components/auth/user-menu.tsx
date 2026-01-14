@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AuthModal } from './auth-modal';
-import { User01Icon, Logout03Icon, UserIcon } from 'hugeicons-react';
+import { Logout03Icon, UserIcon } from 'hugeicons-react';
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();

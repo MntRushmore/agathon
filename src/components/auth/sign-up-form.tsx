@@ -24,7 +24,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -38,7 +38,15 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
       if (error) throw error;
 
-      toast.success('Account created! Please check your email to verify your account.');
+      // Since email confirmation is disabled, user is automatically signed in
+      if (data.user && data.session) {
+        toast.success('Account created successfully!');
+        // Redirect to dashboard
+        window.location.href = '/';
+      } else {
+        toast.success('Account created! Please check your email to verify your account.');
+      }
+
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign up');

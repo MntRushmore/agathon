@@ -47,23 +47,44 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+
+  /* Modern minimalist font sizes */
+  --text-xs: 0.75rem;    /* 12px - tiny labels */
+  --text-sm: 0.875rem;   /* 14px - body small */
+  --text-base: 1rem;     /* 16px - body */
+  --text-lg: 1.125rem;   /* 18px - subheadings */
+  --text-xl: 1.25rem;    /* 20px - card titles */
+  --text-2xl: 1.5rem;    /* 24px - section headers */
+  --text-3xl: 1.875rem;  /* 30px - page titles */
+  --text-4xl: 2.25rem;   /* 36px - hero */
+
+  /* Refined spacing scale */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+
+  /* Refined color palette - Modern minimalist */
+  --background: oklch(0.99 0 0);        /* Softer white (not pure) */
+  --foreground: oklch(0.15 0 0);        /* Refined dark gray */
+  --card: oklch(1 0 0);                 /* Pure white for cards */
+  --card-foreground: oklch(0.15 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.15 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: oklch(0.96 0 0);             /* Subtle gray background */
+  --muted-foreground: oklch(0.45 0 0);  /* Softer muted text */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.93 0 0);            /* Softer borders */
+  --input: oklch(0.93 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -78,6 +99,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Refined shadows for depth */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
 }
 
 .dark {
@@ -117,9 +143,16 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Smooth transitions for all interactive elements */
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
   }
   body {
     @apply bg-background text-foreground;
+    /* Modern typography */
+    line-height: 1.6;
+    letter-spacing: -0.01em;
     /* Prevent pull-to-refresh and improve touch handling on mobile */
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
@@ -130,6 +163,27 @@
     user-select: none;
     /* Improve touch responsiveness */
     touch-action: none;
+  }
+
+  /* Headings with refined hierarchy */
+  h1 {
+    font-size: var(--text-4xl);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: var(--text-3xl);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  h3 {
+    font-size: var(--text-2xl);
+    font-weight: 500;
+    line-height: 1.4;
   }
 }
 
@@ -150,7 +204,7 @@
    iPad & Touch Device Optimizations
    ============================================ */
 
-/* Larger touch targets for touch devices */
+/* Larger touch targets for touch devices - iPad optimized */
 @media (pointer: coarse) {
   .touch-target {
     min-width: 44px;
@@ -161,6 +215,34 @@
   /* Make buttons larger on touch devices */
   button:not(.no-enlarge) {
     min-height: 44px;
+  }
+}
+
+/* iPad-optimized touch targets (48px) */
+@media (pointer: coarse) and (min-width: 768px) {
+  .touch-target {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 14px;
+  }
+
+  button:not(.no-enlarge) {
+    min-height: 48px;
+    padding: 12px 16px;
+  }
+
+  /* Increase tap area for small interactive elements */
+  a, button, input, select, textarea {
+    padding: 12px 16px;
+  }
+}
+
+/* Even larger for iPad Pro (52px) */
+@media (pointer: coarse) and (min-width: 1024px) {
+  .touch-target {
+    min-width: 52px;
+    min-height: 52px;
+    padding: 16px;
   }
 }
 
@@ -284,4 +366,73 @@ select {
 
 .native-app .native-only {
   display: block;
+}
+
+/* ============================================
+   Modern UI Animations & Interactions
+   ============================================ */
+
+/* Card hover effects */
+.board-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+}
+
+.board-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.board-card:active {
+  transform: translateY(-2px);
+  transition-duration: 50ms;
+}
+
+/* Button press feedback */
+button:active {
+  transform: scale(0.98);
+  transition-duration: 50ms;
+}
+
+/* Modal entrance animation */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+[role="dialog"] {
+  animation: modal-enter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Skeleton loading animation */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.skeleton {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background: var(--muted);
+}
+
+/* Page transition animation */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: page-enter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
