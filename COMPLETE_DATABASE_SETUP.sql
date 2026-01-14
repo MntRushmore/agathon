@@ -126,6 +126,25 @@ CREATE POLICY "Teachers can view all whiteboards" ON whiteboards
     )
   );
 
+-- Teachers can create boards for students in their classes (for assignment distribution)
+DROP POLICY IF EXISTS "Teachers can create boards for students" ON whiteboards;
+CREATE POLICY "Teachers can create boards for students" ON whiteboards
+  FOR INSERT WITH CHECK (
+    -- The current user must be a teacher
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'teacher'
+    )
+    AND
+    -- The board being created must be for a student in one of the teacher's classes
+    EXISTS (
+      SELECT 1 FROM class_members cm
+      JOIN classes c ON c.id = cm.class_id
+      WHERE cm.student_id = whiteboards.user_id
+      AND c.teacher_id = auth.uid()
+    )
+  );
+
 -- Trigger for updated_at
 DROP TRIGGER IF EXISTS update_whiteboards_updated_at ON whiteboards;
 CREATE TRIGGER update_whiteboards_updated_at
@@ -453,9 +472,18 @@ DROP POLICY IF EXISTS "Students can view own submissions" ON submissions;
 CREATE POLICY "Students can view own submissions" ON submissions
   FOR SELECT USING (auth.uid() = student_id);
 
-DROP POLICY IF EXISTS "System can create submissions" ON submissions;
-CREATE POLICY "System can create submissions" ON submissions
-  FOR INSERT WITH CHECK (true);
+-- Teachers can create submissions for students in their classes (for assignment publishing)
+DROP POLICY IF EXISTS "Teachers can create submissions for students" ON submissions;
+CREATE POLICY "Teachers can create submissions for students" ON submissions
+  FOR INSERT WITH CHECK (
+    -- The assignment must belong to a class owned by this teacher
+    EXISTS (
+      SELECT 1 FROM assignments a
+      JOIN classes c ON c.id = a.class_id
+      WHERE a.id = submissions.assignment_id
+      AND c.teacher_id = auth.uid()
+    )
+  );
 
 DROP POLICY IF EXISTS "Students can update own submissions" ON submissions;
 CREATE POLICY "Students can update own submissions" ON submissions

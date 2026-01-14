@@ -803,6 +803,9 @@ type AssignmentMeta = {
   gradeLevel?: string;
   instructions?: string;
   defaultMode?: "off" | "feedback" | "suggest" | "answer";
+  // AI restriction settings from teacher
+  allowAI?: boolean;
+  allowedModes?: string[];
 };
 
 type HelpCheckDecision = {
@@ -811,7 +814,18 @@ type HelpCheckDecision = {
   reason: string;
 };
 
-function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignmentMeta?: AssignmentMeta | null; boardTitle?: string }) {
+type BoardContentProps = {
+  id: string;
+  assignmentMeta?: AssignmentMeta | null;
+  boardTitle?: string;
+  isSubmitted?: boolean;
+  assignmentRestrictions?: {
+    allowAI?: boolean;
+    allowedModes?: string[];
+  } | null;
+};
+
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, assignmentRestrictions }: BoardContentProps) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -828,6 +842,17 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
+
+  // Determine if AI is allowed and which modes based on assignment restrictions
+  const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
+  const allowedModes = assignmentRestrictions?.allowedModes || ['feedback', 'suggest', 'answer'];
+
+  // Check if a specific mode is allowed
+  const isModeAllowed = (mode: string) => {
+    if (!aiAllowed) return mode === 'off';
+    if (mode === 'off') return true; // Off is always allowed
+    return allowedModes.includes(mode);
+  };
 
   // Get current user ID for realtime
   useEffect(() => {
@@ -998,6 +1023,17 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
 
       let mode = options?.modeOverride ?? assistanceMode;
       if (mode === "off") return false;
+
+      // Enforce AI restrictions - block if AI is disabled or mode not allowed
+      if (!aiAllowed) {
+        logger.info('AI assistance is disabled for this assignment');
+        return false;
+      }
+      if (!isModeAllowed(mode)) {
+        logger.info({ mode }, 'This AI mode is not allowed for this assignment');
+        toast.error(`${mode} mode is not allowed for this assignment`);
+        return false;
+      }
 
       // Check if canvas has content
       const shapeIds = editor.getCurrentPageShapeIds();
@@ -1634,18 +1670,35 @@ function BoardContent({ id, assignmentMeta, boardTitle }: { id: string; assignme
                 : "fixed top-4 left-20 z-[1000] flex items-center gap-2 ios-safe-top ios-safe-left"
             }
           >
-            <Tabs
-              value={assistanceMode}
-              onValueChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
-              className="w-auto rounded-xl"
-            >
-              <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
-                <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
-                <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
-                <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
-                <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {/* Show AI disabled message if AI is completely blocked */}
+            {!aiAllowed ? (
+              <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
+                AI assistance disabled for this assignment
+              </div>
+            ) : (
+              <Tabs
+                value={assistanceMode}
+                onValueChange={(value) => {
+                  if (isModeAllowed(value)) {
+                    setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
+                  }
+                }}
+                className="w-auto rounded-xl"
+              >
+                <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
+                  <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
+                  {isModeAllowed('feedback') && (
+                    <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
+                  )}
+                  {isModeAllowed('suggest') && (
+                    <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
+                  )}
+                  {isModeAllowed('answer') && (
+                    <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
+                  )}
+                </TabsList>
+              </Tabs>
+            )}
             <ModeInfoDialog />
           </div>
         </>
@@ -1791,6 +1844,10 @@ export default function BoardPage() {
         try {
           const submission = await getSubmissionByBoardId(id);
           setSubmissionData(submission);
+          // Lock the board if already submitted
+          if (submission?.status === 'submitted') {
+            setCanEdit(false);
+          }
         } catch (error) {
           console.error('Error checking assignment:', error);
         }
@@ -1802,19 +1859,21 @@ export default function BoardPage() {
   const handleSubmit = async () => {
     if (!submissionData) return;
 
-    if (!confirm('Submit this assignment? You can still make changes after submitting.')) {
+    if (!confirm('Submit this assignment? Your work will be locked and you won\'t be able to make further changes.')) {
       return;
     }
 
     setSubmitting(true);
     try {
       await updateSubmissionStatus(submissionData.id, 'submitted');
-      toast.success('Assignment submitted!');
+      toast.success('Assignment submitted! Your work is now locked.');
       setSubmissionData({
         ...submissionData,
         status: 'submitted',
         submitted_at: new Date().toISOString()
       });
+      // Lock the board by disabling edit
+      setCanEdit(false);
     } catch (error) {
       console.error('Error submitting assignment:', error);
       toast.error('Failed to submit assignment');
@@ -1837,16 +1896,24 @@ export default function BoardPage() {
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       {/* View-only banner */}
-      {!canEdit && (
+      {!canEdit && !submissionData && (
         <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Eye className="w-4 h-4" />
           View Only - You don't have permission to edit this board
         </div>
       )}
 
-      {/* Assignment banner */}
+      {/* Submitted assignment banner */}
+      {!canEdit && submissionData?.status === 'submitted' && (
+        <div className="fixed top-0 left-0 right-0 z-[10000] bg-green-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Check className="w-4 h-4" />
+          Assignment Submitted - Your work has been locked
+        </div>
+      )}
+
+      {/* Assignment banner - positioned below submission banner if submitted */}
       {submissionData && (
-        <div className="fixed top-0 left-0 right-0 z-[9999] bg-card border-b shadow-md">
+        <div className={`fixed left-0 right-0 z-[9999] bg-card border-b shadow-md ${submissionData.status === 'submitted' ? 'top-10' : 'top-0'}`}>
           <div className="max-w-4xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -1914,7 +1981,13 @@ export default function BoardPage() {
           }
         }}
       >
-        <BoardContent id={id} assignmentMeta={assignmentMeta} boardTitle={boardTitle} />
+        <BoardContent
+          id={id}
+          assignmentMeta={assignmentMeta}
+          boardTitle={boardTitle}
+          isSubmitted={submissionData?.status === 'submitted'}
+          assignmentRestrictions={submissionData?.assignment?.metadata}
+        />
       </Tldraw>
     </div>
   );
