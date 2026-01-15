@@ -42,6 +42,8 @@ export default function CreateAssignmentPage() {
   // AI controls
   const [allowAI, setAllowAI] = useState(true);
   const [allowedModes, setAllowedModes] = useState<string[]>(['feedback', 'suggest', 'answer']);
+  const [hintLimit, setHintLimit] = useState<number | null>(null);
+  const [hasHintLimit, setHasHintLimit] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -123,19 +125,20 @@ export default function CreateAssignmentPage() {
     try {
       // Create assignment for each selected class
       const assignmentPromises = selectedClassIds.map(async (classId) => {
-        // Create assignment record
-        const assignment = await createAssignment({
-          class_id: classId,
-          template_board_id: selectedBoardId,
-          title: title.trim(),
-          instructions: instructions.trim() || null,
-          due_date: dueDate ? new Date(dueDate).toISOString() : null,
-          is_published: true,
-          metadata: {
-            allowAI,
-            allowedModes,
-          },
-        });
+          // Create assignment record
+          const assignment = await createAssignment({
+            class_id: classId,
+            template_board_id: selectedBoardId,
+            title: title.trim(),
+            instructions: instructions.trim() || null,
+            due_date: dueDate ? new Date(dueDate).toISOString() : null,
+            is_published: true,
+            metadata: {
+              allowAI,
+              allowedModes,
+              hintLimit: hasHintLimit ? hintLimit : null,
+            },
+          });
 
         // Publish to all students (copy boards and create submissions)
         const result = await publishAssignment(assignment.id);
@@ -317,53 +320,95 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-              <div className="border-t pt-4">
-                <Label>AI Assistance</Label>
-                <div className="space-y-3 mt-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allowAI}
-                      onChange={(e) => setAllowAI(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">Allow AI assistance for this assignment</span>
-                  </label>
+                <div className="border-t pt-4">
+                  <Label>AI Assistance Settings</Label>
+                  <p className="text-xs text-muted-foreground mt-1 mb-3">
+                    Control how students can use AI help on this assignment
+                  </p>
+                  <div className="space-y-3 mt-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowAI}
+                        onChange={(e) => setAllowAI(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm">Allow AI assistance for this assignment</span>
+                    </label>
 
-                  {allowAI && (
-                    <div className="ml-6 space-y-2 border-l-2 pl-4">
-                      <p className="text-xs text-muted-foreground mb-2">Select which AI modes students can use:</p>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={allowedModes.includes('feedback')}
-                          onChange={() => toggleMode('feedback')}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-sm">Feedback mode - AI provides hints and guidance</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={allowedModes.includes('suggest')}
-                          onChange={() => toggleMode('suggest')}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-sm">Suggest mode - AI suggests next steps</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={allowedModes.includes('answer')}
-                          onChange={() => toggleMode('answer')}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span className="text-sm">Solve mode - AI can solve the problem</span>
-                      </label>
-                    </div>
-                  )}
+                    {allowAI && (
+                      <div className="ml-6 space-y-4 border-l-2 pl-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-2">Select which AI modes students can use:</p>
+                          <div className="space-y-2">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={allowedModes.includes('feedback')}
+                                onChange={() => toggleMode('feedback')}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span className="text-sm">
+                                <span className="font-medium text-blue-600">Feedback</span> - Light hints pointing out where to look
+                              </span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={allowedModes.includes('suggest')}
+                                onChange={() => toggleMode('suggest')}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span className="text-sm">
+                                <span className="font-medium text-amber-600">Suggest</span> - Guided hints for the next step
+                              </span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={allowedModes.includes('answer')}
+                                onChange={() => toggleMode('answer')}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              />
+                              <span className="text-sm">
+                                <span className="font-medium text-green-600">Solve</span> - Full worked solution (use sparingly)
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className="pt-2">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={hasHintLimit}
+                              onChange={(e) => {
+                                setHasHintLimit(e.target.checked);
+                                if (!e.target.checked) setHintLimit(null);
+                              }}
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span className="text-sm">Limit number of AI helps per student</span>
+                          </label>
+                          {hasHintLimit && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min={1}
+                                max={50}
+                                value={hintLimit || ''}
+                                onChange={(e) => setHintLimit(parseInt(e.target.value) || null)}
+                                className="w-24"
+                                placeholder="e.g., 5"
+                              />
+                              <span className="text-sm text-muted-foreground">hints maximum</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
             </div>
 
             <div className="flex gap-3 pt-4">

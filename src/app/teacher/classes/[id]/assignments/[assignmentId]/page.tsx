@@ -20,9 +20,12 @@ import {
   getAssignmentSubmissions,
   deleteAssignment,
 } from '@/lib/api/assignments';
-import { ArrowLeft, Trash2, Eye, Clock, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, Eye, Clock, CheckCircle, AlertCircle, ExternalLink, HelpCircle, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance, format } from 'date-fns';
+import { StrugglingStudentsPanel } from '@/components/teacher/StrugglingStudentsPanel';
+import { ConceptMasteryHeatmap } from '@/components/teacher/ConceptMasteryHeatmap';
+import { AIFeedbackPanel } from '@/components/teacher/AIFeedbackPanel';
 
 interface SubmissionWithDetails {
   id: string;
@@ -264,133 +267,165 @@ export default function AssignmentDetailPage() {
                   variant="link"
                   className="p-0 h-auto font-medium"
                   onClick={() => router.push(`/board/${assignment.template_board!.id}`)}
-                >
-                  View Template
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Button>
-              ) : (
-                <span className="text-muted-foreground">Not available</span>
-              )}
+                  >
+                    View Template
+                    <ExternalLink className="h-3 w-3 ml-1" />
+                  </Button>
+                ) : (
+                  <span className="text-muted-foreground">Not available</span>
+                )}
+              </div>
             </div>
-          </div>
 
-          {assignment.instructions && (
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <div className="text-sm text-muted-foreground mb-1">Instructions</div>
-              <p className="whitespace-pre-wrap">{assignment.instructions}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Submission Stats */}
-      <div className="border-b bg-card/50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold">{stats.submitted}/{stats.total}</div>
-              <div className="text-sm text-muted-foreground">submitted</div>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span>{stats.submitted} Submitted</span>
+            {assignment.instructions && (
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">Instructions</div>
+                <p className="whitespace-pre-wrap">{assignment.instructions}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span>{stats.inProgress} In Progress</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-gray-400" />
-                <span>{stats.notStarted} Not Started</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Submissions Grid */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <h2 className="text-xl font-semibold mb-6">Student Submissions</h2>
-
-        {submissions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Eye className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">No submissions yet</h3>
-            <p className="text-muted-foreground max-w-md">
-              Students will appear here once they receive this assignment.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {submissions.map((submission) => (
-              <div
-                key={submission.id}
-                className="border rounded-lg overflow-hidden hover:border-primary/50 transition-colors cursor-pointer"
-                onClick={() => {
-                  if (submission.student_board) {
-                    router.push(`/board/${submission.student_board.id}`);
-                  }
-                }}
-              >
-                {/* Preview Image */}
-                <div className="aspect-video bg-muted relative">
-                  {submission.student_board?.preview ? (
-                    <img
-                      src={submission.student_board.preview}
-                      alt="Board preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      No preview available
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2">
-                    {getStatusBadge(submission.status)}
-                  </div>
+        {/* Submission Stats */}
+        <div className="border-b bg-card/50">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2">
+                <div className="text-2xl font-bold">{stats.submitted}/{stats.total}</div>
+                <div className="text-sm text-muted-foreground">submitted</div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <span>{stats.submitted} Submitted</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span>{stats.inProgress} In Progress</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-400" />
+                  <span>{stats.notStarted} Not Started</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                {/* Student Info */}
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    {submission.student.avatar_url ? (
+        {/* Teacher Analytics Panels */}
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <StrugglingStudentsPanel assignmentId={assignmentId} />
+            <ConceptMasteryHeatmap assignmentId={assignmentId} />
+          </div>
+        </div>
+
+        {/* Submissions Grid */}
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <h2 className="text-xl font-semibold mb-6">Student Submissions</h2>
+
+          {submissions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Eye className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">No submissions yet</h3>
+              <p className="text-muted-foreground max-w-md">
+                Students will appear here once they receive this assignment.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {submissions.map((submission) => (
+                <div
+                  key={submission.id}
+                  className="border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
+                >
+                  {/* Preview Image */}
+                  <div 
+                    className="aspect-video bg-muted relative cursor-pointer"
+                    onClick={() => {
+                      if (submission.student_board) {
+                        router.push(`/board/${submission.student_board.id}`);
+                      }
+                    }}
+                  >
+                    {submission.student_board?.preview ? (
                       <img
-                        src={submission.student.avatar_url}
-                        alt=""
-                        className="w-8 h-8 rounded-full"
+                        src={submission.student_board.preview}
+                        alt="Board preview"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
-                        {(submission.student.full_name || submission.student.email)[0].toUpperCase()}
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        No preview available
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">
-                        {submission.student.full_name || 'Unknown Student'}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {submission.student.email}
-                      </div>
+                    <div className="absolute top-2 right-2">
+                      {getStatusBadge(submission.status)}
                     </div>
                   </div>
 
-                  <div className="text-xs text-muted-foreground">
-                    {submission.status === 'submitted' && submission.submitted_at ? (
-                      <>Submitted {formatDistance(new Date(submission.submitted_at), new Date(), { addSuffix: true })}</>
-                    ) : submission.student_board ? (
-                      <>Last updated {formatDistance(new Date(submission.student_board.updated_at), new Date(), { addSuffix: true })}</>
-                    ) : (
-                      <>Created {formatDistance(new Date(submission.created_at), new Date(), { addSuffix: true })}</>
-                    )}
+                  {/* Student Info */}
+                  <div className="p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      {submission.student.avatar_url ? (
+                        <img
+                          src={submission.student.avatar_url}
+                          alt=""
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+                          {(submission.student.full_name || submission.student.email)[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {submission.student.full_name || 'Unknown Student'}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {submission.student.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground mb-3">
+                      {submission.status === 'submitted' && submission.submitted_at ? (
+                        <>Submitted {formatDistance(new Date(submission.submitted_at), new Date(), { addSuffix: true })}</>
+                      ) : submission.student_board ? (
+                        <>Last updated {formatDistance(new Date(submission.student_board.updated_at), new Date(), { addSuffix: true })}</>
+                      ) : (
+                        <>Created {formatDistance(new Date(submission.created_at), new Date(), { addSuffix: true })}</>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (submission.student_board) {
+                            router.push(`/board/${submission.student_board.id}`);
+                          }
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <AIFeedbackPanel
+                        submissionId={submission.id}
+                        studentName={submission.student.full_name || 'Student'}
+                        boardPreview={submission.student_board?.preview}
+                        onFeedbackSent={loadData}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
       </div>
     </div>
   );
