@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
       prompt,
       mode = 'suggest',
       source = 'auto',
-      stepByStep = false,
     } = await req.json();
 
     if (!image) {
@@ -90,35 +89,22 @@ export async function POST(req: NextRequest) {
     // or explicitly by the voice tutor ("voice").
         const getModePrompt = (
           mode: string,
-          source: 'auto' | 'voice' = 'auto',
-          stepByStep: boolean = false,
         ): string => {
-          const effectiveSource = source === 'voice' ? 'voice' : 'auto';
 
           const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
           
-            const coreRules = 
-              '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style. Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.';
+            const coreRules =
+              '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- HANDWRITING IS MANDATORY: You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n- Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas with handwritten content; do not respond with text-only.';
 
             switch (mode) {
               case 'feedback':
                 return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.${coreRules}`;
               
               case 'suggest':
-                let suggestPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.${coreRules}`;
-                if (stepByStep) {
-                  suggestPrompt += stepByStepInstructions;
-                }
-                return suggestPrompt;
-              
+                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.${coreRules}`;
+
               case 'answer':
-                let answerPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.${coreRules}`;
-              
-              if (stepByStep) {
-                answerPrompt += stepByStepInstructions;
-              }
-              
-              return answerPrompt;
+                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.${coreRules}`;
             
             default:
               return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
@@ -126,10 +112,7 @@ export async function POST(req: NextRequest) {
         };
 
 
-    const effectiveSource: 'auto' | 'voice' =
-      source === 'voice' ? 'voice' : 'auto';
-
-    const basePrompt = getModePrompt(mode, effectiveSource, stepByStep);
+    const basePrompt = getModePrompt(mode);
 
     const finalPrompt = prompt
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
@@ -205,17 +188,6 @@ export async function POST(req: NextRequest) {
     const message = data.choices?.[0]?.message;
     const textContent = message?.content || '';
 
-    // Extract steps if present
-    let steps: string[] = [];
-    const stepsMatch = textContent.match(/\[STEPS\]\s*([\s\S]*?)\s*\[\/STEPS\]/);
-    if (stepsMatch) {
-      try {
-        steps = JSON.parse(stepsMatch[1]);
-      } catch (e) {
-        solutionLogger.warn({ requestId, stepsRaw: stepsMatch[1] }, 'Failed to parse steps JSON');
-      }
-    }
-
     let imageUrl: string | null = null;
 
     // 1) Legacy / hypothetical format: message.images[0].image_url.url
@@ -273,7 +245,7 @@ export async function POST(req: NextRequest) {
           tokensUsed: data.usage?.total_tokens,
           rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
         },
-        effectiveSource === 'voice'
+        source === 'voice'
           ? 'Solution generation completed without image in voice mode (Gemini returned text-only response)'
           : 'Solution generation completed without image (Gemini returned text-only response)'
       );
@@ -301,7 +273,6 @@ export async function POST(req: NextRequest) {
       success: true,
       imageUrl,
       textContent: textContent || '',
-      steps,
     });
   } catch (error) {
     const duration = Date.now() - startTime;
