@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type UserRole = 'student' | 'teacher';
+export type UserRole = 'student' | 'teacher' | 'admin';
 export type SharePermission = 'view' | 'edit';
 export type SubmissionStatus = 'not_started' | 'in_progress' | 'submitted';
 
@@ -143,6 +143,51 @@ export interface TeacherFeedback {
   created_at: string;
   updated_at: string;
   sent_at?: string | null;
+}
+
+// Admin types
+export type AdminActionType =
+  | 'user_role_change'
+  | 'user_delete'
+  | 'user_impersonate'
+  | 'content_delete'
+  | 'content_modify'
+  | 'class_delete'
+  | 'assignment_delete'
+  | 'board_delete';
+
+export type AdminTargetType = 'user' | 'class' | 'assignment' | 'board' | 'submission';
+
+export interface AdminAuditLog {
+  id: string;
+  admin_id: string;
+  action_type: AdminActionType;
+  target_type: AdminTargetType;
+  target_id: string;
+  target_details: Json | null;
+  metadata: Json | null;
+  created_at: string;
+}
+
+export interface PlatformStats {
+  totalUsers: number;
+  totalStudents: number;
+  totalTeachers: number;
+  totalAdmins: number;
+  totalClasses: number;
+  totalAssignments: number;
+  totalBoards: number;
+  totalSubmissions: number;
+  activeUsersToday: number;
+  activeUsersWeek: number;
+  activeUsersMonth: number;
+}
+
+export interface AIUsageStats {
+  totalInteractions: number;
+  interactionsByMode: Record<string, number>;
+  estimatedCost: number;
+  averagePerStudent: number;
 }
 
 export interface Database {

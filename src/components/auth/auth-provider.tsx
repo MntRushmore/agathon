@@ -11,6 +11,12 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  // Admin features
+  isAdmin: boolean;
+  isImpersonating: boolean;
+  impersonatedProfile: Profile | null;
+  startImpersonation: (userId: string) => Promise<void>;
+  stopImpersonation: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
+
+  // Impersonation state
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [impersonatedProfile, setImpersonatedProfile] = useState<Profile | null>(null);
+  const [originalProfile, setOriginalProfile] = useState<Profile | null>(null);
+
+  const isAdmin = profile?.role === 'admin';
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -99,10 +112,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setIsImpersonating(false);
+    setImpersonatedProfile(null);
+    setOriginalProfile(null);
   };
 
+  const startImpersonation = async (userId: string) => {
+    if (!isAdmin || !user) return;
+
+    try {
+      // Store original profile
+      setOriginalProfile(profile);
+
+      // Fetch target user profile
+      const { data: targetProfile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (targetProfile) {
+        // Log impersonation to audit log
+        await supabase.from('admin_audit_logs').insert({
+          admin_id: user.id,
+          action_type: 'user_impersonate',
+          target_type: 'user',
+          target_id: userId,
+          target_details: { email: targetProfile.email },
+        });
+
+        setImpersonatedProfile(targetProfile);
+        setIsImpersonating(true);
+      }
+    } catch (error) {
+      console.error('Failed to start impersonation:', error);
+    }
+  };
+
+  const stopImpersonation = async () => {
+    if (!isImpersonating) return;
+
+    setImpersonatedProfile(null);
+    setIsImpersonating(false);
+    if (originalProfile) {
+      setProfile(originalProfile);
+    }
+    setOriginalProfile(null);
+  };
+
+  // Get the effective profile (impersonated or real)
+  const effectiveProfile = isImpersonating ? impersonatedProfile : profile;
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile: effectiveProfile,
+        loading,
+        signOut,
+        refreshProfile,
+        isAdmin,
+        isImpersonating,
+        impersonatedProfile,
+        startImpersonation,
+        stopImpersonation,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
