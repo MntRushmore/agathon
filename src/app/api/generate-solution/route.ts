@@ -145,8 +145,6 @@ export async function POST(req: NextRequest) {
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
       : basePrompt;
 
-    const useHackClub = process.env.USE_HACKCLUB_FOR_IMAGE === 'true';
-    
     if (useHackClub) {
       solutionLogger.info({ requestId, mode }, 'Calling Hack Club AI API for image generation');
     } else {
