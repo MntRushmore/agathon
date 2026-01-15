@@ -1839,13 +1839,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         />
       )}
 
-      {/* Only show right-side info card for non-assignment boards (assignments use the top banner) */}
-      {!isAssignmentBoard && (assignmentMeta || helpCheckReason) && (
+      {/* Show assignment info card on the left side (avoiding tldraw tool panels on the right) */}
+      {isAssignmentBoard && (assignmentMeta || helpCheckReason) && (
         <div
           className={
             isLandscape
-              ? "fixed right-4 top-4 z-[1100] max-w-xs ios-safe-right ios-safe-top"
-              : "fixed top-4 right-4 z-[1100] max-w-sm ios-safe-top ios-safe-right"
+              ? "fixed left-4 top-24 z-[1100] max-w-xs ios-safe-left"
+              : "fixed top-24 left-4 z-[1100] max-w-sm ios-safe-left"
           }
         >
           <div className="bg-card border rounded-lg shadow-sm p-4 space-y-1">
