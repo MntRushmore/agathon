@@ -84,8 +84,65 @@ export interface Submission {
   student_board_id: string;
   status: SubmissionStatus;
   submitted_at: string | null;
+  ai_help_count?: number;
+  solve_mode_count?: number;
+  time_spent_seconds?: number;
+  last_activity_at?: string | null;
+  is_struggling?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface AIUsage {
+  id: string;
+  submission_id: string;
+  student_id: string;
+  assignment_id: string;
+  mode: 'feedback' | 'suggest' | 'answer' | 'chat';
+  prompt?: string;
+  response_summary?: string;
+  concept_tags?: string[];
+  created_at: string;
+}
+
+export interface StruggleIndicator {
+  id: string;
+  submission_id: string;
+  student_id: string;
+  assignment_id: string;
+  indicator_type: 'repeated_hints' | 'long_time' | 'erasing' | 'no_progress' | 'explicit_help';
+  severity: 'low' | 'medium' | 'high';
+  details?: Json;
+  resolved: boolean;
+  created_at: string;
+  resolved_at?: string | null;
+}
+
+export interface ConceptMastery {
+  id: string;
+  assignment_id: string;
+  concept_name: string;
+  student_id?: string;
+  mastery_level: 'struggling' | 'learning' | 'proficient' | 'mastered';
+  ai_help_count: number;
+  solve_mode_used: boolean;
+  time_spent_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeacherFeedback {
+  id: string;
+  submission_id: string;
+  teacher_id: string;
+  ai_draft?: string;
+  final_feedback?: string;
+  is_ai_generated: boolean;
+  is_approved: boolean;
+  sent_to_student: boolean;
+  created_at: string;
+  updated_at: string;
+  sent_at?: string | null;
 }
 
 export interface Database {
