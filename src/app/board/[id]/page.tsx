@@ -826,9 +826,10 @@ type BoardContentProps = {
     allowAI?: boolean;
     allowedModes?: string[];
   } | null;
+  isTeacherViewing?: boolean; // If true, show AI content indicators
 };
 
-function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions }: BoardContentProps) {
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing }: BoardContentProps) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -1232,6 +1233,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             h: shapeHeight,
             assetId: assetId,
           },
+          meta: {
+            aiGenerated: true,
+            aiMode: mode,
+            aiTimestamp: new Date().toISOString(),
+          },
         });
 
         // Only add to pending list if not in feedback mode
@@ -1622,6 +1628,36 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     };
   }, [editor, id]);
 
+  // Count AI-generated shapes for teacher view
+  const [aiShapeCount, setAiShapeCount] = useState(0);
+
+  // Track AI-generated shapes when teacher is viewing
+  useEffect(() => {
+    if (!editor || !isTeacherViewing) return;
+
+    const countAiShapes = () => {
+      const shapes = editor.getCurrentPageShapes();
+      const aiShapes = shapes.filter((shape: any) => shape.meta?.aiGenerated === true);
+      setAiShapeCount(aiShapes.length);
+
+      // Highlight AI-generated shapes with a purple border effect
+      aiShapes.forEach((shape: any) => {
+        // We can't directly modify the shape's visual appearance,
+        // but we can use a custom CSS approach or just count them
+      });
+    };
+
+    countAiShapes();
+
+    // Listen for store changes to update count
+    const dispose = editor.store.listen(countAiShapes, {
+      source: 'all',
+      scope: 'document'
+    });
+
+    return () => dispose();
+  }, [editor, isTeacherViewing]);
+
   return (
     <>
       {/* Active users indicator */}
@@ -1640,6 +1676,21 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                 {activeUsers.map(u => u.userName).join(', ')}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Content Stats for Teachers */}
+      {isTeacherViewing && aiShapeCount > 0 && (
+        <div className="fixed bottom-4 left-4 z-[1000] ios-safe-bottom ios-safe-left">
+          <div className="bg-purple-100 border border-purple-300 rounded-lg shadow-sm px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-3 h-3 rounded-full bg-purple-500" />
+              <span className="text-sm font-semibold text-purple-800">AI Usage Detected</span>
+            </div>
+            <p className="text-xs text-purple-700">
+              {aiShapeCount} AI-generated {aiShapeCount === 1 ? 'element' : 'elements'} on this canvas
+            </p>
           </div>
         </div>
       )}
@@ -1666,44 +1717,47 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           </div>
 
           {/* Mode tabs - horizontal at top center in landscape, next to back button in portrait */}
-          <div
-            className={
-              isLandscape
-                ? "fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 ios-safe-top"
-                : "fixed top-4 left-20 z-[1000] flex items-center gap-2 ios-safe-top ios-safe-left"
-            }
-          >
-            {/* Show AI disabled message if AI is completely blocked */}
-            {!aiAllowed ? (
-              <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
-                AI assistance disabled for this assignment
-              </div>
-            ) : (
-              <Tabs
-                value={assistanceMode}
-                onValueChange={(value) => {
-                  if (isModeAllowed(value)) {
-                    setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
-                  }
-                }}
-                className="w-auto rounded-xl"
-              >
-                <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
-                  <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
-                  {isModeAllowed('feedback') && (
-                    <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
-                  )}
-                  {isModeAllowed('suggest') && (
-                    <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
-                  )}
-                  {isModeAllowed('answer') && (
-                    <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
-                  )}
-                </TabsList>
-              </Tabs>
-            )}
-            <ModeInfoDialog />
-          </div>
+          {/* Hide AI controls when teacher is viewing student board */}
+          {!isTeacherViewing && (
+            <div
+              className={
+                isLandscape
+                  ? "fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 ios-safe-top"
+                  : "fixed top-4 left-20 z-[1000] flex items-center gap-2 ios-safe-top ios-safe-left"
+              }
+            >
+              {/* Show AI disabled message if AI is completely blocked */}
+              {!aiAllowed ? (
+                <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
+                  AI assistance disabled for this assignment
+                </div>
+              ) : (
+                <Tabs
+                  value={assistanceMode}
+                  onValueChange={(value) => {
+                    if (isModeAllowed(value)) {
+                      setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
+                    }
+                  }}
+                  className="w-auto rounded-xl"
+                >
+                  <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
+                    <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
+                    {isModeAllowed('feedback') && (
+                      <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
+                    )}
+                    {isModeAllowed('suggest') && (
+                      <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
+                    )}
+                    {isModeAllowed('answer') && (
+                      <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
+                    )}
+                  </TabsList>
+                </Tabs>
+              )}
+              <ModeInfoDialog />
+            </div>
+          )}
         </>
       )}
 
@@ -1764,20 +1818,22 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }}
       /> */}
 
-      {/* AI Chat Panel */}
-      <ChatPanel
-        getCanvasContext={() => {
-          const shapes = editor?.getCurrentPageShapes() || [];
-          return {
-            subject: assignmentMeta?.subject,
-            gradeLevel: assignmentMeta?.gradeLevel,
-            instructions: assignmentMeta?.instructions,
-            description: shapes.length > 0
-              ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
-              : 'Canvas is empty',
-          } as CanvasContext;
-        }}
-      />
+      {/* AI Chat Panel - hide when teacher is viewing student board */}
+      {!isTeacherViewing && (
+        <ChatPanel
+          getCanvasContext={() => {
+            const shapes = editor?.getCurrentPageShapes() || [];
+            return {
+              subject: assignmentMeta?.subject,
+              gradeLevel: assignmentMeta?.gradeLevel,
+              instructions: assignmentMeta?.instructions,
+              description: shapes.length > 0
+                ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
+                : 'Canvas is empty',
+            } as CanvasContext;
+          }}
+        />
+      )}
     </>
   );
 }
@@ -1792,6 +1848,8 @@ export default function BoardPage() {
   const [canEdit, setCanEdit] = useState(true);
   const [submissionData, setSubmissionData] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [isTeacherViewing, setIsTeacherViewing] = useState(false);
+  const [studentName, setStudentName] = useState<string>("");
 
   useEffect(() => {
     async function loadBoard() {
@@ -1863,8 +1921,39 @@ export default function BoardPage() {
         try {
           const submission = await getSubmissionByBoardId(id);
           setSubmissionData(submission);
-          // Lock the board if already submitted
-          if (submission?.status === 'submitted') {
+
+          // Get current user
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (submission && user) {
+            // Check if current user is the teacher of this assignment's class
+            if (submission.assignment?.class?.id) {
+              const { data: classData } = await supabase
+                .from('classes')
+                .select('teacher_id')
+                .eq('id', submission.assignment.class.id)
+                .single();
+
+              if (classData?.teacher_id === user.id) {
+                // Current user is the teacher viewing a student's board
+                setIsTeacherViewing(true);
+                setCanEdit(false); // Teachers can view but not edit student boards
+
+                // Get student name for the banner
+                const { data: studentProfile } = await supabase
+                  .from('profiles')
+                  .select('full_name, email')
+                  .eq('id', submission.student_id)
+                  .single();
+
+                setStudentName(studentProfile?.full_name || studentProfile?.email || 'Student');
+              } else if (submission.status === 'submitted') {
+                // Student viewing their own submitted assignment
+                setCanEdit(false);
+              }
+            }
+          } else if (submission?.status === 'submitted') {
+            // Lock the board if already submitted
             setCanEdit(false);
           }
         } catch (error) {
@@ -1921,14 +2010,16 @@ export default function BoardPage() {
   }
 
   // Compute a top offset so fixed banners never cover the canvas
-  const hasViewOnlyBanner = !canEdit && !submissionData;
-  const hasSubmittedBanner = !canEdit && submissionData?.status === 'submitted';
+  const hasViewOnlyBanner = !canEdit && !submissionData && !isTeacherViewing;
+  const hasSubmittedBanner = !canEdit && submissionData?.status === 'submitted' && !isTeacherViewing;
+  const hasTeacherBanner = isTeacherViewing;
 
   // Only the warning banners push down the canvas - assignment info is now a floating overlay
   const TOP_NOTICE_HEIGHT = 40; // py-2 banner
   const topOffset =
     (hasViewOnlyBanner ? TOP_NOTICE_HEIGHT : 0) +
-    (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0);
+    (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0) +
+    (hasTeacherBanner ? TOP_NOTICE_HEIGHT : 0);
 
   return (
     <div style={{ position: "fixed", inset: 0, top: topOffset }}>
@@ -1941,15 +2032,23 @@ export default function BoardPage() {
       )}
 
       {/* Submitted assignment banner */}
-      {!canEdit && submissionData?.status === 'submitted' && (
+      {!canEdit && submissionData?.status === 'submitted' && !isTeacherViewing && (
         <div className="fixed top-0 left-0 right-0 z-[10000] bg-green-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Check className="w-4 h-4" />
           Assignment Submitted - Your work has been locked
         </div>
       )}
 
+      {/* Teacher viewing student board banner */}
+      {isTeacherViewing && (
+        <div className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Eye className="w-4 h-4" />
+          Viewing {studentName}'s submission - AI-generated content is highlighted in purple
+        </div>
+      )}
+
       {/* Assignment banner - compact pill at top left (next to back button) */}
-      {submissionData && (
+      {submissionData && !isTeacherViewing && (
         <div className={`fixed left-14 z-[1000] ios-safe-left ${submissionData.status === 'submitted' ? 'top-12' : 'top-3'}`}>
           <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
             <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
@@ -1970,6 +2069,25 @@ export default function BoardPage() {
             ) : (
               <Check className="h-3.5 w-3.5 text-green-600" />
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Teacher viewing assignment info - show assignment details */}
+      {submissionData && isTeacherViewing && (
+        <div className="fixed left-14 top-12 z-[1000] ios-safe-left">
+          <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
+            <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            <span className="font-medium text-xs max-w-[180px] truncate">{submissionData.assignment.title}</span>
+            <Badge variant={
+              submissionData.status === 'submitted' ? 'default' :
+              submissionData.status === 'in_progress' ? 'secondary' :
+              'outline'
+            } className="text-[10px] px-1.5 py-0">
+              {submissionData.status === 'submitted' ? 'Submitted' :
+               submissionData.status === 'in_progress' ? 'In Progress' :
+               'Not Started'}
+            </Badge>
           </div>
         </div>
       )}
@@ -2008,6 +2126,7 @@ export default function BoardPage() {
           isSubmitted={submissionData?.status === 'submitted'}
           isAssignmentBoard={!!submissionData}
           assignmentRestrictions={submissionData?.assignment?.metadata}
+          isTeacherViewing={isTeacherViewing}
         />
       </Tldraw>
     </div>

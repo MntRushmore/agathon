@@ -123,14 +123,29 @@ export async function publishAssignment(assignmentId: string) {
   // Fetch the full template board data directly to ensure we get the canvas data
   const { data: templateBoard, error: templateError } = await supabase
     .from('whiteboards')
-    .select('*')
+    .select('id, name, title, data, metadata, preview, user_id')
     .eq('id', templateBoardRef.id)
     .single();
 
-  if (templateError) throw templateError;
+  if (templateError) {
+    console.error('Error fetching template board:', templateError);
+    throw new Error(`Failed to fetch template board: ${templateError.message}`);
+  }
   if (!templateBoard) throw new Error('Template board data not found');
 
-  console.log('Template board data size:', JSON.stringify(templateBoard.data || {}).length);
+  // Debug: Log template board data to verify it's being fetched correctly
+  const dataStr = JSON.stringify(templateBoard.data || {});
+  console.log('Template board ID:', templateBoard.id);
+  console.log('Template board has data:', !!templateBoard.data);
+  console.log('Template board data size:', dataStr.length, 'characters');
+
+  // Check if data is actually empty
+  if (!templateBoard.data || Object.keys(templateBoard.data).length === 0) {
+    console.warn('WARNING: Template board has empty data! This might mean:');
+    console.warn('1. The teacher has not drawn anything on the template board');
+    console.warn('2. The board was not saved before creating the assignment');
+    console.warn('3. RLS policies are blocking access to the data column');
+  }
 
   // Get all students in the class
   const members = await getClassMembers(assignment.class_id);
