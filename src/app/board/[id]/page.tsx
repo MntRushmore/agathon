@@ -1490,12 +1490,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             const shapeIds = editor.getCurrentPageShapeIds();
             if (shapeIds.size > 0) {
               const viewportBounds = editor.getViewportPageBounds();
-              const { blob } = await editor.toImage([...shapeIds], {
-                format: "png",
-                bounds: viewportBounds,
-                background: false,
-                scale: 0.75,  // Increased from 0.5 for better preview quality (50% more detail)
-              });
+                const { blob } = await editor.toImage([...shapeIds], {
+                  format: "png",
+                  bounds: viewportBounds,
+                  background: true,
+                  scale: 0.75,  // Increased from 0.5 for better preview quality (50% more detail)
+                });
               
               if (blob) {
                 previewUrl = await new Promise<string>((resolve) => {
@@ -1525,9 +1525,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           };
 
           if (previewUrl) {
-            // Guard against oversized previews that may violate DB column limits
-            const MAX_PREVIEW_LENGTH = 8000;
-            if (previewUrl.length > MAX_PREVIEW_LENGTH) {
+              // Guard against oversized previews that may violate DB column limits
+              const MAX_PREVIEW_LENGTH = 200000;
+              if (previewUrl.length > MAX_PREVIEW_LENGTH) {
               console.warn(`Preview too large (${previewUrl.length} bytes), skipping`);
               logger.warn(
                 { id, length: previewUrl.length, maxLength: MAX_PREVIEW_LENGTH },
@@ -1741,23 +1741,23 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       {/* Tabs at top left */}
       {!isVoiceSessionActive && (
         <>
-          {/* Back button - stays on left */}
-          <div
-            className={
-              isLandscape
-                ? "fixed left-4 top-4 z-[1000] ios-safe-left ios-safe-top"
-                : "fixed top-4 left-4 z-[1000] ios-safe-top ios-safe-left"
-            }
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="touch-target"
+            {/* Back button - stays on left, higher z-index to stay above assignment card */}
+            <div
+              className={
+                isLandscape
+                  ? "fixed left-4 top-4 z-[1200] ios-safe-left ios-safe-top"
+                  : "fixed top-4 left-4 z-[1200] ios-safe-top ios-safe-left"
+              }
             >
-              <ArrowLeft01Icon size={20} strokeWidth={2} />
-            </Button>
-          </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.back()}
+                className="touch-target bg-background/80 backdrop-blur-sm shadow-sm border"
+              >
+                <ArrowLeft01Icon size={20} strokeWidth={2} />
+              </Button>
+            </div>
 
           {/* Mode tabs - horizontal at top center in landscape, next to back button in portrait */}
           {/* Hide AI controls when teacher is viewing student board */}

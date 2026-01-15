@@ -114,13 +114,18 @@ export function AIFeedbackPanel({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {boardPreview && (
+          {boardPreview ? (
             <div className="border rounded-lg overflow-hidden">
               <img
                 src={boardPreview}
                 alt="Student work preview"
                 className="w-full max-h-48 object-contain bg-white"
               />
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden h-48 flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
+              <FileText className="h-12 w-12 opacity-20" />
+              <span className="text-sm font-medium opacity-50">No preview available</span>
             </div>
           )}
 

@@ -567,11 +567,12 @@ export default function AssignmentDetailPage() {
                           alt="Board preview"
                           className="w-full h-full object-cover"
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          No preview
-                        </div>
-                      )}
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
+                            <FileText className="h-10 w-10 opacity-20" />
+                            <span className="text-xs font-medium opacity-50">No preview available</span>
+                          </div>
+                        )}
                       <div className="absolute top-2 right-2">
                         {getStatusBadge(submission.status)}
                       </div>
