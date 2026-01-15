@@ -49,6 +49,7 @@ import { formatDistance, format, isPast, isToday, isTomorrow } from 'date-fns';
 import { StrugglingStudentsPanel } from '@/components/teacher/StrugglingStudentsPanel';
 import { ConceptMasteryHeatmap } from '@/components/teacher/ConceptMasteryHeatmap';
 import { AIFeedbackPanel } from '@/components/teacher/AIFeedbackPanel';
+import { AIHistoryTimeline } from '@/components/teacher/AIHistoryTimeline';
 
 interface SubmissionWithDetails {
   id: string;
@@ -631,23 +632,27 @@ export default function AssignmentDetailPage() {
                         )}
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                        <AIFeedbackPanel
-                          submissionId={submission.id}
-                          studentName={submission.student.full_name || 'Student'}
-                          boardPreview={submission.student_board?.preview}
-                          onFeedbackSent={loadData}
-                        />
-                      </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <AIHistoryTimeline
+                            submissionId={submission.id}
+                            studentName={submission.student.full_name || 'Student'}
+                          />
+                          <AIFeedbackPanel
+                            submissionId={submission.id}
+                            studentName={submission.student.full_name || 'Student'}
+                            boardPreview={submission.student_board?.preview}
+                            onFeedbackSent={loadData}
+                          />
+                        </div>
                     </CardContent>
                   </Card>
                 ))}

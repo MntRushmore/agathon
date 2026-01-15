@@ -14,31 +14,35 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { 
-      submissionId, 
-      assignmentId, 
-      mode, 
-      prompt, 
-      responseSummary,
-      conceptTags,
-      timeSpentSeconds 
-    } = body;
+      const { 
+        submissionId, 
+        assignmentId, 
+        mode, 
+        prompt, 
+        responseSummary,
+        conceptTags,
+        timeSpentSeconds,
+        aiResponse,
+        canvasContext,
+      } = body;
 
-    if (!submissionId || !assignmentId || !mode) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
+      if (!submissionId || !assignmentId || !mode) {
+        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      }
 
-    const { error: usageError } = await supabase
-      .from('ai_usage')
-      .insert({
-        submission_id: submissionId,
-        student_id: user.id,
-        assignment_id: assignmentId,
-        mode,
-        prompt,
-        response_summary: responseSummary,
-        concept_tags: conceptTags,
-      });
+      const summaryText = responseSummary || (aiResponse ? aiResponse.slice(0, 500) : null);
+
+      const { error: usageError } = await supabase
+        .from('ai_usage')
+        .insert({
+          submission_id: submissionId,
+          student_id: user.id,
+          assignment_id: assignmentId,
+          mode,
+          prompt,
+          response_summary: summaryText,
+          concept_tags: conceptTags,
+        });
 
     if (usageError) {
       console.error('Error tracking AI usage:', usageError);

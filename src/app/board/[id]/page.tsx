@@ -46,7 +46,7 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Volume2, VolumeX, Info, Eye, Users } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
@@ -474,309 +474,194 @@ function VoiceAgentControls({
           // Streaming text tokens are available here if you want on-screen captions.
           break;
         case "response.done": {
-          const output = event.response?.output ?? [];
-          for (const item of output) {
-            if (item.type === "function_call") {
-              handleFunctionCall(
-                item.name,
-                item.arguments ?? "{}",
-                item.call_id,
-              );
+            const output = event.response?.output ?? [];
+            for (const item of output) {
+              if (item.type === "function_call") {
+                handleFunctionCall(
+                  item.name,
+                  item.arguments ?? "{}",
+                  item.call_id,
+                );
+              }
             }
+            break;
           }
-          setStatus("listening");
-          setStatusDetail(null);
-          break;
+          default:
+            break;
         }
-        case "input_audio_buffer.speech_started":
-          setStatus("listening");
-          setStatusDetail("Listening...");
-          break;
-        case "input_audio_buffer.speech_stopped":
-          setStatus("thinking");
-          setStatusDetail(null);
-          break;
-        case "error":
-          // Log the full error object for debugging
-          console.error("[Voice Agent] Server error event:", event);
-          setErrorStatus(event.error?.message || event.message || "Realtime error");
-          break;
-        case "invalid_request_error":
-          console.error("[Voice Agent] Invalid request error:", event);
-          setErrorStatus(event.message || "Invalid request");
-          break;
-        default:
-          break;
-      }
-    },
-    [handleFunctionCall, setErrorStatus],
-  );
+      },
+      [handleFunctionCall],
+    );
 
-  const startSession = useCallback(async () => {
-    if (isSessionActive) return;
-
-    if (!editor) {
-      setErrorStatus("Canvas not ready yet");
-      return;
-    }
-
-    try {
-      setStatus("connecting");
-      setStatusDetail(null);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      localStreamRef.current = stream;
-
-      const pc = new RTCPeerConnection();
-      pcRef.current = pc;
-
-      const audioEl = document.createElement("audio");
-      audioEl.autoplay = true;
-      remoteAudioRef.current = audioEl;
-      pc.ontrack = (e) => {
-        audioEl.srcObject = e.streams[0];
-      };
-
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      const dc = pc.createDataChannel("oai-events");
-      dcRef.current = dc;
-
+    const setupDataChannel = useCallback((dc: RTCDataChannel) => {
       dc.onopen = () => {
-        setStatus("listening");
-        setStatusDetail(null);
-        setIsSessionActive(true);
-        onSessionChange(true);
-
-        const tools = [
-          {
-            type: "function",
-            name: "analyze_workspace",
-            description:
-              "Analyze the current whiteboard canvas to understand what the user is working on and where they might need help.",
-            parameters: {
-              type: "object",
-              properties: {
-                focus: {
-                  type: "string",
-                  description:
-                    "Optional focus for the analysis, e.g. 'find mistakes in the algebra' or 'summarize progress'.",
-                },
-              },
-              required: [],
-            },
-          },
-          {
-            type: "function",
-            name: "draw_on_canvas",
-            description:
-              "Use the Gemini 3 Pro canvas solver to add feedback, hints, or full solutions directly onto the whiteboard image.",
-            parameters: {
-              type: "object",
-              properties: {
-                mode: {
-                  type: "string",
-                  enum: ["feedback", "suggest", "answer"],
-                  description:
-                    "How strong the help should be: 'feedback' for light annotations, 'suggest' for hints, 'answer' for full solutions.",
-                },
-                instructions: {
-                  type: "string",
-                  description:
-                    "Optional instructions about what to draw, which problem to focus on, or style preferences.",
-                },
-              },
-              required: ["mode"],
-            },
-          },
-        ];
-
-        const sessionUpdate = {
+        console.log("[Voice Agent] Data channel open, configuring session...");
+        const sessionConfig = {
           type: "session.update",
           session: {
-            // Model and core configuration are set when creating the session;
-            // here we provide instructions and tools.
-            modalities: ["audio", "text"],
-            instructions:
-              "You are a realtime voice tutor for a handwritten whiteboard canvas. " +
-              "Speak clearly and briefly. Use tools when you need to inspect the canvas " +
-              "or add visual help. Prefer gentle hints before full solutions.",
-            tools,
-            tool_choice: "auto",
+            modalities: ["text", "audio"],
+            instructions: `You are a helpful math tutor. Guide the student through problems without giving answers directly. Use Socratic questioning.`,
+            voice: "alloy",
+            input_audio_transcription: { model: "whisper-1" },
+            tools: [
+              {
+                type: "function",
+                name: "analyze_workspace",
+                description: "Analyzes what the student has written on the canvas.",
+                parameters: {
+                  type: "object",
+                  properties: { focus: { type: "string" } },
+                },
+              },
+              {
+                type: "function",
+                name: "draw_on_canvas",
+                description: "Generates visual AI assistance on the canvas.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    mode: { type: "string", enum: ["feedback", "suggest", "answer"] },
+                    instructions: { type: "string" },
+                  },
+                  required: ["mode"],
+                },
+              },
+            ],
           },
         };
-
-        dc.send(JSON.stringify(sessionUpdate));
+        dc.send(JSON.stringify(sessionConfig));
       };
 
-      dc.onmessage = (event) => {
+      dc.onmessage = (ev) => {
         try {
-          const serverEvent = JSON.parse(event.data);
-          handleServerEvent(serverEvent);
+          const event = JSON.parse(ev.data);
+          handleServerEvent(event);
         } catch (e) {
-          console.error("[Voice Agent] Failed to parse server event", e);
+          console.error("[Voice Agent] Failed to parse event", e);
         }
       };
 
-      dc.onerror = (e) => {
-        console.error("[Voice Agent] DataChannel error", e);
-        setErrorStatus("Voice channel error");
+      dc.onclose = () => {
+        console.log("[Voice Agent] Data channel closed");
+        stopSession();
       };
+    }, [handleServerEvent, stopSession]);
 
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-          setErrorStatus("Voice connection lost");
-          stopSession();
-        }
-      };
+    const startSession = useCallback(async () => {
+      setStatus("connecting");
+      onSessionChange(true);
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      try {
+        const tokenRes = await fetch("/api/voice/token");
+        if (!tokenRes.ok) throw new Error("Failed to get ephemeral token");
+        const { client_secret } = await tokenRes.json();
+        const EPHEMERAL_KEY = client_secret?.value;
+        if (!EPHEMERAL_KEY) throw new Error("No ephemeral key returned");
 
-      // Wait for ICE gathering to complete before sending SDP to OpenAI.
-      await new Promise<void>((resolve) => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
-          return;
-        }
-        const checkState = () => {
-          if (pc.iceGatheringState === "complete") {
-            pc.removeEventListener("icegatheringstatechange", checkState);
-            resolve();
-          }
+        const pc = new RTCPeerConnection();
+        pcRef.current = pc;
+
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        remoteAudioRef.current = audio;
+
+        pc.ontrack = (ev) => {
+          audio.srcObject = ev.streams[0];
         };
-        pc.addEventListener("icegatheringstatechange", checkState);
-      });
 
-      const tokenRes = await fetch("/api/voice/token", {
-        method: "POST",
-      });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      if (!tokenRes.ok) {
-        throw new Error("Failed to obtain Realtime session token");
-      }
+        const dc = pc.createDataChannel("oai-events");
+        setupDataChannel(dc);
 
-      const { client_secret } = await tokenRes.json();
-      if (!client_secret) {
-        throw new Error("Realtime token missing client_secret");
-      }
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
 
-      // Note: client_secret is used as a Bearer token in the Authorization header
-      const sdpRes = await fetch(
-        "https://api.openai.com/v1/realtime?model=gpt-realtime",
-        {
+        const baseUrl = "https://api.openai.com/v1/realtime";
+        const model = "gpt-4o-realtime-preview-2024-12-17";
+        const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${client_secret}`,
+            Authorization: `Bearer ${EPHEMERAL_KEY}`,
             "Content-Type": "application/sdp",
           },
-          body: pc.localDescription?.sdp ?? "",
-        },
-      );
+          body: offer.sdp,
+        });
 
-      if (!sdpRes.ok) {
-        const errorText = await sdpRes.text().catch(() => "");
-        console.error(
-          "[Voice Agent] SDP exchange failed",
-          sdpRes.status,
-          errorText,
-        );
-        throw new Error("Failed to exchange SDP with Realtime API");
+        if (!sdpResponse.ok) throw new Error("Realtime handshake failed");
+        const answerSdp = await sdpResponse.text();
+        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+
+        setIsSessionActive(true);
+        setStatus("listening");
+      } catch (err) {
+        cleanupSession();
+        setIsSessionActive(false);
+        onSessionChange(false);
+        setErrorStatus(err instanceof Error ? err.message : "Unknown error");
       }
+    }, [cleanupSession, onSessionChange, setErrorStatus, setupDataChannel]);
 
-      const answerSdp = await sdpRes.text();
-      await pc.setRemoteDescription({
-        type: "answer",
-        sdp: answerSdp,
-      });
-    } catch (error) {
-      console.error("[Voice Agent] Failed to start session", error);
-      setErrorStatus(
-        error instanceof Error ? error.message : "Failed to start voice session",
-      );
-      stopSession();
-    }
-  }, [editor, isSessionActive, handleServerEvent, onSessionChange, setErrorStatus, stopSession]);
+  const toggleMute = useCallback(() => {
+    if (!localStreamRef.current) return;
+    const newMutedState = !isMuted;
+    localStreamRef.current.getAudioTracks().forEach((track) => {
+      track.enabled = !newMutedState;
+    });
+    setIsMuted(newMutedState);
+  }, [isMuted]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(async () => {
     if (isSessionActive) {
       stopSession();
     } else {
-      void startSession();
+      await startSession();
     }
-  };
-
-  const handleToggleMute = () => {
-    setIsMuted((prev) => {
-      const next = !prev;
-
-      // Following WebRTC best practices for Realtime:
-      // mute by disabling the outgoing microphone track(s),
-      // so no audio is sent to the agent while keeping the session alive.
-      if (localStreamRef.current) {
-        localStreamRef.current.getAudioTracks().forEach((track) => {
-          track.enabled = !next;
-        });
-      }
-
-      return next;
-    });
-  };
-
-  const showStatus = status !== "idle";
-  const isError = status === "error";
+  }, [isSessionActive, startSession, stopSession]);
 
   return (
     <>
-      {/* Status indicator at top center */}
-      {showStatus && (
-        <div
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300"
-          style={{
-            position: "absolute",
-            top: "10px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-          }}
-        >
-          {status !== "error" && (
-            <Loading03Icon
-              size={16}
-              strokeWidth={2}
-              className="animate-spin text-blue-600"
-            />
-          )}
-          <span
-            className={`text-sm font-medium ${
-              isError ? "text-red-600" : "text-gray-700"
-            }`}
-          >
-            {statusDetail || statusMessages[status] || "Voice status"}
-          </span>
+      <audio ref={remoteAudioRef} autoPlay />
+
+      {isSessionActive && status !== "idle" && (
+        <div className="fixed top-0 left-0 right-0 z-[10000] flex flex-col items-center justify-center pt-4 pointer-events-none">
+          <div className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
+            <Loading03Icon size={20} className="animate-spin" />
+            <span className="text-sm font-medium">
+              {statusMessages[status]}
+              {statusDetail ? ` (${statusDetail})` : ""}
+            </span>
+          </div>
+
+          <div className="flex gap-4 mt-4 pointer-events-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white rounded-full px-4"
+              onClick={toggleMute}
+            >
+              {isMuted ? (
+                <>
+                  <VolumeX className="w-4 h-4 mr-2" /> Unmute Mic
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4 mr-2" /> Mute Mic
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Voice controls at center bottom */}
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto">
-        <div className="flex items-center gap-2">
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[10000]">
+        <div className="flex items-center gap-4">
           {isSessionActive && (
-            <Button
-              type="button"
-              onClick={handleToggleMute}
-              variant="outline"
-              size="icon"
-              className="rounded-full shadow-md bg-white hover:bg-gray-50"
-              aria-label={isMuted ? "Unmute tutor" : "Mute tutor"}
-            >
-              {isMuted ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
-            </Button>
+            <span className="text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
+              Voice session active
+            </span>
           )}
           <Button
             onClick={handleClick}
@@ -796,6 +681,103 @@ function VoiceAgentControls({
         </div>
       </div>
     </>
+  );
+}
+
+function TeacherAIIndicator({ editor }: { editor: any }) {
+  const [aiShapes, setAiShapes] = useState<any[]>([]);
+  const [showLegend, setShowLegend] = useState(true);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateAIShapes = () => {
+      const shapes = editor.getCurrentPageShapes();
+      const aiGenerated = shapes.filter((s: any) => s.meta?.aiGenerated);
+      setAiShapes(aiGenerated);
+
+      aiGenerated.forEach((shape: any) => {
+        if (shape.opacity === 1) {
+          editor.updateShape({
+            id: shape.id,
+            opacity: 0.85,
+          });
+        }
+      });
+    };
+
+    updateAIShapes();
+    const dispose = editor.store.listen(updateAIShapes, { source: 'all', scope: 'document' });
+    return () => dispose();
+  }, [editor]);
+
+  const aiStats = {
+    total: aiShapes.length,
+    feedback: aiShapes.filter((s: any) => s.meta?.aiMode === 'feedback').length,
+    suggest: aiShapes.filter((s: any) => s.meta?.aiMode === 'suggest').length,
+    answer: aiShapes.filter((s: any) => s.meta?.aiMode === 'answer').length,
+  };
+
+  if (aiShapes.length === 0 && !showLegend) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[11000]">
+      {showLegend && (
+        <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 mb-2 max-w-xs">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              AI Usage Summary
+            </h4>
+            <button onClick={() => setShowLegend(false)} className="text-muted-foreground hover:text-foreground">
+              <Cancel01Icon size={16} />
+            </button>
+          </div>
+          
+          {aiShapes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No AI assistance was used on this submission.</p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Student used AI assistance <span className="font-semibold text-foreground">{aiStats.total}</span> time{aiStats.total !== 1 ? 's' : ''}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {aiStats.feedback > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    {aiStats.feedback} Light Hint{aiStats.feedback !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {aiStats.suggest > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    {aiStats.suggest} Guided Hint{aiStats.suggest !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {aiStats.answer > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    {aiStats.answer} Solution{aiStats.answer !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                AI-generated content appears slightly faded on the canvas.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {!showLegend && aiShapes.length > 0 && (
+        <button
+          onClick={() => setShowLegend(true)}
+          className="bg-purple-600 text-white rounded-full p-3 shadow-lg hover:bg-purple-700 transition-colors"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -821,15 +803,18 @@ type BoardContentProps = {
   assignmentMeta?: AssignmentMeta | null;
   boardTitle?: string;
   isSubmitted?: boolean;
-  isAssignmentBoard?: boolean; // If true, hide the right-side info card (banner shows it)
+  isAssignmentBoard?: boolean;
   assignmentRestrictions?: {
     allowAI?: boolean;
     allowedModes?: string[];
   } | null;
-  isTeacherViewing?: boolean; // If true, show AI content indicators
+  isTeacherViewing?: boolean;
+  hasBanner?: boolean;
+  submissionId?: string | null;
+  assignmentId?: string | null;
 };
 
-function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing }: BoardContentProps) {
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId }: BoardContentProps) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -850,6 +835,25 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
+
+  const trackAIUsage = useCallback(async (mode: string, prompt?: string, aiResponse?: string) => {
+    if (!submissionId || !assignmentId) return;
+    try {
+      await fetch('/api/track-ai-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionId,
+          assignmentId,
+          mode,
+          prompt: prompt || `Auto-triggered ${mode} mode assistance`,
+          aiResponse,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to track AI usage:', error);
+    }
+  }, [submissionId, assignmentId]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
@@ -1252,12 +1256,15 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           },
         });
 
-        // Only add to pending list if not in feedback mode
-        if (!isFeedbackMode) {
-          setPendingImageIds((prev) => [...prev, shapeId]);
-        }
-        
-        // Show success message briefly, then return to idle
+          // Only add to pending list if not in feedback mode
+          if (!isFeedbackMode) {
+            setPendingImageIds((prev) => [...prev, shapeId]);
+          }
+
+          // Track AI usage for teacher analytics
+          trackAIUsage(mode, options?.promptOverride, textContent);
+          
+          // Show success message briefly, then return to idle
         setStatus("success");
         setStatusMessage(getStatusMessage(mode, "success"));
         setTimeout(() => {
@@ -1290,13 +1297,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }, 3000);
 
         return false;
-      } finally {
-        isProcessingRef.current = false;
-        abortControllerRef.current = null;
-      }
-    },
-    [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage],
-  );
+        } finally {
+          isProcessingRef.current = false;
+          abortControllerRef.current = null;
+        }
+      },
+      [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage, trackAIUsage],
+    );
 
   const handleAutoGeneration = useCallback(() => {
     void generateSolution({ source: "auto" });
@@ -1745,8 +1752,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <div
               className={
                 isLandscape
-                  ? "fixed left-4 top-4 z-[1200] ios-safe-left ios-safe-top"
-                  : "fixed top-4 left-4 z-[1200] ios-safe-top ios-safe-left"
+                  ? `fixed left-4 ${hasBanner ? 'top-14' : 'top-4'} z-[11000] ios-safe-left ios-safe-top`
+                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-4 z-[11000] ios-safe-top ios-safe-left`
               }
             >
               <Button
@@ -1765,8 +1772,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <div
               className={
                 isLandscape
-                  ? "fixed top-4 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 ios-safe-top"
-                  : "fixed top-4 left-20 z-[1000] flex items-center gap-2 ios-safe-top ios-safe-left"
+                  ? `fixed ${hasBanner ? 'top-14' : 'top-4'} left-1/2 -translate-x-1/2 z-[11000] flex items-center gap-2 ios-safe-top`
+                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-20 z-[11000] flex items-center gap-2 ios-safe-top ios-safe-left`
               }
             >
               {/* Show AI disabled message if AI is completely blocked */}
@@ -1888,44 +1895,49 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       /> */}
 
 {/* AI Chat Panel - hide when teacher is viewing student board */}
-        {!isTeacherViewing && (
-          <ChatPanel
-            getCanvasContext={async () => {
-              const shapes = editor?.getCurrentPageShapes() || [];
-              let imageBase64: string | undefined;
-              
-              if (editor && shapes.length > 0) {
-                try {
-                  const shapeIds = editor.getCurrentPageShapeIds();
-                  const result = await editor.toImage([...shapeIds], {
-                    format: 'png',
-                    background: true,
-                    scale: 0.5,
-                  });
-                  if (result?.blob) {
-                    const reader = new FileReader();
-                    imageBase64 = await new Promise((resolve) => {
-                      reader.onloadend = () => resolve(reader.result as string);
-                      reader.readAsDataURL(result.blob);
+          {!isTeacherViewing && (
+            <ChatPanel
+              getCanvasContext={async () => {
+                const shapes = editor?.getCurrentPageShapes() || [];
+                let imageBase64: string | undefined;
+                
+                if (editor && shapes.length > 0) {
+                  try {
+                    const shapeIds = editor.getCurrentPageShapeIds();
+                    const result = await editor.toImage([...shapeIds], {
+                      format: 'png',
+                      background: true,
+                      scale: 0.5,
                     });
+                    if (result?.blob) {
+                      const reader = new FileReader();
+                      imageBase64 = await new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.readAsDataURL(result.blob);
+                      });
+                    }
+                  } catch (err) {
+                    console.error('Failed to capture canvas:', err);
                   }
-                } catch (err) {
-                  console.error('Failed to capture canvas:', err);
                 }
-              }
-              
-              return {
-                subject: assignmentMeta?.subject,
-                gradeLevel: assignmentMeta?.gradeLevel,
-                instructions: assignmentMeta?.instructions,
-                description: shapes.length > 0
-                  ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
-                  : 'Canvas is empty',
-                imageBase64,
-              } as CanvasContext;
-            }}
-          />
-        )}
+                
+                return {
+                  subject: assignmentMeta?.subject,
+                  gradeLevel: assignmentMeta?.gradeLevel,
+                  instructions: assignmentMeta?.instructions,
+                  description: shapes.length > 0
+                    ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
+                    : 'Canvas is empty',
+                  imageBase64,
+                } as CanvasContext;
+              }}
+            />
+          )}
+
+          {/* AI Content Indicator for Teacher View */}
+          {isTeacherViewing && editor && (
+            <TeacherAIIndicator editor={editor} />
+          )}
     </>
   );
 }
@@ -2141,7 +2153,7 @@ export default function BoardPage() {
 
       {/* Assignment banner - compact pill at top left (next to back button) */}
       {submissionData && !isTeacherViewing && (
-        <div className={`fixed left-14 z-[1000] ios-safe-left ${submissionData.status === 'submitted' ? 'top-12' : 'top-3'}`}>
+        <div className={`fixed left-14 z-[11000] ios-safe-left ${submissionData.status === 'submitted' ? 'top-14' : 'top-4'}`}>
           <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
             <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
             <span className="font-medium text-xs max-w-[120px] truncate">{submissionData.assignment.title}</span>
@@ -2167,7 +2179,7 @@ export default function BoardPage() {
 
       {/* Teacher viewing assignment info - show assignment details */}
       {submissionData && isTeacherViewing && (
-        <div className="fixed left-14 top-12 z-[1000] ios-safe-left">
+        <div className="fixed left-14 top-14 z-[11000] ios-safe-left">
           <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
             <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
             <span className="font-medium text-xs max-w-[180px] truncate">{submissionData.assignment.title}</span>
@@ -2184,43 +2196,46 @@ export default function BoardPage() {
         </div>
       )}
 
-      <Tldraw
-        licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
-        overrides={hugeIconsOverrides}
-        components={{
-          MenuPanel: null,
-          NavigationPanel: null,
-          HelperButtons: null,
-        }}
-        onMount={(editor) => {
-          // Store editor ref for later use
-          (window as any).__tldrawEditor = editor;
+        <Tldraw
+          licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
+          overrides={hugeIconsOverrides}
+          components={{
+            MenuPanel: null,
+            NavigationPanel: null,
+            HelperButtons: null,
+          }}
+          onMount={(editor) => {
+            // Store editor ref for later use
+            (window as any).__tldrawEditor = editor;
 
-          if (initialData) {
-            try {
-              loadSnapshot(editor.store, initialData);
-            } catch (e) {
-              console.error("Failed to load snapshot:", e);
-              toast.error("Failed to restore canvas state");
+            if (initialData) {
+              try {
+                loadSnapshot(editor.store, initialData);
+              } catch (e) {
+                console.error("Failed to load snapshot:", e);
+                toast.error("Failed to restore canvas state");
+              }
             }
-          }
 
-          // Set read-only mode immediately if needed
-          if (!canEdit) {
-            editor.updateInstanceState({ isReadonly: true });
-          }
-        }}
-      >
-        <BoardContent
-          id={id}
-          assignmentMeta={assignmentMeta}
-          boardTitle={boardTitle}
-          isSubmitted={submissionData?.status === 'submitted'}
-          isAssignmentBoard={!!submissionData}
-          assignmentRestrictions={submissionData?.assignment?.metadata}
-          isTeacherViewing={isTeacherViewing}
-        />
-      </Tldraw>
+            // Set read-only mode immediately if needed
+            if (!canEdit) {
+              editor.updateInstanceState({ isReadonly: true });
+            }
+          }}
+        >
+          <BoardContent
+              id={id}
+              assignmentMeta={assignmentMeta}
+              boardTitle={boardTitle}
+              isSubmitted={submissionData?.status === 'submitted'}
+              isAssignmentBoard={!!submissionData}
+              assignmentRestrictions={submissionData?.assignment?.metadata}
+              isTeacherViewing={isTeacherViewing}
+              hasBanner={!!topOffset}
+              submissionId={submissionData?.id}
+              assignmentId={submissionData?.assignment_id}
+            />
+        </Tldraw>
     </div>
   );
 }
