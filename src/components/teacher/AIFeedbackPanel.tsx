@@ -14,7 +14,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Sparkles, Send, Edit2, Loader2, Clock, HelpCircle } from 'lucide-react';
+import { Sparkles, Send, Edit2, Loader2, Clock, HelpCircle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AIFeedbackPanelProps {
