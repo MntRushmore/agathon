@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/components/auth/auth-provider";
+import { AppProviders } from "@/components/providers";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 
 // Force dynamic rendering for all pages
@@ -44,10 +43,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NativeAppBridge />
-        <AuthProvider>
+        <AppProviders>
           {children}
-          <Toaster />
-        </AuthProvider>
+        </AppProviders>
       </body>
     </html>
   );
