@@ -1101,21 +1101,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         if (signal.aborted) return false;
 
-        // Step 2: Run a light help check for auto assistance
-        let helpDecision: HelpCheckDecision | null = null;
-        // Only run help check for 'feedback' mode or if source is auto and we want to be less intrusive.
-        // For 'suggest' and 'answer' modes, if the user enabled them, they want help.
-        if ((options?.source ?? "auto") === "auto" && mode === 'feedback') {
-          helpDecision = await runHelpCheck(base64, signal);
-
-          if (helpDecision && helpDecision.needsHelp === false) {
-            setStatus("idle");
-            setStatusMessage("Looking good—keep going.");
-            isProcessingRef.current = false;
-            return false;
-          }
-        }
-
         // Step 3: Generate solution (Gemini decides if help is needed)
         setStatus("generating");
         setStatusMessage(getStatusMessage(mode, "generating"));
@@ -1123,7 +1108,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const body: Record<string, unknown> = {
           image: base64,
           mode,
-          stepByStep: isStepByStep && mode === 'answer',
+          stepByStep: isStepByStep && (mode === 'answer' || mode === 'suggest'),
         };
 
         if (options?.promptOverride) {
@@ -1349,6 +1334,10 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         type: "image",
         isLocked: false,
         opacity: 1,
+        meta: {
+          ...editor.getShape(shapeId)?.meta,
+          aiGenerated: false, // Mark as no longer AI-generated content (accepted)
+        }
       });
 
       // Then immediately lock it again to make it non-selectable
@@ -1759,7 +1748,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               </Button>
             </div>
 
-          {/* Mode tabs - horizontal at top center in landscape, next to back button in portrait */}
+          {/* Mode tabs and status - horizontal at top center in landscape */}
           {/* Hide AI controls when teacher is viewing student board */}
           {!isTeacherViewing && (
             <div
@@ -1773,7 +1762,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                 {/* Show AI disabled message if AI is completely blocked */}
                 {!aiAllowed ? (
                   <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
-                    AI assistance disabled for this assignment
+                    AI assistance disabled
                   </div>
                 ) : (
                   <Tabs
@@ -1786,64 +1775,66 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     className="w-auto rounded-xl"
                   >
                     <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
-                      <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
+                      <TabsTrigger value="off" className="touch-target min-w-[60px] rounded-lg">Off</TabsTrigger>
                       {isModeAllowed('feedback') && (
-                        <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
+                        <TabsTrigger value="feedback" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Feedback</TabsTrigger>
                       )}
                       {isModeAllowed('suggest') && (
-                        <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
+                        <TabsTrigger value="suggest" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Suggest</TabsTrigger>
                       )}
-                        {isModeAllowed('answer') && (
-                          <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
-                        )}
+                      {isModeAllowed('answer') && (
+                        <TabsTrigger value="answer" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Solve</TabsTrigger>
+                      )}
                     </TabsList>
                   </Tabs>
                 )}
                 <ModeInfoDialog />
               </div>
 
-              {(assistanceMode === 'answer' || steps.length > 0) && (
-                <div className="flex items-center gap-2 animate-in slide-in-from-top-1">
-                  {assistanceMode === 'answer' && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md">
-                      <input
-                        type="checkbox"
-                        id="step-by-step-toggle"
-                        checked={isStepByStep}
-                        onChange={(e) => setIsStepByStep(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
-                        Step-by-step
-                      </label>
-                    </div>
-                  )}
+              {/* Status and Step-by-step controls grouped together */}
+              <div className="flex items-center gap-2 flex-wrap justify-center">
+                <StatusIndicator
+                  status={status}
+                  errorMessage={errorMessage}
+                  customMessage={statusMessage}
+                  disableAbsolute
+                />
 
-                  {steps.length > 0 && currentStepIndex < steps.length && (
-                    <Button
-                      onClick={revealNextStep}
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse h-[34px]"
-                    >
-                      Reveal Next Step ({currentStepIndex}/{steps.length})
-                    </Button>
-                  )}
-                </div>
-              )}
+                {(assistanceMode === 'answer' || assistanceMode === 'suggest' || steps.length > 0) && (
+                  <div className="flex items-center gap-2 animate-in slide-in-from-top-1">
+                    {(assistanceMode === 'answer' || assistanceMode === 'suggest') && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md h-[38px]">
+                        <input
+                          type="checkbox"
+                          id="step-by-step-toggle"
+                          checked={isStepByStep}
+                          onChange={(e) => setIsStepByStep(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
+                          Steps
+                        </label>
+                      </div>
+                    )}
+
+                    {steps.length > 0 && currentStepIndex < steps.length && (
+                      <Button
+                        onClick={revealNextStep}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse h-[38px] px-3"
+                      >
+                        Next Step ({currentStepIndex}/{steps.length})
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-
           )}
         </>
       )}
 
-      {/* When a voice session is active, let the voice banner own the top-center space. */}
-      {!isVoiceSessionActive && (
-        <StatusIndicator
-          status={status}
-          errorMessage={errorMessage}
-          customMessage={statusMessage}
-        />
-      )}
+      {/* Removed the separate StatusIndicator as it's now grouped above */}
 
       {/* Show assignment info card on the left side (avoiding tldraw tool panels on the right) */}
       {isAssignmentBoard && (assignmentMeta || helpCheckReason) && (

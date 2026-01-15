@@ -88,50 +88,48 @@ export async function POST(req: NextRequest) {
     // Generate mode-specific prompt.
     // The `source` controls whether this was triggered automatically ("auto")
     // or explicitly by the voice tutor ("voice").
-      const getModePrompt = (
-        mode: string,
-        source: 'auto' | 'voice' = 'auto',
-      ): string => {
-        const effectiveSource = source === 'voice' ? 'voice' : 'auto';
+        const getModePrompt = (
+          mode: string,
+          source: 'auto' | 'voice' = 'auto',
+          stepByStep: boolean = false,
+        ): string => {
+          const effectiveSource = source === 'voice' ? 'voice' : 'auto';
 
-        const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
-        
-        // Removed the "If the user does NOT seem to need help" escape hatch.
-        // We want to ALWAYS provide help if this API is called.
-        
-        const coreRules = 
-          '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.';
+          const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
+          
+            const coreRules = 
+              '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style. Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.';
 
-        switch (mode) {
-          case 'feedback':
-            return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, and blue or green for positive feedback.${coreRules}`;
-          
-          case 'suggest':
-            return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- match the user's handwriting and style for the suggestion.${coreRules}`;
-          
-          case 'answer':
-            let answerPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas.${coreRules}`;
+            switch (mode) {
+              case 'feedback':
+                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.${coreRules}`;
+              
+              case 'suggest':
+                let suggestPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.${coreRules}`;
+                if (stepByStep) {
+                  suggestPrompt += stepByStepInstructions;
+                }
+                return suggestPrompt;
+              
+              case 'answer':
+                let answerPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.${coreRules}`;
+              
+              if (stepByStep) {
+                answerPrompt += stepByStepInstructions;
+              }
+              
+              return answerPrompt;
             
-            if (stepByStep) {
-              answerPrompt += `\n\n**STEP-BY-STEP REVEAL MODE:**
-- In addition to the drawing, you MUST provide a clear, numbered list of steps to reach the solution.
-- Each step should be a single, logical action.
-- Format the steps as a JSON array of strings at the VERY END of your text response, like this: [STEPS] ["Step 1...", "Step 2..."] [/STEPS]
-- Ensure the steps match what you have drawn on the canvas.`;
-            }
-            
-            return answerPrompt;
-          
-          default:
-            return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
-        }
-      };
+            default:
+              return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
+          }
+        };
 
 
     const effectiveSource: 'auto' | 'voice' =
       source === 'voice' ? 'voice' : 'auto';
 
-    const basePrompt = getModePrompt(mode, effectiveSource);
+    const basePrompt = getModePrompt(mode, effectiveSource, stepByStep);
 
     const finalPrompt = prompt
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
