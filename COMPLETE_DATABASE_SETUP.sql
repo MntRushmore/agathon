@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT,
-  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'teacher')),
+  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'admin')),
   avatar_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -577,6 +577,107 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- ============================================
+-- ADMIN AUDIT LOGS TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'user_role_change', 'user_delete', 'user_impersonate',
+    'content_delete', 'content_modify',
+    'class_delete', 'assignment_delete', 'board_delete'
+  )),
+  target_type TEXT NOT NULL CHECK (target_type IN ('user', 'class', 'assignment', 'board', 'submission')),
+  target_id UUID NOT NULL,
+  target_details JSONB,
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_admin ON admin_audit_logs(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_action ON admin_audit_logs(action_type);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_target ON admin_audit_logs(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_logs(created_at DESC);
+
+ALTER TABLE admin_audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can view audit logs
+DROP POLICY IF EXISTS "Admins can view all audit logs" ON admin_audit_logs;
+CREATE POLICY "Admins can view all audit logs"
+  ON admin_audit_logs FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Admins can insert audit logs
+DROP POLICY IF EXISTS "Admins can insert audit logs" ON admin_audit_logs;
+CREATE POLICY "Admins can insert audit logs"
+  ON admin_audit_logs FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- ============================================
+-- ADMIN RLS POLICIES
+-- ============================================
+
+-- Profiles: Admins can view all profiles
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+CREATE POLICY "Admins can view all profiles" ON profiles
+  FOR SELECT USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Profiles: Admins can update all profiles
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+CREATE POLICY "Admins can update all profiles" ON profiles
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Profiles: Admins can delete profiles
+DROP POLICY IF EXISTS "Admins can delete profiles" ON profiles;
+CREATE POLICY "Admins can delete profiles" ON profiles
+  FOR DELETE USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Whiteboards: Admins have full access
+DROP POLICY IF EXISTS "Admins can manage all whiteboards" ON whiteboards;
+CREATE POLICY "Admins can manage all whiteboards" ON whiteboards
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Classes: Admins have full access
+DROP POLICY IF EXISTS "Admins can manage all classes" ON classes;
+CREATE POLICY "Admins can manage all classes" ON classes
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Assignments: Admins have full access
+DROP POLICY IF EXISTS "Admins can manage all assignments" ON assignments;
+CREATE POLICY "Admins can manage all assignments" ON assignments
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- Submissions: Admins have full access
+DROP POLICY IF EXISTS "Admins can manage all submissions" ON submissions;
+CREATE POLICY "Admins can manage all submissions" ON submissions
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
 
 -- ============================================
 -- VERIFICATION QUERY

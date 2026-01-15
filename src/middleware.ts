@@ -61,6 +61,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Protect admin routes - require authentication and admin role
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('auth', 'required');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Check if user has admin role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'admin') {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('error', 'admin_only');
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   return supabaseResponse;
 }
 
