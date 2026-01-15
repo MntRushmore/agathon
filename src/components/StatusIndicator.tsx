@@ -14,6 +14,13 @@ interface StatusIndicatorProps {
   disableAbsolute?: boolean;
 }
 
+const statusMessages: Record<StatusIndicatorState, string> = {
+  idle: "",
+  generating: "Generating...",
+  success: "Done!",
+  error: "Error",
+};
+
 export function StatusIndicator({ status, errorMessage, customMessage, className, disableAbsolute = false }: StatusIndicatorProps) {
   // Don't render anything when idle
   if (status === "idle") return null;
