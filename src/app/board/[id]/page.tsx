@@ -53,6 +53,8 @@ import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assign
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Check, Clock } from "lucide-react";
 import { formatDistance } from "date-fns";
+import { ChatPanel } from "@/components/chat/ChatPanel";
+import type { CanvasContext } from "@/hooks/useChat";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -1761,6 +1763,21 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           return success;
         }}
       /> */}
+
+      {/* AI Chat Panel */}
+      <ChatPanel
+        getCanvasContext={() => {
+          const shapes = editor?.getCurrentPageShapes() || [];
+          return {
+            subject: assignmentMeta?.subject,
+            gradeLevel: assignmentMeta?.gradeLevel,
+            instructions: assignmentMeta?.instructions,
+            description: shapes.length > 0
+              ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
+              : 'Canvas is empty',
+          } as CanvasContext;
+        }}
+      />
     </>
   );
 }
