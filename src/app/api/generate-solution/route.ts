@@ -75,18 +75,9 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    // Check if we should use Hack Club API or OpenRouter
-    const useHackClub = process.env.USE_HACKCLUB_FOR_IMAGE === 'true';
-    
-    if (useHackClub && !process.env.HACKCLUB_AI_API_KEY) {
-      solutionLogger.error({ requestId }, 'HACKCLUB_AI_API_KEY not configured');
-      return NextResponse.json(
-        { error: 'HACKCLUB_AI_API_KEY not configured' },
-        { status: 500 }
-      );
-    }
-    
-    if (!useHackClub && !process.env.OPENROUTER_API_KEY) {
+    // Check for OPENROUTER_API_KEY
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
       solutionLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
       return NextResponse.json(
         { error: 'OPENROUTER_API_KEY not configured' },
@@ -155,24 +146,13 @@ export async function POST(req: NextRequest) {
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
       : basePrompt;
 
-    if (useHackClub) {
-      solutionLogger.info({ requestId, mode }, 'Calling Hack Club AI API for image generation');
-    } else {
-      solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
-    }
+    const useHackClub = false;
+    
+    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
 
-    // Call image generation model via Hack Club AI or OpenRouter
-    const apiUrl = useHackClub 
-      ? 'https://ai.hackclub.com/proxy/v1/chat/completions'
-      : 'https://openrouter.ai/api/v1/chat/completions';
-      
-    const apiKey = useHackClub 
-      ? process.env.HACKCLUB_AI_API_KEY
-      : process.env.OPENROUTER_API_KEY;
-      
-    const model = useHackClub
-      ? 'google/gemini-2.5-flash-image'
-      : (process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-2.5-flash-image');
+    // Call image generation model via OpenRouter
+    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    const model = 'google/gemini-3-pro-image-preview';
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${apiKey}`,

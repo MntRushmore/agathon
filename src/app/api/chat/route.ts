@@ -5,6 +5,7 @@ interface CanvasContext {
   gradeLevel?: string;
   instructions?: string;
   description?: string;
+  imageBase64?: string;
 }
 
 interface ChatMessage {
@@ -23,19 +24,19 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.HACKCLUB_AI_API_KEY;
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'AI API key not configured' }),
+        JSON.stringify({ error: 'HACKCLUB_AI_API_KEY not configured' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Build system prompt with canvas context
     let systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
 
 Context about the student's work:
 - Subject: ${canvasContext.subject || 'General'}
 - Grade level: ${canvasContext.gradeLevel || 'Not specified'}
 - Assignment instructions: ${canvasContext.instructions || 'None provided'}
-- Current canvas: ${canvasContext.description || 'Empty canvas'}
+
+IMPORTANT: You can see the student's whiteboard/canvas in the image attached to their first message. Analyze their work, drawings, equations, and steps shown on the canvas to provide helpful feedback.
 
 Guidelines for your responses:
 1. Be encouraging and patient - celebrate small wins
@@ -59,6 +60,30 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
     }
 
+    const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    messages.forEach((m, index) => {
+      if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
+        apiMessages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: canvasContext.imageBase64 },
+            },
+            {
+              type: 'text',
+              text: m.content,
+            },
+          ],
+        });
+      } else {
+        apiMessages.push({ role: m.role, content: m.content });
+      }
+    });
+
     const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -67,24 +92,20 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m) => ({ role: m.role, content: m.content })),
-        ],
+        messages: apiMessages,
         stream: true,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Hack Club API error:', errorText);
+      console.error('Google API error:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to get response from AI' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Stream the response back to the client
     return new Response(response.body, {
       headers: {
         'Content-Type': 'text/event-stream',

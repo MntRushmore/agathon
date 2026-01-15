@@ -12,10 +12,11 @@ export interface CanvasContext {
   gradeLevel?: string;
   instructions?: string;
   description?: string;
+  imageBase64?: string;
 }
 
 interface UseChatOptions {
-  getCanvasContext: () => CanvasContext;
+  getCanvasContext: () => CanvasContext | Promise<CanvasContext>;
 }
 
 export function useChat({ getCanvasContext }: UseChatOptions) {
@@ -58,9 +59,9 @@ export function useChat({ getCanvasContext }: UseChatOptions) {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        abortControllerRef.current = new AbortController();
+abortControllerRef.current = new AbortController();
 
-        const canvasContext = getCanvasContext();
+          const canvasContext = await getCanvasContext();
 
         // Prepare messages for API (exclude the empty assistant message we just added)
         const apiMessages = [...messages, userMessage].map((m) => ({
