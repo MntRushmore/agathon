@@ -12,9 +12,14 @@ export function getPlatform(): 'web' | 'ios' | 'android' {
   return (window as any).__PLATFORM__ || 'web';
 }
 
+export function isIpad(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (window as any).__IS_IPAD__ === true;
+}
+
 export function isIpadApp(): boolean {
   if (typeof window === 'undefined') return false;
-  return isNativeApp() && getPlatform() === 'ios';
+  return isNativeApp() && getPlatform() === 'ios' && isIpad();
 }
 
 /**
@@ -38,14 +43,20 @@ export function setupNativeAppBridge() {
           // Mark as native app
           (window as any).__NATIVE_APP__ = message.isNativeApp;
           (window as any).__PLATFORM__ = message.platform;
+          (window as any).__IS_IPAD__ = message.isIpad;
 
           // Add CSS class for native-specific styling
           if (message.isNativeApp) {
             document.body.classList.add('native-app');
             document.body.classList.add(`platform-${message.platform}`);
+
+            // Add iPad-specific class
+            if (message.isIpad) {
+              document.body.classList.add('platform-ipad');
+            }
           }
 
-          console.log('Native app detected:', message.platform);
+          console.log('Native app detected:', message.platform, 'iPad:', message.isIpad);
           break;
 
         case 'TOKEN_LOADED':

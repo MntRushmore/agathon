@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator, Text, Platform } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,13 +12,46 @@ export default function WebViewWrapper() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // JavaScript to inject into the web page
+  // JavaScript to inject into the web page - optimized for iPad
   const injectedJavaScript = `
     (function() {
+      // Prevent default touch behaviors that interfere with canvas
+      document.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+      }, { passive: false });
+
+      // Prevent double-tap zoom on iPad
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+
+      // Prevent pinch zoom on canvas areas
+      document.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 1) {
+          // Allow pinch on tldraw canvas (it handles its own zoom)
+          const target = e.target;
+          const isTldrawCanvas = target.closest('.tl-canvas') || target.closest('[data-testid="canvas"]');
+          if (!isTldrawCanvas) {
+            e.preventDefault();
+          }
+        }
+      }, { passive: false });
+
+      // Fix viewport for iPad
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+      }
+
       // Detect Apple Pencil and send pressure data
       window.addEventListener('pointermove', (e) => {
         if (e.pointerType === 'pen') {
-          window.postMessage(JSON.stringify({
+          window.ReactNativeWebView?.postMessage(JSON.stringify({
             type: 'APPLE_PENCIL_DETECTED',
             pressure: e.pressure,
             tiltX: e.tiltX,
@@ -28,19 +61,51 @@ export default function WebViewWrapper() {
       });
 
       // Send device info to web app
-      window.postMessage(JSON.stringify({
+      const screenWidth = window.screen.width;
+      const screenHeight = window.screen.height;
+      const isIPad = Math.min(screenWidth, screenHeight) >= 768;
+
+      window.ReactNativeWebView?.postMessage(JSON.stringify({
         type: 'DEVICE_INFO',
         isNativeApp: true,
         platform: 'ios',
-        isIpad: true
+        isIpad: isIPad,
+        screenWidth: screenWidth,
+        screenHeight: screenHeight
       }));
 
       // Mark the window as native app for detection
       window.__NATIVE_APP__ = true;
       window.__PLATFORM__ = 'ios';
+      window.__IS_IPAD__ = isIPad;
 
-      console.log('Native app bridge initialized');
+      // Fix for iOS keyboard pushing content
+      if (isIPad) {
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        document.body.style.overflow = 'hidden';
+      }
+
+      // Ensure touch-action is set correctly for drawing
+      const style = document.createElement('style');
+      style.textContent = \`
+        .tl-canvas, [data-testid="canvas"] {
+          touch-action: none !important;
+        }
+        body {
+          overscroll-behavior: none;
+          -webkit-overflow-scrolling: auto;
+        }
+        * {
+          -webkit-tap-highlight-color: transparent;
+        }
+      \`;
+      document.head.appendChild(style);
+
+      console.log('Native app bridge initialized for iPad:', isIPad);
     })();
+    true;
   `;
 
   // Handle messages from the web app
@@ -134,21 +199,39 @@ export default function WebViewWrapper() {
         }}
         injectedJavaScript={injectedJavaScript}
         onMessage={handleMessage}
-        allowsBackForwardNavigationGestures={true}
+        // Navigation
+        allowsBackForwardNavigationGestures={false}
+        // Media
         allowsInlineMediaPlayback={true}
         mediaPlaybackRequiresUserAction={false}
+        // JavaScript & Storage
         javaScriptEnabled={true}
         domStorageEnabled={true}
         sharedCookiesEnabled={true}
+        // Critical for iPad touch/scroll handling
         bounces={false}
-        scrollEnabled={true}
-        // Allow file uploads (for image selection)
+        scrollEnabled={false}
+        // File access
         allowFileAccess={true}
-        // Disable zoom
+        allowFileAccessFromFileURLs={true}
+        allowUniversalAccessFromFileURLs={true}
+        // Viewport & scaling - critical for iPad
         scalesPageToFit={false}
-        // Performance optimizations
+        contentMode="mobile"
+        // Performance
         cacheEnabled={true}
         incognito={false}
+        // Touch handling - let the web app handle all touch events
+        overScrollMode="never"
+        nestedScrollEnabled={false}
+        // iPad-specific optimizations
+        automaticallyAdjustContentInsets={false}
+        contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
+        automaticallyAdjustsScrollIndicatorInsets={false}
+        // Prevent text selection interfering with drawing
+        textInteractionEnabled={false}
+        // Hardware acceleration
+        androidLayerType="hardware"
       />
     </SafeAreaView>
   );

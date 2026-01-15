@@ -347,11 +347,52 @@ select {
 .native-app {
   /* Additional optimizations for native wrapper */
   -webkit-tap-highlight-color: transparent;
+  /* Prevent pull-to-refresh and overscroll */
+  overscroll-behavior: none;
+  /* Fixed positioning for canvas apps */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .platform-ios {
   /* iOS-specific optimizations */
   -webkit-overflow-scrolling: touch;
+}
+
+/* iPad-specific optimizations */
+.platform-ipad {
+  /* Ensure canvas takes full screen */
+  touch-action: none;
+}
+
+.platform-ipad .tl-container,
+.platform-ipad [data-testid="canvas"] {
+  /* Critical: Let tldraw handle all touch events */
+  touch-action: none !important;
+}
+
+/* Fix for iPad scroll issues in WebView */
+@supports (-webkit-touch-callout: none) {
+  /* Only apply to iOS/iPadOS */
+  body.native-app {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Ensure tldraw canvas fills the viewport */
+  body.native-app .tl-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
 }
 
 /* Hide elements when running in native app */
