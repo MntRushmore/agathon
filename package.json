@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev | pino-pretty",
-    "dev:raw": "next dev",
+    "dev": "next dev -H 0.0.0.0 | pino-pretty",
+    "dev:raw": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

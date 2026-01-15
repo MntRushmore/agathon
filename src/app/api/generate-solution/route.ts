@@ -74,7 +74,18 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    // Check if we should use Hack Club API or OpenRouter
+    const useHackClub = process.env.USE_HACKCLUB_FOR_IMAGE === 'true';
+    
+    if (useHackClub && !process.env.HACKCLUB_AI_API_KEY) {
+      solutionLogger.error({ requestId }, 'HACKCLUB_AI_API_KEY not configured');
+      return NextResponse.json(
+        { error: 'HACKCLUB_AI_API_KEY not configured' },
+        { status: 500 }
+      );
+    }
+    
+    if (!useHackClub && !process.env.OPENROUTER_API_KEY) {
       solutionLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
       return NextResponse.json(
         { error: 'OPENROUTER_API_KEY not configured' },
@@ -134,46 +145,70 @@ export async function POST(req: NextRequest) {
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
       : basePrompt;
 
-    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
+    const useHackClub = process.env.USE_HACKCLUB_FOR_IMAGE === 'true';
+    
+    if (useHackClub) {
+      solutionLogger.info({ requestId, mode }, 'Calling Hack Club AI API for image generation');
+    } else {
+      solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
+    }
 
-    // Call Gemini image generation model via OpenRouter
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': 'Madhacks AI Canvas',
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-3-pro-image-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: image, // base64 data URL
-                },
+    // Call image generation model via Hack Club AI or OpenRouter
+    const apiUrl = useHackClub 
+      ? 'https://ai.hackclub.com/proxy/v1/chat/completions'
+      : 'https://openrouter.ai/api/v1/chat/completions';
+      
+    const apiKey = useHackClub 
+      ? process.env.HACKCLUB_AI_API_KEY
+      : process.env.OPENROUTER_API_KEY;
+      
+    const model = useHackClub
+      ? 'google/gemini-2.5-flash-image'
+      : (process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-3-pro-image-preview');
+
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    };
+
+    // Add OpenRouter-specific headers
+    if (!useHackClub) {
+      headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+      headers['X-Title'] = 'Madhacks AI Canvas';
+    }
+
+    const requestBody: any = {
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: image, // base64 data URL
               },
-              {
-                type: 'text',
-                text: finalPrompt,
-              },
-            ],
-          },
-        ],
-        /*
-        provider: {
-          order: ['google-ai-studio'],
-          allow_fallbacks: false
+            },
+            {
+              type: 'text',
+              text: finalPrompt,
+            },
+          ],
         },
-        */
-        max_tokens: 6000, // Limit tokens to stay within budget
-        modalities: ['image', 'text'], // Required for image generation
-        reasoning_effort: 'minimal',
-      }),
+      ],
+      max_tokens: 6000, // Limit tokens to stay within budget
+    };
+
+    // Add OpenRouter-specific options
+    if (!useHackClub) {
+      requestBody.modalities = ['image', 'text']; // Required for image generation on OpenRouter
+      requestBody.reasoning_effort = 'minimal';
+    }
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

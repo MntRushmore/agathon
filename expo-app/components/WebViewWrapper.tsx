@@ -1,14 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Text, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Development: Use localhost for simulator, IP for physical device
-// Production: Use your deployed Vercel URL
-const WEB_APP_URL = __DEV__
-  ? 'http://localhost:3000'  // Use localhost for iOS Simulator
-  : 'https://your-app.vercel.app'; // Replace with your production URL
+// Use your production Vercel URL
+const WEB_APP_URL = 'https://whiteboard-delta-wine.vercel.app/';
 
 export default function WebViewWrapper() {
   const webViewRef = useRef<WebView>(null);
