@@ -309,13 +309,9 @@ export async function getSubmissionByBoardId(boardId: string) {
       )
     `)
     .eq('student_board_id', boardId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // No rows returned - board is not an assignment
-      return null;
-    }
     throw error;
   }
 

@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 
 interface ChatPanelProps {
-  getCanvasContext: () => CanvasContext;
+  getCanvasContext: () => CanvasContext | Promise<CanvasContext>;
   className?: string;
 }
 

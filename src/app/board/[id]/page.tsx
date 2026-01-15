@@ -1887,22 +1887,45 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }}
       /> */}
 
-      {/* AI Chat Panel - hide when teacher is viewing student board */}
-      {!isTeacherViewing && (
-        <ChatPanel
-          getCanvasContext={() => {
-            const shapes = editor?.getCurrentPageShapes() || [];
-            return {
-              subject: assignmentMeta?.subject,
-              gradeLevel: assignmentMeta?.gradeLevel,
-              instructions: assignmentMeta?.instructions,
-              description: shapes.length > 0
-                ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
-                : 'Canvas is empty',
-            } as CanvasContext;
-          }}
-        />
-      )}
+{/* AI Chat Panel - hide when teacher is viewing student board */}
+        {!isTeacherViewing && (
+          <ChatPanel
+            getCanvasContext={async () => {
+              const shapes = editor?.getCurrentPageShapes() || [];
+              let imageBase64: string | undefined;
+              
+              if (editor && shapes.length > 0) {
+                try {
+                  const shapeIds = editor.getCurrentPageShapeIds();
+                  const result = await editor.toImage([...shapeIds], {
+                    format: 'png',
+                    background: true,
+                    scale: 0.5,
+                  });
+                  if (result?.blob) {
+                    const reader = new FileReader();
+                    imageBase64 = await new Promise((resolve) => {
+                      reader.onloadend = () => resolve(reader.result as string);
+                      reader.readAsDataURL(result.blob);
+                    });
+                  }
+                } catch (err) {
+                  console.error('Failed to capture canvas:', err);
+                }
+              }
+              
+              return {
+                subject: assignmentMeta?.subject,
+                gradeLevel: assignmentMeta?.gradeLevel,
+                instructions: assignmentMeta?.instructions,
+                description: shapes.length > 0
+                  ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
+                  : 'Canvas is empty',
+                imageBase64,
+              } as CanvasContext;
+            }}
+          />
+        )}
     </>
   );
 }

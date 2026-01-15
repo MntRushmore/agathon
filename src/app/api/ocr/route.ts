@@ -29,32 +29,37 @@ export async function POST(req: NextRequest) {
 
     ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
 
-    if (!process.env.MISTRAL_API_KEY) {
-      ocrLogger.error({ requestId }, 'MISTRAL_API_KEY not configured');
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      ocrLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
       return NextResponse.json(
-        { error: 'MISTRAL_API_KEY not configured' },
+        { error: 'OPENROUTER_API_KEY not configured' },
         { status: 500 }
       );
     }
 
-    ocrLogger.info({ requestId }, 'Calling Mistral Pixtral API for OCR');
+    ocrLogger.info({ requestId }, 'Calling OpenRouter Pixtral API for OCR');
 
-    // Call Mistral Pixtral model for OCR via their API
-    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    // Call Pixtral model for OCR via OpenRouter
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Madhacks AI Canvas OCR',
       },
       body: JSON.stringify({
-        model: process.env.MISTRAL_OCR_MODEL || 'pixtral-12b-2409',
+        model: 'mistralai/pixtral-12b-2409',
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'image_url',
-                image_url: image, // base64 data URL
+                image_url: {
+                  url: image, // base64 data URL
+                },
               },
               {
                 type: 'text',
