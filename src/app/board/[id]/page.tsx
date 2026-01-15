@@ -203,30 +203,31 @@ function ImageActionButtons({
     <div
       style={{
         position: 'absolute',
-        // In normal mode, sit at the top-center like before.
-        // When voice is active, shift down a bit so it doesn't clash
-        // with the voice status banner at the very top.
-        top: isVoiceSessionActive ? '56px' : '10px',
+        bottom: '80px', // Position above the voice button and chat
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 1000,
+        zIndex: 11000,
         display: 'flex',
-        gap: '8px',
+        gap: '12px',
       }}
     >
       <Button
         variant="default"
+        size="lg"
         onClick={() => onAccept(currentImageId)}
+        className="shadow-xl bg-green-600 hover:bg-green-700 text-white rounded-full px-6"
       >
         <Tick01Icon size={20} strokeWidth={2.5} />
-        <span className="ml-2">Accept</span>
+        <span className="ml-2 font-bold">Accept Help</span>
       </Button>
       <Button
         variant="secondary"
+        size="lg"
         onClick={() => onReject(currentImageId)}
+        className="shadow-xl bg-white hover:bg-gray-100 rounded-full px-6"
       >
         <Cancel01Icon size={20} strokeWidth={2.5} />
-        <span className="ml-2">Reject</span>
+        <span className="ml-2 font-bold">Reject</span>
       </Button>
     </div>
   );
@@ -1102,7 +1103,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         // Step 2: Run a light help check for auto assistance
         let helpDecision: HelpCheckDecision | null = null;
-        if ((options?.source ?? "auto") === "auto") {
+        // Only run help check for 'feedback' mode or if source is auto and we want to be less intrusive.
+        // For 'suggest' and 'answer' modes, if the user enabled them, they want help.
+        if ((options?.source ?? "auto") === "auto" && mode === 'feedback') {
           helpDecision = await runHelpCheck(base64, signal);
 
           if (helpDecision && helpDecision.needsHelp === false) {
@@ -1110,16 +1113,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             setStatusMessage("Looking good—keep going.");
             isProcessingRef.current = false;
             return false;
-          }
-
-          if (
-            helpDecision &&
-            helpDecision.needsHelp &&
-            helpDecision.confidence < 0.5 &&
-            mode === "answer"
-          ) {
-            mode = "suggest";
-            setStatusMessage("Showing hints first before full solutions.");
           }
         }
 
@@ -1772,66 +1765,72 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <div
               className={
                 isLandscape
-                  ? `fixed ${hasBanner ? 'top-14' : 'top-4'} left-1/2 -translate-x-1/2 z-[11000] flex items-center gap-2 ios-safe-top`
-                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-20 z-[11000] flex items-center gap-2 ios-safe-top ios-safe-left`
+                  ? `fixed ${hasBanner ? 'top-14' : 'top-4'} left-1/2 -translate-x-1/2 z-[11000] flex flex-col items-center gap-2 ios-safe-top`
+                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-20 z-[11000] flex flex-col items-start gap-2 ios-safe-top ios-safe-left`
               }
             >
-              {/* Show AI disabled message if AI is completely blocked */}
-              {!aiAllowed ? (
-                <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
-                  AI assistance disabled for this assignment
-                </div>
-              ) : (
-                <Tabs
-                  value={assistanceMode}
-                  onValueChange={(value) => {
-                    if (isModeAllowed(value)) {
-                      setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
-                    }
-                  }}
-                  className="w-auto rounded-xl"
-                >
-                  <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
-                    <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
-                    {isModeAllowed('feedback') && (
-                      <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
-                    )}
-                    {isModeAllowed('suggest') && (
-                      <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
-                    )}
-                      {isModeAllowed('answer') && (
-                        <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
+              <div className="flex items-center gap-2">
+                {/* Show AI disabled message if AI is completely blocked */}
+                {!aiAllowed ? (
+                  <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
+                    AI assistance disabled for this assignment
+                  </div>
+                ) : (
+                  <Tabs
+                    value={assistanceMode}
+                    onValueChange={(value) => {
+                      if (isModeAllowed(value)) {
+                        setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
+                      }
+                    }}
+                    className="w-auto rounded-xl"
+                  >
+                    <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
+                      <TabsTrigger value="off" className="touch-target min-w-[70px] rounded-lg">Off</TabsTrigger>
+                      {isModeAllowed('feedback') && (
+                        <TabsTrigger value="feedback" className="touch-target min-w-[70px] rounded-lg">Feedback</TabsTrigger>
                       )}
+                      {isModeAllowed('suggest') && (
+                        <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
+                      )}
+                        {isModeAllowed('answer') && (
+                          <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
+                        )}
                     </TabsList>
                   </Tabs>
                 )}
                 <ModeInfoDialog />
-
-                {assistanceMode === 'answer' && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md">
-                    <input
-                      type="checkbox"
-                      id="step-by-step-toggle"
-                      checked={isStepByStep}
-                      onChange={(e) => setIsStepByStep(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
-                      Step-by-step
-                    </label>
-                  </div>
-                )}
-
-                {steps.length > 0 && currentStepIndex < steps.length && (
-                  <Button
-                    onClick={revealNextStep}
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse"
-                  >
-                    Reveal Next Step ({currentStepIndex}/{steps.length})
-                  </Button>
-                )}
               </div>
+
+              {(assistanceMode === 'answer' || steps.length > 0) && (
+                <div className="flex items-center gap-2 animate-in slide-in-from-top-1">
+                  {assistanceMode === 'answer' && (
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md">
+                      <input
+                        type="checkbox"
+                        id="step-by-step-toggle"
+                        checked={isStepByStep}
+                        onChange={(e) => setIsStepByStep(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
+                        Step-by-step
+                      </label>
+                    </div>
+                  )}
+
+                  {steps.length > 0 && currentStepIndex < steps.length && (
+                    <Button
+                      onClick={revealNextStep}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse h-[34px]"
+                    >
+                      Reveal Next Step ({currentStepIndex}/{steps.length})
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
 
           )}
         </>

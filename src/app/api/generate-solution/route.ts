@@ -88,54 +88,45 @@ export async function POST(req: NextRequest) {
     // Generate mode-specific prompt.
     // The `source` controls whether this was triggered automatically ("auto")
     // or explicitly by the voice tutor ("voice").
-    const getModePrompt = (
-      mode: string,
-      source: 'auto' | 'voice' = 'auto',
-    ): string => {
-      const effectiveSource = source === 'voice' ? 'voice' : 'auto';
+      const getModePrompt = (
+        mode: string,
+        source: 'auto' | 'voice' = 'auto',
+      ): string => {
+        const effectiveSource = source === 'voice' ? 'voice' : 'auto';
 
-      const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from some form of assistance.';
-      
-      const noHelpInstruction = '\n\nIf the user does NOT seem to need help:\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
-      
-      // For voice-triggered generations, we always want an updated image,
-      // not a text-only answer.
-      const alwaysImageRule =
-        effectiveSource === 'voice'
-          ? '\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.'
-          : '';
-
-      const coreRules = // REMOVED: \n\n- Be **thoughtful** in how you style your annotations, handwriting, and diagrams. Use colors, highlighting, underlining, arrows, etc. if it helps improve clarity and organization.
-        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.' +
-        alwaysImageRule;
-
-      // For automatic generations, allow the model to decide no help is needed
-      // and respond with text only. For voice, we omit this escape hatch.
-      const noHelpBlock = effectiveSource === 'auto' ? noHelpInstruction : '';
-
-      switch (mode) {
-        case 'feedback':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpBlock}`;
+        const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
         
-        case 'suggest':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
+        // Removed the "If the user does NOT seem to need help" escape hatch.
+        // We want to ALWAYS provide help if this API is called.
         
-        case 'answer':
-          let answerPrompt = `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
+        const coreRules = 
+          '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.';
+
+        switch (mode) {
+          case 'feedback':
+            return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, and blue or green for positive feedback.${coreRules}`;
           
-          if (stepByStep) {
-            answerPrompt += `\n\n**STEP-BY-STEP REVEAL MODE:**
+          case 'suggest':
+            return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- match the user's handwriting and style for the suggestion.${coreRules}`;
+          
+          case 'answer':
+            let answerPrompt = `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas.${coreRules}`;
+            
+            if (stepByStep) {
+              answerPrompt += `\n\n**STEP-BY-STEP REVEAL MODE:**
 - In addition to the drawing, you MUST provide a clear, numbered list of steps to reach the solution.
 - Each step should be a single, logical action.
-- Format the steps as a JSON array of strings at the VERY END of your text response, like this: [STEPS] ["Step 1...", "Step 2..."] [/STEPS]`;
-          }
+- Format the steps as a JSON array of strings at the VERY END of your text response, like this: [STEPS] ["Step 1...", "Step 2..."] [/STEPS]
+- Ensure the steps match what you have drawn on the canvas.`;
+            }
+            
+            return answerPrompt;
           
-          return answerPrompt;
-        
-        default:
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpBlock}`;
-      }
-    };
+          default:
+            return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
+        }
+      };
+
 
     const effectiveSource: 'auto' | 'voice' =
       source === 'voice' ? 'voice' : 'auto';
