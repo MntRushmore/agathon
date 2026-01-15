@@ -828,9 +828,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
     const [userId, setUserId] = useState<string>("");
-    const [steps, setSteps] = useState<string[]>([]);
-    const [currentStepIndex, setCurrentStepIndex] = useState(0);
-    const [isStepByStep, setIsStepByStep] = useState(false);
     const isProcessingRef = useRef(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -1108,7 +1105,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const body: Record<string, unknown> = {
           image: base64,
           mode,
-          stepByStep: isStepByStep && (mode === 'answer' || mode === 'suggest'),
         };
 
         if (options?.promptOverride) {
@@ -1133,20 +1129,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const solutionData = await solutionResponse.json();
         const imageUrl = solutionData.imageUrl as string | null | undefined;
         const textContent = solutionData.textContent || '';
-        const returnedSteps = solutionData.steps || [];
 
-        logger.info({ 
-          hasImageUrl: !!imageUrl, 
+        logger.info({
+          hasImageUrl: !!imageUrl,
           imageUrlLength: imageUrl?.length,
           imageUrlStart: imageUrl?.slice(0, 50),
           textContent: textContent.slice(0, 100),
-          stepsCount: returnedSteps.length
         }, 'Solution data received');
-
-        if (returnedSteps.length > 0) {
-          setSteps(returnedSteps);
-          setCurrentStepIndex(0);
-        }
 
         // If the model didn't return an image, it means Gemini decided help isn't needed.
         // Log the reason and gracefully stop.
@@ -1384,36 +1373,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       },
       [editor]
     );
-
-    const revealNextStep = useCallback(() => {
-      if (!editor || currentStepIndex >= steps.length) return;
-
-      const stepText = steps[currentStepIndex];
-      const viewportBounds = editor.getViewportPageBounds();
-
-      // Set flag to prevent triggering activity detection
-      isUpdatingImageRef.current = true;
-
-      editor.createShape({
-        type: 'text',
-        x: viewportBounds.x + 50,
-        y: viewportBounds.y + 100 + (currentStepIndex * 60),
-        props: {
-          text: `${currentStepIndex + 1}. ${stepText}`,
-          color: 'blue',
-          size: 'm',
-          font: 'draw',
-          align: 'start',
-        },
-      });
-
-      setCurrentStepIndex(prev => prev + 1);
-
-      // Reset flag after a brief delay
-      setTimeout(() => {
-        isUpdatingImageRef.current = false;
-      }, 100);
-    }, [editor, steps, currentStepIndex]);
 
 
   // Auto-save logic
@@ -1799,35 +1758,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   customMessage={statusMessage}
                   disableAbsolute
                 />
-
-                {(assistanceMode === 'answer' || assistanceMode === 'suggest' || steps.length > 0) && (
-                  <div className="flex items-center gap-2 animate-in slide-in-from-top-1">
-                    {(assistanceMode === 'answer' || assistanceMode === 'suggest') && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md h-[38px]">
-                        <input
-                          type="checkbox"
-                          id="step-by-step-toggle"
-                          checked={isStepByStep}
-                          onChange={(e) => setIsStepByStep(e.target.checked)}
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
-                          Steps
-                        </label>
-                      </div>
-                    )}
-
-                    {steps.length > 0 && currentStepIndex < steps.length && (
-                      <Button
-                        onClick={revealNextStep}
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse h-[38px] px-3"
-                      >
-                        Next Step ({currentStepIndex}/{steps.length})
-                      </Button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           )}
