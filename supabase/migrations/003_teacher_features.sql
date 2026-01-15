@@ -209,3 +209,29 @@ COMMENT ON TABLE ai_usage IS 'Tracks all AI interactions for analytics and teach
 COMMENT ON TABLE struggle_indicators IS 'Flags students who may need teacher intervention';
 COMMENT ON TABLE concept_mastery IS 'Tracks concept-level understanding for heatmaps';
 COMMENT ON TABLE teacher_feedback IS 'AI-assisted and manual teacher feedback on submissions';
+
+-- ============================================
+-- 9. ASSIGNMENT TEMPLATES TABLE
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS assignment_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  teacher_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT,
+  instructions TEXT,
+  ai_settings JSONB DEFAULT '{"allowAI": true, "allowedModes": ["feedback", "suggest", "answer"], "hintLimit": null}',
+  subject_tags TEXT[],
+  grade_level TEXT,
+  use_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_templates_teacher ON assignment_templates(teacher_id);
+
+ALTER TABLE assignment_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Teachers can manage own templates"
+  ON assignment_templates FOR ALL
+  USING (teacher_id = auth.uid());
