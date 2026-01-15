@@ -19,6 +19,14 @@ export async function POST(req: NextRequest) {
       canvasContext: CanvasContext;
     };
 
+    const apiKey = process.env.HACKCLUB_AI_API_KEY;
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'AI API key not configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Build system prompt with canvas context
     const systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
 
@@ -43,9 +51,10 @@ Remember: Your goal is to help the student LEARN, not just get answers.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'qwen/qwen3-32b',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages.map((m) => ({ role: m.role, content: m.content })),

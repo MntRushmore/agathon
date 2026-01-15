@@ -1923,15 +1923,12 @@ export default function BoardPage() {
   // Compute a top offset so fixed banners never cover the canvas
   const hasViewOnlyBanner = !canEdit && !submissionData;
   const hasSubmittedBanner = !canEdit && submissionData?.status === 'submitted';
-  const hasAssignmentBanner = !!submissionData;
 
-  // Approximate banner heights (px): top notice (~40), assignment bar (~80)
+  // Only the warning banners push down the canvas - assignment info is now a floating overlay
   const TOP_NOTICE_HEIGHT = 40; // py-2 banner
-  const ASSIGNMENT_BAR_HEIGHT = 80; // header with title, class, actions
   const topOffset =
     (hasViewOnlyBanner ? TOP_NOTICE_HEIGHT : 0) +
-    (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0) +
-    (hasAssignmentBanner ? ASSIGNMENT_BAR_HEIGHT : 0);
+    (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0);
 
   return (
     <div style={{ position: "fixed", inset: 0, top: topOffset }}>
@@ -1951,48 +1948,40 @@ export default function BoardPage() {
         </div>
       )}
 
-      {/* Assignment banner - positioned below submission banner if submitted */}
+      {/* Assignment banner - thin floating overlay at top center */}
       {submissionData && (
-        <div className={`fixed left-0 right-0 z-[9999] bg-card border-b shadow-md ${submissionData.status === 'submitted' ? 'top-10' : 'top-0'}`}>
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">{submissionData.assignment.title}</h3>
-                  <Badge variant={
-                    submissionData.status === 'submitted' ? 'default' :
-                    submissionData.status === 'in_progress' ? 'secondary' :
-                    'outline'
-                  }>
-                    {submissionData.status === 'submitted' ? 'Submitted' :
-                     submissionData.status === 'in_progress' ? 'In Progress' :
-                     'Not Started'}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{submissionData.assignment.class.name}</p>
-                {submissionData.assignment.instructions && (
-                  <p className="text-sm mt-2">{submissionData.assignment.instructions}</p>
-                )}
-                {submissionData.assignment.due_date && (
-                  <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Due {formatDistance(new Date(submissionData.assignment.due_date), new Date(), { addSuffix: true })}
-                  </p>
-                )}
-              </div>
-
-              {submissionData.status !== 'submitted' ? (
-                <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? 'Submitting...' : 'Mark as Submitted'}
-                </Button>
-              ) : (
-                <div className="text-sm text-green-600 flex items-center gap-1">
-                  <Check className="h-4 w-4" />
-                  Submitted {submissionData.submitted_at && formatDistance(new Date(submissionData.submitted_at), new Date(), { addSuffix: true })}
-                </div>
-              )}
+        <div className={`fixed left-1/2 -translate-x-1/2 z-[9999] ${submissionData.status === 'submitted' ? 'top-12' : 'top-2'}`}>
+          <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-4 py-2 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="font-medium text-sm">{submissionData.assignment.title}</span>
+              <Badge variant={
+                submissionData.status === 'submitted' ? 'default' :
+                submissionData.status === 'in_progress' ? 'secondary' :
+                'outline'
+              } className="text-xs">
+                {submissionData.status === 'submitted' ? 'Submitted' :
+                 submissionData.status === 'in_progress' ? 'In Progress' :
+                 'Not Started'}
+              </Badge>
             </div>
+            <span className="text-xs text-muted-foreground">{submissionData.assignment.class.name}</span>
+            {submissionData.assignment.due_date && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Due {formatDistance(new Date(submissionData.assignment.due_date), new Date(), { addSuffix: true })}
+              </span>
+            )}
+            {submissionData.status !== 'submitted' ? (
+              <Button size="sm" onClick={handleSubmit} disabled={submitting} className="h-7 text-xs">
+                {submitting ? 'Submitting...' : 'Submit'}
+              </Button>
+            ) : (
+              <span className="text-xs text-green-600 flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                {submissionData.submitted_at && formatDistance(new Date(submissionData.submitted_at), new Date(), { addSuffix: true })}
+              </span>
+            )}
           </div>
         </div>
       )}
