@@ -839,10 +839,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
   const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
-  const [helpCheckReason, setHelpCheckReason] = useState<string>("");
-  const [isLandscape, setIsLandscape] = useState(false);
-  const [userId, setUserId] = useState<string>("");
-  const isProcessingRef = useRef(false);
+    const [helpCheckReason, setHelpCheckReason] = useState<string>("");
+    const [isLandscape, setIsLandscape] = useState(false);
+    const [userId, setUserId] = useState<string>("");
+    const [steps, setSteps] = useState<string[]>([]);
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+    const [isStepByStep, setIsStepByStep] = useState(false);
+    const isProcessingRef = useRef(false);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
@@ -1122,6 +1126,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const body: Record<string, unknown> = {
           image: base64,
           mode,
+          stepByStep: isStepByStep && mode === 'answer',
         };
 
         if (options?.promptOverride) {
@@ -1146,13 +1151,20 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const solutionData = await solutionResponse.json();
         const imageUrl = solutionData.imageUrl as string | null | undefined;
         const textContent = solutionData.textContent || '';
+        const returnedSteps = solutionData.steps || [];
 
         logger.info({ 
           hasImageUrl: !!imageUrl, 
           imageUrlLength: imageUrl?.length,
           imageUrlStart: imageUrl?.slice(0, 50),
-          textContent: textContent.slice(0, 100)
+          textContent: textContent.slice(0, 100),
+          stepsCount: returnedSteps.length
         }, 'Solution data received');
+
+        if (returnedSteps.length > 0) {
+          setSteps(returnedSteps);
+          setCurrentStepIndex(0);
+        }
 
         // If the model didn't return an image, it means Gemini decided help isn't needed.
         // Log the reason and gracefully stop.
@@ -1357,32 +1369,63 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     [editor]
   );
 
-  const handleReject = useCallback(
-    (shapeId: TLShapeId) => {
-      if (!editor) return;
+    const handleReject = useCallback(
+      (shapeId: TLShapeId) => {
+        if (!editor) return;
+
+        // Set flag to prevent triggering activity detection
+        isUpdatingImageRef.current = true;
+
+        // Unlock the shape first, then delete it
+        editor.updateShape({
+          id: shapeId,
+          type: "image",
+          isLocked: false,
+        });
+        
+        editor.deleteShape(shapeId);
+
+        // Remove from pending list
+        setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+
+        // Reset flag after a brief delay
+        setTimeout(() => {
+          isUpdatingImageRef.current = false;
+        }, 100);
+      },
+      [editor]
+    );
+
+    const revealNextStep = useCallback(() => {
+      if (!editor || currentStepIndex >= steps.length) return;
+
+      const stepText = steps[currentStepIndex];
+      const viewportBounds = editor.getViewportPageBounds();
 
       // Set flag to prevent triggering activity detection
       isUpdatingImageRef.current = true;
 
-      // Unlock the shape first, then delete it
-      editor.updateShape({
-        id: shapeId,
-        type: "image",
-        isLocked: false,
+      editor.createShape({
+        type: 'text',
+        x: viewportBounds.x + 50,
+        y: viewportBounds.y + 100 + (currentStepIndex * 60),
+        props: {
+          text: `${currentStepIndex + 1}. ${stepText}`,
+          color: 'blue',
+          size: 'm',
+          font: 'draw',
+          align: 'start',
+        },
       });
-      
-      editor.deleteShape(shapeId);
 
-      // Remove from pending list
-      setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
+      setCurrentStepIndex(prev => prev + 1);
 
       // Reset flag after a brief delay
       setTimeout(() => {
         isUpdatingImageRef.current = false;
       }, 100);
-    },
-    [editor]
-  );
+    }, [editor, steps, currentStepIndex]);
+
 
   // Auto-save logic
   useEffect(() => {
@@ -1749,14 +1792,40 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     {isModeAllowed('suggest') && (
                       <TabsTrigger value="suggest" className="touch-target min-w-[70px] rounded-lg">Suggest</TabsTrigger>
                     )}
-                    {isModeAllowed('answer') && (
-                      <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
-                    )}
-                  </TabsList>
-                </Tabs>
-              )}
-              <ModeInfoDialog />
-            </div>
+                      {isModeAllowed('answer') && (
+                        <TabsTrigger value="answer" className="touch-target min-w-[70px] rounded-lg">Solve</TabsTrigger>
+                      )}
+                    </TabsList>
+                  </Tabs>
+                )}
+                <ModeInfoDialog />
+
+                {assistanceMode === 'answer' && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 backdrop-blur-sm border rounded-lg shadow-md">
+                    <input
+                      type="checkbox"
+                      id="step-by-step-toggle"
+                      checked={isStepByStep}
+                      onChange={(e) => setIsStepByStep(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <label htmlFor="step-by-step-toggle" className="text-xs font-medium cursor-pointer select-none">
+                      Step-by-step
+                    </label>
+                  </div>
+                )}
+
+                {steps.length > 0 && currentStepIndex < steps.length && (
+                  <Button
+                    onClick={revealNextStep}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-md animate-pulse"
+                  >
+                    Reveal Next Step ({currentStepIndex}/{steps.length})
+                  </Button>
+                )}
+              </div>
+
           )}
         </>
       )}

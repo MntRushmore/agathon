@@ -6,14 +6,17 @@ import { Input } from '@/components/ui/input';
 import { ChatMessage } from './ChatMessage';
 import { useChat, CanvasContext } from '@/hooks/useChat';
 import {
-  MessageCircle,
-  X,
-  Minus,
-  Send,
-  Trash2,
-  StopCircle,
-  Bot,
-} from 'lucide-react';
+    MessageCircle,
+    X,
+    Minus,
+    Send,
+    Trash2,
+    StopCircle,
+    Bot,
+    Brain,
+    CheckCircle,
+  } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 interface ChatPanelProps {
@@ -28,8 +31,16 @@ export function ChatPanel({ getCanvasContext, className }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, isLoading, sendMessage, clearChat, stopGeneration } =
-    useChat({ getCanvasContext });
+  const {
+    messages,
+    isLoading,
+    isSocratic,
+    setIsSocratic,
+    sendMessage,
+    checkWork,
+    clearChat,
+    stopGeneration,
+  } = useChat({ getCanvasContext });
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -149,6 +160,28 @@ export function ChatPanel({ getCanvasContext, className }: ChatPanelProps) {
           <span className="font-semibold">AI Tutor</span>
         </div>
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8 transition-colors",
+              isSocratic ? "text-primary bg-primary/10" : "text-muted-foreground"
+            )}
+            onClick={() => setIsSocratic(!isSocratic)}
+            title={isSocratic ? "Socratic Mode On" : "Socratic Mode Off"}
+          >
+            <Brain className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={checkWork}
+            disabled={isLoading}
+            title="Check My Work"
+          >
+            <CheckCircle className="h-4 w-4" />
+          </Button>
           {messages.length > 0 && (
             <Button
               variant="ghost"

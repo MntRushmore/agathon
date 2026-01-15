@@ -14,9 +14,10 @@ interface ChatMessage {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, canvasContext } = (await req.json()) as {
+    const { messages, canvasContext, isSocratic } = (await req.json()) as {
       messages: ChatMessage[];
       canvasContext: CanvasContext;
+      isSocratic?: boolean;
     };
 
     const apiKey = process.env.HACKCLUB_AI_API_KEY;
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Build system prompt with canvas context
-    const systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
+    let systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
 
 Context about the student's work:
 - Subject: ${canvasContext.subject || 'General'}
@@ -46,6 +47,17 @@ Guidelines for your responses:
 7. If you need to show worked examples, use clear step-by-step formatting
 
 Remember: Your goal is to help the student LEARN, not just get answers.`;
+
+    if (isSocratic) {
+      systemPrompt += `
+
+CRITICAL - SOCRATIC TUTORING MODE:
+You are currently in Socratic Mode. Your goal is to lead the student to the answer by asking probing, guiding questions based on their work. 
+- NEVER provide the final answer or a complete step.
+- Focus on identifying what the student already knows and where they are stuck.
+- Ask 1-2 targeted questions at a time to nudge them toward the next logical step.
+- If they are completely stuck, provide a very small hint and ask a question about it.`;
+    }
 
     const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
       method: 'POST',

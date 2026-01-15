@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       prompt,
       mode = 'suggest',
       source = 'auto',
+      stepByStep = false,
     } = await req.json();
 
     if (!image) {
@@ -129,7 +130,16 @@ export async function POST(req: NextRequest) {
           return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
         
         case 'answer':
-          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
+          let answerPrompt = `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
+          
+          if (stepByStep) {
+            answerPrompt += `\n\n**STEP-BY-STEP REVEAL MODE:**
+- In addition to the drawing, you MUST provide a clear, numbered list of steps to reach the solution.
+- Each step should be a single, logical action.
+- Format the steps as a JSON array of strings at the VERY END of your text response, like this: [STEPS] ["Step 1...", "Step 2..."] [/STEPS]`;
+          }
+          
+          return answerPrompt;
         
         default:
           return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpBlock}`;
@@ -162,7 +172,7 @@ export async function POST(req: NextRequest) {
       
     const model = useHackClub
       ? 'google/gemini-2.5-flash-image'
-      : (process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-3-pro-image-preview');
+      : (process.env.OPENROUTER_IMAGE_GEN_MODEL || 'google/gemini-2.5-flash-image');
 
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${apiKey}`,
@@ -224,6 +234,18 @@ export async function POST(req: NextRequest) {
     // Try to extract a generated image from the response as flexibly as possible.
     // Different providers / models can structure image outputs differently.
     const message = data.choices?.[0]?.message;
+    const textContent = message?.content || '';
+
+    // Extract steps if present
+    let steps: string[] = [];
+    const stepsMatch = textContent.match(/\[STEPS\]\s*([\s\S]*?)\s*\[\/STEPS\]/);
+    if (stepsMatch) {
+      try {
+        steps = JSON.parse(stepsMatch[1]);
+      } catch (e) {
+        solutionLogger.warn({ requestId, stepsRaw: stepsMatch[1] }, 'Failed to parse steps JSON');
+      }
+    }
 
     let imageUrl: string | null = null;
 
@@ -309,7 +331,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       imageUrl,
-      textContent: (message as any)?.content || '',
+      textContent: textContent || '',
+      steps,
     });
   } catch (error) {
     const duration = Date.now() - startTime;

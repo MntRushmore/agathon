@@ -21,6 +21,7 @@ interface UseChatOptions {
 export function useChat({ getCanvasContext }: UseChatOptions) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSocratic, setIsSocratic] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -75,6 +76,7 @@ export function useChat({ getCanvasContext }: UseChatOptions) {
           body: JSON.stringify({
             messages: apiMessages,
             canvasContext,
+            isSocratic,
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -176,8 +178,11 @@ export function useChat({ getCanvasContext }: UseChatOptions) {
   return {
     messages,
     isLoading,
+    isSocratic,
+    setIsSocratic,
     error,
     sendMessage,
+    checkWork: () => sendMessage("Please evaluate my reasoning on the canvas. Am I on the right track? Check for any logical errors in my steps."),
     clearChat,
     stopGeneration,
   };
