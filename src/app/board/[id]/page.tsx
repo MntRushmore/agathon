@@ -1948,39 +1948,27 @@ export default function BoardPage() {
         </div>
       )}
 
-      {/* Assignment banner - thin floating overlay at top center */}
+      {/* Assignment banner - compact pill at top left (next to back button) */}
       {submissionData && (
-        <div className={`fixed left-1/2 -translate-x-1/2 z-[9999] ${submissionData.status === 'submitted' ? 'top-12' : 'top-2'}`}>
-          <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg px-4 py-2 flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-primary flex-shrink-0" />
-              <span className="font-medium text-sm">{submissionData.assignment.title}</span>
-              <Badge variant={
-                submissionData.status === 'submitted' ? 'default' :
-                submissionData.status === 'in_progress' ? 'secondary' :
-                'outline'
-              } className="text-xs">
-                {submissionData.status === 'submitted' ? 'Submitted' :
-                 submissionData.status === 'in_progress' ? 'In Progress' :
-                 'Not Started'}
-              </Badge>
-            </div>
-            <span className="text-xs text-muted-foreground">{submissionData.assignment.class.name}</span>
-            {submissionData.assignment.due_date && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Due {formatDistance(new Date(submissionData.assignment.due_date), new Date(), { addSuffix: true })}
-              </span>
-            )}
+        <div className={`fixed left-14 z-[1000] ios-safe-left ${submissionData.status === 'submitted' ? 'top-12' : 'top-3'}`}>
+          <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
+            <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+            <span className="font-medium text-xs max-w-[120px] truncate">{submissionData.assignment.title}</span>
+            <Badge variant={
+              submissionData.status === 'submitted' ? 'default' :
+              submissionData.status === 'in_progress' ? 'secondary' :
+              'outline'
+            } className="text-[10px] px-1.5 py-0">
+              {submissionData.status === 'submitted' ? 'Submitted' :
+               submissionData.status === 'in_progress' ? 'In Progress' :
+               'Not Started'}
+            </Badge>
             {submissionData.status !== 'submitted' ? (
-              <Button size="sm" onClick={handleSubmit} disabled={submitting} className="h-7 text-xs">
-                {submitting ? 'Submitting...' : 'Submit'}
+              <Button size="sm" onClick={handleSubmit} disabled={submitting} className="h-5 text-[10px] rounded-full px-2">
+                {submitting ? '...' : 'Submit'}
               </Button>
             ) : (
-              <span className="text-xs text-green-600 flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                {submissionData.submitted_at && formatDistance(new Date(submissionData.submitted_at), new Date(), { addSuffix: true })}
-              </span>
+              <Check className="h-3.5 w-3.5 text-green-600" />
             )}
           </div>
         </div>
