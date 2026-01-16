@@ -14,38 +14,55 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-      const { 
-        submissionId, 
-        assignmentId, 
-        mode, 
-        prompt, 
+      const {
+        submissionId,
+        assignmentId,
+        mode,
+        prompt,
         responseSummary,
         conceptTags,
         timeSpentSeconds,
         aiResponse,
         canvasContext,
+        inputTokens,
+        outputTokens,
+        totalCost,
+        modelUsed,
       } = body;
 
-      if (!submissionId || !assignmentId || !mode) {
-        return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      if (!mode) {
+        return NextResponse.json({ error: 'Missing required field: mode' }, { status: 400 });
       }
 
       const summaryText = responseSummary || (aiResponse ? aiResponse.slice(0, 500) : null);
 
+      const usageData: any = {
+        student_id: user.id,
+        mode,
+        prompt,
+        response_summary: summaryText,
+        concept_tags: conceptTags,
+        input_tokens: inputTokens || 0,
+        output_tokens: outputTokens || 0,
+        total_cost: totalCost || 0,
+        model_used: modelUsed || 'unknown',
+      };
+
+      // Only add submission and assignment IDs if provided
+      if (submissionId) usageData.submission_id = submissionId;
+      if (assignmentId) usageData.assignment_id = assignmentId;
+
       const { error: usageError } = await supabase
         .from('ai_usage')
-        .insert({
-          submission_id: submissionId,
-          student_id: user.id,
-          assignment_id: assignmentId,
-          mode,
-          prompt,
-          response_summary: summaryText,
-          concept_tags: conceptTags,
-        });
+        .insert(usageData);
 
     if (usageError) {
       console.error('Error tracking AI usage:', usageError);
+    }
+
+    // If no submission ID, just track usage and return
+    if (!submissionId) {
+      return NextResponse.json({ success: true });
     }
 
     const { data: submission } = await supabase

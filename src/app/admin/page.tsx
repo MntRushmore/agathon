@@ -26,6 +26,7 @@ interface Stats {
   totalBoards: number;
   totalSubmissions: number;
   totalAIUsage: number;
+  totalAICost: number;
   aiByMode: Record<string, number>;
   newUsersWeek: number;
   newUsersMonth: number;
@@ -66,6 +67,7 @@ export default function AdminDashboardPage() {
         supabase.from('submissions').select('*', { count: 'exact', head: true }),
         supabase.from('ai_usage').select('*', { count: 'exact', head: true }),
         supabase.from('ai_usage').select('mode'),
+        supabase.from('ai_usage').select('total_cost'),
       ]);
 
       // Check for any failures
@@ -87,6 +89,7 @@ export default function AdminDashboardPage() {
         totalSubmissionsResult,
         totalAIUsageResult,
         aiUsageByModeResult,
+        aiCostResult,
       ] = results;
 
       const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value.count : 0;
@@ -99,6 +102,10 @@ export default function AdminDashboardPage() {
       const totalSubmissions = totalSubmissionsResult.status === 'fulfilled' ? totalSubmissionsResult.value.count : 0;
       const totalAIUsage = totalAIUsageResult.status === 'fulfilled' ? totalAIUsageResult.value.count : 0;
       const aiUsageByMode = aiUsageByModeResult.status === 'fulfilled' ? aiUsageByModeResult.value.data : [];
+      const aiCostData = aiCostResult.status === 'fulfilled' ? aiCostResult.value.data : [];
+
+      // Calculate total AI cost from actual database values
+      const totalAICost = (aiCostData || []).reduce((sum, record) => sum + (Number(record.total_cost) || 0), 0);
 
       // Calculate AI usage by mode
       const aiByMode = (aiUsageByMode || []).reduce((acc, u) => {
@@ -128,6 +135,7 @@ export default function AdminDashboardPage() {
         totalBoards: totalBoards ?? 0,
         totalSubmissions: totalSubmissions ?? 0,
         totalAIUsage: totalAIUsage ?? 0,
+        totalAICost,
         aiByMode,
         newUsersWeek: newUsersWeek ?? 0,
         newUsersMonth: newUsersMonth ?? 0,
@@ -158,8 +166,6 @@ export default function AdminDashboardPage() {
   if (profile.role !== 'admin') {
     return null;
   }
-
-  const estimatedCost = (stats?.totalAIUsage || 0) * 0.002;
 
   return (
     <div className="space-y-6">
@@ -225,7 +231,7 @@ export default function AdminDashboardPage() {
               <Sparkles className="h-8 w-8 text-purple-500" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Est. cost: ${estimatedCost.toFixed(2)}
+              Total cost: ${(stats?.totalAICost || 0).toFixed(2)}
             </p>
           </CardContent>
         </Card>

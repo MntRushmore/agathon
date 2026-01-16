@@ -269,6 +269,36 @@ export async function POST(req: NextRequest) {
       tokensUsed: data.usage?.total_tokens
     }, 'Solution generation completed successfully');
 
+    // Track AI usage for cost monitoring
+    try {
+      const { data: { user } } = await (await import('@/lib/supabase/server')).createServerSupabaseClient().then(s => s.auth.getUser());
+
+      if (user && data.usage) {
+        // OpenRouter Gemini 3 Pro Image pricing (approximate - this model is expensive!)
+        const inputCostPer1M = 2.50;    // $2.50 per 1M input tokens
+        const outputCostPer1M = 10.00;  // $10.00 per 1M output tokens
+        const inputTokens = data.usage.prompt_tokens || 0;
+        const outputTokens = data.usage.completion_tokens || 0;
+        const totalCost = ((inputTokens * inputCostPer1M) + (outputTokens * outputCostPer1M)) / 1000000;
+
+        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: `solution_${mode}`,
+            prompt: prompt || `${mode} mode image generation`,
+            responseSummary: `Generated solution image (${mode} mode)`,
+            inputTokens,
+            outputTokens,
+            totalCost,
+            modelUsed: model,
+          }),
+        });
+      }
+    } catch (trackError) {
+      solutionLogger.warn({ requestId, error: trackError }, 'Failed to track solution generation usage');
+    }
+
     return NextResponse.json({
       success: true,
       imageUrl,
