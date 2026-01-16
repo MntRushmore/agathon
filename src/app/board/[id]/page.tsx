@@ -55,6 +55,9 @@ import { BookOpen, Check, Clock } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import type { CanvasContext } from "@/hooks/useChat";
+import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
+import { celebrateMilestone } from "@/lib/celebrations";
+import { createClient } from "@/lib/supabase/client";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -848,6 +851,33 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           aiResponse,
         }),
       });
+
+      // Check for first AI usage milestone
+      const supabaseClient = createClient();
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('milestones_achieved')
+          .eq('id', user.id)
+          .single();
+
+        const milestones = profile?.milestones_achieved || [];
+
+        if (!milestones.includes('first_ai_used')) {
+          // Track the milestone
+          await supabaseClient
+            .from('profiles')
+            .update({
+              milestones_achieved: [...milestones, 'first_ai_used']
+            })
+            .eq('id', user.id);
+
+          // Celebrate!
+          celebrateMilestone('first_ai_used');
+        }
+      }
     } catch (error) {
       console.error('Failed to track AI usage:', error);
     }
@@ -1732,6 +1762,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                       }
                     }}
                     className="w-auto rounded-xl"
+                    data-tutorial="ai-mode-selector"
                   >
                     <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
                       <TabsTrigger value="off" className="touch-target min-w-[60px] rounded-lg">Off</TabsTrigger>
@@ -1874,6 +1905,7 @@ export default function BoardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [isTeacherViewing, setIsTeacherViewing] = useState(false);
   const [studentName, setStudentName] = useState<string>("");
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     async function loadBoard() {
@@ -1987,6 +2019,36 @@ export default function BoardPage() {
     }
     checkIfAssignment();
   }, [id]);
+
+  // Check if user should see tutorial (first-time board user)
+  useEffect(() => {
+    async function checkTutorialStatus() {
+      // Don't show tutorial for temp boards or if teacher is viewing
+      if (id.startsWith('temp-') || isTeacherViewing) return;
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('has_completed_board_tutorial')
+          .eq('id', user.id)
+          .single();
+
+        const localCompleted = localStorage.getItem('board_tutorial_completed');
+
+        if (!profile?.has_completed_board_tutorial && !localCompleted && !loading) {
+          // Delay to let the UI render first
+          setTimeout(() => setShowTutorial(true), 2000);
+        }
+      } catch (error) {
+        console.error('Error checking tutorial status:', error);
+      }
+    }
+
+    checkTutorialStatus();
+  }, [id, isTeacherViewing, loading]);
 
   // Update editor read-only state when canEdit changes
   useEffect(() => {
@@ -2156,6 +2218,14 @@ export default function BoardPage() {
               assignmentId={submissionData?.assignment_id}
             />
         </Tldraw>
+
+        {/* First-time board tutorial */}
+        {showTutorial && (
+          <FirstBoardTutorial
+            onComplete={() => setShowTutorial(false)}
+            onSkip={() => setShowTutorial(false)}
+          />
+        )}
     </div>
   );
 }

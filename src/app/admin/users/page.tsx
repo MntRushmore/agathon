@@ -38,6 +38,7 @@ import {
   Shield,
   GraduationCap,
   Users as UsersIcon,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
@@ -145,6 +146,41 @@ export default function AdminUsersPage() {
     toast.success('Now impersonating user. Use the banner to stop.');
   };
 
+  const handleResetOnboarding = async (userId: string, email: string) => {
+    if (!confirm(`Reset onboarding for ${email}? They will see the welcome flow and tutorial again.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          onboarding_completed: false,
+          onboarding_completed_at: null,
+          has_completed_board_tutorial: false,
+          milestones_achieved: [],
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from('admin_audit_logs').insert({
+        admin_id: user?.id,
+        action_type: 'user_onboarding_reset',
+        target_type: 'user',
+        target_id: userId,
+        target_details: { email },
+      });
+
+      toast.success('Onboarding reset successfully. User will see welcome flow on next login.');
+      loadUsers();
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+      toast.error('Failed to reset onboarding');
+    }
+  };
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -219,6 +255,7 @@ export default function AdminUsersPage() {
               <TableHead>User</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Joined</TableHead>
               <TableHead className="w-[100px]">Actions</TableHead>
             </TableRow>
@@ -226,13 +263,13 @@ export default function AdminUsersPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No users found
                 </TableCell>
               </TableRow>
@@ -250,6 +287,18 @@ export default function AdminUsersPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">{u.email}</TableCell>
                   <TableCell>{getRoleBadge(u.role)}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={u.onboarding_completed ? 'outline' : 'secondary'} className="w-fit text-xs">
+                        {u.onboarding_completed ? 'Onboarded' : 'New User'}
+                      </Badge>
+                      {u.role === 'student' && u.onboarding_completed && (
+                        <span className="text-xs text-muted-foreground">
+                          {(u.milestones_achieved || []).length} milestones
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatDistance(new Date(u.created_at), new Date(), { addSuffix: true })}
                   </TableCell>
@@ -277,6 +326,11 @@ export default function AdminUsersPage() {
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'admin')}>
                           <Shield className="mr-2 h-4 w-4" />
                           Set as Admin
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleResetOnboarding(u.id, u.email)}>
+                          <RotateCcw className="mr-2 h-4 w-4" />
+                          Reset Onboarding
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
