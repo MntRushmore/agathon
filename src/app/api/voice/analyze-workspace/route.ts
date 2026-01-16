@@ -131,6 +131,36 @@ export async function POST(req: NextRequest) {
       'Workspace analysis completed successfully',
     );
 
+    // Track AI usage for cost monitoring
+    try {
+      const { data: { user } } = await (await import('@/lib/supabase/server')).createServerSupabaseClient().then(s => s.auth.getUser());
+
+      if (user && data.usage) {
+        // OpenRouter Gemini 2.5 Flash pricing (approximate)
+        const inputCostPer1M = 0.075;   // $0.075 per 1M input tokens
+        const outputCostPer1M = 0.30;   // $0.30 per 1M output tokens
+        const inputTokens = data.usage.prompt_tokens || 0;
+        const outputTokens = data.usage.completion_tokens || 0;
+        const totalCost = ((inputTokens * inputCostPer1M) + (outputTokens * outputCostPer1M)) / 1000000;
+
+        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'voice_analysis',
+            prompt: focus || 'Voice workspace analysis',
+            responseSummary: typeof analysis === 'string' ? analysis.slice(0, 500) : '',
+            inputTokens,
+            outputTokens,
+            totalCost,
+            modelUsed: process.env.OPENROUTER_VOICE_ANALYSIS_MODEL || 'google/gemini-2.5-flash',
+          }),
+        });
+      }
+    } catch (trackError) {
+      voiceLogger.warn({ error: trackError }, 'Failed to track voice analysis usage');
+    }
+
     return NextResponse.json({
       success: true,
       analysis,

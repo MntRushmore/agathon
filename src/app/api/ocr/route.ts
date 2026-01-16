@@ -93,6 +93,36 @@ export async function POST(req: NextRequest) {
       tokensUsed: data.usage?.total_tokens
     }, 'OCR completed successfully');
 
+    // Track AI usage for cost monitoring
+    try {
+      const { data: { user } } = await (await import('@/lib/supabase/server')).createServerSupabaseClient().then(s => s.auth.getUser());
+
+      if (user && data.usage) {
+        // OpenRouter Pixtral pricing (approximate)
+        const inputCostPer1M = 0.15;  // $0.15 per 1M input tokens
+        const outputCostPer1M = 0.15; // $0.15 per 1M output tokens
+        const inputTokens = data.usage.prompt_tokens || 0;
+        const outputTokens = data.usage.completion_tokens || 0;
+        const totalCost = ((inputTokens * inputCostPer1M) + (outputTokens * outputCostPer1M)) / 1000000;
+
+        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'ocr',
+            prompt: 'OCR text extraction from image',
+            responseSummary: `Extracted ${extractedText.length} characters`,
+            inputTokens,
+            outputTokens,
+            totalCost,
+            modelUsed: 'mistralai/pixtral-12b-2409',
+          }),
+        });
+      }
+    } catch (trackError) {
+      ocrLogger.warn({ requestId, error: trackError }, 'Failed to track OCR usage');
+    }
+
     return NextResponse.json({
       success: true,
       text: extractedText,
