@@ -18,6 +18,10 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  onboarding_completed?: boolean;
+  onboarding_completed_at?: string | null;
+  has_completed_board_tutorial?: boolean;
+  milestones_achieved?: string[];
 }
 
 export interface Whiteboard {

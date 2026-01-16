@@ -8,6 +8,11 @@ import { getStudentAssignments } from '@/lib/api/assignments';
 import { UserMenu } from '@/components/auth/user-menu';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
+import { WelcomeDialog } from '@/components/onboarding/WelcomeDialog';
+import { EmptyStateCard } from '@/components/onboarding/EmptyStateCard';
+import { ProgressChecklist } from '@/components/dashboard/ProgressChecklist';
+import { QuickStats } from '@/components/dashboard/QuickStats';
+import { useOnboarding } from '@/lib/hooks/useOnboarding';
 import {
   Plus,
   Trash2,
@@ -128,6 +133,20 @@ export default function Dashboard() {
   const [shareBoardId, setShareBoardId] = useState<string | null>(null);
   const [shareBoardTitle, setShareBoardTitle] = useState('');
 
+  // Onboarding state
+  const {
+    isOnboardingComplete,
+    loading: onboardingLoading,
+    completeOnboarding,
+    skipOnboarding,
+    checkMilestones,
+  } = useOnboarding();
+  const [milestones, setMilestones] = useState({
+    hasJoinedClass: false,
+    hasCreatedBoard: false,
+    hasUsedAI: false,
+  });
+
   // Show auth modal if required
   useEffect(() => {
     if (searchParams.get('auth') === 'required') {
@@ -146,6 +165,8 @@ export default function Dashboard() {
       if (profile?.role === 'student') {
         fetchAssignments();
       }
+      // Check milestones for progress checklist
+      checkMilestones().then(setMilestones);
     } else if (!authLoading && !user) {
       setLoading(false);
     }
@@ -333,6 +354,17 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Welcome Dialog for first-time students */}
+      {user && profile?.role === 'student' && !onboardingLoading && isOnboardingComplete === false && (
+        <WelcomeDialog
+          open={true}
+          onComplete={completeOnboarding}
+          onSkip={skipOnboarding}
+          userName={profile?.full_name?.split(' ')[0] || 'there'}
+          userRole={profile?.role}
+        />
+      )}
+
       {/* Top Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -380,22 +412,40 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Student Quick Actions */}
+          {/* Student Dashboard - Quick Stats and Progress */}
           {user && profile?.role === 'student' && (
-            <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-lg border border-green-500/20">
-              <div className="flex-1">
-                <h2 className="text-sm font-semibold text-muted-foreground mb-1">Student Dashboard</h2>
-                <p className="text-xs text-muted-foreground">Join classes and complete your assignments</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  onClick={() => router.push('/student/join')}
-                  variant="default"
-                  className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Join a Class
-                </Button>
+            <div className="space-y-4">
+              {/* Quick Stats */}
+              <QuickStats
+                enrolledClassCount={milestones.hasJoinedClass ? Math.max(1, assignments.filter((a, i, arr) => arr.findIndex(b => b.assignment?.class_id === a.assignment?.class_id) === i).length) : 0}
+                assignmentCount={assignments.length}
+                overdueCount={assignments.filter((a: any) => a.assignment?.due_date && new Date(a.assignment.due_date) < new Date() && a.status !== 'submitted').length}
+                boardCount={whiteboards.length}
+              />
+
+              {/* Progress Checklist (only show if incomplete) */}
+              <ProgressChecklist
+                hasJoinedClass={milestones.hasJoinedClass}
+                hasCreatedBoard={milestones.hasCreatedBoard}
+                hasUsedAI={milestones.hasUsedAI}
+              />
+
+              {/* Student Quick Actions */}
+              <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-lg border border-green-500/20">
+                <div className="flex-1">
+                  <h2 className="text-sm font-semibold text-muted-foreground mb-1">Student Dashboard</h2>
+                  <p className="text-xs text-muted-foreground">Join classes and complete your assignments</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    onClick={() => router.push('/student/join')}
+                    variant="default"
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Join a Class
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -502,14 +552,24 @@ export default function Dashboard() {
           /* ASSIGNMENTS TAB */
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {assignments.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-                <div className="rounded-full bg-muted p-6 mb-4">
-                  <BookOpen className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-2">No assignments yet</h3>
-                <p className="text-muted-foreground">
-                  Your teacher will assign work here
-                </p>
+              <div className="col-span-full">
+                <EmptyStateCard
+                  icon={<BookOpen className="h-12 w-12 text-muted-foreground" />}
+                  title="No assignments yet"
+                  description="Join a class to see assignments from your teacher, or create a practice board to explore AI tutoring features."
+                  actions={[
+                    {
+                      label: "Join a Class",
+                      onClick: () => router.push('/student/join'),
+                      variant: "default",
+                    },
+                    {
+                      label: "Create Practice Board",
+                      onClick: () => openCreateDialog(),
+                      variant: "outline",
+                    },
+                  ]}
+                />
               </div>
             ) : (
               assignments.map((submission: any) => (
