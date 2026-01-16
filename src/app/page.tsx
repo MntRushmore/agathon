@@ -27,7 +27,8 @@ import {
   Share2,
   Users,
   BookOpen,
-  Check
+  Check,
+  FileText
 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -299,7 +300,15 @@ export default function Dashboard() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error code:', error.code);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        throw error;
+      }
 
       // Check if this is the first board and celebrate
       const isFirstBoard = whiteboards.length === 0;
@@ -314,9 +323,10 @@ export default function Dashboard() {
       setCreateDialogOpen(false);
       setCreating(false);
       router.push(`/board/${data.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating whiteboard:', error);
-      toast.error('Failed to create whiteboard');
+      const errorMessage = error?.message || 'Failed to create whiteboard';
+      toast.error(errorMessage);
       setCreating(false);
     }
   }
@@ -367,7 +377,8 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Welcome Dialog for first-time students */}
-      {user && profile?.role === 'student' && !onboardingLoading && isOnboardingComplete === false && (
+      {/* Temporarily disabled onboarding welcome dialog */}
+      {/* {user && profile?.role === 'student' && !onboardingLoading && isOnboardingComplete === false && (
         <WelcomeDialog
           open={true}
           onComplete={completeOnboarding}
@@ -375,14 +386,22 @@ export default function Dashboard() {
           userName={profile?.full_name?.split(' ')[0] || 'there'}
           userRole={profile?.role}
         />
-      )}
+      )} */}
 
       {/* Top Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <div className="text-2xl font-bold">AI Whiteboard</div>
+              <Button
+                variant="ghost"
+                onClick={() => router.push('/documents')}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Documents
+              </Button>
             </div>
             <UserMenu />
           </div>
@@ -436,11 +455,12 @@ export default function Dashboard() {
               />
 
               {/* Progress Checklist (only show if incomplete) */}
-              <ProgressChecklist
+              {/* Temporarily disabled onboarding checklist */}
+              {/* <ProgressChecklist
                 hasJoinedClass={milestones.hasJoinedClass}
                 hasCreatedBoard={milestones.hasCreatedBoard}
                 hasUsedAI={milestones.hasUsedAI}
-              />
+              /> */}
 
               {/* Student Quick Actions */}
               <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gradient-to-r from-green-500/10 to-teal-500/10 rounded-lg border border-green-500/20">

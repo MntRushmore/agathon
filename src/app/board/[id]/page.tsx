@@ -975,6 +975,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     };
   }, []);
 
+
   // Helper function to get mode-aware status messages
   const getStatusMessage = useCallback((mode: "off" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
     if (statusType === "generating") {
@@ -1307,7 +1308,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   }, [generateSolution]);
 
   // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
-  useDebounceActivity(handleAutoGeneration, 2000, editor, isUpdatingImageRef, isProcessingRef);
+  useDebounceActivity(
+    handleAutoGeneration,
+    2000,
+    editor,
+    isUpdatingImageRef,
+    isProcessingRef,
+    assistanceMode === 'off'
+  );
 
   // Cancel in-flight requests when user edits the canvas
   useEffect(() => {
@@ -1403,6 +1411,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       },
       [editor]
     );
+
 
 
   // Auto-save logic
@@ -1889,6 +1898,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           {isTeacherViewing && editor && (
             <TeacherAIIndicator editor={editor} />
           )}
+
     </>
   );
 }
@@ -2038,10 +2048,11 @@ export default function BoardPage() {
 
         const localCompleted = localStorage.getItem('board_tutorial_completed');
 
-        if (!profile?.has_completed_board_tutorial && !localCompleted && !loading) {
-          // Delay to let the UI render first
-          setTimeout(() => setShowTutorial(true), 2000);
-        }
+        // Temporarily disabled onboarding flow
+        // if (!profile?.has_completed_board_tutorial && !localCompleted && !loading) {
+        //   // Delay to let the UI render first
+        //   setTimeout(() => setShowTutorial(true), 2000);
+        // }
       } catch (error) {
         console.error('Error checking tutorial status:', error);
       }

@@ -11,12 +11,13 @@ export function useDebounceActivity(
   delay: number = 3000,
   editor?: Editor,
   shouldIgnoreRef?: React.MutableRefObject<boolean>,
-  isProcessingRef?: React.MutableRefObject<boolean>
+  isProcessingRef?: React.MutableRefObject<boolean>,
+  disabled?: boolean
 ) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || disabled) return;
 
     // Clear any existing timeout
     const clearTimer = () => {
@@ -65,5 +66,5 @@ export function useDebounceActivity(
       clearTimer();
       dispose();
     };
-  }, [callback, delay, editor, shouldIgnoreRef, isProcessingRef]);
+  }, [callback, delay, editor, shouldIgnoreRef, isProcessingRef, disabled]);
 }

@@ -2,6 +2,8 @@
 @plugin "tailwindcss-animate";
 @import "tldraw/tldraw.css";
 @import "tw-animate-css";
+@import "mathlive/static.css";
+@import "mathlive/fonts.css";
 
 @custom-variant dark (&:is(.dark *));
 

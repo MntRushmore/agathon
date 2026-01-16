@@ -44,6 +44,16 @@ export interface BoardShare {
   created_by: string;
 }
 
+export interface Document {
+  id: string;
+  user_id: string;
+  title: string;
+  content: Json;
+  preview: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Class {
   id: string;
   teacher_id: string;
@@ -231,6 +241,11 @@ export interface Database {
         Row: Submission;
         Insert: Omit<Submission, 'id' | 'submitted_at' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Submission, 'id' | 'assignment_id' | 'student_id' | 'created_at' | 'updated_at'>>;
+      };
+      documents: {
+        Row: Document;
+        Insert: Omit<Document, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<Document, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
       };
     };
   };
