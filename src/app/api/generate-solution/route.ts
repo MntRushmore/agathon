@@ -74,16 +74,6 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    // Check for OPENROUTER_API_KEY
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      solutionLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
-      return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY not configured' },
-        { status: 500 }
-      );
-    }
-
     // Generate mode-specific prompt.
     // The `source` controls whether this was triggered automatically ("auto")
     // or explicitly by the voice tutor ("voice").
@@ -92,20 +82,27 @@ export async function POST(req: NextRequest) {
         ): string => {
 
           const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
-          
+
             const coreRules =
-              '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- HANDWRITING IS MANDATORY: You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n- Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.\n- ALWAYS generate an updated image of the canvas with handwritten content; do not respond with text-only.';
+              '\n\n**CRITICAL RULES - MUST FOLLOW:**\n' +
+              '1. **PRESERVE EXISTING CONTENT:** DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n' +
+              '2. **HANDWRITING ONLY:** You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n' +
+              '3. **USE BLACK INK:** Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n' +
+              '4. **WHITE/TRANSPARENT BACKGROUND:** The output image MUST have a WHITE or TRANSPARENT background. Do NOT add any colored backgrounds, gradients, or fills.\n' +
+              '5. **NO OVERLAPPING:** Position your new content in EMPTY SPACE on the canvas. Do NOT write on top of or overlap with any existing content. Find blank areas below, beside, or around the existing work.\n' +
+              '6. **CLEAR SPACING:** Leave adequate spacing between the existing content and your additions. Your content should be clearly separate and readable.\n' +
+              '7. **IMAGE OUTPUT REQUIRED:** ALWAYS generate an updated image of the canvas with handwritten content; do not respond with text-only.';
 
             switch (mode) {
               case 'feedback':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.${coreRules}`;
-              
+                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.\n- Position annotations near the relevant content but NOT overlapping it.${coreRules}`;
+
               case 'suggest':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.${coreRules}`;
+                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.\n- Write your hint in an empty area of the canvas, clearly separated from existing work.${coreRules}`;
 
               case 'answer':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.${coreRules}`;
-            
+                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.\n- Write the solution in empty space below or beside the existing work. DO NOT write over existing content.${coreRules}`;
+
             default:
               return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
           }
@@ -118,24 +115,15 @@ export async function POST(req: NextRequest) {
       ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
       : basePrompt;
 
-    const useHackClub = false;
-    
-    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter Gemini API for image generation');
+    solutionLogger.info({ requestId, mode }, 'Calling Hack Club API with Gemini for image generation');
 
-    // Call image generation model via OpenRouter
-    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    // Call Hack Club API with Gemini 3 Pro Image model (supports image generation with handwriting)
+    const apiUrl = 'https://ai.hackclub.com/chat/completions';
     const model = 'google/gemini-3-pro-image-preview';
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     };
-
-    // Add OpenRouter-specific headers
-    if (!useHackClub) {
-      headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-      headers['X-Title'] = 'Madhacks AI Canvas';
-    }
 
     const requestBody: any = {
       model,
@@ -156,14 +144,7 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      max_tokens: 6000, // Limit tokens to stay within budget
     };
-
-    // Add OpenRouter-specific options
-    if (!useHackClub) {
-      requestBody.modalities = ['image', 'text']; // Required for image generation on OpenRouter
-      requestBody.reasoning_effort = 'minimal';
-    }
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -177,8 +158,8 @@ export async function POST(req: NextRequest) {
         requestId,
         status: response.status,
         error: errorData
-      }, 'OpenRouter API error');
-      throw new Error(errorData.error?.message || 'OpenRouter API error');
+      }, 'Hack Club API error');
+      throw new Error(errorData.error?.message || 'Hack Club API error');
     }
 
     const data = await response.json();
@@ -269,17 +250,13 @@ export async function POST(req: NextRequest) {
       tokensUsed: data.usage?.total_tokens
     }, 'Solution generation completed successfully');
 
-    // Track AI usage for cost monitoring
+    // Track AI usage (Hack Club API is free, so no cost tracking needed)
     try {
       const { data: { user } } = await (await import('@/lib/supabase/server')).createServerSupabaseClient().then(s => s.auth.getUser());
 
-      if (user && data.usage) {
-        // OpenRouter Gemini 3 Pro Image pricing (approximate - this model is expensive!)
-        const inputCostPer1M = 2.50;    // $2.50 per 1M input tokens
-        const outputCostPer1M = 10.00;  // $10.00 per 1M output tokens
-        const inputTokens = data.usage.prompt_tokens || 0;
-        const outputTokens = data.usage.completion_tokens || 0;
-        const totalCost = ((inputTokens * inputCostPer1M) + (outputTokens * outputCostPer1M)) / 1000000;
+      if (user) {
+        const inputTokens = data.usage?.prompt_tokens || 0;
+        const outputTokens = data.usage?.completion_tokens || 0;
 
         await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
           method: 'POST',
@@ -287,10 +264,10 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             mode: `solution_${mode}`,
             prompt: prompt || `${mode} mode image generation`,
-            responseSummary: `Generated solution image (${mode} mode)`,
+            responseSummary: `Generated solution image (${mode} mode) via Hack Club API`,
             inputTokens,
             outputTokens,
-            totalCost,
+            totalCost: 0, // Hack Club API is free
             modelUsed: model,
           }),
         });
