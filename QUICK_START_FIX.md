@@ -8,9 +8,11 @@ Your app has infinite recursion errors in the database. Here's how to fix it in 
 
 1. Open your Supabase Dashboard: https://supabase.com/dashboard
 2. Go to SQL Editor
-3. Copy and paste **ALL** of `COMPLETE_FIX_WITH_METADATA.sql`
+3. Copy and paste **ALL** of `COMPLETE_FIX_WITH_METADATA_V2.sql` ⭐ (use V2!)
 4. Click "Run"
 5. Wait for it to complete
+
+**Note:** Use V2! It handles existing policies better.
 
 ### Step 2: Make Yourself an Admin (30 seconds)
 
