@@ -90,6 +90,7 @@ export function ChatPanel({ getCanvasContext, className }: ChatPanelProps) {
         )}
         size="icon"
         aria-label="Open AI Chat"
+        data-tutorial="chat-button"
       >
         <MessageCircle className="h-5 w-5" />
         {messages.length > 0 && (

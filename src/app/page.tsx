@@ -13,6 +13,7 @@ import { EmptyStateCard } from '@/components/onboarding/EmptyStateCard';
 import { ProgressChecklist } from '@/components/dashboard/ProgressChecklist';
 import { QuickStats } from '@/components/dashboard/QuickStats';
 import { useOnboarding } from '@/lib/hooks/useOnboarding';
+import { celebrateMilestone } from '@/lib/celebrations';
 import {
   Plus,
   Trash2,
@@ -140,6 +141,7 @@ export default function Dashboard() {
     completeOnboarding,
     skipOnboarding,
     checkMilestones,
+    trackMilestone,
   } = useOnboarding();
   const [milestones, setMilestones] = useState({
     hasJoinedClass: false,
@@ -298,6 +300,16 @@ export default function Dashboard() {
         .single();
 
       if (error) throw error;
+
+      // Check if this is the first board and celebrate
+      const isFirstBoard = whiteboards.length === 0;
+      if (isFirstBoard && profile?.role === 'student') {
+        const tracked = await trackMilestone('first_board_created');
+        if (tracked) {
+          celebrateMilestone('first_board_created');
+        }
+      }
+
       toast.success('Board created for your class');
       setCreateDialogOpen(false);
       setCreating(false);

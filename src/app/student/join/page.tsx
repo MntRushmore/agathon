@@ -9,6 +9,9 @@ import { joinClass, getStudentClasses } from '@/lib/api/classes';
 import { ArrowLeft, Users, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { celebrateMilestone } from '@/lib/celebrations';
+import { useOnboarding } from '@/lib/hooks/useOnboarding';
+import { createClient } from '@/lib/supabase/client';
 
 interface EnrolledClass {
   id: string;
@@ -31,6 +34,8 @@ export default function StudentJoinPage() {
   const [loading, setLoading] = useState(false);
   const [enrolledClasses, setEnrolledClasses] = useState<EnrolledClass[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const { trackMilestone } = useOnboarding();
+  const supabase = createClient();
 
   const loadEnrolledClasses = async () => {
     setLoadingClasses(true);
@@ -63,13 +68,23 @@ export default function StudentJoinPage() {
 
     setLoading(true);
     try {
+      const isFirstClass = enrolledClasses.length === 0;
       const result = await joinClass(code);
+
       toast({
         title: 'Successfully joined!',
         description: `You've been enrolled in ${result.class.name}`,
       });
       setJoinCode('');
-      loadEnrolledClasses();
+      await loadEnrolledClasses();
+
+      // Celebrate first class milestone
+      if (isFirstClass) {
+        const tracked = await trackMilestone('first_class_joined');
+        if (tracked) {
+          celebrateMilestone('first_class_joined');
+        }
+      }
     } catch (error: any) {
       console.error('Error joining class:', error);
       if (error.message === 'Already enrolled in this class') {
