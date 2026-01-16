@@ -41,7 +41,7 @@ export function BlockMathNodeView({ node, updateAttributes }: any) {
 
   return (
     <NodeViewWrapper className="block my-3">
-      <div className="w-full bg-white rounded-lg border-2 border-gray-200 hover:border-blue-400 transition-colors p-3">
+      <div className="w-full bg-white rounded-lg border-2 border-gray-200 hover:border-blue-400 focus-within:border-blue-500 transition-colors p-3 touch-manipulation">
         {mathLiveLoaded ? (
           React.createElement('math-field', {
             ref: mathfieldRef,
@@ -52,6 +52,7 @@ export function BlockMathNodeView({ node, updateAttributes }: any) {
               width: '100%',
               border: 'none',
               padding: '8px',
+              touchAction: 'manipulation',
             },
           })
         ) : (

@@ -97,14 +97,15 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
         {/* Header */}
         <div className="border-b bg-card sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+        <div className="max-w-5xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center gap-3 md:gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push('/documents')}
+            className="min-h-[44px] min-w-[44px] touch-manipulation"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -112,23 +113,27 @@ export default function DocumentPage() {
           <Input
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            className="text-xl font-semibold border-none shadow-none flex-1"
+            className="text-lg md:text-xl font-semibold border-none shadow-none flex-1 min-h-[44px]"
             placeholder="Untitled Document"
           />
 
           <div className="flex items-center gap-2">
             {saving && (
-              <span className="text-sm text-muted-foreground">Saving...</span>
+              <span className="text-xs md:text-sm text-muted-foreground">Saving...</span>
             )}
-            <Button variant="ghost" size="icon">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="min-h-[44px] min-w-[44px] touch-manipulation"
+            >
               <Share2 className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="px-6 py-8">
+      {/* Editor - flex-1 to fill remaining space */}
+      <div className="flex-1 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
         <MathStepEditor
           content={content}
           onChange={handleContentChange}

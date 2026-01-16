@@ -57,26 +57,32 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">My Documents</h1>
-          <Button onClick={createDocument}>
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold">My Documents</h1>
+          <Button
+            onClick={createDocument}
+            className="min-h-[44px] min-w-[44px] touch-manipulation"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Document
           </Button>
         </div>
 
         {loading ? (
-          <div>Loading...</div>
+          <div className="text-center py-8">Loading...</div>
         ) : documents.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-8 md:p-12 text-center">
             <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">No documents yet</h2>
             <p className="text-muted-foreground mb-6">
               Create your first document to get started
             </p>
-            <Button onClick={createDocument}>
+            <Button
+              onClick={createDocument}
+              className="min-h-[44px] touch-manipulation"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Create Document
             </Button>
@@ -86,10 +92,10 @@ export default function DocumentsPage() {
             {documents.map((doc) => (
               <Card
                 key={doc.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
+                className="cursor-pointer hover:shadow-lg active:shadow-md active:scale-[0.98] transition-all touch-manipulation"
                 onClick={() => router.push(`/documents/${doc.id}`)}
               >
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle className="text-lg truncate">
                     {doc.title}
                   </CardTitle>

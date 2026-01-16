@@ -41,7 +41,7 @@ export function InlineMathNodeView({ node, updateAttributes }: any) {
 
   return (
     <NodeViewWrapper className="inline-block my-1">
-      <span className="inline-block bg-white rounded border-2 border-gray-200 hover:border-blue-400 transition-colors px-2 py-1">
+      <span className="inline-block bg-white rounded border-2 border-gray-200 hover:border-blue-400 focus-within:border-blue-500 transition-colors px-2 py-1 touch-manipulation">
         {mathLiveLoaded ? (
           React.createElement('math-field', {
             ref: mathfieldRef,
@@ -50,6 +50,7 @@ export function InlineMathNodeView({ node, updateAttributes }: any) {
               display: 'inline-block',
               minWidth: '100px',
               border: 'none',
+              touchAction: 'manipulation',
             },
           })
         ) : (
