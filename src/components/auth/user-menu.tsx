@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AuthModal } from './auth-modal';
-import { Logout03Icon, UserIcon, Shield } from 'lucide-react';
+import { LogOut, User, Shield } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
@@ -71,12 +71,12 @@ export function UserMenu() {
           </>
         )}
         <DropdownMenuItem disabled>
-          <UserIcon className="mr-2 h-4 w-4" />
+          <User className="mr-2 h-4 w-4" />
           Profile
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut}>
-          <Logout03Icon className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </DropdownMenuItem>
       </DropdownMenuContent>
