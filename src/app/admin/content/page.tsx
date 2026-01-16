@@ -28,7 +28,7 @@ import { formatDistance } from 'date-fns';
 
 export default function AdminContentPage() {
   const supabase = createClient();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('classes');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,41 +37,111 @@ export default function AdminContentPage() {
   const [boards, setBoards] = useState<any[]>([]);
 
   useEffect(() => {
-    loadContent();
+    // Only load if user is admin
+    if (profile?.role === 'admin') {
+      loadAllContent();
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    // Reload when tab changes
+    if (profile?.role === 'admin') {
+      loadContent();
+    }
   }, [activeTab]);
+
+  const loadAllContent = async () => {
+    // Load all tabs at once for initial load
+    setLoading(true);
+    try {
+      const [classesResult, assignmentsResult, boardsResult] = await Promise.allSettled([
+        supabase
+          .from('classes')
+          .select(`*, teacher:profiles!teacher_id(full_name, email)`)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('assignments')
+          .select(`*, class:classes!class_id(name)`)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('whiteboards')
+          .select(`*, owner:profiles!user_id(full_name, email)`)
+          .order('created_at', { ascending: false })
+          .limit(100),
+      ]);
+
+      if (classesResult.status === 'fulfilled' && classesResult.value.data) {
+        setClasses(classesResult.value.data);
+      } else if (classesResult.status === 'rejected') {
+        console.error('Classes error:', classesResult.reason);
+      }
+
+      if (assignmentsResult.status === 'fulfilled' && assignmentsResult.value.data) {
+        setAssignments(assignmentsResult.value.data);
+      } else if (assignmentsResult.status === 'rejected') {
+        console.error('Assignments error:', assignmentsResult.reason);
+      }
+
+      if (boardsResult.status === 'fulfilled' && boardsResult.value.data) {
+        setBoards(boardsResult.value.data);
+      } else if (boardsResult.status === 'rejected') {
+        console.error('Boards error:', boardsResult.reason);
+      }
+    } catch (error) {
+      console.error('Error loading all content:', error);
+      toast.error('Some data failed to load. Check console for details.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadContent = async () => {
     setLoading(true);
     try {
       switch (activeTab) {
         case 'classes':
-          const { data: classData } = await supabase
+          const { data: classData, error: classError } = await supabase
             .from('classes')
             .select(`*, teacher:profiles!teacher_id(full_name, email)`)
             .order('created_at', { ascending: false });
+
+          if (classError) {
+            console.error('Classes error:', classError);
+            toast.error(`Failed to load classes: ${classError.message}`);
+          }
           setClasses(classData || []);
           break;
 
         case 'assignments':
-          const { data: assignmentData } = await supabase
+          const { data: assignmentData, error: assignmentError } = await supabase
             .from('assignments')
             .select(`*, class:classes!class_id(name)`)
             .order('created_at', { ascending: false });
+
+          if (assignmentError) {
+            console.error('Assignments error:', assignmentError);
+            toast.error(`Failed to load assignments: ${assignmentError.message}`);
+          }
           setAssignments(assignmentData || []);
           break;
 
         case 'boards':
-          const { data: boardData } = await supabase
+          const { data: boardData, error: boardError } = await supabase
             .from('whiteboards')
             .select(`*, owner:profiles!user_id(full_name, email)`)
             .order('created_at', { ascending: false })
             .limit(100);
+
+          if (boardError) {
+            console.error('Boards error:', boardError);
+            toast.error(`Failed to load boards: ${boardError.message}`);
+          }
           setBoards(boardData || []);
           break;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading content:', error);
-      toast.error('Failed to load content');
+      toast.error(`Failed to load content: ${error?.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
