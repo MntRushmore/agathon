@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/components/auth/auth-provider';
 import {
   Users,
   BookOpen,
@@ -10,7 +12,9 @@ import {
   TrendingUp,
   FileText,
   Layout,
+  AlertCircle,
 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Stats {
   totalUsers: number;
@@ -29,28 +33,29 @@ interface Stats {
 
 export default function AdminDashboardPage() {
   const supabase = createClient();
+  const { profile } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    // Check if user is admin
+    if (profile && profile.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+
+    if (profile?.role === 'admin') {
+      loadDashboard();
+    }
+  }, [profile, router]);
 
   const loadDashboard = async () => {
+    setError(null);
     try {
-      // Fetch all stats in parallel
-      const [
-        { count: totalUsers },
-        { count: totalStudents },
-        { count: totalTeachers },
-        { count: totalAdmins },
-        { count: totalClasses },
-        { count: totalAssignments },
-        { count: totalBoards },
-        { count: totalSubmissions },
-        { count: totalAIUsage },
-        { data: aiUsageByMode },
-      ] = await Promise.all([
+      // Fetch all stats in parallel with error handling
+      const results = await Promise.allSettled([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
@@ -63,6 +68,38 @@ export default function AdminDashboardPage() {
         supabase.from('ai_usage').select('mode'),
       ]);
 
+      // Check for any failures
+      const failedQueries = results.filter((r) => r.status === 'rejected');
+      if (failedQueries.length > 0) {
+        console.error('Some queries failed:', failedQueries);
+        setError('Some data could not be loaded. Please check database permissions.');
+      }
+
+      // Extract successful results
+      const [
+        totalUsersResult,
+        totalStudentsResult,
+        totalTeachersResult,
+        totalAdminsResult,
+        totalClassesResult,
+        totalAssignmentsResult,
+        totalBoardsResult,
+        totalSubmissionsResult,
+        totalAIUsageResult,
+        aiUsageByModeResult,
+      ] = results;
+
+      const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value.count : 0;
+      const totalStudents = totalStudentsResult.status === 'fulfilled' ? totalStudentsResult.value.count : 0;
+      const totalTeachers = totalTeachersResult.status === 'fulfilled' ? totalTeachersResult.value.count : 0;
+      const totalAdmins = totalAdminsResult.status === 'fulfilled' ? totalAdminsResult.value.count : 0;
+      const totalClasses = totalClassesResult.status === 'fulfilled' ? totalClassesResult.value.count : 0;
+      const totalAssignments = totalAssignmentsResult.status === 'fulfilled' ? totalAssignmentsResult.value.count : 0;
+      const totalBoards = totalBoardsResult.status === 'fulfilled' ? totalBoardsResult.value.count : 0;
+      const totalSubmissions = totalSubmissionsResult.status === 'fulfilled' ? totalSubmissionsResult.value.count : 0;
+      const totalAIUsage = totalAIUsageResult.status === 'fulfilled' ? totalAIUsageResult.value.count : 0;
+      const aiUsageByMode = aiUsageByModeResult.status === 'fulfilled' ? aiUsageByModeResult.value.data : [];
+
       // Calculate AI usage by mode
       const aiByMode = (aiUsageByMode || []).reduce((acc, u) => {
         acc[u.mode] = (acc[u.mode] || 0) + 1;
@@ -73,33 +110,38 @@ export default function AdminDashboardPage() {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [{ count: newUsersWeek }, { count: newUsersMonth }] = await Promise.all([
+      const growthResults = await Promise.allSettled([
         supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo),
       ]);
 
+      const newUsersWeek = growthResults[0].status === 'fulfilled' ? growthResults[0].value.count : 0;
+      const newUsersMonth = growthResults[1].status === 'fulfilled' ? growthResults[1].value.count : 0;
+
       setStats({
-        totalUsers: totalUsers || 0,
-        totalStudents: totalStudents || 0,
-        totalTeachers: totalTeachers || 0,
-        totalAdmins: totalAdmins || 0,
-        totalClasses: totalClasses || 0,
-        totalAssignments: totalAssignments || 0,
-        totalBoards: totalBoards || 0,
-        totalSubmissions: totalSubmissions || 0,
-        totalAIUsage: totalAIUsage || 0,
+        totalUsers: totalUsers ?? 0,
+        totalStudents: totalStudents ?? 0,
+        totalTeachers: totalTeachers ?? 0,
+        totalAdmins: totalAdmins ?? 0,
+        totalClasses: totalClasses ?? 0,
+        totalAssignments: totalAssignments ?? 0,
+        totalBoards: totalBoards ?? 0,
+        totalSubmissions: totalSubmissions ?? 0,
+        totalAIUsage: totalAIUsage ?? 0,
         aiByMode,
-        newUsersWeek: newUsersWeek || 0,
-        newUsersMonth: newUsersMonth || 0,
+        newUsersWeek: newUsersWeek ?? 0,
+        newUsersMonth: newUsersMonth ?? 0,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading admin dashboard:', error);
+      setError(error?.message || 'Failed to load dashboard data. Please check database permissions and run the fix script.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  // Show loading state while checking auth
+  if (!profile || loading) {
     return (
       <div className="space-y-6">
         <div className="h-8 bg-muted rounded w-1/4 animate-pulse" />
@@ -112,6 +154,11 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // Don't render if not admin
+  if (profile.role !== 'admin') {
+    return null;
+  }
+
   const estimatedCost = (stats?.totalAIUsage || 0) * 0.002;
 
   return (
@@ -122,6 +169,19 @@ export default function AdminDashboardPage() {
           Monitor and manage your educational platform
         </p>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertDescription>
+            {error}
+            <br />
+            <br />
+            Run the <code className="bg-destructive/10 px-1 rounded">FIX_INFINITE_RECURSION.sql</code> script in your Supabase SQL editor to fix database permission issues.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

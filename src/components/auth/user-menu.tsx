@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from './auth-provider';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,11 +13,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AuthModal } from './auth-modal';
-import { Logout03Icon, UserIcon } from 'hugeicons-react';
+import { Logout03Icon, UserIcon, Shield } from 'lucide-react';
 
 export function UserMenu() {
   const { user, profile, signOut } = useAuth();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const router = useRouter();
 
   if (!user || !profile) {
     return (
@@ -59,6 +61,15 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {profile.role === 'admin' && (
+          <>
+            <DropdownMenuItem onClick={() => router.push('/admin')}>
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Dashboard
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem disabled>
           <UserIcon className="mr-2 h-4 w-4" />
           Profile
