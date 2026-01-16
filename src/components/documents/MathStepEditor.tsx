@@ -118,10 +118,11 @@ function MathStepRow({
         onUpdate(newLatex);
       };
 
-      const handleKeyDown = (evt: KeyboardEvent) => {
+      const handleKeyDown = (evt: Event) => {
+        const keyEvent = evt as KeyboardEvent;
         // Enter key adds a new step
-        if (evt.key === 'Enter' && !evt.shiftKey) {
-          evt.preventDefault();
+        if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
+          keyEvent.preventDefault();
           onAddAfter();
           // Focus next step after it's created
           setTimeout(() => {
