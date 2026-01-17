@@ -180,26 +180,30 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
     // Set up drawing tool as default
     editor.setCurrentTool('draw');
 
-    // Listen for changes
-    editor.store.listen((entry) => {
+    // Use a simpler approach - listen for pointer up events to trigger recognition
+    const handlePointerUp = () => {
       // Clear any pending recognition
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
 
-      // Check if shapes changed (new drawing)
-      const currentShapeCount = editor.getCurrentPageShapeIds().size;
-
-      // Only trigger recognition if we have shapes and count changed (user drew something)
-      if (currentShapeCount > 0 && currentShapeCount !== lastShapeCountRef.current) {
-        lastShapeCountRef.current = currentShapeCount;
-
-        // Wait for user to stop drawing, then recognize
-        recognitionTimeoutRef.current = setTimeout(() => {
+      // Wait for user to stop drawing, then recognize
+      recognitionTimeoutRef.current = setTimeout(() => {
+        const currentShapeCount = editor.getCurrentPageShapeIds().size;
+        // Only trigger if we have new shapes
+        if (currentShapeCount > 0 && currentShapeCount !== lastShapeCountRef.current) {
+          lastShapeCountRef.current = currentShapeCount;
           triggerRecognition();
-        }, 1500); // 1.5 second delay
+        }
+      }, 2000); // 2 second delay after pointer up
+    };
+
+    // Subscribe to editor events
+    editor.on('event', (event) => {
+      if (event.name === 'pointer_up') {
+        handlePointerUp();
       }
-    }, { source: 'user', scope: 'document' });
+    });
   }, [triggerRecognition]);
 
   // Cleanup timeout on unmount
@@ -239,6 +243,7 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
   return (
     <div className="w-full h-full absolute inset-0" style={{ touchAction: 'none' }}>
       <Tldraw
+        licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
         onMount={handleMount}
         overrides={uiOverrides}
         components={components}
