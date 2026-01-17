@@ -28,7 +28,7 @@ import {
   Users,
   BookOpen,
   Check,
-  FileText
+  Calculator
 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -396,11 +396,11 @@ export default function Dashboard() {
               <div className="text-2xl font-bold">AI Whiteboard</div>
               <Button
                 variant="ghost"
-                onClick={() => router.push('/documents')}
+                onClick={() => router.push('/math')}
                 className="gap-2"
               >
-                <FileText className="h-4 w-4" />
-                Documents
+                <Calculator className="h-4 w-4" />
+                Math Board
               </Button>
             </div>
             <UserMenu />
