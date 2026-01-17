@@ -6,6 +6,7 @@ import {
   Editor,
   TLUiOverrides,
   TLUiComponents,
+  TLShapeId,
 } from 'tldraw';
 import 'tldraw/tldraw.css';
 
@@ -19,7 +20,6 @@ export interface EquationResult {
 interface TldrawMathCanvasProps {
   onRecognitionRequest: (imageData: string, bounds: { x: number; y: number; width: number; height: number }) => Promise<{ recognized: string; solution: string } | null>;
   onEquationsChange?: (equations: EquationResult[]) => void;
-  disabled?: boolean;
 }
 
 export interface TldrawMathCanvasRef {
@@ -30,19 +30,16 @@ export interface TldrawMathCanvasRef {
 export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMathCanvasProps>(({
   onRecognitionRequest,
   onEquationsChange,
-  disabled = false,
 }, ref) => {
-  const editorRef = useRef<Editor | null>(null);
+  const [editor, setEditor] = useState<Editor | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [equations, setEquations] = useState<EquationResult[]>([]);
-  const lastShapeCountRef = useRef(0);
+  const lastProcessedShapesRef = useRef<string>('');
+  const isProcessingRef = useRef(false);
 
   React.useImperativeHandle(ref, () => ({
     getCanvasImage: async () => {
-      const editor = editorRef.current;
       if (!editor) return '';
-
-      // Use getSvgString and convert to image
       const shapeIds = editor.getCurrentPageShapeIds();
       if (shapeIds.size === 0) return '';
 
@@ -50,7 +47,6 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
         const svg = await editor.getSvgString([...shapeIds]);
         if (!svg) return '';
 
-        // Convert SVG to PNG using canvas
         const img = new Image();
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -63,107 +59,138 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
             resolve(canvas.toDataURL('image/png'));
           };
           img.onerror = () => resolve('');
-          img.src = 'data:image/svg+xml;base64,' + btoa(svg.svg);
+          img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg.svg)));
         });
       } catch {
         return '';
       }
     },
-    getEditor: () => editorRef.current,
+    getEditor: () => editor,
   }));
 
+  // Recognition function - completely silent, no UI feedback
   const triggerRecognition = useCallback(async () => {
-    const editor = editorRef.current;
-    if (!editor || disabled) return;
+    if (!editor || isProcessingRef.current) return;
 
     const shapeIds = editor.getCurrentPageShapeIds();
     if (shapeIds.size === 0) return;
 
-    // Get all shapes - filter out text shapes (solutions)
+    // Get all draw shapes (filter out text/solution shapes)
     const drawShapeIds = [...shapeIds].filter(id => {
       const shape = editor.getShape(id);
-      return shape && shape.type !== 'text';
+      return shape && shape.type === 'draw';
     });
     if (drawShapeIds.length === 0) return;
 
-    // Get bounds of all drawings
-    const bounds = editor.getShapePageBounds(drawShapeIds[0]);
-    if (!bounds) return;
+    // Create a signature of current shapes to avoid re-processing
+    const shapesSignature = drawShapeIds.sort().join(',');
+    if (shapesSignature === lastProcessedShapesRef.current) return;
 
-    // Export the current canvas as an image using SVG
+    isProcessingRef.current = true;
+
     try {
-      const svg = await editor.getSvgString(drawShapeIds);
-      if (!svg) return;
+      // Get combined bounds of all draw shapes
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      drawShapeIds.forEach(id => {
+        const bounds = editor.getShapePageBounds(id);
+        if (bounds) {
+          minX = Math.min(minX, bounds.x);
+          minY = Math.min(minY, bounds.y);
+          maxX = Math.max(maxX, bounds.x + bounds.width);
+          maxY = Math.max(maxY, bounds.y + bounds.height);
+        }
+      });
 
-      // Convert SVG to PNG
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      if (minX === Infinity) {
+        isProcessingRef.current = false;
+        return;
+      }
+
+      const bounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+
+      // Export drawing as PNG
+      const svg = await editor.getSvgString(drawShapeIds);
+      if (!svg) {
+        isProcessingRef.current = false;
+        return;
+      }
 
       const imageData = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
         img.onload = () => {
-          canvas.width = img.width || 800;
-          canvas.height = img.height || 600;
+          // Add padding and ensure minimum size
+          const padding = 40;
+          canvas.width = Math.max(img.width + padding * 2, 200);
+          canvas.height = Math.max(img.height + padding * 2, 100);
+
           // White background
           ctx!.fillStyle = 'white';
           ctx!.fillRect(0, 0, canvas.width, canvas.height);
-          ctx?.drawImage(img, 0, 0);
+          ctx!.drawImage(img, padding, padding);
           resolve(canvas.toDataURL('image/png'));
         };
         img.onerror = () => reject(new Error('Failed to load SVG'));
         img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg.svg)));
       });
 
-      const result = await onRecognitionRequest(imageData, {
-        x: bounds.x,
-        y: bounds.y,
-        width: bounds.width,
-        height: bounds.height,
-      });
+      // Call recognition API (silently)
+      const result = await onRecognitionRequest(imageData, bounds);
 
       if (result && result.solution) {
-        // Add solution as a text shape to the right of the drawing
-        const solutionX = bounds.x + bounds.width + 20;
-        const solutionY = bounds.y + bounds.height / 2 - 15;
+        // Mark as processed
+        lastProcessedShapesRef.current = shapesSignature;
 
-        // Check if we already have a solution shape at this location
-        const existingShapes = [...editor.getCurrentPageShapeIds()]
-          .map(id => editor.getShape(id))
-          .filter(s => s && s.type === 'text' && (s.props as any).text?.startsWith('='));
+        // Remove any existing solution text shapes
+        const existingSolutions = [...editor.getCurrentPageShapeIds()]
+          .filter(id => {
+            const shape = editor.getShape(id);
+            return shape && shape.type === 'text' && (shape.meta as any)?.isSolution;
+          });
 
-        // Remove old solution shapes
-        if (existingShapes.length > 0) {
-          editor.deleteShapes(existingShapes.map(s => s!.id));
+        if (existingSolutions.length > 0) {
+          editor.deleteShapes(existingSolutions);
         }
 
-        // Create solution text
+        // Format solution text
         let displayText = result.solution;
         if (!displayText.startsWith('=') && !displayText.includes('=')) {
           displayText = `= ${displayText}`;
         }
 
+        // Add solution as locked text shape to the right of the equation
+        const solutionX = maxX + 30;
+        const solutionY = minY + (maxY - minY) / 2 - 20;
+
         editor.createShape({
           type: 'text',
           x: solutionX,
           y: solutionY,
+          isLocked: true,
           props: {
             text: displayText,
-            color: 'blue',
+            color: 'light-blue',
             size: 'l',
-            font: 'sans',
+            font: 'draw',
+          },
+          meta: {
+            isSolution: true,
           },
         });
 
+        // Update equations state
         const newEquation: EquationResult = {
           id: crypto.randomUUID(),
           recognized: result.recognized,
           solution: displayText,
-          bounds: { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height },
+          bounds,
         };
 
         setEquations(prev => {
           const updated = [...prev.filter(e =>
-            Math.abs(e.bounds.y - bounds.y) > 50 // Keep equations on different lines
+            Math.abs(e.bounds.y - bounds.y) > 50
           ), newEquation];
           onEquationsChange?.(updated);
           return updated;
@@ -171,54 +198,59 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
       }
     } catch (error) {
       console.error('Recognition error:', error);
+    } finally {
+      isProcessingRef.current = false;
     }
-  }, [onRecognitionRequest, onEquationsChange, disabled]);
+  }, [editor, onRecognitionRequest, onEquationsChange]);
 
-  const handleMount = useCallback((editor: Editor) => {
-    editorRef.current = editor;
-
-    // Set up drawing tool as default
-    editor.setCurrentTool('draw');
-
-    // Use a simpler approach - listen for pointer up events to trigger recognition
-    const handlePointerUp = () => {
-      // Clear any pending recognition
-      if (recognitionTimeoutRef.current) {
-        clearTimeout(recognitionTimeoutRef.current);
-      }
-
-      // Wait for user to stop drawing, then recognize
-      recognitionTimeoutRef.current = setTimeout(() => {
-        const currentShapeCount = editor.getCurrentPageShapeIds().size;
-        // Only trigger if we have new shapes
-        if (currentShapeCount > 0 && currentShapeCount !== lastShapeCountRef.current) {
-          lastShapeCountRef.current = currentShapeCount;
-          triggerRecognition();
-        }
-      }, 2000); // 2 second delay after pointer up
-    };
-
-    // Subscribe to editor events
-    editor.on('event', (event) => {
-      if (event.name === 'pointer_up') {
-        handlePointerUp();
-      }
-    });
-  }, [triggerRecognition]);
-
-  // Cleanup timeout on unmount
+  // Listen for editor changes - trigger recognition after user stops drawing
   useEffect(() => {
+    if (!editor) return;
+
+    const scheduleRecognition = () => {
+      // Clear any pending timeout
+      if (recognitionTimeoutRef.current) {
+        clearTimeout(recognitionTimeoutRef.current);
+      }
+
+      // Schedule recognition after 2 seconds of inactivity
+      recognitionTimeoutRef.current = setTimeout(() => {
+        triggerRecognition();
+      }, 2000);
+    };
+
+    // Listen to store changes
+    const dispose = editor.store.listen(
+      () => {
+        // Only schedule if there are draw shapes
+        const hasDrawShapes = [...editor.getCurrentPageShapeIds()].some(id => {
+          const shape = editor.getShape(id);
+          return shape && shape.type === 'draw';
+        });
+
+        if (hasDrawShapes) {
+          scheduleRecognition();
+        }
+      },
+      { source: 'user', scope: 'document' }
+    );
+
     return () => {
+      dispose();
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
     };
+  }, [editor, triggerRecognition]);
+
+  const handleMount = useCallback((newEditor: Editor) => {
+    setEditor(newEditor);
+    newEditor.setCurrentTool('draw');
   }, []);
 
-  // Custom UI to hide unnecessary tools for math mode
+  // Custom UI - minimal toolbar
   const uiOverrides: TLUiOverrides = {
     tools(editor, tools) {
-      // Only keep draw, eraser, and select tools
       return {
         select: tools.select,
         draw: tools.draw,
@@ -228,15 +260,10 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
   };
 
   const components: TLUiComponents = {
-    // Hide the pages menu
     PageMenu: null,
-    // Hide main menu
     MainMenu: null,
-    // Hide quick actions
     QuickActions: null,
-    // Hide help menu
     HelpMenu: null,
-    // Hide actions menu
     ActionsMenu: null,
   };
 
