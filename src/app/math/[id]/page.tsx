@@ -7,14 +7,13 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Loader2, LineChart, X, Maximize2, Minimize2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { debounce } from 'lodash';
 import dynamic from 'next/dynamic';
 
 // Dynamically import tldraw component to avoid SSR issues
 const TldrawMathCanvas = dynamic(
   () => import('@/components/math-board/TldrawMathCanvas').then(mod => mod.TldrawMathCanvas),
-  { ssr: false, loading: () => <div className="w-full h-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> }
+  { ssr: false, loading: () => <div className="w-full h-full flex items-center justify-center bg-white" /> }
 );
 
 interface EquationResult {
@@ -151,8 +150,6 @@ export default function MathWhiteboardPage() {
   const [equations, setEquations] = useState<EquationResult[]>([]);
   const [variables, setVariables] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [recognizing, setRecognizing] = useState(false);
   const [showGraph, setShowGraph] = useState(false);
 
   // Load whiteboard
@@ -168,7 +165,6 @@ export default function MathWhiteboardPage() {
 
       if (error) {
         console.error('Failed to load math whiteboard:', error);
-        toast.error('Failed to load math whiteboard');
         router.push('/math');
         return;
       }
@@ -183,13 +179,12 @@ export default function MathWhiteboardPage() {
     loadWhiteboard();
   }, [params.id, user, supabase, router]);
 
-  // Auto-save with debounce
+  // Auto-save with debounce (silent - no UI feedback)
   const saveWhiteboard = useCallback(
     debounce(async (newTitle: string, newEquations: EquationResult[], newVariables: Record<string, number>) => {
       if (!whiteboard) return;
 
-      setSaving(true);
-      const { error } = await supabase
+      await supabase
         .from('math_whiteboards')
         .update({
           title: newTitle,
@@ -197,13 +192,7 @@ export default function MathWhiteboardPage() {
           variables: newVariables,
         })
         .eq('id', whiteboard.id);
-
-      if (error) {
-        console.error('Failed to save:', error);
-        toast.error('Failed to save');
-      }
-      setSaving(false);
-    }, 1000),
+    }, 2000),
     [whiteboard, supabase]
   );
 
@@ -214,24 +203,20 @@ export default function MathWhiteboardPage() {
     }
   }, [title, equations, variables, whiteboard, loading, saveWhiteboard]);
 
-  // Handle recognition request from canvas
+  // Handle recognition request from canvas - COMPLETELY SILENT
   const handleRecognitionRequest = async (
     imageData: string,
     bounds: { x: number; y: number; width: number; height: number }
   ): Promise<{ recognized: string; solution: string } | null> => {
-    setRecognizing(true);
-
     try {
-      // Step 1: Call OCR API
+      // Step 1: Call OCR API (silent)
       const ocrResponse = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageData }),
       });
 
-      if (!ocrResponse.ok) {
-        throw new Error('OCR failed');
-      }
+      if (!ocrResponse.ok) return null;
 
       const ocrData = await ocrResponse.json();
       let recognized = ocrData.text || '';
@@ -248,14 +233,9 @@ export default function MathWhiteboardPage() {
         .replace(/\\\\/g, '')
         .trim();
 
-      if (!recognized) {
-        setRecognizing(false);
-        return null;
-      }
+      if (!recognized) return null;
 
-      console.log('Recognized:', recognized);
-
-      // Step 2: Call AI to solve
+      // Step 2: Call AI to solve (silent)
       const solveResponse = await fetch('/api/solve-math', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -265,15 +245,13 @@ export default function MathWhiteboardPage() {
         }),
       });
 
-      if (!solveResponse.ok) {
-        throw new Error('Solve failed');
-      }
+      if (!solveResponse.ok) return null;
 
       const solveData = await solveResponse.json();
-      const answer = solveData.answer || '?';
+      const answer = solveData.answer || '';
 
       if (answer && answer !== '?') {
-        // Check for variable assignment
+        // Check for variable assignment and track silently
         const varMatch = answer.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([\d.-]+)$/);
         if (varMatch) {
           const varName = varMatch[1];
@@ -283,16 +261,14 @@ export default function MathWhiteboardPage() {
           }
         }
 
-        toast.success(`= ${answer}`);
         return { recognized, solution: answer };
       }
 
       return null;
     } catch (error) {
-      console.error('Recognition/solve error:', error);
+      // Silent fail - no error messages to user
+      console.error('Recognition error:', error);
       return null;
-    } finally {
-      setRecognizing(false);
     }
   };
 
@@ -300,30 +276,30 @@ export default function MathWhiteboardPage() {
     setEquations(newEquations);
   };
 
-  // Get graphable equations
+  // Get graphable equations (those with x, y, or = in the solution)
   const graphableEquations = equations
     .filter(eq => eq.solution)
-    .map(eq => eq.solution)
-    .filter(sol => sol.includes('x') || sol.includes('y') || sol.includes('='));
+    .map(eq => eq.recognized) // Use recognized text for graphing, not the answer
+    .filter(text => text.includes('x') || text.includes('y') || text.includes('='));
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header */}
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
+      {/* Minimal Header */}
       <div className="border-b bg-white z-20 flex-shrink-0">
-        <div className="max-w-full px-4 py-3 flex items-center gap-3">
+        <div className="max-w-full px-4 py-2 flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push('/math')}
-            className="min-h-[44px] min-w-[44px] touch-manipulation"
+            className="h-10 w-10 touch-manipulation"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -331,43 +307,30 @@ export default function MathWhiteboardPage() {
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="text-lg font-semibold border-none shadow-none flex-1 max-w-md min-h-[44px]"
-            placeholder="Untitled Math Board"
+            className="text-lg font-medium border-none shadow-none flex-1 max-w-md h-10 bg-transparent"
+            placeholder="Untitled"
           />
 
-          <div className="flex items-center gap-2">
-            {recognizing && (
-              <div className="flex items-center gap-2 text-sm text-cyan-600">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Calculating...
-              </div>
-            )}
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowGraph(!showGraph)}
-              disabled={graphableEquations.length === 0}
-              className="gap-2"
-            >
-              <LineChart className="h-4 w-4" />
-              Graph
-            </Button>
-
-            {saving && (
-              <span className="text-xs text-muted-foreground">Saving...</span>
-            )}
-          </div>
+          {/* Graph button - only action needed */}
+          <Button
+            variant={showGraph ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowGraph(!showGraph)}
+            disabled={graphableEquations.length === 0}
+            className="gap-2 h-9"
+          >
+            <LineChart className="h-4 w-4" />
+            Graph
+          </Button>
         </div>
       </div>
 
-      {/* Canvas area - tldraw needs explicit height */}
+      {/* Canvas area - tldraw fills this */}
       <div className="flex-1 relative min-h-0">
         <TldrawMathCanvas
           ref={canvasRef}
           onRecognitionRequest={handleRecognitionRequest}
           onEquationsChange={handleEquationsChange}
-          disabled={recognizing}
         />
 
         {/* Graph overlay */}
@@ -379,10 +342,10 @@ export default function MathWhiteboardPage() {
         )}
       </div>
 
-      {/* Instructions */}
+      {/* Subtle hint - disappears after first equation */}
       {equations.length === 0 && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-sm z-10">
-          Draw any math equation - it will be solved automatically!
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/70 text-white px-4 py-2 rounded-full text-sm pointer-events-none">
+          Write any math - answers appear automatically
         </div>
       )}
     </div>
