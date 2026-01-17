@@ -237,7 +237,7 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
   };
 
   return (
-    <div className="w-full h-full" style={{ touchAction: 'none' }}>
+    <div className="w-full h-full absolute inset-0" style={{ touchAction: 'none' }}>
       <Tldraw
         onMount={handleMount}
         overrides={uiOverrides}

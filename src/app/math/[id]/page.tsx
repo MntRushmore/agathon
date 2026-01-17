@@ -315,9 +315,9 @@ export default function MathWhiteboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b bg-white sticky top-0 z-20">
+      <div className="border-b bg-white z-20 flex-shrink-0">
         <div className="max-w-full px-4 py-3 flex items-center gap-3">
           <Button
             variant="ghost"
@@ -361,8 +361,8 @@ export default function MathWhiteboardPage() {
         </div>
       </div>
 
-      {/* Canvas area - tldraw */}
-      <div className="flex-1 relative">
+      {/* Canvas area - tldraw needs explicit height */}
+      <div className="flex-1 relative min-h-0">
         <TldrawMathCanvas
           ref={canvasRef}
           onRecognitionRequest={handleRecognitionRequest}
