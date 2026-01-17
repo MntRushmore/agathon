@@ -9,15 +9,16 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { debounce } from 'lodash';
-import { MathCanvas, Stroke, SolutionOverlay } from '@/components/math-board/MathCanvas';
+import { MathCanvas, Stroke, EquationLine } from '@/components/math-board/MathCanvas';
 import { MathToolbar } from '@/components/math-board/MathToolbar';
+import { MathGraph } from '@/components/math-board/MathGraph';
 
 interface MathWhiteboard {
   id: string;
   user_id: string;
   title: string;
   strokes: Stroke[];
-  solutions: SolutionOverlay[];
+  equations: EquationLine[];
   variables: Record<string, number>;
   created_at: string;
   updated_at: string;
@@ -33,15 +34,16 @@ export default function MathWhiteboardPage() {
   const [whiteboard, setWhiteboard] = useState<MathWhiteboard | null>(null);
   const [title, setTitle] = useState('');
   const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [solutions, setSolutions] = useState<SolutionOverlay[]>([]);
+  const [equations, setEquations] = useState<EquationLine[]>([]);
   const [variables, setVariables] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
+  const [showGraph, setShowGraph] = useState(false);
 
   // History for undo/redo
-  const [history, setHistory] = useState<{ strokes: Stroke[]; solutions: SolutionOverlay[] }[]>([]);
+  const [history, setHistory] = useState<{ strokes: Stroke[]; equations: EquationLine[] }[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
   // Load whiteboard
@@ -65,13 +67,12 @@ export default function MathWhiteboardPage() {
       setWhiteboard(data);
       setTitle(data.title);
       setStrokes(data.strokes || []);
-      // Load solutions from equations field (repurposed)
-      setSolutions(data.equations || []);
+      setEquations(data.equations || []);
       setVariables(data.variables || {});
       setLoading(false);
 
       // Initialize history
-      setHistory([{ strokes: data.strokes || [], solutions: data.equations || [] }]);
+      setHistory([{ strokes: data.strokes || [], equations: data.equations || [] }]);
       setHistoryIndex(0);
     }
 
@@ -80,7 +81,7 @@ export default function MathWhiteboardPage() {
 
   // Auto-save with debounce
   const saveWhiteboard = useCallback(
-    debounce(async (newTitle: string, newStrokes: Stroke[], newSolutions: SolutionOverlay[], newVariables: Record<string, number>) => {
+    debounce(async (newTitle: string, newStrokes: Stroke[], newEquations: EquationLine[], newVariables: Record<string, number>) => {
       if (!whiteboard) return;
 
       setSaving(true);
@@ -89,7 +90,7 @@ export default function MathWhiteboardPage() {
         .update({
           title: newTitle,
           strokes: newStrokes,
-          equations: newSolutions, // Store solutions in equations field
+          equations: newEquations,
           variables: newVariables,
         })
         .eq('id', whiteboard.id);
@@ -106,9 +107,9 @@ export default function MathWhiteboardPage() {
   // Save on changes
   useEffect(() => {
     if (whiteboard && !loading) {
-      saveWhiteboard(title, strokes, solutions, variables);
+      saveWhiteboard(title, strokes, equations, variables);
     }
-  }, [title, strokes, solutions, variables, whiteboard, loading, saveWhiteboard]);
+  }, [title, strokes, equations, variables, whiteboard, loading, saveWhiteboard]);
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
@@ -116,16 +117,15 @@ export default function MathWhiteboardPage() {
 
   const handleStrokesChange = (newStrokes: Stroke[]) => {
     setStrokes(newStrokes);
-    // Clear solutions when strokes change (user is writing new stuff)
-    if (newStrokes.length < strokes.length) {
-      // Strokes were erased, clear solutions too
-      setSolutions([]);
-    }
   };
 
-  const addToHistory = (newStrokes: Stroke[], newSolutions: SolutionOverlay[]) => {
+  const handleEquationsChange = (newEquations: EquationLine[]) => {
+    setEquations(newEquations);
+  };
+
+  const addToHistory = (newStrokes: Stroke[], newEquations: EquationLine[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ strokes: newStrokes, solutions: newSolutions });
+    newHistory.push({ strokes: newStrokes, equations: newEquations });
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
@@ -135,7 +135,7 @@ export default function MathWhiteboardPage() {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
       setStrokes(history[newIndex].strokes);
-      setSolutions(history[newIndex].solutions);
+      setEquations(history[newIndex].equations);
     }
   };
 
@@ -144,14 +144,14 @@ export default function MathWhiteboardPage() {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
       setStrokes(history[newIndex].strokes);
-      setSolutions(history[newIndex].solutions);
+      setEquations(history[newIndex].equations);
     }
   };
 
   const handleClear = () => {
     if (confirm('Clear everything?')) {
       setStrokes([]);
-      setSolutions([]);
+      setEquations([]);
       setVariables({});
       addToHistory([], []);
     }
@@ -168,27 +168,63 @@ export default function MathWhiteboardPage() {
     }
   };
 
+  const handleGraph = () => {
+    setShowGraph(true);
+  };
+
+  // Get graphable equations (those with recognized solutions that look like functions)
+  const getGraphableEquations = (): string[] => {
+    return equations
+      .filter(eq => eq.solution)
+      .map(eq => {
+        // The solution text like "= 2x + 1" needs to be converted to something graphable
+        let sol = eq.solution || '';
+        // Remove the leading "= " if present
+        sol = sol.replace(/^=\s*/, '');
+        return sol;
+      })
+      .filter(sol => {
+        // Only include if it looks like a function (contains x or is an equation)
+        return sol.includes('x') || sol.includes('y') || sol.includes('=');
+      });
+  };
+
+  const graphableEquations = getGraphableEquations();
+
   // Handle recognition request from canvas
-  const handleRecognitionRequest = async (imageData: string, bounds: { x: number; y: number; width: number; height: number }) => {
+  const handleRecognitionRequest = async (
+    imageData: string,
+    equation: EquationLine,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) => {
     setRecognizing(true);
 
     try {
-      // Call OCR API to recognize the handwritten math
-      const response = await fetch('/api/ocr', {
+      // Step 1: Call OCR API to recognize the handwritten math
+      const ocrResponse = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: imageData }),
       });
 
-      if (!response.ok) {
+      if (!ocrResponse.ok) {
         throw new Error('OCR failed');
       }
 
-      const data = await response.json();
-      let recognized = data.text || '';
+      const ocrData = await ocrResponse.json();
+      let recognized = ocrData.text || '';
 
-      // Clean up - remove $ delimiters
-      recognized = recognized.replace(/^\$+|\$+$/g, '').replace(/\$/g, '').trim();
+      // Clean up - remove $ delimiters and LaTeX formatting
+      recognized = recognized
+        .replace(/^\$+|\$+$/g, '')
+        .replace(/\$/g, '')
+        .replace(/\\times/g, '×')
+        .replace(/\\div/g, '÷')
+        .replace(/\\cdot/g, '·')
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+        .replace(/\\sqrt\{([^}]+)\}/g, 'sqrt($1)')
+        .replace(/\\\\/g, '')
+        .trim();
 
       if (!recognized) {
         setRecognizing(false);
@@ -197,36 +233,59 @@ export default function MathWhiteboardPage() {
 
       console.log('Recognized:', recognized);
 
-      // Try to evaluate the expression and show the result
-      const result = evaluateAndSolve(recognized, variables);
+      // Step 2: Call AI to solve the math
+      const solveResponse = await fetch('/api/solve-math', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expression: recognized,
+          variables: variables,
+        }),
+      });
 
-      if (result !== null) {
-        // Create solution overlay positioned to the right of the handwriting
-        const newSolution: SolutionOverlay = {
-          id: crypto.randomUUID(),
-          text: result.display,
-          position: {
-            x: bounds.x + bounds.width + 10, // To the right of the handwriting
-            y: bounds.y + bounds.height / 2, // Vertically centered
-          },
-        };
+      if (!solveResponse.ok) {
+        throw new Error('Solve failed');
+      }
 
-        // Update variables if this was an assignment
-        if (result.variableName && result.value !== undefined) {
-          setVariables(prev => ({
-            ...prev,
-            [result.variableName!]: result.value!,
-          }));
+      const solveData = await solveResponse.json();
+      let answer = solveData.answer || '?';
+
+      if (answer && answer !== '?') {
+        // Format the display text
+        let displayText = answer;
+
+        // If answer doesn't start with = or contain =, add it
+        if (!displayText.startsWith('=') && !displayText.includes('=')) {
+          displayText = `= ${displayText}`;
         }
 
-        const newSolutions = [...solutions, newSolution];
-        setSolutions(newSolutions);
-        addToHistory(strokes, newSolutions);
+        // Update the equation with the solution
+        const updatedEquations = equations.map(eq =>
+          eq.id === equation.id
+            ? { ...eq, solution: displayText, recognized: true, bounds }
+            : eq
+        );
 
-        toast.success(`${result.display}`);
+        // Check if this was a variable assignment and update variables
+        const varMatch = answer.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([\d.-]+)$/);
+        if (varMatch) {
+          const varName = varMatch[1];
+          const varValue = parseFloat(varMatch[2]);
+          if (!isNaN(varValue)) {
+            setVariables(prev => ({
+              ...prev,
+              [varName]: varValue,
+            }));
+          }
+        }
+
+        setEquations(updatedEquations);
+        addToHistory(strokes, updatedEquations);
+
+        toast.success(displayText);
       }
     } catch (error) {
-      console.error('Recognition error:', error);
+      console.error('Recognition/solve error:', error);
       // Don't show error toast - it's okay if recognition fails silently
     } finally {
       setRecognizing(false);
@@ -285,8 +344,10 @@ export default function MathWhiteboardPage() {
           onRedo={handleRedo}
           onClear={handleClear}
           onExport={handleExport}
+          onGraph={handleGraph}
           canUndo={historyIndex > 0}
           canRedo={historyIndex < history.length - 1}
+          canGraph={graphableEquations.length > 0}
         />
       </div>
 
@@ -295,121 +356,29 @@ export default function MathWhiteboardPage() {
         <MathCanvas
           ref={canvasRef}
           strokes={strokes}
-          solutions={solutions}
+          equations={equations}
           onStrokesChange={handleStrokesChange}
+          onEquationsChange={handleEquationsChange}
           onRecognitionRequest={handleRecognitionRequest}
           tool={tool}
           disabled={recognizing}
         />
+
+        {/* Graph overlay */}
+        {showGraph && graphableEquations.length > 0 && (
+          <MathGraph
+            equations={graphableEquations}
+            onClose={() => setShowGraph(false)}
+          />
+        )}
       </div>
 
       {/* Instructions */}
       {strokes.length === 0 && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-sm">
-          Write a math equation (e.g., 3 + 5 = or x = 10 * 2)
+          Write any math - algebra, trig, calculus, and more!
         </div>
       )}
     </div>
   );
-}
-
-// Evaluate math expression and return result
-function evaluateAndSolve(
-  expression: string,
-  variables: Record<string, number>
-): { display: string; value?: number; variableName?: string } | null {
-  try {
-    // Clean up the expression
-    let expr = expression
-      .replace(/×/g, '*')
-      .replace(/÷/g, '/')
-      .replace(/−/g, '-')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Check if it's a variable assignment: "x = 5" or "y = 10 * 2"
-    const assignmentMatch = expr.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
-    if (assignmentMatch) {
-      const varName = assignmentMatch[1];
-      const valueExpr = assignmentMatch[2];
-      const value = evaluateSimpleExpression(valueExpr, variables);
-      if (value !== null) {
-        return {
-          display: `= ${formatNumber(value)}`,
-          value: value,
-          variableName: varName,
-        };
-      }
-    }
-
-    // Check if it ends with = (user wants the answer)
-    if (expr.endsWith('=')) {
-      const leftSide = expr.slice(0, -1).trim();
-      const value = evaluateSimpleExpression(leftSide, variables);
-      if (value !== null) {
-        return {
-          display: `${formatNumber(value)}`,
-          value: value,
-        };
-      }
-    }
-
-    // Try to evaluate as a simple expression
-    const value = evaluateSimpleExpression(expr, variables);
-    if (value !== null) {
-      return {
-        display: `= ${formatNumber(value)}`,
-        value: value,
-      };
-    }
-
-    return null;
-  } catch (e) {
-    console.error('Evaluation error:', e);
-    return null;
-  }
-}
-
-function evaluateSimpleExpression(expr: string, variables: Record<string, number>): number | null {
-  try {
-    // Substitute variables
-    let substituted = expr;
-    for (const [name, value] of Object.entries(variables)) {
-      substituted = substituted.replace(new RegExp(`\\b${name}\\b`, 'g'), String(value));
-    }
-
-    // Handle common math notation
-    substituted = substituted
-      .replace(/(\d+)\s*\^\s*(\d+)/g, 'Math.pow($1,$2)') // Power
-      .replace(/√(\d+)/g, 'Math.sqrt($1)') // Square root
-      .replace(/sqrt\(([^)]+)\)/gi, 'Math.sqrt($1)')
-      .replace(/pi/gi, 'Math.PI')
-      .replace(/π/g, 'Math.PI');
-
-    // Safety check - only allow numbers, operators, parentheses, and Math functions
-    if (!/^[\d\s+\-*/().Math,powsqrtPI]+$/i.test(substituted)) {
-      return null;
-    }
-
-    const result = eval(substituted);
-    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
-      return result;
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function formatNumber(n: number): string {
-  // Round to avoid floating point issues
-  const rounded = Math.round(n * 1000000) / 1000000;
-
-  // Check if it's essentially an integer
-  if (Math.abs(rounded - Math.round(rounded)) < 0.000001) {
-    return String(Math.round(rounded));
-  }
-
-  // Otherwise show up to 4 decimal places
-  return rounded.toFixed(4).replace(/\.?0+$/, '');
 }

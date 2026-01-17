@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Pen, Eraser, Undo2, Redo2, Trash2, Download } from 'lucide-react';
+import { Pen, Eraser, Undo2, Redo2, Trash2, Download, LineChart } from 'lucide-react';
 
 interface MathToolbarProps {
   tool: 'pen' | 'eraser';
@@ -17,8 +17,10 @@ interface MathToolbarProps {
   onRedo: () => void;
   onClear: () => void;
   onExport: () => void;
+  onGraph: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  canGraph: boolean;
 }
 
 export function MathToolbar({
@@ -28,8 +30,10 @@ export function MathToolbar({
   onRedo,
   onClear,
   onExport,
+  onGraph,
   canUndo,
   canRedo,
+  canGraph,
 }: MathToolbarProps) {
   return (
     <TooltipProvider>
@@ -136,6 +140,25 @@ export function MathToolbar({
           </TooltipTrigger>
           <TooltipContent>
             <p>Export as image</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <div className="w-px h-8 bg-gray-200 mx-1" />
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onGraph}
+              disabled={!canGraph}
+              className="h-10 w-10 touch-manipulation text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+            >
+              <LineChart className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Graph equations</p>
           </TooltipContent>
         </Tooltip>
       </div>
