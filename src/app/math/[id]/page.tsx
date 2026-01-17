@@ -6,22 +6,137 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, LineChart, X, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { debounce } from 'lodash';
-import { MathCanvas, Stroke, EquationLine } from '@/components/math-board/MathCanvas';
-import { MathToolbar } from '@/components/math-board/MathToolbar';
-import { MathGraph } from '@/components/math-board/MathGraph';
+import dynamic from 'next/dynamic';
+
+// Dynamically import tldraw component to avoid SSR issues
+const TldrawMathCanvas = dynamic(
+  () => import('@/components/math-board/TldrawMathCanvas').then(mod => mod.TldrawMathCanvas),
+  { ssr: false, loading: () => <div className="w-full h-full flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> }
+);
+
+interface EquationResult {
+  id: string;
+  recognized: string;
+  solution: string;
+  bounds: { x: number; y: number; width: number; height: number };
+}
 
 interface MathWhiteboard {
   id: string;
   user_id: string;
   title: string;
-  strokes: Stroke[];
-  equations: EquationLine[];
+  equations: EquationResult[];
   variables: Record<string, number>;
   created_at: string;
   updated_at: string;
+}
+
+// Desmos Graph Component
+function DesmosGraph({ equations, onClose }: { equations: string[]; onClose: () => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const calculatorRef = useRef<any>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if ((window as any).Desmos) {
+      setLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6';
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || !containerRef.current || !(window as any).Desmos) return;
+
+    calculatorRef.current = (window as any).Desmos.GraphingCalculator(containerRef.current, {
+      expressions: false,
+      settingsMenu: false,
+      zoomButtons: true,
+      lockViewport: false,
+      border: false,
+      keypad: false,
+    });
+
+    return () => {
+      if (calculatorRef.current) {
+        calculatorRef.current.destroy();
+      }
+    };
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!calculatorRef.current) return;
+
+    calculatorRef.current.setBlank();
+
+    equations.forEach((eq, index) => {
+      let cleanEq = eq
+        .replace(/×/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/·/g, '*')
+        .replace(/^=\s*/, '')
+        .trim();
+
+      // Try to graph as y = expression
+      if (!cleanEq.includes('=') && cleanEq.includes('x')) {
+        calculatorRef.current.setExpression({
+          id: `eq-${index}`,
+          latex: `y=${cleanEq}`,
+          color: '#00B4D8',
+        });
+      } else if (cleanEq.includes('=')) {
+        calculatorRef.current.setExpression({
+          id: `eq-${index}`,
+          latex: cleanEq,
+          color: '#00B4D8',
+        });
+      }
+    });
+  }, [equations]);
+
+  return (
+    <div
+      className={`absolute bg-white rounded-lg shadow-xl border overflow-hidden transition-all duration-200 ${
+        isExpanded ? 'inset-4 z-50' : 'bottom-4 right-4 w-80 h-64 z-30'
+      }`}
+    >
+      <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
+        <span className="text-sm font-medium text-gray-700">Graph</span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div
+        ref={containerRef}
+        className="w-full"
+        style={{ height: isExpanded ? 'calc(100% - 41px)' : '223px' }}
+      />
+      {!loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white">
+          <div className="text-sm text-gray-500">Loading graph...</div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function MathWhiteboardPage() {
@@ -33,18 +148,12 @@ export default function MathWhiteboardPage() {
 
   const [whiteboard, setWhiteboard] = useState<MathWhiteboard | null>(null);
   const [title, setTitle] = useState('');
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [equations, setEquations] = useState<EquationLine[]>([]);
+  const [equations, setEquations] = useState<EquationResult[]>([]);
   const [variables, setVariables] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [recognizing, setRecognizing] = useState(false);
-  const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [showGraph, setShowGraph] = useState(false);
-
-  // History for undo/redo
-  const [history, setHistory] = useState<{ strokes: Stroke[]; equations: EquationLine[] }[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
 
   // Load whiteboard
   useEffect(() => {
@@ -66,14 +175,9 @@ export default function MathWhiteboardPage() {
 
       setWhiteboard(data);
       setTitle(data.title);
-      setStrokes(data.strokes || []);
       setEquations(data.equations || []);
       setVariables(data.variables || {});
       setLoading(false);
-
-      // Initialize history
-      setHistory([{ strokes: data.strokes || [], equations: data.equations || [] }]);
-      setHistoryIndex(0);
     }
 
     loadWhiteboard();
@@ -81,7 +185,7 @@ export default function MathWhiteboardPage() {
 
   // Auto-save with debounce
   const saveWhiteboard = useCallback(
-    debounce(async (newTitle: string, newStrokes: Stroke[], newEquations: EquationLine[], newVariables: Record<string, number>) => {
+    debounce(async (newTitle: string, newEquations: EquationResult[], newVariables: Record<string, number>) => {
       if (!whiteboard) return;
 
       setSaving(true);
@@ -89,7 +193,6 @@ export default function MathWhiteboardPage() {
         .from('math_whiteboards')
         .update({
           title: newTitle,
-          strokes: newStrokes,
           equations: newEquations,
           variables: newVariables,
         })
@@ -107,100 +210,19 @@ export default function MathWhiteboardPage() {
   // Save on changes
   useEffect(() => {
     if (whiteboard && !loading) {
-      saveWhiteboard(title, strokes, equations, variables);
+      saveWhiteboard(title, equations, variables);
     }
-  }, [title, strokes, equations, variables, whiteboard, loading, saveWhiteboard]);
-
-  const handleTitleChange = (newTitle: string) => {
-    setTitle(newTitle);
-  };
-
-  const handleStrokesChange = (newStrokes: Stroke[]) => {
-    setStrokes(newStrokes);
-  };
-
-  const handleEquationsChange = (newEquations: EquationLine[]) => {
-    setEquations(newEquations);
-  };
-
-  const addToHistory = (newStrokes: Stroke[], newEquations: EquationLine[]) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ strokes: newStrokes, equations: newEquations });
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
-  };
-
-  const handleUndo = () => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setStrokes(history[newIndex].strokes);
-      setEquations(history[newIndex].equations);
-    }
-  };
-
-  const handleRedo = () => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      setStrokes(history[newIndex].strokes);
-      setEquations(history[newIndex].equations);
-    }
-  };
-
-  const handleClear = () => {
-    if (confirm('Clear everything?')) {
-      setStrokes([]);
-      setEquations([]);
-      setVariables({});
-      addToHistory([], []);
-    }
-  };
-
-  const handleExport = () => {
-    if (canvasRef.current?.getCanvasImage) {
-      const imageData = canvasRef.current.getCanvasImage();
-      const link = document.createElement('a');
-      link.download = `${title || 'math-board'}.png`;
-      link.href = imageData;
-      link.click();
-      toast.success('Exported!');
-    }
-  };
-
-  const handleGraph = () => {
-    setShowGraph(true);
-  };
-
-  // Get graphable equations (those with recognized solutions that look like functions)
-  const getGraphableEquations = (): string[] => {
-    return equations
-      .filter(eq => eq.solution)
-      .map(eq => {
-        // The solution text like "= 2x + 1" needs to be converted to something graphable
-        let sol = eq.solution || '';
-        // Remove the leading "= " if present
-        sol = sol.replace(/^=\s*/, '');
-        return sol;
-      })
-      .filter(sol => {
-        // Only include if it looks like a function (contains x or is an equation)
-        return sol.includes('x') || sol.includes('y') || sol.includes('=');
-      });
-  };
-
-  const graphableEquations = getGraphableEquations();
+  }, [title, equations, variables, whiteboard, loading, saveWhiteboard]);
 
   // Handle recognition request from canvas
   const handleRecognitionRequest = async (
     imageData: string,
-    equation: EquationLine,
     bounds: { x: number; y: number; width: number; height: number }
-  ) => {
+  ): Promise<{ recognized: string; solution: string } | null> => {
     setRecognizing(true);
 
     try {
-      // Step 1: Call OCR API to recognize the handwritten math
+      // Step 1: Call OCR API
       const ocrResponse = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -214,7 +236,7 @@ export default function MathWhiteboardPage() {
       const ocrData = await ocrResponse.json();
       let recognized = ocrData.text || '';
 
-      // Clean up - remove $ delimiters and LaTeX formatting
+      // Clean up LaTeX formatting
       recognized = recognized
         .replace(/^\$+|\$+$/g, '')
         .replace(/\$/g, '')
@@ -228,12 +250,12 @@ export default function MathWhiteboardPage() {
 
       if (!recognized) {
         setRecognizing(false);
-        return;
+        return null;
       }
 
       console.log('Recognized:', recognized);
 
-      // Step 2: Call AI to solve the math
+      // Step 2: Call AI to solve
       const solveResponse = await fetch('/api/solve-math', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -248,49 +270,41 @@ export default function MathWhiteboardPage() {
       }
 
       const solveData = await solveResponse.json();
-      let answer = solveData.answer || '?';
+      const answer = solveData.answer || '?';
 
       if (answer && answer !== '?') {
-        // Format the display text
-        let displayText = answer;
-
-        // If answer doesn't start with = or contain =, add it
-        if (!displayText.startsWith('=') && !displayText.includes('=')) {
-          displayText = `= ${displayText}`;
-        }
-
-        // Update the equation with the solution
-        const updatedEquations = equations.map(eq =>
-          eq.id === equation.id
-            ? { ...eq, solution: displayText, recognized: true, bounds }
-            : eq
-        );
-
-        // Check if this was a variable assignment and update variables
+        // Check for variable assignment
         const varMatch = answer.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([\d.-]+)$/);
         if (varMatch) {
           const varName = varMatch[1];
           const varValue = parseFloat(varMatch[2]);
           if (!isNaN(varValue)) {
-            setVariables(prev => ({
-              ...prev,
-              [varName]: varValue,
-            }));
+            setVariables(prev => ({ ...prev, [varName]: varValue }));
           }
         }
 
-        setEquations(updatedEquations);
-        addToHistory(strokes, updatedEquations);
-
-        toast.success(displayText);
+        toast.success(`= ${answer}`);
+        return { recognized, solution: answer };
       }
+
+      return null;
     } catch (error) {
       console.error('Recognition/solve error:', error);
-      // Don't show error toast - it's okay if recognition fails silently
+      return null;
     } finally {
       setRecognizing(false);
     }
   };
+
+  const handleEquationsChange = (newEquations: EquationResult[]) => {
+    setEquations(newEquations);
+  };
+
+  // Get graphable equations
+  const graphableEquations = equations
+    .filter(eq => eq.solution)
+    .map(eq => eq.solution)
+    .filter(sol => sol.includes('x') || sol.includes('y') || sol.includes('='));
 
   if (loading) {
     return (
@@ -316,7 +330,7 @@ export default function MathWhiteboardPage() {
 
           <Input
             value={title}
-            onChange={(e) => handleTitleChange(e.target.value)}
+            onChange={(e) => setTitle(e.target.value)}
             className="text-lg font-semibold border-none shadow-none flex-1 max-w-md min-h-[44px]"
             placeholder="Untitled Math Board"
           />
@@ -328,6 +342,18 @@ export default function MathWhiteboardPage() {
                 Calculating...
               </div>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowGraph(!showGraph)}
+              disabled={graphableEquations.length === 0}
+              className="gap-2"
+            >
+              <LineChart className="h-4 w-4" />
+              Graph
+            </Button>
+
             {saving && (
               <span className="text-xs text-muted-foreground">Saving...</span>
             )}
@@ -335,38 +361,18 @@ export default function MathWhiteboardPage() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="absolute top-20 left-4 z-10">
-        <MathToolbar
-          tool={tool}
-          onToolChange={setTool}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onClear={handleClear}
-          onExport={handleExport}
-          onGraph={handleGraph}
-          canUndo={historyIndex > 0}
-          canRedo={historyIndex < history.length - 1}
-          canGraph={graphableEquations.length > 0}
-        />
-      </div>
-
-      {/* Canvas area */}
-      <div className="flex-1 relative overflow-hidden">
-        <MathCanvas
+      {/* Canvas area - tldraw */}
+      <div className="flex-1 relative">
+        <TldrawMathCanvas
           ref={canvasRef}
-          strokes={strokes}
-          equations={equations}
-          onStrokesChange={handleStrokesChange}
-          onEquationsChange={handleEquationsChange}
           onRecognitionRequest={handleRecognitionRequest}
-          tool={tool}
+          onEquationsChange={handleEquationsChange}
           disabled={recognizing}
         />
 
         {/* Graph overlay */}
         {showGraph && graphableEquations.length > 0 && (
-          <MathGraph
+          <DesmosGraph
             equations={graphableEquations}
             onClose={() => setShowGraph(false)}
           />
@@ -374,9 +380,9 @@ export default function MathWhiteboardPage() {
       </div>
 
       {/* Instructions */}
-      {strokes.length === 0 && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-sm">
-          Write any math - algebra, trig, calculus, and more!
+      {equations.length === 0 && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-sm z-10">
+          Draw any math equation - it will be solved automatically!
         </div>
       )}
     </div>
