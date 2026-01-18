@@ -117,12 +117,22 @@ export async function POST(req: NextRequest) {
 
     solutionLogger.info({ requestId, mode }, 'Calling Hack Club API with Gemini for image generation');
 
+    const apiKey = process.env.HACKCLUB_AI_API_KEY;
+    if (!apiKey) {
+      solutionLogger.error({ requestId }, 'HACKCLUB_AI_API_KEY not configured');
+      return NextResponse.json(
+        { error: 'HACKCLUB_AI_API_KEY not configured' },
+        { status: 500 }
+      );
+    }
+
     // Call Hack Club API with Gemini 3 Pro Image model (supports image generation with handwriting)
-    const apiUrl = 'https://ai.hackclub.com/chat/completions';
+    const apiUrl = 'https://ai.hackclub.com/proxy/v1/chat/completions';
     const model = 'google/gemini-3-pro-image-preview';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
     };
 
     const requestBody: any = {
