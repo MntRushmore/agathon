@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Calculator, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, ArrowLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -18,7 +18,7 @@ interface MathWhiteboard {
   updated_at: string;
 }
 
-export default function MathWhiteboardsPage() {
+export default function MathDocumentsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -56,7 +56,7 @@ export default function MathWhiteboardsPage() {
       .from('math_whiteboards')
       .insert([{
         user_id: user.id,
-        title: 'Untitled Math Board',
+        title: 'Untitled Document',
         equations: [],
         strokes: [],
         variables: {},
@@ -85,13 +85,13 @@ export default function MathWhiteboardsPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold flex-1">Math Whiteboards</h1>
+          <h1 className="text-2xl md:text-3xl font-bold flex-1">Math Documents</h1>
           <Button
             onClick={createWhiteboard}
             className="min-h-[44px] min-w-[44px] touch-manipulation"
           >
             <Plus className="h-4 w-4 mr-2" />
-            New Board
+            New Document
           </Button>
         </div>
 
@@ -99,17 +99,17 @@ export default function MathWhiteboardsPage() {
           <div className="text-center py-8">Loading...</div>
         ) : whiteboards.length === 0 ? (
           <Card className="p-8 md:p-12 text-center">
-            <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">No math boards yet</h2>
+            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-semibold mb-2">No math documents yet</h2>
             <p className="text-muted-foreground mb-6">
-              Create your first math whiteboard to start writing equations
+              Create your first math document to start typing equations with live solving
             </p>
             <Button
               onClick={createWhiteboard}
               className="min-h-[44px] touch-manipulation"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Create Math Board
+              Create Math Document
             </Button>
           </Card>
         ) : (
@@ -122,7 +122,7 @@ export default function MathWhiteboardsPage() {
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg truncate flex items-center gap-2">
-                    <Calculator className="h-4 w-4 text-primary" />
+                    <FileText className="h-4 w-4 text-primary" />
                     {board.title}
                   </CardTitle>
                 </CardHeader>

@@ -40,26 +40,31 @@ export async function POST(req: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are a math solver. Given a mathematical expression or equation, compute the answer.
+            content: `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
 
 RULES:
 1. Return ONLY the final numerical answer or simplified result
 2. Do NOT show work or steps
 3. Do NOT include explanations
-4. If it's an equation to solve (like "2x + 5 = 15"), return the solution (like "x = 5")
-5. If it's an expression to evaluate (like "3 + 5"), return the result (like "8")
-6. If it's a simplification (like "x^2 - 4" to factor), return simplified form (like "(x-2)(x+2)")
-7. For trig, use degrees unless radians specified
-8. Round decimals to 4 places max
-9. If you cannot solve it, return "?"
+4. Understand LaTeX notation: \\frac{a}{b} means a/b, ^{n} means power, \\sqrt{x} means square root, \\int means integral, etc.
+5. If it's an equation to solve (like "2x + 5 = 15"), return the solution (like "x = 5")
+6. If it's an expression to evaluate (like "3 + 5"), return the result (like "8")
+7. If it's a simplification, return simplified form
+8. For integrals, return the antiderivative with + C
+9. For derivatives, return the derivative
+10. For trig, use degrees unless radians specified
+11. Round decimals to 4 places max
+12. If you cannot solve it or it's incomplete, return "?"
 
 Examples:
 - Input: "2 + 3" → Output: "5"
+- Input: "\\frac{1}{2} + \\frac{1}{4}" → Output: "3/4"
 - Input: "2x + 5 = 15" → Output: "x = 5"
-- Input: "sin(30)" → Output: "0.5"
-- Input: "sqrt(144)" → Output: "12"
-- Input: "x^2 - 9" (factor) → Output: "(x-3)(x+3)"
-- Input: "log(100)" → Output: "2"`,
+- Input: "\\sqrt{144}" → Output: "12"
+- Input: "\\int x^2 dx" → Output: "x³/3 + C"
+- Input: "\\frac{d}{dx} x^3" → Output: "3x²"
+- Input: "x^2 + 5x + 6 = 0" → Output: "x = -2, -3"
+- Input: "\\sin(30°)" → Output: "0.5"`,
           },
           {
             role: 'user',
