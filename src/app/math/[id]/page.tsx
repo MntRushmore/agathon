@@ -66,20 +66,26 @@ export default function MathEditorPage() {
       let loadedBlocks: Block[] = [];
 
       if (data.blocks && Array.isArray(data.blocks)) {
-        // New format
-        loadedBlocks = data.blocks;
+        // Migrate all block types to 'rich' (new unified type)
+        loadedBlocks = data.blocks.map((b: any) => {
+          // Convert old types to new 'rich' type
+          if (b.type === 'text' || b.type === 'paragraph' || b.type === 'math') {
+            return { ...b, type: 'rich' as const };
+          }
+          return b;
+        });
       } else if (data.equations && Array.isArray(data.equations)) {
-        // Migrate from old equation format
+        // Migrate from old equation format - combine into rich blocks
         loadedBlocks = data.equations.map((eq: any) => ({
           id: eq.id || crypto.randomUUID(),
-          type: 'math' as const,
+          type: 'rich' as const,
           content: eq.latex || eq.recognized || '',
         }));
       }
 
       // Ensure at least one block
       if (loadedBlocks.length === 0) {
-        loadedBlocks = [{ id: crypto.randomUUID(), type: 'text', content: '' }];
+        loadedBlocks = [{ id: crypto.randomUUID(), type: 'rich', content: '' }];
       }
 
       setDocument(data);
@@ -101,8 +107,8 @@ export default function MathEditorPage() {
         .update({
           title: newTitle,
           blocks: newBlocks,
-          // Keep equations for backwards compatibility
-          equations: newBlocks.filter(b => b.type === 'math').map(b => ({
+          // Keep equations for backwards compatibility (extract math from content)
+          equations: newBlocks.map(b => ({
             id: b.id,
             latex: b.content,
             solution: null,
