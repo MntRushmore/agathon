@@ -19,14 +19,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Gemini Flash model for OCR via Hack Club API (free)
-    const response = await fetch('https://ai.hackclub.com/chat/completions', {
+    const apiKey = process.env.HACKCLUB_AI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'HACKCLUB_AI_API_KEY not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Call Gemini Flash model for OCR via Hack Club API
+    const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-05-20',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'user',
@@ -74,7 +83,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-
-
-

@@ -11,6 +11,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const apiKey = process.env.HACKCLUB_AI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'HACKCLUB_AI_API_KEY not configured' },
+        { status: 500 }
+      );
+    }
+
     // Build context about known variables
     let variableContext = '';
     if (variables && Object.keys(variables).length > 0) {
@@ -21,13 +29,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Hack Club API (Gemini) for solving
-    const response = await fetch('https://ai.hackclub.com/chat/completions', {
+    const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-preview-05-20',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
@@ -62,9 +71,12 @@ Examples:
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('AI API error:', errorData);
-      throw new Error(errorData.error?.message || 'AI API error');
+      const errorText = await response.text();
+      console.error('AI API error:', errorText);
+      return NextResponse.json(
+        { error: 'Solve API error', details: errorText },
+        { status: 500 }
+      );
     }
 
     const data = await response.json();
