@@ -6,8 +6,8 @@ import {
   Editor,
   TLUiOverrides,
   TLUiComponents,
-  TLShapeId,
 } from 'tldraw';
+import { toRichText } from '@tldraw/tlschema';
 import 'tldraw/tldraw.css';
 
 export interface EquationResult {
@@ -170,7 +170,7 @@ export const TldrawMathCanvas = React.forwardRef<TldrawMathCanvasRef, TldrawMath
           y: solutionY,
           isLocked: true,
           props: {
-            text: displayText,
+            richText: toRichText(displayText),
             color: 'light-blue',
             size: 'l',
             font: 'draw',
