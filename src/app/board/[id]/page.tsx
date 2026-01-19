@@ -907,20 +907,23 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const centerX = viewportBounds.x + viewportBounds.width / 2;
     const centerY = viewportBounds.y + viewportBounds.height / 2;
 
-    // Create a text shape with the LaTeX
-    editor.createShape({
-      type: 'text',
-      x: centerX - 100,
-      y: centerY + 100, // Below center
-      props: {
-        text: result.latex,
-        size: 'm',
-        font: 'mono',
-      },
-    });
+    // Import toRichText dynamically to convert plain text to rich text format
+    import('@tldraw/tlschema').then(({ toRichText }) => {
+      // Create a text shape with the LaTeX using richText format
+      editor.createShape({
+        type: 'text',
+        x: centerX - 100,
+        y: centerY + 100, // Below center
+        props: {
+          richText: toRichText(result.latex!),
+          size: 'm',
+          font: 'mono',
+        },
+      });
 
-    clearRecognitionResults();
-    toast.success('Math inserted as text');
+      clearRecognitionResults();
+      toast.success('Math inserted as text');
+    });
   }, [editor, clearRecognitionResults]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
