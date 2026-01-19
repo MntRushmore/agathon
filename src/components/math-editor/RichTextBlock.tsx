@@ -2,14 +2,14 @@
 
 import React, { useRef, useState, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
-import { detectMathSegments, Segment } from '@/lib/math-detection';
-import { MathSegment } from './MathSegment';
-import { InlineMathEditor } from './InlineMathEditor';
+import { detectMathSegments } from '@/lib/math-detection';
+import { toLatex } from '@/lib/plain-to-latex';
+import 'katex/dist/katex.min.css';
 
 export interface RichBlock {
   id: string;
   type: 'rich' | 'heading';
-  content: string; // Raw text content
+  content: string;
   level?: 1 | 2 | 3;
 }
 
@@ -31,9 +31,56 @@ export interface RichTextBlockRef {
   insertText: (text: string) => void;
 }
 
+// Autocomplete suggestions - Corca style
+const SUGGESTIONS = [
+  { trigger: '=', symbol: '=', label: 'Equal', category: 'Algebra', shortcut: 'Enter' },
+  { trigger: 'neq', symbol: '≠', latex: '\\neq', label: 'Not Equal', category: 'Algebra', shortcut: '⌘2' },
+  { trigger: 'apx', symbol: '≈', latex: '\\approx', label: 'Almost Equal To', category: 'Algebra', shortcut: '⌘3' },
+  { trigger: 'leq', symbol: '≤', latex: '\\leq', label: 'Less or Equal', category: 'Algebra', shortcut: '⌘4' },
+  { trigger: 'geq', symbol: '≥', latex: '\\geq', label: 'Greater or Equal', category: 'Algebra', shortcut: '⌘5' },
+  { trigger: 'sqrt', symbol: '√', latex: '\\sqrt{}', label: 'Square Root', category: 'Functions', shortcut: '⌘6' },
+  { trigger: 'frac', symbol: '/', latex: '\\frac{}{}', label: 'Fraction', category: 'Algebra', shortcut: '⌘7' },
+  { trigger: 'pi', symbol: 'π', latex: '\\pi', label: 'Pi', category: 'Constants', shortcut: '⌘8' },
+  { trigger: 'sum', symbol: 'Σ', latex: '\\sum', label: 'Summation', category: 'Calculus', shortcut: '⌘9' },
+  { trigger: 'int', symbol: '∫', latex: '\\int', label: 'Integral', category: 'Calculus' },
+  { trigger: 'inf', symbol: '∞', latex: '\\infty', label: 'Infinity', category: 'Constants' },
+  { trigger: 'alpha', symbol: 'α', latex: '\\alpha', label: 'Alpha', category: 'Greek' },
+  { trigger: 'beta', symbol: 'β', latex: '\\beta', label: 'Beta', category: 'Greek' },
+  { trigger: 'theta', symbol: 'θ', latex: '\\theta', label: 'Theta', category: 'Greek' },
+  { trigger: 'delta', symbol: 'δ', latex: '\\delta', label: 'Delta', category: 'Greek' },
+  { trigger: 'pm', symbol: '±', latex: '\\pm', label: 'Plus Minus', category: 'Operators' },
+  { trigger: '^2', symbol: '²', latex: '^{2}', label: 'Squared', category: 'Powers' },
+  { trigger: '^3', symbol: '³', latex: '^{3}', label: 'Cubed', category: 'Powers' },
+];
+
+// Render math with KaTeX (fast, cached)
+const katexCache = new Map<string, string>();
+
+function renderKatex(content: string): string | null {
+  if (!content.trim()) return null;
+
+  const cacheKey = content;
+  if (katexCache.has(cacheKey)) {
+    return katexCache.get(cacheKey)!;
+  }
+
+  try {
+    const katex = require('katex');
+    const latex = toLatex(content);
+    const html = katex.renderToString(latex, {
+      throwOnError: false,
+      displayMode: false,
+      strict: false,
+    });
+    katexCache.set(cacheKey, html);
+    return html;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Rich text block that automatically detects and renders math inline
- * Users can type naturally - math is detected and rendered automatically
+ * Rich text block - Corca-style with live inline math rendering
  */
 export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
   block,
@@ -47,33 +94,36 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
   onConvertToHeading,
   autoFocus = false,
 }, ref) => {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [isEditing, setIsEditing] = useState(true); // Start in editing mode
-  const [editingMathIndex, setEditingMathIndex] = useState<number | null>(null);
-  const [cursorPosition, setCursorPosition] = useState(0);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0);
+  const [lastWord, setLastWord] = useState('');
 
-  // Detect math segments from content
-  const segments = useMemo(() => {
-    return detectMathSegments(block.content);
-  }, [block.content]);
+  // Detect math segments
+  const segments = useMemo(() => detectMathSegments(block.content), [block.content]);
 
-  // Expose methods via ref
+  // Filter autocomplete suggestions
+  const filteredSuggestions = useMemo(() => {
+    if (!lastWord || lastWord.length < 1) return [];
+    const lower = lastWord.toLowerCase();
+    return SUGGESTIONS.filter(s =>
+      s.trigger.toLowerCase().startsWith(lower) ||
+      s.label.toLowerCase().includes(lower)
+    ).slice(0, 10);
+  }, [lastWord]);
+
+  // Expose methods
   useImperativeHandle(ref, () => ({
-    focus: () => {
-      setIsEditing(true);
-      setTimeout(() => textareaRef.current?.focus(), 50);
-    },
+    focus: () => inputRef.current?.focus(),
     insertText: (text: string) => {
-      if (textareaRef.current) {
-        const textarea = textareaRef.current;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
+      if (inputRef.current) {
+        const input = inputRef.current;
+        const start = input.selectionStart || 0;
+        const end = input.selectionEnd || 0;
         const newContent = block.content.slice(0, start) + text + block.content.slice(end);
         onContentChange(newContent);
-        // Set cursor position after inserted text
         setTimeout(() => {
-          textarea.selectionStart = textarea.selectionEnd = start + text.length;
+          input.selectionStart = input.selectionEnd = start + text.length;
         }, 0);
       } else {
         onContentChange(block.content + text);
@@ -81,256 +131,207 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
     },
   }));
 
-  // Handle keyboard events
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Convert to heading with # at start
+  // Handle input change
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    onContentChange(value);
+
+    // Extract last word for autocomplete
+    const cursorPos = e.target.selectionStart || value.length;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const words = textBeforeCursor.split(/[\s+\-*/=()]/);
+    const word = words[words.length - 1] || '';
+    setLastWord(word);
+    setShowAutocomplete(word.length >= 1);
+    setAutocompleteIndex(0);
+  }, [onContentChange]);
+
+  // Handle keyboard
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Autocomplete navigation
+    if (showAutocomplete && filteredSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setAutocompleteIndex(i => Math.min(i + 1, filteredSuggestions.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setAutocompleteIndex(i => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertSuggestion(filteredSuggestions[autocompleteIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+
+    // Heading conversion
     if (e.key === ' ' && block.content.match(/^#{1,3}$/) && onConvertToHeading) {
       e.preventDefault();
-      const level = block.content.length as 1 | 2 | 3;
-      onConvertToHeading(level);
+      onConvertToHeading(block.content.length as 1 | 2 | 3);
       return;
     }
 
+    // New line
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onEnter();
-    } else if (e.key === 'Backspace' && block.content === '') {
+      return;
+    }
+
+    // Delete empty line
+    if (e.key === 'Backspace' && block.content === '') {
       e.preventDefault();
       onBackspaceEmpty();
     }
+  }, [showAutocomplete, filteredSuggestions, autocompleteIndex, block.content, onConvertToHeading, onEnter, onBackspaceEmpty]);
 
-    // Track cursor position
+  // Insert suggestion
+  const insertSuggestion = useCallback((suggestion: typeof SUGGESTIONS[0]) => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    const cursorPos = input.selectionStart || block.content.length;
+    const textBeforeCursor = block.content.slice(0, cursorPos);
+
+    // Find where the trigger word starts
+    const words = textBeforeCursor.split(/[\s+\-*/=()]/);
+    const triggerWord = words[words.length - 1] || '';
+    const startPos = cursorPos - triggerWord.length;
+
+    // Insert the latex or symbol
+    const insertText = suggestion.latex || suggestion.symbol;
+    const newContent = block.content.slice(0, startPos) + insertText + block.content.slice(cursorPos);
+
+    onContentChange(newContent);
+    setShowAutocomplete(false);
+    setLastWord('');
+
+    // Position cursor
     setTimeout(() => {
-      if (textareaRef.current) {
-        setCursorPosition(textareaRef.current.selectionStart);
-      }
+      const newPos = startPos + insertText.length;
+      input.selectionStart = input.selectionEnd = newPos;
+      input.focus();
     }, 0);
-  };
+  }, [block.content, onContentChange]);
 
-  // Handle text change
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onContentChange(e.target.value);
-  };
-
-  // Handle clicking on the rendered view to edit
-  const handleContainerClick = (e: React.MouseEvent) => {
-    // Don't switch to editing if clicking on a math segment
-    if ((e.target as HTMLElement).closest('.math-segment')) {
-      return;
-    }
-    setIsEditing(true);
-    setTimeout(() => textareaRef.current?.focus(), 50);
-  };
-
-  // Handle blur from textarea
-  const handleTextareaBlur = (e: React.FocusEvent) => {
-    // Only leave edit mode if not clicking within the container
-    // Use a small delay to check if focus moved within the block
-    setTimeout(() => {
-      if (!containerRef.current?.contains(document.activeElement)) {
-        setIsEditing(false);
-        onBlur();
-      }
-    }, 100);
-  };
-
-  // Handle clicking on a math segment to edit it
-  const handleMathClick = (index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingMathIndex(index);
-    setIsEditing(false);
-  };
-
-  // Handle saving math edit
-  const handleMathSave = (index: number, newLatex: string) => {
-    // Replace the math segment content
-    let charIndex = 0;
-    let segmentIndex = 0;
-    let startPos = 0;
-    let endPos = 0;
-
-    for (const segment of segments) {
-      if (segmentIndex === index) {
-        startPos = charIndex;
-        endPos = charIndex + segment.content.length;
-        break;
-      }
-      charIndex += segment.content.length;
-      segmentIndex++;
-    }
-
-    const newContent = block.content.slice(0, startPos) + newLatex + block.content.slice(endPos);
-    onContentChange(newContent);
-    setEditingMathIndex(null);
-  };
-
-  // Handle canceling math edit
-  const handleMathCancel = () => {
-    setEditingMathIndex(null);
-  };
-
-  // Handle deleting math segment
-  const handleMathDelete = (index: number) => {
-    let charIndex = 0;
-    let segmentIndex = 0;
-    let startPos = 0;
-    let endPos = 0;
-
-    for (const segment of segments) {
-      if (segmentIndex === index) {
-        startPos = charIndex;
-        endPos = charIndex + segment.content.length;
-        break;
-      }
-      charIndex += segment.content.length;
-      segmentIndex++;
-    }
-
-    const newContent = block.content.slice(0, startPos) + block.content.slice(endPos);
-    onContentChange(newContent);
-    setEditingMathIndex(null);
-  };
-
-  // Auto-resize textarea
-  const adjustTextareaHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.max(textarea.scrollHeight, 28)}px`;
-    }
-  };
-
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [block.content]);
-
-  // Auto-focus on mount if needed
+  // Auto-focus
   useEffect(() => {
     if (autoFocus) {
-      setIsEditing(true);
-      setTimeout(() => textareaRef.current?.focus(), 50);
+      inputRef.current?.focus();
     }
   }, [autoFocus]);
 
-  // Get the math segment being edited
-  const editingSegment = editingMathIndex !== null ? segments[editingMathIndex] : null;
+  // Close autocomplete on blur
+  const handleBlur = useCallback(() => {
+    setTimeout(() => setShowAutocomplete(false), 150);
+    onBlur();
+  }, [onBlur]);
 
   // HEADING BLOCK
   if (block.type === 'heading') {
-    const sizes = {
-      1: 'text-3xl font-bold',
-      2: 'text-2xl font-semibold',
-      3: 'text-xl font-medium',
-    };
-    const level = block.level || 1;
-
+    const sizes = { 1: 'text-3xl font-bold', 2: 'text-2xl font-semibold', 3: 'text-xl font-medium' };
     return (
-      <div className={cn(
-        'group flex items-start gap-3 py-2 transition-colors',
-        isFocused ? 'bg-gray-50/50 dark:bg-gray-900/30' : ''
-      )}>
+      <div className={cn('group flex items-start gap-3 py-2', isFocused && 'bg-gray-50/50 dark:bg-gray-900/30')}>
         <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-1 font-mono">
           {lineNumber}.
         </span>
-        <textarea
-          ref={textareaRef}
+        <input
+          ref={inputRef}
+          type="text"
           value={block.content}
-          onChange={handleChange}
+          onChange={(e) => onContentChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={onFocus}
-          onBlur={handleTextareaBlur}
-          placeholder={`Heading ${level}...`}
-          className={cn(
-            'flex-1 bg-transparent border-none outline-none resize-none leading-tight',
-            sizes[level],
-            'placeholder:text-gray-300 dark:placeholder:text-gray-700'
-          )}
-          rows={1}
+          onBlur={handleBlur}
+          placeholder={`Heading ${block.level || 1}...`}
+          className={cn('flex-1 bg-transparent border-none outline-none', sizes[block.level || 1], 'placeholder:text-gray-300')}
           autoFocus={autoFocus}
         />
       </div>
     );
   }
 
-  // RICH TEXT BLOCK (with inline math)
+  // RICH BLOCK - Live rendered math
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'group flex items-start gap-3 py-1.5 transition-colors relative',
-        isFocused ? 'bg-gray-50/50 dark:bg-gray-900/30' : ''
-      )}
-    >
+    <div className={cn('group flex items-start gap-3 py-1.5 relative', isFocused && 'bg-gray-50/50 dark:bg-gray-900/30')}>
       {/* Line number */}
       <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-0.5 font-mono">
         {lineNumber}.
       </span>
 
-      {/* Content area */}
+      {/* Content */}
       <div className="flex-1 min-h-[28px] relative">
-        {/* Edit mode: show textarea */}
-        {isEditing ? (
-          <textarea
-            ref={textareaRef}
+        {/* Live rendered content with inline math */}
+        <div className="flex items-center flex-wrap gap-0 min-h-[28px]">
+          {segments.map((segment, i) => {
+            if (segment.type === 'math') {
+              const html = renderKatex(segment.content);
+              if (html) {
+                return (
+                  <span
+                    key={i}
+                    className="inline-flex items-center mx-0.5 px-1 rounded bg-blue-50 dark:bg-blue-950/30"
+                    dangerouslySetInnerHTML={{ __html: html }}
+                  />
+                );
+              }
+            }
+            return <span key={i} className="whitespace-pre-wrap">{segment.content}</span>;
+          })}
+
+          {/* Invisible input overlaid for typing */}
+          <input
+            ref={inputRef}
+            type="text"
             value={block.content}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             onFocus={onFocus}
-            onBlur={handleTextareaBlur}
-            placeholder="Type text or math like 3x+2=5..."
-            className={cn(
-              'w-full bg-transparent border-none outline-none resize-none',
-              'text-base leading-relaxed text-gray-800 dark:text-gray-200',
-              'placeholder:text-gray-300 dark:placeholder:text-gray-600'
-            )}
-            rows={1}
+            onBlur={handleBlur}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-text"
+            placeholder="Type text or math..."
             autoFocus={autoFocus}
           />
-        ) : (
-          /* Display mode: render segments with math */
-          <div
-            onClick={handleContainerClick}
-            className={cn(
-              'w-full min-h-[28px] cursor-text',
-              'text-base leading-relaxed text-gray-800 dark:text-gray-200'
-            )}
-          >
-            {segments.length === 0 || (segments.length === 1 && !segments[0].content) ? (
-              <span className="text-gray-300 dark:text-gray-600">
-                Type text or math like 3x+2=5...
-              </span>
-            ) : (
-              segments.map((segment, index) => {
-                if (segment.type === 'math') {
-                  return (
-                    <span key={index} className="math-segment">
-                      <MathSegment
-                        content={segment.content}
-                        onClick={(e) => handleMathClick(index, e)}
-                        isEditing={editingMathIndex === index}
-                      />
-                    </span>
-                  );
-                }
-                return (
-                  <span key={index} className="whitespace-pre-wrap">
-                    {segment.content}
-                  </span>
-                );
-              })
-            )}
-          </div>
-        )}
 
-        {/* Math editor popup */}
-        {editingMathIndex !== null && editingSegment && (
-          <InlineMathEditor
-            initialValue={editingSegment.content}
-            onSave={(latex) => handleMathSave(editingMathIndex, latex)}
-            onCancel={handleMathCancel}
-            onDelete={() => handleMathDelete(editingMathIndex)}
-            position={{ top: 0, left: 40 }}
-          />
+          {/* Show placeholder when empty */}
+          {!block.content && (
+            <span className="text-gray-300 dark:text-gray-600 pointer-events-none">
+              Type text or math like 3x+2=5...
+            </span>
+          )}
+        </div>
+
+        {/* Autocomplete popup - Corca style */}
+        {showAutocomplete && filteredSuggestions.length > 0 && (
+          <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 rounded-xl shadow-2xl border border-gray-700 py-2 min-w-[300px] max-w-[400px]">
+            {filteredSuggestions.map((suggestion, i) => (
+              <div
+                key={suggestion.trigger}
+                onClick={() => insertSuggestion(suggestion)}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors',
+                  i === autocompleteIndex ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+                )}
+              >
+                <span className="text-2xl text-blue-400 w-8 text-center">{suggestion.symbol}</span>
+                <span className="text-white font-medium">{suggestion.label}</span>
+                <span className="text-gray-500 text-sm ml-1">· {suggestion.category}</span>
+                {suggestion.shortcut && (
+                  <span className="ml-auto text-gray-500 text-xs">{suggestion.shortcut}</span>
+                )}
+              </div>
+            ))}
+            <div className="px-4 py-1.5 text-xs text-gray-500 border-t border-gray-700 mt-1">
+              Press <kbd className="px-1 py-0.5 bg-gray-800 rounded mx-1">Enter</kbd> to insert
+            </div>
+          </div>
         )}
       </div>
     </div>
