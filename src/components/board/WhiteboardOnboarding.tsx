@@ -8,54 +8,25 @@ interface WhiteboardOnboardingProps {
   onDismiss: () => void;
 }
 
-// Hand-drawn style curved arrow pointing up
-function CurvedArrowUp({ className }: { className?: string }) {
-  return (
-    <svg
-      width="60"
-      height="80"
-      viewBox="0 0 60 80"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M30 75 Q 25 60, 28 45 Q 30 30, 32 15"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M25 20 L 32 8 L 40 18"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-// Hand-drawn style curved arrow pointing down-right
+// Hand-drawn style curved arrow pointing down
 function CurvedArrowDown({ className }: { className?: string }) {
   return (
     <svg
-      width="80"
-      height="100"
-      viewBox="0 0 80 100"
+      width="50"
+      height="70"
+      viewBox="0 0 50 70"
       fill="none"
       className={className}
     >
       <path
-        d="M40 5 Q 35 25, 38 45 Q 42 70, 45 90"
+        d="M25 5 Q 22 20, 24 35 Q 26 50, 27 60"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         fill="none"
       />
       <path
-        d="M38 82 L 45 95 L 53 84"
+        d="M20 54 L 27 66 L 34 55"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
@@ -66,25 +37,25 @@ function CurvedArrowDown({ className }: { className?: string }) {
   );
 }
 
-// Hand-drawn style curved arrow pointing left
-function CurvedArrowLeft({ className }: { className?: string }) {
+// Hand-drawn style curved arrow pointing to top-left (for back button)
+function CurvedArrowTopLeft({ className }: { className?: string }) {
   return (
     <svg
-      width="80"
-      height="60"
-      viewBox="0 0 80 60"
+      width="70"
+      height="50"
+      viewBox="0 0 70 50"
       fill="none"
       className={className}
     >
       <path
-        d="M75 30 Q 55 28, 40 30 Q 25 32, 10 35"
+        d="M65 40 Q 50 35, 35 28 Q 20 20, 12 12"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         fill="none"
       />
       <path
-        d="M18 28 L 5 35 L 16 44"
+        d="M8 20 L 10 8 L 20 12"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
@@ -158,28 +129,28 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
       )}
       onClick={handleDismiss}
     >
-      {/* Toolbar hint - pointing up to toolbar */}
-      <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-        <CurvedArrowUp className="text-gray-400/60 mb-2" />
-        <p className="text-gray-400 text-base italic text-center whitespace-nowrap">
+      {/* Toolbar hint - pointing down to bottom toolbar */}
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
+        <p className="text-gray-400 text-sm italic text-center whitespace-nowrap mb-1">
           Pick a tool &<br />Start drawing!
         </p>
+        <CurvedArrowDown className="text-gray-400/70" />
       </div>
 
-      {/* Back button hint - top left */}
-      <div className="absolute top-20 left-24 flex items-center gap-1 pointer-events-none">
-        <CurvedArrowLeft className="text-gray-400/60" />
-        <p className="text-gray-400 text-sm italic whitespace-nowrap">
-          Back to dashboard
+      {/* Back button hint - top left, closer to the actual button */}
+      <div className="absolute top-8 left-16 flex items-end gap-1 pointer-events-none">
+        <CurvedArrowTopLeft className="text-gray-400/70" />
+        <p className="text-gray-400 text-sm italic whitespace-nowrap mb-1">
+          Back to<br />dashboard
         </p>
       </div>
 
       {/* AI Chat hint - bottom right pointing to chat button */}
-      <div className="absolute bottom-36 right-8 flex flex-col items-center pointer-events-none">
-        <p className="text-gray-400 text-sm italic text-center mb-2">
+      <div className="absolute bottom-24 right-6 flex flex-col items-center pointer-events-none">
+        <p className="text-gray-400 text-sm italic text-center mb-1">
           Ask AI<br />for help
         </p>
-        <CurvedArrowDown className="text-gray-400/60" />
+        <CurvedArrowDown className="text-gray-400/70" />
       </div>
 
       {/* Center welcome message */}
@@ -187,10 +158,10 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
         <h1 className="text-4xl font-semibold text-gray-700 mb-3 tracking-tight">
           Welcome to your whiteboard
         </h1>
-        <p className="text-gray-400 text-lg mb-8">
+        <p className="text-gray-400 text-lg mb-6">
           Your work auto-saves as you go
         </p>
-        <p className="text-gray-400/70 text-sm italic">
+        <p className="text-gray-400/60 text-sm italic">
           Click anywhere or start drawing to begin
         </p>
       </div>
