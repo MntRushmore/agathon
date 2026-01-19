@@ -68,6 +68,24 @@ type Whiteboard = {
   sharedPermission?: 'view' | 'edit';
 };
 
+// Feature card color variants
+type ColorVariant = 'blue' | 'purple' | 'green';
+
+const colorVariants: Record<ColorVariant, { iconBg: string; hoverText: string }> = {
+  blue: {
+    iconBg: 'bg-blue-500',
+    hoverText: 'group-hover:text-blue-600',
+  },
+  purple: {
+    iconBg: 'bg-purple-500',
+    hoverText: 'group-hover:text-purple-600',
+  },
+  green: {
+    iconBg: 'bg-emerald-500',
+    hoverText: 'group-hover:text-emerald-600',
+  },
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -227,8 +245,8 @@ export default function Dashboard() {
       title: 'AI Whiteboard',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
-      icon: <PenTool className="h-6 w-6" />,
-      color: 'bg-blue-500',
+      icon: <PenTool className="h-5 w-5" />,
+      color: 'blue' as ColorVariant,
       onClick: () => createWhiteboard(),
     },
     {
@@ -236,8 +254,8 @@ export default function Dashboard() {
       title: 'Math Document',
       description: 'Type equations with instant solving',
       detail: 'LaTeX support & step-by-step',
-      icon: <Sparkles className="h-6 w-6" />,
-      color: 'bg-purple-500',
+      icon: <Sparkles className="h-5 w-5" />,
+      color: 'purple' as ColorVariant,
       onClick: () => router.push('/math'),
     },
   ];
@@ -249,8 +267,8 @@ export default function Dashboard() {
       title: 'My Classes',
       description: 'Manage your classes and students',
       detail: 'Create assignments & track progress',
-      icon: <Users className="h-6 w-6" />,
-      color: 'bg-green-500',
+      icon: <Users className="h-5 w-5" />,
+      color: 'green' as ColorVariant,
       onClick: () => router.push('/teacher/classes'),
     });
   } else if (profile?.role === 'student') {
@@ -259,69 +277,80 @@ export default function Dashboard() {
       title: 'Join a Class',
       description: 'Enter a class code from your teacher',
       detail: 'Access assignments & get help',
-      icon: <GraduationCap className="h-6 w-6" />,
-      color: 'bg-green-500',
+      icon: <GraduationCap className="h-5 w-5" />,
+      color: 'green' as ColorVariant,
       onClick: () => router.push('/student/join'),
     });
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] dark:bg-[#1a1a1a] flex">
+    <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
       <aside className={cn(
-        "fixed left-0 top-0 h-full bg-[#1e1e1e] text-white flex flex-col transition-all duration-300 z-50",
+        "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
+        "bg-sidebar-dark text-white border-r border-sidebar-dark-border",
         sidebarCollapsed ? "w-16" : "w-64"
-      )}>
+      )}
+      style={{
+        backgroundColor: 'hsl(0 0% 11%)',
+        borderColor: 'hsl(0 0% 18%)',
+      }}
+      >
         {/* Sidebar Header */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 flex items-center justify-between border-b" style={{ borderColor: 'hsl(0 0% 18%)' }}>
           <button
             onClick={() => createWhiteboard()}
             className={cn(
-              "flex items-center gap-3 hover:bg-white/10 rounded-lg transition-colors",
-              sidebarCollapsed ? "p-2" : "px-3 py-2"
+              "flex items-center gap-3 rounded-lg transition-all duration-150",
+              "hover:bg-white/10",
+              sidebarCollapsed ? "p-2.5" : "px-3 py-2.5"
             )}
           >
             <Plus className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="font-medium">New</span>}
+            {!sidebarCollapsed && <span className="font-medium text-sm">New</span>}
           </button>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400"
           >
             <ChevronLeft className={cn(
-              "h-4 w-4 transition-transform",
+              "h-4 w-4 transition-transform duration-200",
               sidebarCollapsed && "rotate-180"
             )} />
           </button>
         </div>
 
         {/* Sidebar Navigation */}
-        <nav className="flex-1 px-2">
+        <nav className="flex-1 px-2 py-3">
           <button
             onClick={() => setShowMyFiles(!showMyFiles)}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors text-left",
-              showMyFiles && "bg-white/10"
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+              showMyFiles
+                ? "bg-white/10 text-white"
+                : "text-gray-400 hover:bg-white/5 hover:text-white"
             )}
           >
             <Folder className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span>My files</span>}
+            {!sidebarCollapsed && <span className="text-sm">My files</span>}
           </button>
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 space-y-2 border-t border-white/10">
+        <div className="p-3 space-y-1 border-t" style={{ borderColor: 'hsl(0 0% 18%)' }}>
           {!sidebarCollapsed && (
             <>
               {user ? (
-                <div className="px-3 py-2 text-sm text-gray-400">
-                  <p className="truncate">{profile?.full_name || user.email}</p>
-                  <p className="text-xs capitalize">{profile?.role || 'User'}</p>
+                <div className="px-3 py-2.5 text-gray-400">
+                  <p className="truncate text-sm font-medium text-white">
+                    {profile?.full_name || user.email}
+                  </p>
+                  <p className="text-xs capitalize opacity-70">{profile?.role || 'User'}</p>
                 </div>
               ) : (
                 <button
                   onClick={() => setAuthModalOpen(true)}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-white/10 rounded-lg transition-colors"
+                  className="w-full px-3 py-2.5 text-sm text-left hover:bg-white/10 rounded-lg transition-colors text-gray-400"
                 >
                   Sign in
                 </button>
@@ -331,23 +360,25 @@ export default function Dashboard() {
           <button
             onClick={() => router.push('/board/temp-' + Date.now())}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+              "text-gray-400 hover:bg-white/5 hover:text-white",
               sidebarCollapsed && "justify-center"
             )}
           >
             <PenTool className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span>Whiteboard</span>}
+            {!sidebarCollapsed && <span className="text-sm">Whiteboard</span>}
           </button>
           {user && (
             <button
               onClick={() => {/* settings */}}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                "text-gray-400 hover:bg-white/5 hover:text-white",
                 sidebarCollapsed && "justify-center"
               )}
             >
               <Settings className="h-5 w-5 flex-shrink-0" />
-              {!sidebarCollapsed && <span>Settings</span>}
+              {!sidebarCollapsed && <span className="text-sm">Settings</span>}
             </button>
           )}
         </div>
@@ -355,55 +386,55 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className={cn(
-        "flex-1 transition-all duration-300",
+        "flex-1 transition-all duration-300 ease-out",
         sidebarCollapsed ? "ml-16" : "ml-64"
       )}>
         {showMyFiles ? (
           /* My Files View */
-          <div className="max-w-5xl mx-auto px-8 py-12">
+          <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Files</h1>
+              <h1 className="text-2xl font-semibold text-foreground">My Files</h1>
               <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search..."
-                  className="pl-9 bg-white dark:bg-gray-800"
+                  className="pl-9 bg-card border-border"
                 />
               </div>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 animate-pulse">
-                    <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg mb-4" />
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                  <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
+                    <div className="aspect-video bg-muted rounded-lg mb-4" />
+                    <div className="h-5 bg-muted rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
                   </div>
                 ))}
               </div>
             ) : whiteboards.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <FileIcon className="w-10 h-10 text-gray-400" />
+              <div className="text-center py-20">
+                <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <FileIcon className="w-10 h-10 text-muted-foreground" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No files yet</h2>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">Create your first whiteboard to get started</p>
-                <Button onClick={() => createWhiteboard()}>
+                <h2 className="text-xl font-semibold text-foreground mb-2">No files yet</h2>
+                <p className="text-muted-foreground mb-6">Create your first whiteboard to get started</p>
+                <Button onClick={() => createWhiteboard()} size="lg">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Board
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {whiteboards.map((board) => (
                   <div
                     key={board.id}
-                    className="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg transition-all cursor-pointer"
+                    className="group bg-card rounded-xl overflow-hidden border border-border hover:border-border/80 hover:shadow-lg transition-all duration-200 cursor-pointer"
                     onClick={() => router.push(`/board/${board.id}`)}
                   >
-                    <div className="aspect-video bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
+                    <div className="aspect-video bg-muted relative overflow-hidden">
                       {board.preview ? (
                         <img
                           src={board.preview}
@@ -412,18 +443,18 @@ export default function Dashboard() {
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full">
-                          <FileIcon className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                          <FileIcon className="w-12 h-12 text-muted-foreground/50" />
                         </div>
                       )}
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          <h3 className="font-medium text-foreground truncate">
                             {board.title}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                            <Clock className="w-3 h-3" />
+                          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+                            <Clock className="w-3.5 h-3.5" />
                             {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
                           </p>
                         </div>
@@ -432,7 +463,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
@@ -457,7 +488,7 @@ export default function Dashboard() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-red-600"
+                              className="text-destructive focus:text-destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteWhiteboard(board.id);
@@ -478,18 +509,18 @@ export default function Dashboard() {
             {/* Assignments Section for Students */}
             {profile?.role === 'student' && assignments.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
                   <BookOpen className="h-5 w-5" />
                   My Assignments
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {assignments.map((submission: any) => (
                     <div
                       key={submission.id}
-                      className="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
+                      className="group bg-card rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-200 cursor-pointer"
                       onClick={() => router.push(`/board/${submission.student_board_id}`)}
                     >
-                      <div className="aspect-video bg-gray-50 dark:bg-gray-900 relative">
+                      <div className="aspect-video bg-muted relative">
                         {submission.student_board?.preview ? (
                           <img
                             src={submission.student_board.preview}
@@ -498,29 +529,31 @@ export default function Dashboard() {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <BookOpen className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                            <BookOpen className="w-12 h-12 text-muted-foreground/50" />
                           </div>
                         )}
                         <div className={cn(
-                          "absolute top-2 right-2 px-2 py-1 text-xs font-medium rounded-full",
-                          submission.status === 'submitted' ? 'bg-green-100 text-green-700' :
-                          submission.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-700'
+                          "absolute top-3 right-3 px-2.5 py-1 text-xs font-medium rounded-full",
+                          submission.status === 'submitted'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : submission.status === 'in_progress'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            : 'bg-muted text-muted-foreground'
                         )}>
                           {submission.status === 'submitted' ? 'Submitted' :
                            submission.status === 'in_progress' ? 'In Progress' : 'Not Started'}
                         </div>
                       </div>
                       <div className="p-4">
-                        <h3 className="font-medium text-gray-900 dark:text-white">
+                        <h3 className="font-medium text-foreground">
                           {submission.assignment.title}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {submission.assignment.class?.name}
                         </p>
                         {submission.assignment.due_date && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-2">
-                            <Clock className="w-3 h-3" />
+                          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2">
+                            <Clock className="w-3.5 h-3.5" />
                             Due {formatDistance(new Date(submission.assignment.due_date), new Date(), { addSuffix: true })}
                           </p>
                         )}
@@ -534,73 +567,83 @@ export default function Dashboard() {
         ) : (
           /* Dashboard Home View */
           <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
-            <div className="max-w-4xl w-full">
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            <div className="max-w-3xl w-full">
+              <h1 className="text-4xl font-semibold text-foreground text-center mb-3 tracking-tight">
                 How can I help you today?
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-center mb-12">
-                Select an option below to get started.
+              <p className="text-muted-foreground text-center mb-12 text-lg">
+                Select an option below to get started
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {featureCards.map((card) => (
-                  <button
-                    key={card.id}
-                    onClick={card.onClick}
-                    disabled={creating && card.id === 'whiteboard'}
-                    className="group bg-white dark:bg-gray-800 rounded-2xl p-6 text-left border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-xl transition-all disabled:opacity-50"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className={cn(
-                        "p-3 rounded-xl text-white",
-                        card.color
-                      )}>
-                        {card.icon}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {featureCards.map((card) => {
+                  const colors = colorVariants[card.color];
+                  return (
+                    <button
+                      key={card.id}
+                      onClick={card.onClick}
+                      disabled={creating && card.id === 'whiteboard'}
+                      className={cn(
+                        "group bg-card rounded-2xl p-5 text-left border border-border transition-all duration-200",
+                        "hover:shadow-lg hover:-translate-y-0.5 hover:border-border/60 active:translate-y-0",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                      )}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={cn(
+                          "p-3 rounded-xl text-white flex-shrink-0",
+                          colors.iconBg
+                        )}>
+                          {card.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className={cn(
+                            "text-base font-semibold text-foreground transition-colors",
+                            colors.hoverText
+                          )}>
+                            {card.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                            {card.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-2">
+                            {card.detail}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {card.title}
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-300 mt-1">
-                          {card.description}
-                        </p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                          {card.detail}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Quick Access to Recent Files */}
               {user && whiteboards.length > 0 && (
-                <div className="mt-12">
+                <div className="mt-14">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent files</h2>
+                    <h2 className="text-base font-semibold text-foreground">Recent files</h2>
                     <button
                       onClick={() => setShowMyFiles(true)}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                       View all
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {whiteboards.slice(0, 3).map((board) => (
                       <button
                         key={board.id}
                         onClick={() => router.push(`/board/${board.id}`)}
-                        className="bg-white dark:bg-gray-800 rounded-xl p-4 text-left border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all"
+                        className="bg-card rounded-xl p-4 text-left border border-border hover:border-border/60 hover:shadow-md transition-all duration-200"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            <FileIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                          <div className="p-2.5 bg-muted rounded-lg flex-shrink-0">
+                            <FileIcon className="w-4 h-4 text-muted-foreground" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 dark:text-white truncate text-sm">
+                            <h3 className="font-medium text-foreground truncate text-sm">
                               {board.title}
                             </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
                             </p>
                           </div>
@@ -613,11 +656,11 @@ export default function Dashboard() {
 
               {/* Sign in prompt for non-authenticated users */}
               {!user && (
-                <div className="mt-12 text-center">
-                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                <div className="mt-14 text-center">
+                  <p className="text-muted-foreground mb-4">
                     Sign in to save your work and access all features
                   </p>
-                  <Button onClick={() => setAuthModalOpen(true)} variant="outline">
+                  <Button onClick={() => setAuthModalOpen(true)} variant="outline" size="lg">
                     Sign In
                   </Button>
                 </div>

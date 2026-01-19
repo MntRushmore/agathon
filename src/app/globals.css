@@ -106,6 +106,27 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Semantic accent colors - OKLCH for consistency */
+  --accent-blue: oklch(0.62 0.19 250);
+  --accent-blue-muted: oklch(0.95 0.03 250);
+  --accent-purple: oklch(0.55 0.23 290);
+  --accent-purple-muted: oklch(0.95 0.04 290);
+  --accent-green: oklch(0.62 0.17 155);
+  --accent-green-muted: oklch(0.95 0.04 155);
+  --accent-amber: oklch(0.75 0.15 75);
+  --accent-amber-muted: oklch(0.97 0.04 75);
+  --accent-red: oklch(0.58 0.22 25);
+  --accent-red-muted: oklch(0.95 0.04 25);
+
+  /* Sidebar specific colors */
+  --sidebar-dark: oklch(0.18 0 0);
+  --sidebar-dark-hover: oklch(0.25 0 0);
+  --sidebar-dark-active: oklch(0.30 0 0);
+  --sidebar-dark-border: oklch(0.30 0 0);
+  --sidebar-dark-text: oklch(0.75 0 0);
+  --sidebar-dark-text-active: oklch(0.98 0 0);
 }
 
 .dark {
@@ -140,6 +161,26 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Dark mode accent colors */
+  --accent-blue: oklch(0.70 0.15 250);
+  --accent-blue-muted: oklch(0.25 0.05 250);
+  --accent-purple: oklch(0.65 0.18 290);
+  --accent-purple-muted: oklch(0.25 0.06 290);
+  --accent-green: oklch(0.70 0.14 155);
+  --accent-green-muted: oklch(0.25 0.05 155);
+  --accent-amber: oklch(0.80 0.12 75);
+  --accent-amber-muted: oklch(0.28 0.05 75);
+  --accent-red: oklch(0.65 0.18 25);
+  --accent-red-muted: oklch(0.25 0.05 25);
+
+  /* Dark sidebar colors */
+  --sidebar-dark: oklch(0.12 0 0);
+  --sidebar-dark-hover: oklch(0.18 0 0);
+  --sidebar-dark-active: oklch(0.22 0 0);
+  --sidebar-dark-border: oklch(0.22 0 0);
+  --sidebar-dark-text: oklch(0.65 0 0);
+  --sidebar-dark-text-active: oklch(0.95 0 0);
 }
 
 @layer base {
