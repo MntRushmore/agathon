@@ -54,6 +54,8 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Check, Clock } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { AISidePanel } from "@/components/chat/AISidePanel";
+import { CustomToolbar } from "@/components/board/CustomToolbar";
+import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
 import type { CanvasContext } from "@/hooks/useChat";
 import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
@@ -831,6 +833,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
     const [userId, setUserId] = useState<string>("");
+    const [showOnboarding, setShowOnboarding] = useState(true);
     const isProcessingRef = useRef(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -1901,6 +1904,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <TeacherAIIndicator editor={editor} />
           )}
 
+          {/* Onboarding overlay - shows on first visit, dismisses when drawing starts */}
+          {showOnboarding && !isTeacherViewing && (
+            <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
+          )}
+
     </>
   );
 }
@@ -2195,9 +2203,13 @@ export default function BoardPage() {
           licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
           overrides={hugeIconsOverrides}
           components={{
+            Toolbar: CustomToolbar,
             MenuPanel: null,
             NavigationPanel: null,
             HelperButtons: null,
+            ActionsMenu: null,
+            PageMenu: null,
+            StylePanel: null,
           }}
           onMount={(editor) => {
             // Store editor ref for later use
