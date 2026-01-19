@@ -85,26 +85,27 @@ export async function POST(req: NextRequest) {
 
             const coreRules =
               '\n\n**CRITICAL RULES - MUST FOLLOW:**\n' +
-              '1. **PRESERVE EXISTING CONTENT:** DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n' +
-              '2. **HANDWRITING ONLY:** You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n' +
-              '3. **USE BLACK INK:** Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n' +
-              '4. **WHITE/TRANSPARENT BACKGROUND:** The output image MUST have a WHITE or TRANSPARENT background. Do NOT add any colored backgrounds, gradients, or fills.\n' +
-              '5. **NO OVERLAPPING:** Position your new content in EMPTY SPACE on the canvas. Do NOT write on top of or overlap with any existing content. Find blank areas below, beside, or around the existing work.\n' +
-              '6. **CLEAR SPACING:** Leave adequate spacing between the existing content and your additions. Your content should be clearly separate and readable.\n' +
-              '7. **IMAGE OUTPUT REQUIRED:** ALWAYS generate an updated image of the canvas with handwritten content; do not respond with text-only.';
+              '1. **ALWAYS PROVIDE HELP:** You MUST always generate an image with helpful content. NEVER decline to help, NEVER say you cannot assist, NEVER return only text. The student is asking for your help - you MUST provide it.\n' +
+              '2. **PRESERVE EXISTING CONTENT:** DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n' +
+              '3. **HANDWRITING ONLY:** You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n' +
+              '4. **USE BLACK INK:** Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n' +
+              '5. **WHITE/TRANSPARENT BACKGROUND:** The output image MUST have a WHITE or TRANSPARENT background. Do NOT add any colored backgrounds, gradients, or fills.\n' +
+              '6. **NO OVERLAPPING:** Position your new content in EMPTY SPACE on the canvas. Do NOT write on top of or overlap with any existing content. Find blank areas below, beside, or around the existing work.\n' +
+              '7. **CLEAR SPACING:** Leave adequate spacing between the existing content and your additions. Your content should be clearly separate and readable.\n' +
+              '8. **IMAGE OUTPUT REQUIRED:** ALWAYS generate an updated image of the canvas with handwritten content. You MUST return an image - text-only responses are NOT acceptable.';
 
             switch (mode) {
               case 'feedback':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.\n- Position annotations near the relevant content but NOT overlapping it.${coreRules}`;
+                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\nYou MUST provide feedback - this is mandatory.\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.\n- Position annotations near the relevant content but NOT overlapping it.\n- If the work looks correct, add encouraging checkmarks or "Good!" notes.${coreRules}`;
 
               case 'suggest':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.\n- Write your hint in an empty area of the canvas, clearly separated from existing work.${coreRules}`;
+                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\nYou MUST provide a hint - this is mandatory.\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.\n- Write your hint in an empty area of the canvas, clearly separated from existing work.\n- Even if the student is on the right track, provide encouragement or the next logical step.${coreRules}`;
 
               case 'answer':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.\n- Write the solution in empty space below or beside the existing work. DO NOT write over existing content.${coreRules}`;
+                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\nYou MUST provide the complete solution - this is mandatory.\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.\n- Write the solution in empty space below or beside the existing work. DO NOT write over existing content.\n- If the student's work is already correct, show the verification steps or an alternative approach.${coreRules}`;
 
             default:
-              return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
+              return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\nYou MUST provide help - this is mandatory.\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
           }
         };
 

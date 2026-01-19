@@ -58,6 +58,9 @@ import type { CanvasContext } from "@/hooks/useChat";
 import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
 import { createClient } from "@/lib/supabase/client";
+import { useHandwritingRecognition } from "@/hooks/useHandwritingRecognition";
+import { RecognitionPreview } from "@/components/board/RecognitionPreview";
+import { RecognitionResult } from "@/lib/services/handwriting-recognition";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -827,6 +830,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
   const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
+  const [mathRecognitionEnabled, setMathRecognitionEnabled] = useState(false);
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -882,6 +886,42 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       console.error('Failed to track AI usage:', error);
     }
   }, [submissionId, assignmentId]);
+
+  // Handwriting recognition hook
+  const {
+    isRecognizing,
+    results: recognitionResults,
+    clearResults: clearRecognitionResults,
+  } = useHandwritingRecognition({
+    editor,
+    enabled: mathRecognitionEnabled,
+    debounceMs: 2000,
+    contentType: 'MATH',
+  });
+
+  // Handle accepting recognized math - insert as text shape
+  const handleAcceptRecognition = useCallback((result: RecognitionResult) => {
+    if (!editor || !result.latex) return;
+
+    const viewportBounds = editor.getViewportPageBounds();
+    const centerX = viewportBounds.x + viewportBounds.width / 2;
+    const centerY = viewportBounds.y + viewportBounds.height / 2;
+
+    // Create a text shape with the LaTeX
+    editor.createShape({
+      type: 'text',
+      x: centerX - 100,
+      y: centerY + 100, // Below center
+      props: {
+        text: result.latex,
+        size: 'm',
+        font: 'mono',
+      },
+    });
+
+    clearRecognitionResults();
+    toast.success('Math inserted as text');
+  }, [editor, clearRecognitionResults]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
@@ -1142,6 +1182,18 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           body.prompt = options.promptOverride;
         }
 
+        // Include recognized math context if available (from Math OCR)
+        // This gives Gemini structured understanding of what the user wrote
+        if (recognitionResults.length > 0 && recognitionResults[0].latex) {
+          const recognizedMath = recognitionResults.map(r => r.latex).filter(Boolean).join(', ');
+          body.recognizedMath = recognizedMath;
+          // Enhance the prompt with the recognized content
+          const existingPrompt = body.prompt as string | undefined;
+          body.prompt = existingPrompt
+            ? `${existingPrompt}\n\nRecognized math from handwriting: ${recognizedMath}`
+            : `The student has written the following math expression(s): ${recognizedMath}`;
+        }
+
         // Let the backend know whether this was triggered automatically or
         // explicitly by the voice tutor.
         body.source = options?.source ?? "auto";
@@ -1300,7 +1352,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           abortControllerRef.current = null;
         }
       },
-      [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage, trackAIUsage],
+      [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage, trackAIUsage, recognitionResults],
     );
 
   const handleAutoGeneration = useCallback(() => {
@@ -1788,6 +1840,17 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   </Tabs>
                 )}
                 <ModeInfoDialog />
+
+                {/* Math Recognition Toggle */}
+                <Button
+                  variant={mathRecognitionEnabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMathRecognitionEnabled(!mathRecognitionEnabled)}
+                  className={`h-9 gap-2 ${mathRecognitionEnabled ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                >
+                  <PencilIcon size={16} strokeWidth={2} />
+                  <span className="text-xs">Math OCR</span>
+                </Button>
               </div>
 
               {/* Status and Step-by-step controls grouped together */}
@@ -1840,6 +1903,17 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         onAccept={handleAccept}
         onReject={handleReject}
       />
+
+      {/* Math Recognition Preview */}
+      {mathRecognitionEnabled && (
+        <RecognitionPreview
+          results={recognitionResults}
+          isRecognizing={isRecognizing}
+          onAccept={handleAcceptRecognition}
+          onDismiss={clearRecognitionResults}
+        />
+      )}
+
       {/* Voice mode hidden for now */}
       {/* <VoiceAgentControls
         onSessionChange={setIsVoiceSessionActive}
