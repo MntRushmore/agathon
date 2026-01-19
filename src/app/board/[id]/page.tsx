@@ -53,7 +53,7 @@ import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assign
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Check, Clock } from "lucide-react";
 import { formatDistance } from "date-fns";
-import { ChatPanel } from "@/components/chat/ChatPanel";
+import { AISidePanel } from "@/components/chat/AISidePanel";
 import type { CanvasContext } from "@/hooks/useChat";
 import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
@@ -1855,13 +1855,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }}
       /> */}
 
-{/* AI Chat Panel - hide when teacher is viewing student board */}
+{/* AI Side Panel - hide when teacher is viewing student board */}
           {!isTeacherViewing && (
-            <ChatPanel
+            <AISidePanel
+              currentMode={assistanceMode}
               getCanvasContext={async () => {
                 const shapes = editor?.getCurrentPageShapes() || [];
                 let imageBase64: string | undefined;
-                
+
                 if (editor && shapes.length > 0) {
                   try {
                     const shapeIds = editor.getCurrentPageShapeIds();
@@ -1881,7 +1882,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     console.error('Failed to capture canvas:', err);
                   }
                 }
-                
+
                 return {
                   subject: assignmentMeta?.subject,
                   gradeLevel: assignmentMeta?.gradeLevel,
