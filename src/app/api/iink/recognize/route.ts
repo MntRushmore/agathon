@@ -25,7 +25,9 @@ function computeHmac(
   applicationKey: string,
   hmacKey: string
 ): string {
-  const hmac = crypto.createHmac('sha512', applicationKey + hmacKey);
+  // MyScript HMAC: key = applicationKey + hmacKey, algorithm = SHA-512
+  const key = applicationKey + hmacKey;
+  const hmac = crypto.createHmac('sha512', key);
   hmac.update(message);
   return hmac.digest('hex');
 }
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
     const hmacKey = process.env.MYSCRIPT_HMAC_KEY;
 
     if (!applicationKey || !hmacKey) {
+      console.error('MyScript API keys not configured');
       return NextResponse.json(
         { error: 'MyScript API keys not configured' },
         { status: 500 }
@@ -52,19 +55,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Build the recognition request for MyScript REST API
-    // Using the batch recognition endpoint
+    // Using the batch recognition endpoint with correct format
     const recognitionInput = {
       xDPI: 96,
       yDPI: 96,
-      contentType: contentType,
+      contentType: contentType === 'MATH' ? 'Math' : contentType === 'TEXT' ? 'Text' : 'Diagram',
       strokeGroups: [
         {
           strokes: strokes.map((stroke, index) => ({
             id: `stroke-${index}`,
             x: stroke.x,
             y: stroke.y,
-            t: stroke.t || stroke.x.map((_, i) => i * 10), // Synthesize timestamps if not provided
-            p: stroke.p || stroke.x.map(() => 0.5), // Default pressure if not provided
+            t: stroke.t || stroke.x.map((_, i) => Date.now() + i * 10),
+            p: stroke.p || stroke.x.map(() => 0.5),
           })),
         },
       ],
@@ -73,62 +76,86 @@ export async function POST(req: NextRequest) {
     const requestBody = JSON.stringify(recognitionInput);
     const hmacSignature = computeHmac(requestBody, applicationKey, hmacKey);
 
+    console.log('Sending request to MyScript API...');
+    console.log('Application Key:', applicationKey.slice(0, 8) + '...');
+    console.log('Content Type:', recognitionInput.contentType);
+    console.log('Strokes count:', strokes.length);
+
     // MyScript Cloud REST API endpoint for batch recognition
     const apiUrl = 'https://cloud.myscript.com/api/v4.0/iink/batch';
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json,application/vnd.myscript.jiix',
-        'applicationKey': applicationKey,
-        'hmac': hmacSignature,
-      },
-      body: requestBody,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('MyScript API error:', response.status, errorText);
-      return NextResponse.json(
-        { error: `MyScript API error: ${response.status}`, details: errorText },
-        { status: response.status }
-      );
-    }
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.myscript.jiix,application/json',
+          'applicationKey': applicationKey,
+          'hmac': hmacSignature,
+        },
+        body: requestBody,
+        signal: controller.signal,
+      });
 
-    const data = await response.json();
+      clearTimeout(timeoutId);
 
-    // Extract recognition results
-    const result: RecognitionResult = {};
-
-    // Parse JIIX format response for math
-    if (contentType === 'MATH') {
-      // JIIX format contains expressions with LaTeX
-      if (data.expressions && data.expressions.length > 0) {
-        const expr = data.expressions[0];
-        result.latex = expr.latex || extractLatexFromJiix(data);
-        result.mathml = expr.mathml;
-      } else if (data.label) {
-        result.latex = data.label;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('MyScript API error:', response.status, errorText);
+        return NextResponse.json(
+          { error: `MyScript API error: ${response.status}`, details: errorText },
+          { status: response.status }
+        );
       }
-    } else {
-      // Text recognition
-      result.text = data.label || data.text || '';
-    }
 
-    // Try to extract confidence if available
-    if (data.expressions?.[0]?.candidates) {
-      const candidates = data.expressions[0].candidates;
-      if (candidates.length > 0 && typeof candidates[0].score === 'number') {
-        result.confidence = candidates[0].score;
+      const data = await response.json();
+      console.log('MyScript API response:', JSON.stringify(data).slice(0, 200));
+
+      // Extract recognition results
+      const result: RecognitionResult = {};
+
+      // Parse JIIX format response for math
+      if (contentType === 'MATH') {
+        // JIIX format contains expressions with LaTeX
+        if (data.expressions && data.expressions.length > 0) {
+          const expr = data.expressions[0];
+          result.latex = expr.latex || extractLatexFromJiix(data);
+          result.mathml = expr.mathml;
+        } else if (data.label) {
+          result.latex = data.label;
+        }
+      } else {
+        // Text recognition
+        result.text = data.label || data.text || '';
       }
-    }
 
-    return NextResponse.json({
-      success: true,
-      result,
-      raw: data, // Include raw response for debugging
-    });
+      // Try to extract confidence if available
+      if (data.expressions?.[0]?.candidates) {
+        const candidates = data.expressions[0].candidates;
+        if (candidates.length > 0 && typeof candidates[0].score === 'number') {
+          result.confidence = candidates[0].score;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        result,
+        raw: data,
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('MyScript API request timed out');
+        return NextResponse.json(
+          { error: 'Request to MyScript API timed out' },
+          { status: 504 }
+        );
+      }
+      throw fetchError;
+    }
   } catch (error) {
     console.error('Recognition error:', error);
     return NextResponse.json(
