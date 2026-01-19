@@ -178,7 +178,7 @@ export function CustomToolbar() {
   ];
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[500]">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[500]">
       <div className="flex items-center gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 px-2 py-1">
         {/* Main tools */}
         <div className="flex items-center">
