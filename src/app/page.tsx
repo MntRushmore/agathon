@@ -68,21 +68,24 @@ type Whiteboard = {
   sharedPermission?: 'view' | 'edit';
 };
 
-// Feature card color variants
-type ColorVariant = 'blue' | 'purple' | 'green';
+// Feature card color variants - muted, professional crème palette
+type ColorVariant = 'green' | 'blue' | 'purple';
 
-const colorVariants: Record<ColorVariant, { iconBg: string; hoverText: string }> = {
+const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string }> = {
+  green: {
+    iconBg: 'bg-[oklch(0.94_0.03_155)]',
+    iconColor: 'text-[oklch(0.45_0.12_155)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_155)]',
+  },
   blue: {
-    iconBg: 'bg-blue-500',
-    hoverText: 'group-hover:text-blue-600',
+    iconBg: 'bg-[oklch(0.94_0.03_240)]',
+    iconColor: 'text-[oklch(0.45_0.12_240)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_240)]',
   },
   purple: {
-    iconBg: 'bg-purple-500',
-    hoverText: 'group-hover:text-purple-600',
-  },
-  green: {
-    iconBg: 'bg-emerald-500',
-    hoverText: 'group-hover:text-emerald-600',
+    iconBg: 'bg-[oklch(0.94_0.03_290)]',
+    iconColor: 'text-[oklch(0.45_0.14_290)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_290)]',
   },
 };
 
@@ -297,101 +300,114 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
+      {/* Sidebar - Light crème theme */}
       <aside className={cn(
         "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
-        "bg-sidebar-dark text-white border-r border-sidebar-dark-border",
-        sidebarCollapsed ? "w-16" : "w-64"
-      )}
-      style={{
-        backgroundColor: 'hsl(0 0% 11%)',
-        borderColor: 'hsl(0 0% 18%)',
-      }}
-      >
+        "bg-card border-r border-border",
+        sidebarCollapsed ? "w-16" : "w-56"
+      )}>
         {/* Sidebar Header */}
-        <div className="p-4 flex items-center justify-between border-b" style={{ borderColor: 'hsl(0 0% 18%)' }}>
+        <div className="p-4 flex items-center justify-between">
           <button
             onClick={() => createWhiteboard()}
             className={cn(
-              "flex items-center gap-3 rounded-lg transition-all duration-150",
-              "hover:bg-white/10",
-              sidebarCollapsed ? "p-2.5" : "px-3 py-2.5"
+              "flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              sidebarCollapsed ? "p-2.5" : "px-4 py-2"
             )}
           >
-            <Plus className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="font-medium text-sm">New</span>}
+            <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
+            {!sidebarCollapsed && <span className="text-sm">New</span>}
           </button>
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-gray-400"
-          >
-            <ChevronLeft className={cn(
-              "h-4 w-4 transition-transform duration-200",
-              sidebarCollapsed && "rotate-180"
-            )} />
-          </button>
+          {!sidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 px-2 py-3">
-          <button
-            onClick={() => setShowMyFiles(!showMyFiles)}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-              showMyFiles
-                ? "bg-white/10 text-white"
-                : "text-gray-400 hover:bg-white/5 hover:text-white"
-            )}
-          >
-            <Folder className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="text-sm">My files</span>}
-          </button>
+        {/* Primary Navigation */}
+        <nav className="flex-1 px-3 py-2">
+          <div className="space-y-1">
+            <button
+              onClick={() => setShowMyFiles(false)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                !showMyFiles
+                  ? "bg-accent text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Sparkles className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              {!sidebarCollapsed && <span className="text-sm">Home</span>}
+            </button>
+            <button
+              onClick={() => setShowMyFiles(true)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                showMyFiles
+                  ? "bg-accent text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Folder className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
+            </button>
+          </div>
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-3 space-y-1 border-t" style={{ borderColor: 'hsl(0 0% 18%)' }}>
-          {!sidebarCollapsed && (
-            <>
-              {user ? (
-                <div className="px-3 py-2.5 text-gray-400">
-                  <p className="truncate text-sm font-medium text-white">
-                    {profile?.full_name || user.email}
-                  </p>
-                  <p className="text-xs capitalize opacity-70">{profile?.role || 'User'}</p>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setAuthModalOpen(true)}
-                  className="w-full px-3 py-2.5 text-sm text-left hover:bg-white/10 rounded-lg transition-colors text-gray-400"
-                >
-                  Sign in
-                </button>
-              )}
-            </>
-          )}
+        {/* Divider */}
+        <div className="mx-3 border-t border-border" />
+
+        {/* Secondary Navigation / Footer */}
+        <div className="p-3 space-y-1">
           <button
             onClick={() => router.push('/board/temp-' + Date.now())}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-              "text-gray-400 hover:bg-white/5 hover:text-white",
+              "text-muted-foreground hover:bg-muted hover:text-foreground",
               sidebarCollapsed && "justify-center"
             )}
           >
-            <PenTool className="h-5 w-5 flex-shrink-0" />
-            {!sidebarCollapsed && <span className="text-sm">Whiteboard</span>}
+            <PenTool className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+            {!sidebarCollapsed && <span className="text-sm">Quick Board</span>}
           </button>
           {user && (
             <button
               onClick={() => {/* settings */}}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                "text-gray-400 hover:bg-white/5 hover:text-white",
+                "text-muted-foreground hover:bg-muted hover:text-foreground",
                 sidebarCollapsed && "justify-center"
               )}
             >
-              <Settings className="h-5 w-5 flex-shrink-0" />
+              <Settings className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
               {!sidebarCollapsed && <span className="text-sm">Settings</span>}
             </button>
+          )}
+
+          {/* User info / Sign in */}
+          {!sidebarCollapsed && (
+            <div className="pt-2 mt-2 border-t border-border">
+              {user ? (
+                <div className="px-3 py-2">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {profile?.full_name || user.email?.split('@')[0]}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize">{profile?.role || 'User'}</p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="w-full px-3 py-2.5 text-sm text-left hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
           )}
         </div>
       </aside>
@@ -399,54 +415,73 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300 ease-out",
-        sidebarCollapsed ? "ml-16" : "ml-64"
+        sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
         {showMyFiles ? (
-          /* My Files View */
+          /* My Boards View */
           <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
-              <h1 className="text-2xl font-semibold text-foreground">My Files</h1>
+              <div>
+                <h1 className="text-2xl font-semibold text-foreground tracking-tight">My Boards</h1>
+                <p className="text-sm text-muted-foreground mt-1">All your whiteboards in one place</p>
+              </div>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search boards..."
                   className="pl-9 bg-card border-border"
                 />
               </div>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3].map((i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
-                    <div className="aspect-video bg-muted rounded-lg mb-4" />
+                    <div className="aspect-[4/3] bg-muted rounded-lg mb-4" />
                     <div className="h-5 bg-muted rounded w-3/4 mb-2" />
                     <div className="h-4 bg-muted rounded w-1/2" />
                   </div>
                 ))}
               </div>
             ) : whiteboards.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <FileIcon className="w-10 h-10 text-muted-foreground" />
+              /* Empty State */
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
+                  <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
+                    <PenTool className="w-6 h-6" strokeWidth={1.75} />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Create your first board</h2>
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                    Start with a blank whiteboard and draw, write equations, or get AI tutoring help.
+                  </p>
+                  <Button onClick={() => createWhiteboard()} size="lg" className="px-6">
+                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                    New Board
+                  </Button>
                 </div>
-                <h2 className="text-xl font-semibold text-foreground mb-2">No files yet</h2>
-                <p className="text-muted-foreground mb-6">Create your first whiteboard to get started</p>
-                <Button onClick={() => createWhiteboard()} size="lg">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Board
-                </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {/* Create New Card */}
+                <button
+                  onClick={() => createWhiteboard()}
+                  className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
+                >
+                  <div className="icon-container icon-container-green">
+                    <Plus className="w-5 h-5" strokeWidth={2} />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">New Board</span>
+                </button>
+
                 {whiteboards.map((board) => (
                   <div
                     key={board.id}
-                    className="group bg-card rounded-xl overflow-hidden border border-border hover:border-border/80 hover:shadow-lg transition-all duration-200 cursor-pointer"
+                    className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
                     onClick={() => router.push(`/board/${board.id}`)}
                   >
-                    <div className="aspect-video bg-muted relative overflow-hidden">
+                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       {board.preview ? (
                         <img
                           src={board.preview}
@@ -455,18 +490,17 @@ export default function Dashboard() {
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full">
-                          <FileIcon className="w-12 h-12 text-muted-foreground/50" />
+                          <PenTool className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
                         </div>
                       )}
                     </div>
                     <div className="p-4">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-foreground truncate">
+                          <h3 className="font-medium text-foreground truncate text-sm">
                             {board.title}
                           </h3>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
-                            <Clock className="w-3.5 h-3.5" />
+                          <p className="text-xs text-muted-foreground mt-1">
                             {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
                           </p>
                         </div>
@@ -475,7 +509,7 @@ export default function Dashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
@@ -579,14 +613,18 @@ export default function Dashboard() {
         ) : (
           /* Dashboard Home View */
           <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
-            <div className="max-w-3xl w-full">
-              <h1 className="text-4xl font-semibold text-foreground text-center mb-3 tracking-tight">
-                How can I help you today?
-              </h1>
-              <p className="text-muted-foreground text-center mb-12 text-lg">
-                Select an option below to get started
-              </p>
+            <div className="max-w-2xl w-full">
+              {/* Greeting */}
+              <div className="text-center mb-10">
+                <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
+                  {user ? `Hi, ${profile?.full_name?.split(' ')[0] || 'there'}` : 'Welcome'}
+                </h1>
+                <p className="text-muted-foreground">
+                  What would you like to work on?
+                </p>
+              </div>
 
+              {/* Feature Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {featureCards.map((card) => {
                   const colors = colorVariants[card.color];
@@ -596,38 +634,34 @@ export default function Dashboard() {
                       onClick={card.onClick}
                       disabled={creating && card.id === 'whiteboard'}
                       className={cn(
-                        "group bg-card rounded-2xl p-5 text-left border border-border transition-all duration-200",
-                        "hover:shadow-lg hover:-translate-y-0.5 hover:border-border/60 active:translate-y-0",
+                        "group feature-card rounded-xl p-5 text-left transition-all duration-200",
+                        "hover:shadow-md active:scale-[0.99]",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
-                        card.comingSoon && "opacity-75"
+                        colors.hoverBorder,
+                        card.comingSoon && "opacity-70"
                       )}
                     >
                       <div className="flex items-start gap-4">
                         <div className={cn(
-                          "p-3 rounded-xl text-white flex-shrink-0",
-                          colors.iconBg
+                          "icon-container",
+                          colors.iconBg,
+                          colors.iconColor
                         )}>
                           {card.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className={cn(
-                              "text-base font-semibold text-foreground transition-colors",
-                              colors.hoverText
-                            )}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-semibold text-foreground">
                               {card.title}
                             </h3>
                             {card.comingSoon && (
-                              <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
-                                Coming Soon
+                              <span className="px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded-full">
+                                Soon
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
                             {card.description}
-                          </p>
-                          <p className="text-xs text-muted-foreground/70 mt-2">
-                            {card.detail}
                           </p>
                         </div>
                       </div>
@@ -636,16 +670,16 @@ export default function Dashboard() {
                 })}
               </div>
 
-              {/* Quick Access to Recent Files */}
+              {/* Recent Boards */}
               {user && whiteboards.length > 0 && (
-                <div className="mt-14">
+                <div className="mt-12">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-foreground">Recent files</h2>
+                    <h2 className="text-sm font-semibold text-foreground">Recent boards</h2>
                     <button
                       onClick={() => setShowMyFiles(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      View all
+                      View all →
                     </button>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -653,17 +687,17 @@ export default function Dashboard() {
                       <button
                         key={board.id}
                         onClick={() => router.push(`/board/${board.id}`)}
-                        className="bg-card rounded-xl p-4 text-left border border-border hover:border-border/60 hover:shadow-md transition-all duration-200"
+                        className="feature-card rounded-lg p-3.5 text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-muted rounded-lg flex-shrink-0">
-                            <FileIcon className="w-4 h-4 text-muted-foreground" />
+                          <div className="icon-container-sm bg-muted">
+                            <PenTool className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium text-foreground truncate text-sm">
                               {board.title}
                             </h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-xs text-muted-foreground">
                               {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
                             </p>
                           </div>
@@ -674,13 +708,13 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Sign in prompt for non-authenticated users */}
+              {/* Sign in prompt */}
               {!user && (
-                <div className="mt-14 text-center">
-                  <p className="text-muted-foreground mb-4">
-                    Sign in to save your work and access all features
+                <div className="mt-12 text-center p-6 bg-card rounded-xl border border-border">
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sign in to save your boards and access all features
                   </p>
-                  <Button onClick={() => setAuthModalOpen(true)} variant="outline" size="lg">
+                  <Button onClick={() => setAuthModalOpen(true)} variant="outline">
                     Sign In
                   </Button>
                 </div>
