@@ -1186,8 +1186,106 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }
 
         const solutionData = await solutionResponse.json();
-        const imageUrl = solutionData.imageUrl as string | null | undefined;
+        const feedback = solutionData.feedback;
         const textContent = solutionData.textContent || '';
+
+        logger.info({
+          hasFeedback: !!feedback,
+          annotationCount: feedback?.annotations?.length || 0,
+          summary: feedback?.summary?.slice(0, 100),
+        }, 'Solution data received');
+
+        // If no feedback was returned, stop gracefully
+        if (!feedback || !feedback.annotations || feedback.annotations.length === 0 || signal.aborted) {
+          logger.info({ textContent }, 'No feedback annotations returned');
+          setStatus("idle");
+          setStatusMessage("");
+          isProcessingRef.current = false;
+          return false;
+        }
+
+        if (signal.aborted) return false;
+
+        logger.info('Creating feedback annotations on canvas...');
+
+        // Set flag to prevent these shape additions from triggering activity detection
+        isUpdatingImageRef.current = true;
+
+        // Get color based on annotation type
+        const getAnnotationColor = (type: string): string => {
+          switch (type) {
+            case 'correction': return 'red';
+            case 'hint': return 'yellow';
+            case 'encouragement': return 'green';
+            case 'step': return 'blue';
+            case 'answer': return 'violet';
+            default: return 'yellow';
+          }
+        };
+
+        // Create note shapes for each annotation
+        const createdShapeIds: TLShapeId[] = [];
+        const noteWidth = 280;
+        const noteHeight = 140;
+        const padding = 20;
+
+        // Position notes at the right side of the viewport
+        let yOffset = viewportBounds.y + padding;
+        const xPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
+
+        // In "feedback" mode, show at full opacity without accept/reject
+        // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
+        const isFeedbackMode = mode === "feedback";
+
+        for (const annotation of feedback.annotations) {
+          const shapeId = createShapeId();
+
+          editor.createShape({
+            id: shapeId,
+            type: "note",
+            x: xPosition,
+            y: yOffset,
+            opacity: isFeedbackMode ? 1.0 : 0.7,
+            isLocked: true,
+            props: {
+              richText: toRichText(annotation.content),
+              color: getAnnotationColor(annotation.type),
+              size: 'm',
+              font: 'draw',
+              align: 'start',
+              verticalAlign: 'start',
+              growY: 0,
+              fontSizeAdjustment: 0,
+              url: '',
+              scale: 1,
+            },
+            meta: {
+              aiGenerated: true,
+              aiMode: mode,
+              aiAnnotationType: annotation.type,
+              aiTimestamp: new Date().toISOString(),
+            },
+          });
+
+          createdShapeIds.push(shapeId);
+          yOffset += noteHeight + padding;
+
+          // If we're running out of vertical space, wrap to a new column
+          if (yOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
+            yOffset = viewportBounds.y + padding;
+          }
+        }
+
+        // Only add to pending list if not in feedback mode
+        if (!isFeedbackMode) {
+          setPendingImageIds((prev) => [...prev, ...createdShapeIds]);
+        }
+
+        // Track AI usage for teacher analytics
+        trackAIUsage(mode, options?.promptOverride, textContent);
+
+        /* ====== COMMENTED OUT: Image-based solution generation (for future use) ======
+        const imageUrl = solutionData.imageUrl as string | null | undefined;
 
         logger.info({
           hasImageUrl: !!imageUrl,
@@ -1197,7 +1295,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }, 'Solution data received');
 
         // If the model didn't return an image, it means Gemini decided help isn't needed.
-        // Log the reason and gracefully stop.
         if (!imageUrl || signal.aborted) {
           logger.info({ textContent }, 'Gemini decided help is not needed');
           setStatus("idle");
@@ -1208,13 +1305,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         const processedImageUrl = imageUrl;
 
-        if (signal.aborted) return false;
-
         // Create asset and shape
         const assetId = AssetRecordType.createId();
         const img = new Image();
         logger.info('Loading image into asset...');
-        
+
         await new Promise((resolve, reject) => {
           img.onload = () => {
             logger.info({ width: img.width, height: img.height }, 'Image loaded successfully');
@@ -1227,12 +1322,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           img.src = processedImageUrl;
         });
 
-        if (signal.aborted) return false;
-
         logger.info('Creating asset and shape...');
-
-        // Set flag to prevent these shape additions from triggering activity detection
-        isUpdatingImageRef.current = true;
 
         editor.createAssets([
           {
@@ -1259,10 +1349,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const shapeWidth = img.width * scale;
         const shapeHeight = img.height * scale;
 
-        // In "feedback" mode, show at full opacity without accept/reject
-        // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
-        const isFeedbackMode = mode === "feedback";
-        
         editor.createShape({
           id: shapeId,
           type: "image",
@@ -1282,13 +1368,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           },
         });
 
-          // Only add to pending list if not in feedback mode
-          if (!isFeedbackMode) {
-            setPendingImageIds((prev) => [...prev, shapeId]);
-          }
+        if (!isFeedbackMode) {
+          setPendingImageIds((prev) => [...prev, shapeId]);
+        }
 
-          // Track AI usage for teacher analytics
-          trackAIUsage(mode, options?.promptOverride, textContent);
+        trackAIUsage(mode, options?.promptOverride, textContent);
+        ====== END COMMENTED OUT ====== */
           
           // Show success message briefly, then return to idle
         setStatus("success");
