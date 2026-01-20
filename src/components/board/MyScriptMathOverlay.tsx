@@ -51,18 +51,14 @@ async function computeHmac(message: string, applicationKey: string, hmacKey: str
 
 export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathOverlayProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const strokesRef = useRef<StrokeData[]>([]);
-  const currentStrokeRef = useRef<StrokeData | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastShapeCountRef = useRef(0);
   const authFailedRef = useRef(false);
   const missingConfigWarnedRef = useRef(false);
   const lastResultRef = useRef<RecognitionResult | null>(null);
   const lastResultShapeIdRef = useRef<ReturnType<typeof createShapeId> | null>(null);
   const lastResultAtRef = useRef(0);
-  const lastProcessedShapeCountRef = useRef(0);
-  const pendingStartIndexRef = useRef(0);
-  const pendingEndIndexRef = useRef(0);
+  const lastBoundsRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
+  const lastShapesSignatureRef = useRef<string>('');
 
   // Get MyScript credentials from environment (passed via props or context in real impl)
   const config: MyScriptConfig = {
@@ -70,46 +66,38 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
     hmacKey: process.env.NEXT_PUBLIC_MYSCRIPT_HMAC_KEY || '',
   };
 
-  // Extract stroke data from tldraw draw shapes
-  const extractStrokesFromEditor = useCallback((startIndex = 0, endIndex?: number) => {
-    if (!editor) return [];
+  // Extract stroke data from the provided draw shapes (already filtered/sorted)
+  const extractStrokesFromShapes = useCallback((targetShapes: any[]) => {
+    if (!editor || targetShapes.length === 0) return [];
 
-    const shapes = editor.getCurrentPageShapes();
     const strokes: StrokeData[] = [];
-    const drawShapes = shapes.filter((shape) => shape.type === 'draw' && !shape.meta?.aiGenerated);
-    const sliceEnd = endIndex ?? drawShapes.length;
-    const targetShapes = drawShapes.slice(startIndex, sliceEnd);
 
     targetShapes.forEach((shape) => {
-      // Only process draw shapes (not text, images, etc.)
-      if (shape.type === 'draw' && !shape.meta?.aiGenerated) {
-        const drawShape = shape as any;
-        const segments = drawShape.props?.segments || [];
+      const segments = (shape as any)?.props?.segments || [];
 
-        segments.forEach((segment: any) => {
-          if (segment.type === 'free' && segment.points?.length > 0) {
-            const stroke: StrokeData = {
-              x: [],
-              y: [],
-              t: [],
-              p: [],
-            };
+      segments.forEach((segment: any) => {
+        if (segment.type === 'free' && segment.points?.length > 0) {
+          const stroke: StrokeData = {
+            x: [],
+            y: [],
+            t: [],
+            p: [],
+          };
 
-            segment.points.forEach((point: any, index: number) => {
-              // Transform from shape-local coords to page coords
-              stroke.x.push(shape.x + point.x);
-              stroke.y.push(shape.y + point.y);
-              // Generate timestamps (MyScript needs them for velocity analysis)
-              stroke.t.push(Date.now() - (segment.points.length - index) * 10);
-              stroke.p?.push(point.z || 0.5); // Pressure
-            });
+          segment.points.forEach((point: any, index: number) => {
+            // Transform from shape-local coords to page coords
+            stroke.x.push(shape.x + point.x);
+            stroke.y.push(shape.y + point.y);
+            // Generate timestamps (MyScript needs them for velocity analysis)
+            stroke.t.push(Date.now() - (segment.points.length - index) * 10);
+            stroke.p?.push(point.z || 0.5); // Pressure
+          });
 
-            if (stroke.x.length > 0) {
-              strokes.push(stroke);
-            }
+          if (stroke.x.length > 0) {
+            strokes.push(stroke);
           }
-        });
-      }
+        }
+      });
     });
 
     return strokes;
@@ -209,21 +197,15 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
     }
 
     const viewportBounds = editor.getViewportPageBounds();
-    const shapes = editor.getCurrentPageShapes();
-    const userShapes = shapes.filter((s: any) => s.type === 'draw' && !s.meta?.aiGenerated);
+    const targetBounds = lastBoundsRef.current || {
+      minX: viewportBounds.x,
+      minY: viewportBounds.y,
+      maxX: viewportBounds.x + viewportBounds.width,
+      maxY: viewportBounds.y + viewportBounds.height,
+    };
 
-    // Find the rightmost point of user drawings
-    let maxX = viewportBounds.x;
-    let avgY = viewportBounds.y + viewportBounds.height / 2;
-
-    if (userShapes.length > 0) {
-      const lastShape = userShapes[userShapes.length - 1];
-      const bounds = editor.getShapePageBounds(lastShape);
-      if (bounds) {
-        maxX = bounds.maxX;
-        avgY = bounds.y + bounds.height / 2;
-      }
-    }
+    const maxX = targetBounds.maxX;
+    const avgY = targetBounds.minY + (targetBounds.maxY - targetBounds.minY) / 2;
 
     if (lastResultShapeIdRef.current) {
       const existing = editor.getShape(lastResultShapeIdRef.current);
@@ -267,17 +249,53 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
 
     const handleChange = () => {
       const shapes = editor.getCurrentPageShapes();
-      const drawShapes = shapes.filter((s: any) => s.type === 'draw' && !s.meta?.aiGenerated);
+      const drawShapes = shapes
+        .filter((s: any) => s.type === 'draw' && !s.meta?.aiGenerated)
+        .sort((a: any, b: any) => a.index.localeCompare(b.index));
 
-      // Only trigger if we have new strokes
-      if (drawShapes.length === lastShapeCountRef.current) return;
-      if (drawShapes.length < lastProcessedShapeCountRef.current) {
-        lastProcessedShapeCountRef.current = 0;
+      if (drawShapes.length === 0) return;
+
+      const lastShape = drawShapes[drawShapes.length - 1];
+      const lastBounds = editor.getShapePageBounds(lastShape);
+      if (!lastBounds) return;
+
+      // Collect shapes that live on the same horizontal band as the latest stroke
+      const BAND_PADDING = 140;
+      const equationShapes = drawShapes.filter((shape: any) => {
+        const bounds = editor.getShapePageBounds(shape);
+        if (!bounds) return false;
+        const overlapsBand =
+          bounds.maxY >= lastBounds.y - BAND_PADDING &&
+          bounds.y <= lastBounds.maxY + BAND_PADDING;
+        return overlapsBand;
+      });
+
+      if (equationShapes.length === 0) return;
+
+      // Cache the bounding box for positioning the answer
+      const bounds = equationShapes.reduce(
+        (acc, shape: any) => {
+          const b = editor.getShapePageBounds(shape);
+          if (!b) return acc;
+          return {
+            minX: Math.min(acc.minX, b.x),
+            minY: Math.min(acc.minY, b.y),
+            maxX: Math.max(acc.maxX, b.x + b.width),
+            maxY: Math.max(acc.maxY, b.y + b.height),
+          };
+        },
+        { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity },
+      );
+      if (Number.isFinite(bounds.minX)) {
+        lastBoundsRef.current = bounds;
       }
 
-      pendingStartIndexRef.current = lastProcessedShapeCountRef.current;
-      pendingEndIndexRef.current = drawShapes.length;
-      lastShapeCountRef.current = drawShapes.length;
+      // Avoid re-processing the same set of shapes
+      const signature = equationShapes
+        .map((shape: any) => `${shape.id}:${(shape.props?.segments || []).length}`)
+        .join('|');
+      if (signature === lastShapesSignatureRef.current) return;
+      lastShapesSignatureRef.current = signature;
 
       // Debounce recognition - wait 500ms after last change
       if (recognitionTimeoutRef.current) {
@@ -285,16 +303,13 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       }
 
       recognitionTimeoutRef.current = setTimeout(async () => {
-        const startIndex = pendingStartIndexRef.current;
-        const endIndex = pendingEndIndexRef.current;
-        const strokes = extractStrokesFromEditor(startIndex, endIndex);
+        const strokes = extractStrokesFromShapes(equationShapes);
         if (strokes.length > 0) {
           const result = await recognizeStrokes(strokes);
           if (result && result.value !== undefined && result.value !== null) {
             displayResult(result);
           }
         }
-        lastProcessedShapeCountRef.current = endIndex;
       }, 500); // 500ms debounce - much faster than 2s!
     };
 
@@ -307,7 +322,7 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
         clearTimeout(recognitionTimeoutRef.current);
       }
     };
-  }, [editor, enabled, extractStrokesFromEditor, recognizeStrokes, displayResult]);
+  }, [editor, enabled, extractStrokesFromShapes, recognizeStrokes, displayResult]);
 
   // No visible UI - this is an overlay that just processes
   return null;
