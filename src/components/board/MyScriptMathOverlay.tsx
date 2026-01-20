@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toRichText } from '@tldraw/tlschema';
-import { createShapeId, Editor } from 'tldraw';
+import { createShapeId, Editor, TLShapeId } from 'tldraw';
 
 // MyScript iink-ts types
 interface StrokeData {
@@ -23,6 +23,9 @@ interface RecognitionResult {
   value?: string | number;
   expression?: string | null;
 }
+
+// Debounce delay - wait this long after the user stops drawing before showing answer
+const RECOGNITION_DELAY_MS = 2500;
 
 // Convert a limited subset of LaTeX into an evaluable string for nerdamer
 function latexToExpression(latex?: string): string | null {
@@ -88,6 +91,67 @@ async function evaluateLocally(latex?: string): Promise<Pick<RecognitionResult, 
   } catch (error) {
     console.warn('Local evaluation failed for', parsedExpression, error);
     return { value: undefined, expression: parsedExpression };
+  }
+}
+
+// Check if a string looks like a math expression
+function isMathExpression(text: string): boolean {
+  if (!text || text.trim().length < 2) return false;
+
+  const cleaned = text.trim();
+
+  // Must contain at least one digit
+  if (!/\d/.test(cleaned)) return false;
+
+  // Must contain a math operator or equals sign
+  if (!/[+\-*/=×÷^]/.test(cleaned)) return false;
+
+  // Should not be mostly text/words
+  const wordCount = (cleaned.match(/[a-zA-Z]{3,}/g) || []).length;
+  if (wordCount > 2) return false;
+
+  return true;
+}
+
+// Use Gemini vision API to recognize and solve math from an image
+async function recognizeWithGemini(imageBase64: string): Promise<RecognitionResult | null> {
+  try {
+    // Call the solve-math API which can handle images via Gemini
+    const response = await fetch('/api/solve-math', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageBase64,
+        quick: true,
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn('Gemini solve-math API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.answer || data.answer === '?') {
+      return null;
+    }
+
+    // Check if the recognized expression looks like math
+    const expression = data.recognized || '';
+    if (expression && !isMathExpression(expression)) {
+      console.log('Skipping non-math content:', expression);
+      return null;
+    }
+
+    return {
+      latex: data.recognized,
+      expression: data.recognized,
+      value: data.answer,
+    };
+  } catch (error) {
+    console.error('Gemini recognition error:', error);
+    return null;
   }
 }
 
@@ -165,15 +229,58 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
     return strokes;
   }, [editor]);
 
-  // Send strokes to MyScript for recognition
-  const recognizeStrokes = useCallback(async (strokes: StrokeData[]) => {
+  // Capture image from canvas shapes for Gemini vision recognition
+  const captureImageFromShapes = useCallback(async (shapeIds: TLShapeId[]): Promise<string | null> => {
+    if (!editor || shapeIds.length === 0) return null;
+
+    try {
+      const svg = await editor.getSvgString(shapeIds);
+      if (!svg) return null;
+
+      return new Promise((resolve) => {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        img.onload = () => {
+          // Add padding and ensure minimum size
+          const padding = 40;
+          canvas.width = Math.max(img.width + padding * 2, 200);
+          canvas.height = Math.max(img.height + padding * 2, 100);
+
+          // White background
+          ctx!.fillStyle = 'white';
+          ctx!.fillRect(0, 0, canvas.width, canvas.height);
+          ctx!.drawImage(img, padding, padding);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => resolve(null);
+        img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg.svg)));
+      });
+    } catch (error) {
+      console.error('Failed to capture image:', error);
+      return null;
+    }
+  }, [editor]);
+
+  // Use Gemini vision as primary recognition method (more accurate for handwriting)
+  const recognizeWithGeminiVision = useCallback(async (shapeIds: TLShapeId[]): Promise<RecognitionResult | null> => {
+    const imageBase64 = await captureImageFromShapes(shapeIds);
+    if (!imageBase64) return null;
+
+    return recognizeWithGemini(imageBase64);
+  }, [captureImageFromShapes]);
+
+  // Send strokes to MyScript for recognition (fallback if Gemini fails)
+  const recognizeStrokes = useCallback(async (strokes: StrokeData[]): Promise<RecognitionResult | null> => {
     if (strokes.length === 0) {
       return null;
     }
 
+    // Skip MyScript if not configured - will use Gemini instead
     if (!config.applicationKey || !config.hmacKey) {
       if (!missingConfigWarnedRef.current) {
-        console.warn('MyScript disabled: missing NEXT_PUBLIC_MYSCRIPT_APP_KEY or NEXT_PUBLIC_MYSCRIPT_HMAC_KEY');
+        console.log('MyScript not configured, using Gemini vision for recognition');
         missingConfigWarnedRef.current = true;
       }
       return null;
@@ -371,14 +478,30 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       }
 
       recognitionTimeoutRef.current = setTimeout(async () => {
-        const strokes = extractStrokesFromShapes(equationShapes);
-        if (strokes.length > 0) {
-          const result = await recognizeStrokes(strokes);
+        setIsProcessing(true);
+
+        try {
+          // Try MyScript first (if configured) - it's faster
+          const strokes = extractStrokesFromShapes(equationShapes);
+          let result: RecognitionResult | null = null;
+
+          if (strokes.length > 0) {
+            result = await recognizeStrokes(strokes);
+          }
+
+          // If MyScript didn't work, fall back to Gemini vision (more accurate)
+          if (!result || result.value === undefined || result.value === null) {
+            const shapeIds = equationShapes.map((s: any) => s.id);
+            result = await recognizeWithGeminiVision(shapeIds);
+          }
+
           if (result && result.value !== undefined && result.value !== null) {
             displayResult(result);
           }
+        } finally {
+          setIsProcessing(false);
         }
-      }, 1000); // 1 second of inactivity before showing the quick answer
+      }, RECOGNITION_DELAY_MS); // Wait until user stops drawing before showing the quick answer
     };
 
     // Subscribe to editor changes
@@ -390,7 +513,7 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
         clearTimeout(recognitionTimeoutRef.current);
       }
     };
-  }, [editor, enabled, extractStrokesFromShapes, recognizeStrokes, displayResult]);
+  }, [editor, enabled, extractStrokesFromShapes, recognizeStrokes, recognizeWithGeminiVision, displayResult]);
 
   // No visible UI - this is an overlay that just processes
   return null;

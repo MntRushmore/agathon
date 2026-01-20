@@ -1,13 +1,140 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 
+// Check if text looks like a math expression
+function isMathExpression(text: string): boolean {
+  if (!text || text.trim().length < 2) return false;
+
+  const cleaned = text.trim();
+
+  // Must contain at least one digit
+  if (!/\d/.test(cleaned)) return false;
+
+  // Must contain a math operator or equals sign
+  if (!/[+\-*/=×÷^]/.test(cleaned)) return false;
+
+  // Should not be mostly text/words (allow short variable names like x, y, etc)
+  const wordCount = (cleaned.match(/[a-zA-Z]{3,}/g) || []).length;
+  if (wordCount > 2) return false;
+
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { expression, variables, quick } = await req.json();
+    const { expression, image, variables, quick } = await req.json();
+
+    // If image is provided, use Gemini vision to recognize and solve
+    if (image && typeof image === 'string' && image.startsWith('data:image/')) {
+      const apiKey = process.env.HACKCLUB_AI_API_KEY;
+      if (!apiKey) {
+        return NextResponse.json(
+          { error: 'HACKCLUB_AI_API_KEY not configured' },
+          { status: 500 }
+        );
+      }
+
+      // Use Gemini vision to recognize AND solve the math in one call
+      const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: { url: image },
+                },
+                {
+                  type: 'text',
+                  text: `Look at this handwritten content. If it contains a math expression or equation, recognize it and solve it.
+
+IMPORTANT RULES:
+1. First, determine if this is a math problem. If it's NOT a math problem (just text, drawing, etc.), respond with exactly: NOT_MATH
+2. If it IS math, respond in this exact format:
+   EXPRESSION: [the math expression you see, e.g., "36 + 15" or "9 + 18"]
+   ANSWER: [the computed answer, e.g., "51" or "27"]
+3. Be very careful reading handwritten numbers - common confusions:
+   - 1 vs 7 vs l
+   - 6 vs 0 vs 9
+   - 8 vs 0
+   - + vs × vs ÷
+4. If the math is incomplete (e.g., "3 +" with nothing after), respond: INCOMPLETE
+5. If you can't read it clearly, respond: UNCLEAR
+6. Only give the final numerical answer, no steps or explanation.
+
+Examples:
+- "36 + 15" → EXPRESSION: 36 + 15, ANSWER: 51
+- "9 + 18" → EXPRESSION: 9 + 18, ANSWER: 27
+- "3 + 14" → EXPRESSION: 3 + 14, ANSWER: 17
+- "hello world" → NOT_MATH
+- "2x + 5 = 15" → EXPRESSION: 2x + 5 = 15, ANSWER: x = 5`,
+                },
+              ],
+            },
+          ],
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini vision API error:', response.status, errorText);
+        return NextResponse.json(
+          { error: 'Vision API error', details: errorText },
+          { status: 500 }
+        );
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content?.trim() || '';
+
+      // Parse the response
+      if (content === 'NOT_MATH' || content === 'INCOMPLETE' || content === 'UNCLEAR') {
+        return NextResponse.json({
+          success: false,
+          answer: null,
+          recognized: null,
+          reason: content.toLowerCase(),
+        });
+      }
+
+      // Parse EXPRESSION and ANSWER from response
+      const expressionMatch = content.match(/EXPRESSION:\s*(.+?)(?:,|\n|ANSWER)/i);
+      const answerMatch = content.match(/ANSWER:\s*(.+)/i);
+
+      const recognized = expressionMatch?.[1]?.trim() || '';
+      let answer = answerMatch?.[1]?.trim() || '';
+
+      // Clean up the answer
+      answer = answer.replace(/\*\*/g, '').replace(/`/g, '').trim();
+
+      if (!answer || answer === '?') {
+        return NextResponse.json({
+          success: false,
+          answer: null,
+          recognized,
+          reason: 'could_not_solve',
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        answer,
+        recognized,
+        source: 'gemini-vision',
+      });
+    }
 
     if (!expression) {
       return NextResponse.json(
-        { error: 'No expression provided' },
+        { error: 'No expression or image provided' },
         { status: 400 }
       );
     }
