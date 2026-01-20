@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 
 export async function POST(req: NextRequest) {
   try {
-    const { expression, variables } = await req.json();
+    const { expression, variables, quick } = await req.json();
 
     if (!expression) {
       return NextResponse.json(
         { error: 'No expression provided' },
         { status: 400 }
       );
+    }
+
+    // Quick mode: use CAS for instant computation
+    if (quick) {
+      // Check if expression is suitable for CAS
+      if (canQuickSolve(expression)) {
+        const result = quickSolve(expression);
+        if (result.success) {
+          return NextResponse.json({
+            success: true,
+            answer: result.answer,
+            source: 'cas',
+          });
+        }
+        // If CAS fails, fall through to LLM
+        console.log('CAS failed, falling back to LLM:', result.error);
+      }
     }
 
     const apiKey = process.env.HACKCLUB_AI_API_KEY;
@@ -99,6 +117,7 @@ Examples:
     return NextResponse.json({
       success: true,
       answer: answer || '?',
+      source: 'llm',
     });
   } catch (error) {
     console.error('Error solving math:', error);
