@@ -1714,9 +1714,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       {/* MyScript real-time math recognition - always enabled for instant solving */}
       <MyScriptMathOverlay
         editor={editor}
-        enabled={true}
+        enabled={assistanceMode === 'off'}
         onResult={(result) => {
-          if (result.value) {
+          if (assistanceMode === 'off' && result.value) {
             trackAIUsage('myscript-quick', result.latex || '', String(result.value));
           }
         }}

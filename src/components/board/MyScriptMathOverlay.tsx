@@ -57,6 +57,12 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
   const lastShapeCountRef = useRef(0);
   const authFailedRef = useRef(false);
   const missingConfigWarnedRef = useRef(false);
+  const lastResultRef = useRef<RecognitionResult | null>(null);
+  const lastResultShapeIdRef = useRef<ReturnType<typeof createShapeId> | null>(null);
+  const lastResultAtRef = useRef(0);
+  const lastProcessedShapeCountRef = useRef(0);
+  const pendingStartIndexRef = useRef(0);
+  const pendingEndIndexRef = useRef(0);
 
   // Get MyScript credentials from environment (passed via props or context in real impl)
   const config: MyScriptConfig = {
@@ -65,13 +71,16 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
   };
 
   // Extract stroke data from tldraw draw shapes
-  const extractStrokesFromEditor = useCallback(() => {
+  const extractStrokesFromEditor = useCallback((startIndex = 0, endIndex?: number) => {
     if (!editor) return [];
 
     const shapes = editor.getCurrentPageShapes();
     const strokes: StrokeData[] = [];
+    const drawShapes = shapes.filter((shape) => shape.type === 'draw' && !shape.meta?.aiGenerated);
+    const sliceEnd = endIndex ?? drawShapes.length;
+    const targetShapes = drawShapes.slice(startIndex, sliceEnd);
 
-    shapes.forEach((shape) => {
+    targetShapes.forEach((shape) => {
       // Only process draw shapes (not text, images, etc.)
       if (shape.type === 'draw' && !shape.meta?.aiGenerated) {
         const drawShape = shape as any;
@@ -194,6 +203,11 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
   const displayResult = useCallback((result: RecognitionResult) => {
     if (!editor || !result.value) return;
 
+    const now = Date.now();
+    if (lastResultRef.current?.value === result.value && now - lastResultAtRef.current < 2000) {
+      return;
+    }
+
     const viewportBounds = editor.getViewportPageBounds();
     const shapes = editor.getCurrentPageShapes();
     const userShapes = shapes.filter((s: any) => s.type === 'draw' && !s.meta?.aiGenerated);
@@ -208,6 +222,13 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       if (bounds) {
         maxX = bounds.maxX;
         avgY = bounds.y + bounds.height / 2;
+      }
+    }
+
+    if (lastResultShapeIdRef.current) {
+      const existing = editor.getShape(lastResultShapeIdRef.current);
+      if (existing) {
+        editor.deleteShape(lastResultShapeIdRef.current);
       }
     }
 
@@ -233,6 +254,10 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       },
     });
 
+    lastResultRef.current = result;
+    lastResultShapeIdRef.current = shapeId;
+    lastResultAtRef.current = now;
+
     onResult?.(result);
   }, [editor, onResult]);
 
@@ -246,6 +271,12 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
 
       // Only trigger if we have new strokes
       if (drawShapes.length === lastShapeCountRef.current) return;
+      if (drawShapes.length < lastProcessedShapeCountRef.current) {
+        lastProcessedShapeCountRef.current = 0;
+      }
+
+      pendingStartIndexRef.current = lastProcessedShapeCountRef.current;
+      pendingEndIndexRef.current = drawShapes.length;
       lastShapeCountRef.current = drawShapes.length;
 
       // Debounce recognition - wait 500ms after last change
@@ -254,13 +285,16 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       }
 
       recognitionTimeoutRef.current = setTimeout(async () => {
-        const strokes = extractStrokesFromEditor();
+        const startIndex = pendingStartIndexRef.current;
+        const endIndex = pendingEndIndexRef.current;
+        const strokes = extractStrokesFromEditor(startIndex, endIndex);
         if (strokes.length > 0) {
           const result = await recognizeStrokes(strokes);
           if (result && result.value !== undefined && result.value !== null) {
             displayResult(result);
           }
         }
+        lastProcessedShapeCountRef.current = endIndex;
       }, 500); // 500ms debounce - much faster than 2s!
     };
 
