@@ -28,13 +28,19 @@ interface ToolButtonProps {
 }
 
 function ToolButton({ tool, icon, shortcut, isActive, onClick, label }: ToolButtonProps) {
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <button
       onClick={onClick}
+      onPointerDown={handlePointerDown}
+      onTouchStart={(e) => e.stopPropagation()}
       className={cn(
         'relative flex flex-col items-center justify-center',
         'w-12 h-14 rounded-lg transition-all duration-150',
-        'hover:bg-gray-100',
+        'hover:bg-gray-100 touch-manipulation',
         isActive && 'bg-blue-50'
       )}
       title={`${label}${shortcut ? ` (${shortcut})` : ''}`}
@@ -177,8 +183,16 @@ export function CustomToolbar() {
     { id: 'eraser', icon: <EraserIcon2 />, shortcut: 'E', label: 'Eraser' },
   ];
 
+  const handleContainerPointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[500]">
+    <div
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[500] pointer-events-auto"
+      onPointerDown={handleContainerPointerDown}
+      onTouchStart={(e) => e.stopPropagation()}
+    >
       <div className="flex items-center gap-1 bg-white rounded-2xl shadow-lg border border-gray-200 px-2 py-1">
         {/* Main tools */}
         <div className="flex items-center">
@@ -204,9 +218,11 @@ export function CustomToolbar() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => editor.undo()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             disabled={!canUndo}
             className={cn(
-              'w-10 h-10 flex items-center justify-center rounded-lg transition-all',
+              'w-10 h-10 flex items-center justify-center rounded-lg transition-all touch-manipulation',
               canUndo
                 ? 'text-gray-600 hover:bg-gray-100'
                 : 'text-gray-300 cursor-not-allowed'
@@ -217,9 +233,11 @@ export function CustomToolbar() {
           </button>
           <button
             onClick={() => editor.redo()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             disabled={!canRedo}
             className={cn(
-              'w-10 h-10 flex items-center justify-center rounded-lg transition-all',
+              'w-10 h-10 flex items-center justify-center rounded-lg transition-all touch-manipulation',
               canRedo
                 ? 'text-gray-600 hover:bg-gray-100'
                 : 'text-gray-300 cursor-not-allowed'

@@ -60,6 +60,7 @@ import type { CanvasContext } from "@/hooks/useChat";
 import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -829,6 +830,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
   const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
+  const [solveSpeed, setSolveSpeed] = useState<"quick" | "detailed">("quick");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -1132,6 +1134,102 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         if (signal.aborted) return false;
 
+        // QUICK SOLVE PATH: For "answer" mode with "quick" speed, use OCR + CAS
+        if (mode === "answer" && solveSpeed === "quick") {
+          setStatus("generating");
+          setStatusMessage("Quick solving...");
+
+          try {
+            // Step 1: OCR to get text from the drawing
+            const ocrResponse = await fetch('/api/ocr', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: base64 }),
+              signal,
+            });
+
+            if (!ocrResponse.ok || signal.aborted) {
+              throw new Error('OCR failed');
+            }
+
+            const ocrData = await ocrResponse.json();
+            const recognizedText = ocrData.text || '';
+
+            if (!recognizedText || recognizedText === '?') {
+              // Nothing recognized, fall back to detailed mode
+              logger.info('OCR returned no text, falling back to detailed mode');
+            } else {
+              // Step 2: Quick solve with CAS
+              const solveResponse = await fetch('/api/solve-math', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expression: recognizedText, quick: true }),
+                signal,
+              });
+
+              if (solveResponse.ok && !signal.aborted) {
+                const solveData = await solveResponse.json();
+
+                if (solveData.success && solveData.answer && solveData.answer !== '?') {
+                  // Success! Display the answer as blue text on canvas
+                  isUpdatingImageRef.current = true;
+
+                  // Find the bounds of the user's drawing to position the answer
+                  const allShapes = editor.getCurrentPageShapes();
+                  const userShapes = allShapes.filter((s: any) => !s.meta?.aiGenerated);
+                  const shapeBounds = userShapes.length > 0
+                    ? editor.getShapePageBounds(userShapes[userShapes.length - 1])
+                    : viewportBounds;
+
+                  const shapeId = createShapeId();
+                  editor.createShape({
+                    id: shapeId,
+                    type: 'text',
+                    x: (shapeBounds?.maxX ?? viewportBounds.maxX - 100) + 30,
+                    y: (shapeBounds?.y ?? viewportBounds.y) + ((shapeBounds?.height ?? 50) / 2) - 20,
+                    props: {
+                      text: `= ${solveData.answer}`,
+                      size: 'l',
+                      color: 'blue',
+                    },
+                    meta: {
+                      aiGenerated: true,
+                      aiMode: 'quick-answer',
+                      aiTimestamp: new Date().toISOString(),
+                    },
+                  });
+
+                  // Track AI usage
+                  trackAIUsage('quick-answer', recognizedText, solveData.answer);
+
+                  setStatus("success");
+                  setStatusMessage("Solved!");
+                  setTimeout(() => {
+                    setStatus("idle");
+                    setStatusMessage("");
+                  }, 1500);
+
+                  setTimeout(() => {
+                    isUpdatingImageRef.current = false;
+                  }, 100);
+
+                  isProcessingRef.current = false;
+                  return true;
+                }
+              }
+              // CAS failed, fall through to detailed mode
+              logger.info('CAS solve failed, falling back to detailed mode');
+            }
+          } catch (error) {
+            if (signal.aborted) {
+              isProcessingRef.current = false;
+              return false;
+            }
+            // Fall through to detailed mode on error
+            logger.info({ error }, 'Quick solve error, falling back to detailed mode');
+          }
+        }
+
         // Step 3: Generate solution (Gemini decides if help is needed)
         setStatus("generating");
         setStatusMessage(getStatusMessage(mode, "generating"));
@@ -1303,7 +1401,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           abortControllerRef.current = null;
         }
       },
-      [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage, trackAIUsage],
+      [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, solveSpeed, getStatusMessage, trackAIUsage],
     );
 
   const handleAutoGeneration = useCallback(() => {
@@ -1791,6 +1889,34 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   </Tabs>
                 )}
                 <ModeInfoDialog />
+
+                {/* Quick/Detailed toggle for Solve mode */}
+                {aiAllowed && assistanceMode === 'answer' && (
+                  <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm border shadow-md rounded-lg p-1">
+                    <button
+                      onClick={() => setSolveSpeed('quick')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md text-xs font-medium transition-all touch-manipulation",
+                        solveSpeed === 'quick'
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      Quick
+                    </button>
+                    <button
+                      onClick={() => setSolveSpeed('detailed')}
+                      className={cn(
+                        "px-3 py-1.5 rounded-md text-xs font-medium transition-all touch-manipulation",
+                        solveSpeed === 'detailed'
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      Detailed
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Status and Step-by-step controls grouped together */}

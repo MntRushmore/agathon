@@ -239,15 +239,26 @@ export default function Dashboard() {
   }
 
   // Feature cards for the main dashboard
-  const featureCards = [
+  type FeatureCard = {
+    id: string;
+    title: string;
+    description: string;
+    detail: string;
+    icon: React.ReactNode;
+    color: ColorVariant;
+    onClick: () => void;
+    comingSoon?: boolean;
+  };
+
+  const featureCards: FeatureCard[] = [
     {
       id: 'whiteboard',
       title: 'AI Whiteboard',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
       icon: <PenTool className="h-5 w-5" />,
-      color: 'blue' as ColorVariant,
-      onClick: () => createWhiteboard(),
+      color: 'blue',
+      onClick: () => { createWhiteboard(); },
     },
     {
       id: 'math',
@@ -255,8 +266,9 @@ export default function Dashboard() {
       description: 'Type equations with instant solving',
       detail: 'LaTeX support & step-by-step',
       icon: <Sparkles className="h-5 w-5" />,
-      color: 'purple' as ColorVariant,
-      onClick: () => router.push('/math'),
+      color: 'purple',
+      onClick: () => { toast.info('Math Document is coming soon!'); },
+      comingSoon: true,
     },
   ];
 
@@ -269,7 +281,7 @@ export default function Dashboard() {
       detail: 'Create assignments & track progress',
       icon: <Users className="h-5 w-5" />,
       color: 'green' as ColorVariant,
-      onClick: () => router.push('/teacher/classes'),
+      onClick: () => { router.push('/teacher/classes'); },
     });
   } else if (profile?.role === 'student') {
     featureCards.push({
@@ -279,7 +291,7 @@ export default function Dashboard() {
       detail: 'Access assignments & get help',
       icon: <GraduationCap className="h-5 w-5" />,
       color: 'green' as ColorVariant,
-      onClick: () => router.push('/student/join'),
+      onClick: () => { router.push('/student/join'); },
     });
   }
 
@@ -586,7 +598,8 @@ export default function Dashboard() {
                       className={cn(
                         "group bg-card rounded-2xl p-5 text-left border border-border transition-all duration-200",
                         "hover:shadow-lg hover:-translate-y-0.5 hover:border-border/60 active:translate-y-0",
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                        card.comingSoon && "opacity-75"
                       )}
                     >
                       <div className="flex items-start gap-4">
@@ -597,12 +610,19 @@ export default function Dashboard() {
                           {card.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className={cn(
-                            "text-base font-semibold text-foreground transition-colors",
-                            colors.hoverText
-                          )}>
-                            {card.title}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className={cn(
+                              "text-base font-semibold text-foreground transition-colors",
+                              colors.hoverText
+                            )}>
+                              {card.title}
+                            </h3>
+                            {card.comingSoon && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
+                                Coming Soon
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                             {card.description}
                           </p>
