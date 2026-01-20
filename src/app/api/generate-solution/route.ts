@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { solutionLogger } from '@/lib/logger';
 
+// Response structure for text-based feedback that can be rendered on canvas
+interface FeedbackAnnotation {
+  type: 'correction' | 'hint' | 'encouragement' | 'step' | 'answer';
+  content: string;
+  position?: 'above' | 'below' | 'right' | 'inline';
+}
+
+interface StructuredFeedback {
+  summary: string;
+  annotations: FeedbackAnnotation[];
+  nextStep?: string;
+  isCorrect?: boolean;
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   const requestId = crypto.randomUUID();
@@ -74,49 +88,79 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    // Generate mode-specific prompt.
-    // The `source` controls whether this was triggered automatically ("auto")
-    // or explicitly by the voice tutor ("voice").
-        const getModePrompt = (
-          mode: string,
-        ): string => {
+    // Generate mode-specific prompt for text-based feedback
+    const getModePrompt = (mode: string): string => {
+      const baseAnalysis = `You are a helpful math tutor analyzing a student's handwritten work on a whiteboard.
+Look at the image carefully and identify:
+1. What problem or equation the student is working on
+2. What steps they have completed
+3. Any errors or areas where they need help
 
-          const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Identify what problem they are trying to solve or what they have written.';
+IMPORTANT: You must respond with a valid JSON object only. No markdown, no code fences, just pure JSON.`;
 
-            const coreRules =
-              '\n\n**CRITICAL RULES - MUST FOLLOW:**\n' +
-              '1. **ALWAYS PROVIDE HELP:** You MUST always generate an image with helpful content. NEVER decline to help, NEVER say you cannot assist, NEVER return only text. The student is asking for your help - you MUST provide it.\n' +
-              '2. **PRESERVE EXISTING CONTENT:** DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n' +
-              '3. **HANDWRITING ONLY:** You MUST write your response using realistic handwriting that matches the user\'s handwriting style. NEVER use typed/printed text. Always handwrite everything like a student would with a pen.\n' +
-              '4. **USE BLACK INK:** Use PURE BLACK for any handwriting or normal text to match the user\'s pen.\n' +
-              '5. **WHITE/TRANSPARENT BACKGROUND:** The output image MUST have a WHITE or TRANSPARENT background. Do NOT add any colored backgrounds, gradients, or fills.\n' +
-              '6. **NO OVERLAPPING:** Position your new content in EMPTY SPACE on the canvas. Do NOT write on top of or overlap with any existing content. Find blank areas below, beside, or around the existing work.\n' +
-              '7. **CLEAR SPACING:** Leave adequate spacing between the existing content and your additions. Your content should be clearly separate and readable.\n' +
-              '8. **IMAGE OUTPUT REQUIRED:** ALWAYS generate an updated image of the canvas with handwritten content. You MUST return an image - text-only responses are NOT acceptable.';
+      const jsonFormat = `
+Response format (JSON only, no markdown):
+{
+  "summary": "Brief description of what the student is working on",
+  "isCorrect": true/false,
+  "annotations": [
+    {
+      "type": "correction|hint|encouragement|step|answer",
+      "content": "The feedback text",
+      "position": "below"
+    }
+  ],
+  "nextStep": "Optional suggestion for what to do next"
+}`;
 
-            switch (mode) {
-              case 'feedback':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE LIGHT FEEDBACK**\nYou MUST provide feedback - this is mandatory.\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Point out mistakes or areas for improvement without giving the answer.\n- Use colors like red or orange for corrections, blue or green for positive feedback, and PURE BLACK for any supporting text or handwriting.\n- Position annotations near the relevant content but NOT overlapping it.\n- If the work looks correct, add encouraging checkmarks or "Good!" notes.${coreRules}`;
+      switch (mode) {
+        case 'feedback':
+          return `${baseAnalysis}
 
-              case 'suggest':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE A SUGGESTION/HINT**\nYou MUST provide a hint - this is mandatory.\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, or a partial next step.\n- Match the user's handwriting and style for the suggestion using PURE BLACK.\n- Write your hint in an empty area of the canvas, clearly separated from existing work.\n- Even if the student is on the right track, provide encouragement or the next logical step.${coreRules}`;
+TASK: Provide light, encouraging feedback.
+- Point out any errors WITHOUT giving the answer
+- Add encouraging notes for correct work (use checkmarks like "✓ Good!" or "✓ Correct!")
+- Keep feedback minimal and non-intrusive
+- Use "correction" type for errors, "encouragement" type for positive feedback
 
-              case 'answer':
-                return `${baseAnalysis}\n\n**TASK: PROVIDE FULL SOLUTION**\nYou MUST provide the complete solution - this is mandatory.\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question.\n- Show all working steps clearly on the canvas using PURE BLACK for handwriting.\n- Write the solution in empty space below or beside the existing work. DO NOT write over existing content.\n- If the student's work is already correct, show the verification steps or an alternative approach.${coreRules}`;
+${jsonFormat}`;
 
-            default:
-              return `${baseAnalysis}\n\n**TASK: PROVIDE ASSISTANCE**\nYou MUST provide help - this is mandatory.\n- Provide a helpful hint or guide them to the next step.${coreRules}`;
-          }
-        };
+        case 'suggest':
+          return `${baseAnalysis}
 
+TASK: Provide a helpful hint to guide the student.
+- Give a hint that helps them figure out the next step WITHOUT giving the full answer
+- Ask guiding questions or suggest an approach
+- If they're stuck, break down what they should think about
+- Use "hint" type for suggestions
+
+${jsonFormat}`;
+
+        case 'answer':
+          return `${baseAnalysis}
+
+TASK: Provide the complete solution with all steps.
+- Show the full worked solution step by step
+- Explain each step briefly
+- If their work is correct, verify it and show any remaining steps
+- Use "step" type for solution steps, "answer" type for the final answer
+
+${jsonFormat}`;
+
+        default:
+          return `${baseAnalysis}
+
+TASK: Provide helpful assistance.
+${jsonFormat}`;
+      }
+    };
 
     const basePrompt = getModePrompt(mode);
-
     const finalPrompt = prompt
-      ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
+      ? `${basePrompt}\n\nAdditional context from tutor: ${prompt}`
       : basePrompt;
 
-    solutionLogger.info({ requestId, mode }, 'Calling Hack Club API with Gemini for image generation');
+    solutionLogger.info({ requestId, mode }, 'Calling Hack Club API with Gemini for text feedback');
 
     const apiKey = process.env.HACKCLUB_AI_API_KEY;
     if (!apiKey) {
@@ -127,16 +171,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Hack Club API with Gemini 3 Pro Image model (supports image generation with handwriting)
+    // Call Hack Club API with Gemini 2.5 Flash (supports image input for analysis)
     const apiUrl = 'https://ai.hackclub.com/proxy/v1/chat/completions';
-    const model = 'google/gemini-3-pro-image-preview';
+    const model = 'google/gemini-2.5-flash';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     };
 
-    const requestBody: any = {
+    const requestBody = {
       model,
       messages: [
         {
@@ -145,7 +189,7 @@ export async function POST(req: NextRequest) {
             {
               type: 'image_url',
               image_url: {
-                url: image, // base64 data URL
+                url: image,
               },
             },
             {
@@ -174,96 +218,53 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-
-    // Try to extract a generated image from the response as flexibly as possible.
-    // Different providers / models can structure image outputs differently.
     const message = data.choices?.[0]?.message;
-    const textContent = message?.content || '';
+    let textContent = message?.content || '';
 
-    let imageUrl: string | null = null;
-
-    // 1) Legacy / hypothetical format: message.images[0].image_url.url
-    const legacyImages = (message as any)?.images;
-    if (Array.isArray(legacyImages) && legacyImages.length > 0) {
-      const first = legacyImages[0];
-      imageUrl =
-        first?.image_url?.url ??
-        first?.url ??
-        null;
-    }
-
-    // 2) OpenAI-style content array: look for any image-like item
-    if (!imageUrl) {
-      const content = (message as any)?.content;
-
-      if (Array.isArray(content)) {
-        for (const part of content) {
-          if (part?.type === 'image_url' && part.image_url?.url) {
-            imageUrl = part.image_url.url;
-            break;
-          }
-          if (part?.type === 'output_image' && (part.url || part.image_url?.url)) {
-            imageUrl = part.url || part.image_url?.url;
-            break;
-          }
-        }
-      } else if (typeof content === 'string') {
-        // 3) Fallback: scan text content for a plausible image URL or data URL
-        const text: string = content;
-        const dataUrlMatch = text.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
-        const httpUrlMatch = text.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
-
-        if (dataUrlMatch) {
-          imageUrl = dataUrlMatch[0];
-        } else if (httpUrlMatch) {
-          imageUrl = httpUrlMatch[0];
-        }
+    // Parse the JSON response from Gemini
+    let feedback: StructuredFeedback;
+    try {
+      // Clean up potential markdown code fences
+      let jsonStr = textContent.trim();
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.slice(7);
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.slice(3);
       }
-    }
+      if (jsonStr.endsWith('```')) {
+        jsonStr = jsonStr.slice(0, -3);
+      }
+      jsonStr = jsonStr.trim();
 
-    if (!imageUrl) {
-      // This is an expected path in auto mode: Gemini may decide that no help is needed
-      // and return only text. In voice mode we strongly discouraged this in the prompt,
-      // but still handle it gracefully.
-      const textContent = (message as any)?.content || '';
-
-      const duration = Date.now() - startTime;
-      solutionLogger.info(
-        {
-          requestId,
-          duration,
-          generatedImageSize: 0,
-          hasTextContent: !!textContent,
-          tokensUsed: data.usage?.total_tokens,
-          rawResponseSnippet: JSON.stringify(data).slice(0, 2000),
-        },
-        source === 'voice'
-          ? 'Solution generation completed without image in voice mode (Gemini returned text-only response)'
-          : 'Solution generation completed without image (Gemini returned text-only response)'
-      );
-
-      // Return a successful response with text content (if any), but no image.
-      // The frontend should gracefully handle the absence of imageUrl.
-      return NextResponse.json({
-        success: false,
-        imageUrl: null,
-        textContent,
-        reason: 'Model did not return an image (likely decided help was not needed).',
-      });
+      feedback = JSON.parse(jsonStr);
+    } catch (parseError) {
+      solutionLogger.warn({ requestId, textContent }, 'Failed to parse JSON response, using raw text');
+      // Fallback: create a simple feedback structure from raw text
+      feedback = {
+        summary: 'AI Feedback',
+        annotations: [
+          {
+            type: mode === 'answer' ? 'answer' : 'hint',
+            content: textContent,
+            position: 'below',
+          },
+        ],
+      };
     }
 
     const duration = Date.now() - startTime;
     solutionLogger.info({
       requestId,
       duration,
-      generatedImageSize: imageUrl.length,
-      hasTextContent: !!(message as any)?.content,
+      hasAnnotations: feedback.annotations?.length > 0,
       tokensUsed: data.usage?.total_tokens
     }, 'Solution generation completed successfully');
 
-    // Track AI usage (Hack Club API is free, so no cost tracking needed)
+    // Track AI usage
     try {
-      const { data: { user } } = await (await import('@/lib/supabase/server')).createServerSupabaseClient().then(s => s.auth.getUser());
+      const { createServerSupabaseClient } = await import('@/lib/supabase/server');
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
         const inputTokens = data.usage?.prompt_tokens || 0;
@@ -274,11 +275,11 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: `solution_${mode}`,
-            prompt: prompt || `${mode} mode image generation`,
-            responseSummary: `Generated solution image (${mode} mode) via Hack Club API`,
+            prompt: prompt || `${mode} mode text feedback`,
+            responseSummary: feedback.summary || 'Text feedback generated',
             inputTokens,
             outputTokens,
-            totalCost: 0, // Hack Club API is free
+            totalCost: 0,
             modelUsed: model,
           }),
         });
@@ -289,8 +290,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      imageUrl,
-      textContent: textContent || '',
+      feedback,
+      textContent: feedback.summary || '',
     });
   } catch (error) {
     const duration = Date.now() - startTime;
