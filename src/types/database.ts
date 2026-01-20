@@ -16,6 +16,13 @@ export interface Profile {
   full_name: string | null;
   role: UserRole;
   avatar_url: string | null;
+  plan_tier?: string | null;
+  plan_status?: string | null;
+  plan_product_id?: string | null;
+  polar_subscription_id?: string | null;
+  polar_customer_id?: string | null;
+  polar_external_id?: string | null;
+  plan_expires_at?: string | null;
   created_at: string;
   updated_at: string;
   onboarding_completed?: boolean;

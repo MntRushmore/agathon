@@ -11,6 +11,13 @@ CREATE TABLE IF NOT EXISTS profiles (
   full_name TEXT,
   role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'teacher', 'admin')),
   avatar_url TEXT,
+  plan_tier TEXT DEFAULT 'starter',
+  plan_status TEXT DEFAULT 'inactive',
+  plan_product_id TEXT,
+  polar_subscription_id TEXT,
+  polar_customer_id TEXT,
+  polar_external_id TEXT,
+  plan_expires_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
