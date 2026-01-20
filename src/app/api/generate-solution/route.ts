@@ -91,10 +91,19 @@ export async function POST(req: NextRequest) {
     // Generate mode-specific prompt for text-based feedback
     const getModePrompt = (mode: string): string => {
       const baseAnalysis = `You are a helpful math tutor analyzing a student's handwritten work on a whiteboard.
+
+CRITICAL MATH EVALUATION RULES:
+1. CAREFULLY read the handwritten numbers. Handwriting can be messy - look closely at each digit.
+2. ALWAYS CALCULATE the correct answer yourself before evaluating. For example, 50 + 2 = 52 (not 39).
+3. DO NOT assume the student is wrong. Verify by computing: if they wrote "50 + 2 = 52", that IS CORRECT.
+4. If there's a question mark (?) next to the answer, the student is asking if their answer is right.
+5. Common errors to avoid: misreading "5" as "3", "0" as "6", etc.
+
 Look at the image carefully and identify:
 1. What problem or equation the student is working on
-2. What steps they have completed
-3. Any errors or areas where they need help
+2. The actual numbers written (be very careful with handwriting recognition)
+3. Calculate the correct answer yourself
+4. Compare your calculation with what the student wrote
 
 IMPORTANT: You must respond with a valid JSON object only. No markdown, no code fences, just pure JSON.`;
 
@@ -118,10 +127,12 @@ Response format (JSON only, no markdown):
           return `${baseAnalysis}
 
 TASK: Provide light, encouraging feedback.
-- Point out any errors WITHOUT giving the answer
-- Add encouraging notes for correct work (use checkmarks like "✓ Good!" or "✓ Correct!")
+- FIRST calculate the correct answer yourself
+- If the student's answer matches your calculation, mark it as CORRECT with encouragement (use "✓ Correct!" or "✓ Great work!")
+- If the student has a question mark (?), answer whether their work is correct
+- Only point out errors if the answer is ACTUALLY WRONG
 - Keep feedback minimal and non-intrusive
-- Use "correction" type for errors, "encouragement" type for positive feedback
+- Use "correction" type ONLY for actual errors, "encouragement" type for correct work
 
 ${jsonFormat}`;
 
@@ -129,9 +140,10 @@ ${jsonFormat}`;
           return `${baseAnalysis}
 
 TASK: Provide a helpful hint to guide the student.
-- Give a hint that helps them figure out the next step WITHOUT giving the full answer
+- FIRST verify if their current work is correct before suggesting changes
+- If they're correct, encourage them and suggest next steps
+- If there's an error, give a hint that helps them figure it out WITHOUT giving the full answer
 - Ask guiding questions or suggest an approach
-- If they're stuck, break down what they should think about
 - Use "hint" type for suggestions
 
 ${jsonFormat}`;
@@ -140,9 +152,10 @@ ${jsonFormat}`;
           return `${baseAnalysis}
 
 TASK: Provide the complete solution with all steps.
+- FIRST calculate the correct answer yourself
 - Show the full worked solution step by step
 - Explain each step briefly
-- If their work is correct, verify it and show any remaining steps
+- If their work is already correct, confirm it with "✓ Your answer is correct!"
 - Use "step" type for solution steps, "answer" type for the final answer
 
 ${jsonFormat}`;

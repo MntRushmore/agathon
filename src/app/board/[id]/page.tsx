@@ -1225,20 +1225,29 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         // Create note shapes for each annotation
         const createdShapeIds: TLShapeId[] = [];
-        const noteWidth = 280;
-        const noteHeight = 140;
-        const padding = 20;
+        const noteWidth = 200;  // Smaller notes
+        const noteHeight = 100; // Smaller height
+        const padding = 15;
+        const verticalGap = 10;
 
-        // Position notes at the right side of the viewport
-        let yOffset = viewportBounds.y + padding;
-        const xPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
+        // Position notes alternating between left and right sides
+        let leftYOffset = viewportBounds.y + padding;
+        let rightYOffset = viewportBounds.y + padding;
+        const leftXPosition = viewportBounds.x + padding;
+        const rightXPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
 
         // In "feedback" mode, show at full opacity without accept/reject
         // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
         const isFeedbackMode = mode === "feedback";
 
-        for (const annotation of feedback.annotations) {
+        for (let i = 0; i < feedback.annotations.length; i++) {
+          const annotation = feedback.annotations[i];
           const shapeId = createShapeId();
+
+          // Alternate sides: even index = right, odd index = left
+          const isRightSide = i % 2 === 0;
+          const xPosition = isRightSide ? rightXPosition : leftXPosition;
+          const yOffset = isRightSide ? rightYOffset : leftYOffset;
 
           editor.createShape({
             id: shapeId,
@@ -1250,12 +1259,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             props: {
               richText: toRichText(annotation.content),
               color: getAnnotationColor(annotation.type),
-              size: 'm',
+              size: 's',  // Small size for compact notes
               font: 'draw',
               align: 'start',
               verticalAlign: 'start',
               growY: 0,
-              fontSizeAdjustment: 0,
+              fontSizeAdjustment: -2,  // Slightly smaller font
               url: '',
               scale: 1,
             },
@@ -1268,11 +1277,20 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           });
 
           createdShapeIds.push(shapeId);
-          yOffset += noteHeight + padding;
 
-          // If we're running out of vertical space, wrap to a new column
-          if (yOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
-            yOffset = viewportBounds.y + padding;
+          // Update the appropriate side's offset
+          if (isRightSide) {
+            rightYOffset += noteHeight + verticalGap;
+            // Wrap to top if running out of space
+            if (rightYOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
+              rightYOffset = viewportBounds.y + padding;
+            }
+          } else {
+            leftYOffset += noteHeight + verticalGap;
+            // Wrap to top if running out of space
+            if (leftYOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
+              leftYOffset = viewportBounds.y + padding;
+            }
           }
         }
 
