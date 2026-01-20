@@ -11,7 +11,6 @@ import {
   Users,
   FileText,
   Clock,
-  TrendingUp,
   Plus,
   ChevronRight,
   BookOpen,
@@ -23,6 +22,12 @@ import {
 } from 'lucide-react';
 import { formatDistance, format, isToday, isTomorrow, isPast } from 'date-fns';
 import Link from 'next/link';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface DashboardStats {
   totalStudents: number;
@@ -30,6 +35,7 @@ interface DashboardStats {
   activeAssignments: number;
   pendingSubmissions: number;
   strugglingStudents: number;
+  aiAssistsToday: number;
 }
 
 interface RecentAssignment {
@@ -64,6 +70,7 @@ export default function TeacherDashboardPage() {
     activeAssignments: 0,
     pendingSubmissions: 0,
     strugglingStudents: 0,
+    aiAssistsToday: 0,
   });
   const [recentAssignments, setRecentAssignments] = useState<RecentAssignment[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
@@ -104,6 +111,7 @@ export default function TeacherDashboardPage() {
       }
 
       let assignments: any[] = [];
+      let allAssignments: { id: string }[] = [];
       if (classIds.length > 0) {
         const { data } = await supabase
           .from('assignments')
@@ -142,15 +150,16 @@ export default function TeacherDashboardPage() {
       let pendingSubmissions = 0;
       let activeAssignments = 0;
       if (classIds.length > 0) {
-        const { data: allAssignments } = await supabase
+        const { data: fetchedAssignments } = await supabase
           .from('assignments')
           .select('id')
           .in('class_id', classIds)
           .eq('is_published', true);
 
-        activeAssignments = allAssignments?.length || 0;
+        allAssignments = fetchedAssignments || [];
+        activeAssignments = allAssignments.length;
 
-        if (allAssignments && allAssignments.length > 0) {
+        if (allAssignments.length > 0) {
           const { count } = await supabase
             .from('submissions')
             .select('*', { count: 'exact', head: true })
@@ -158,6 +167,24 @@ export default function TeacherDashboardPage() {
             .neq('status', 'submitted');
           pendingSubmissions = count || 0;
         }
+      }
+
+      // Count AI assists for today across the teacher's assignments
+      let aiAssistsToday = 0;
+      if (allAssignments.length > 0) {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { count } = await supabase
+          .from('ai_usage')
+          .select('*', { count: 'exact', head: true })
+          .in('assignment_id', allAssignments.map((a) => a.id))
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString());
+
+        aiAssistsToday = count || 0;
       }
 
       const { data: strugglingData } = await supabase
@@ -228,6 +255,7 @@ export default function TeacherDashboardPage() {
         activeAssignments,
         pendingSubmissions,
         strugglingStudents: strugglingData?.length || 0,
+        aiAssistsToday,
       });
       setRecentAssignments(assignmentsWithStats);
       setRecentActivity(activity.slice(0, 8));
@@ -320,75 +348,105 @@ export default function TeacherDashboardPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Students</p>
-                  <p className="text-3xl font-bold">{stats.totalStudents}</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Across {stats.totalClasses} classes
-              </p>
-            </CardContent>
-          </Card>
+        <TooltipProvider>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Students</p>
+                        <p className="text-3xl font-bold">{stats.totalStudents}</p>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <Users className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Across {stats.totalClasses} classes
+                    </p>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Students currently enrolled in your active classes.</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Assignments</p>
-                  <p className="text-3xl font-bold">{stats.activeAssignments}</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                {stats.pendingSubmissions} pending submissions
-              </p>
-            </CardContent>
-          </Card>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Active Assignments</p>
+                        <p className="text-3xl font-bold">{stats.activeAssignments}</p>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <FileText className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {stats.pendingSubmissions} pending submissions
+                    </p>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Published assignments that are still in progress.</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Card className={`hover:shadow-md transition-shadow cursor-pointer ${stats.strugglingStudents > 0 ? 'border-amber-300' : ''}`}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Need Attention</p>
-                  <p className="text-3xl font-bold">{stats.strugglingStudents}</p>
-                </div>
-                <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stats.strugglingStudents > 0 ? 'bg-amber-100' : 'bg-muted'}`}>
-                  <AlertTriangle className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Students showing struggle indicators
-              </p>
-            </CardContent>
-          </Card>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className={`hover:shadow-md transition-shadow cursor-pointer ${stats.strugglingStudents > 0 ? 'border-amber-300' : ''}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Need Attention</p>
+                        <p className="text-3xl font-bold">{stats.strugglingStudents}</p>
+                      </div>
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stats.strugglingStudents > 0 ? 'bg-amber-100' : 'bg-muted'}`}>
+                        <AlertTriangle className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Students showing struggle indicators
+                    </p>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Students flagged for repeated hints or long time-on-task.</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">AI Assists Today</p>
-                  <p className="text-3xl font-bold">--</p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Across all assignments
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">AI Assists Today</p>
+                        <p className="text-3xl font-bold">{stats.aiAssistsToday}</p>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
+                        <Sparkles className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Across all assignments today
+                    </p>
+                  </CardContent>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>AI hints, guided steps, and quick solves requested in the last 24 hours.</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">

@@ -799,6 +799,7 @@ type AssignmentMeta = {
   // AI restriction settings from teacher
   allowAI?: boolean;
   allowedModes?: string[];
+  hintLimit?: number | null;
 };
 
 type HelpCheckDecision = {
@@ -816,14 +817,16 @@ type BoardContentProps = {
   assignmentRestrictions?: {
     allowAI?: boolean;
     allowedModes?: string[];
+    hintLimit?: number | null;
   } | null;
   isTeacherViewing?: boolean;
   hasBanner?: boolean;
   submissionId?: string | null;
   assignmentId?: string | null;
+  initialHintCount?: number;
 };
 
-function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId }: BoardContentProps) {
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId, initialHintCount = 0 }: BoardContentProps) {
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -837,16 +840,40 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const [isLandscape, setIsLandscape] = useState(false);
     const [userId, setUserId] = useState<string>("");
     const [showOnboarding, setShowOnboarding] = useState(true);
+    const [hintLimit, setHintLimit] = useState<number | null>(assignmentRestrictions?.hintLimit ?? null);
+    const [currentHintCount, setCurrentHintCount] = useState<number>(initialHintCount);
     const isProcessingRef = useRef(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
 
+  useEffect(() => {
+    setHintLimit(assignmentRestrictions?.hintLimit ?? null);
+  }, [assignmentRestrictions?.hintLimit]);
+
+  useEffect(() => {
+    setCurrentHintCount(initialHintCount);
+  }, [initialHintCount]);
+
+  const maybeWarnHintLimit = useCallback((nextCount: number) => {
+    if (!hintLimit || hintLimit <= 0) return;
+    const remaining = hintLimit - nextCount;
+    if (remaining >= 0 && remaining <= 2) {
+      toast.warning(
+        remaining === 0
+          ? 'You have reached the hint limit for this assignment.'
+          : `${remaining} hint${remaining === 1 ? '' : 's'} remaining—use them wisely.`
+      );
+    }
+  }, [hintLimit]);
+
+  const hintsRemaining = hintLimit !== null ? Math.max(hintLimit - currentHintCount, 0) : null;
+
   const trackAIUsage = useCallback(async (mode: string, prompt?: string, aiResponse?: string) => {
-    if (!submissionId || !assignmentId) return;
+    if (!submissionId && !assignmentId) return;
     try {
-      await fetch('/api/track-ai-usage', {
+      const response = await fetch('/api/track-ai-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -857,6 +884,18 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           aiResponse,
         }),
       });
+
+      const payload = await response.json().catch(() => null);
+      if (payload?.helpCount !== undefined) {
+        setCurrentHintCount(payload.helpCount);
+        maybeWarnHintLimit(payload.helpCount);
+      } else if (hintLimit) {
+        setCurrentHintCount((prev) => {
+          const next = prev + 1;
+          maybeWarnHintLimit(next);
+          return next;
+        });
+      }
 
       // Check for first AI usage milestone
       const supabaseClient = createClient();
@@ -887,7 +926,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     } catch (error) {
       console.error('Failed to track AI usage:', error);
     }
-  }, [submissionId, assignmentId]);
+  }, [submissionId, assignmentId, hintLimit, maybeWarnHintLimit]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
@@ -1937,6 +1976,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
               {/* Status and Step-by-step controls grouped together */}
               <div className="flex items-center gap-2 flex-wrap justify-center">
+                {hintLimit !== null && (
+                  <div className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold shadow-sm">
+                    {hintsRemaining} hint{hintsRemaining === 1 ? '' : 's'} left
+                  </div>
+                )}
                 <StatusIndicator
                   status={status}
                   errorMessage={errorMessage}
@@ -2383,6 +2427,7 @@ export default function BoardPage() {
               hasBanner={!!topOffset}
               submissionId={submissionData?.id}
               assignmentId={submissionData?.assignment_id}
+              initialHintCount={submissionData?.ai_help_count ?? 0}
             />
         </Tldraw>
 

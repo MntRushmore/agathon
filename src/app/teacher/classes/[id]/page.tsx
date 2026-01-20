@@ -12,6 +12,7 @@ import { Class } from '@/types/database';
 import { ArrowLeft, Copy, Users, BookOpen, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance } from 'date-fns';
+import { EditClassDialog } from '@/components/teacher/EditClassDialog';
 
 interface ClassMemberWithStudent {
   id: string;
@@ -155,9 +156,18 @@ export default function ClassDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-semibold">{classData.name}</h1>
-                <Button variant="ghost" size="icon" onClick={() => {/* TODO: Edit dialog */}}>
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <EditClassDialog
+                  classData={classData}
+                  onClassUpdated={(updated) => {
+                    setClassData(updated);
+                    void loadClassData();
+                  }}
+                  trigger={(
+                    <Button variant="ghost" size="icon" className="hover:bg-muted">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
+                />
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {classData.grade_level && (

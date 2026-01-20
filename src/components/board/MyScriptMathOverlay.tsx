@@ -21,6 +21,7 @@ interface RecognitionResult {
   latex?: string;
   mathml?: string;
   value?: string | number;
+  expression?: string | null;
 }
 
 // Convert a limited subset of LaTeX into an evaluable string for nerdamer
@@ -65,6 +66,29 @@ interface MyScriptMathOverlayProps {
   editor: Editor | null;
   enabled: boolean;
   onResult?: (result: RecognitionResult) => void;
+}
+
+async function evaluateLocally(latex?: string): Promise<Pick<RecognitionResult, 'value' | 'expression'>> {
+  const parsedExpression = latexToExpression(latex);
+  if (!parsedExpression) {
+    return { value: undefined, expression: null };
+  }
+
+  // Keep evaluation bounded for perf/safety on iPad streaming contexts
+  if (parsedExpression.length > 120) {
+    return { value: 'Too long', expression: parsedExpression };
+  }
+
+  try {
+    const nerdamer = await import('nerdamer');
+    // @ts-expect-error nerdamer types are not bundled
+    const evaluated = nerdamer.default ? nerdamer.default(parsedExpression).evaluate() : nerdamer(parsedExpression).evaluate();
+    const valueText = evaluated.text ? evaluated.text() : String(evaluated);
+    return { value: valueText, expression: parsedExpression };
+  } catch (error) {
+    console.warn('Local evaluation failed for', parsedExpression, error);
+    return { value: undefined, expression: parsedExpression };
+  }
 }
 
 // Simple HMAC-SHA-512 implementation for MyScript authentication
@@ -209,29 +233,14 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
 
       const result = await response.json();
 
-      // Extract the recognized expression and solution
-      // JIIX format contains 'label' (LaTeX) and 'value' (computed result)
+      // Extract the recognized expression (LaTeX) and run our own local evaluation
+      const latex = result.expressions?.[0]?.label || result.label;
+      const { value, expression } = await evaluateLocally(latex);
       const recognition: RecognitionResult = {
-        latex: result.expressions?.[0]?.label || result.label,
-        value: result.expressions?.[0]?.value ?? result.value,
+        latex,
+        value,
+        expression,
       };
-
-      // If MyScript didn't compute a value (common for more advanced math),
-      // attempt a local evaluation using nerdamer as a fallback.
-      if ((recognition.value === undefined || recognition.value === null) && recognition.latex) {
-        const expr = latexToExpression(recognition.latex);
-        if (expr) {
-          try {
-            const nerdamer = await import('nerdamer');
-            // @ts-expect-error nerdamer types are not bundled
-            const evaluated = nerdamer.default ? nerdamer.default(expr).evaluate() : nerdamer(expr).evaluate();
-            const valueText = evaluated.text ? evaluated.text() : String(evaluated);
-            recognition.value = valueText;
-          } catch (evalError) {
-            console.warn('Fallback evaluation failed for', expr, evalError);
-          }
-        }
-      }
 
       return recognition;
     } catch (error) {
@@ -288,6 +297,7 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
         aiMode: 'myscript-quick',
         aiTimestamp: new Date().toISOString(),
         latex: result.latex,
+        expression: result.expression,
       },
     });
 
