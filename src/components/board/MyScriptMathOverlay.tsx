@@ -30,9 +30,9 @@ interface MyScriptMathOverlayProps {
 }
 
 // Simple HMAC-SHA-512 implementation for MyScript authentication
-async function computeHmac(message: string, key: string): Promise<string> {
+async function computeHmac(message: string, applicationKey: string, hmacKey: string): Promise<string> {
   const encoder = new TextEncoder();
-  const keyData = encoder.encode(key);
+  const keyData = encoder.encode(`${applicationKey}${hmacKey}`);
   const messageData = encoder.encode(message);
 
   const cryptoKey = await crypto.subtle.importKey(
@@ -55,6 +55,8 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
   const currentStrokeRef = useRef<StrokeData | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastShapeCountRef = useRef(0);
+  const authFailedRef = useRef(false);
+  const missingConfigWarnedRef = useRef(false);
 
   // Get MyScript credentials from environment (passed via props or context in real impl)
   const config: MyScriptConfig = {
@@ -106,7 +108,19 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
 
   // Send strokes to MyScript for recognition
   const recognizeStrokes = useCallback(async (strokes: StrokeData[]) => {
-    if (strokes.length === 0 || !config.applicationKey || !config.hmacKey) {
+    if (strokes.length === 0) {
+      return null;
+    }
+
+    if (!config.applicationKey || !config.hmacKey) {
+      if (!missingConfigWarnedRef.current) {
+        console.warn('MyScript disabled: missing NEXT_PUBLIC_MYSCRIPT_APP_KEY or NEXT_PUBLIC_MYSCRIPT_HMAC_KEY');
+        missingConfigWarnedRef.current = true;
+      }
+      return null;
+    }
+
+    if (authFailedRef.current) {
       return null;
     }
 
@@ -132,7 +146,7 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       };
 
       const bodyString = JSON.stringify(requestBody);
-      const hmac = await computeHmac(bodyString, config.hmacKey);
+      const hmac = await computeHmac(bodyString, config.applicationKey, config.hmacKey);
 
       const response = await fetch('https://cloud.myscript.com/api/v4.0/iink/batch', {
         method: 'POST',
@@ -146,7 +160,15 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       });
 
       if (!response.ok) {
-        console.error('MyScript API error:', response.status, await response.text());
+        const errorText = await response.text();
+        if (response.status === 401) {
+          if (!authFailedRef.current) {
+            console.error('MyScript API unauthorized:', errorText);
+            authFailedRef.current = true;
+          }
+        } else {
+          console.error('MyScript API error:', response.status, errorText);
+        }
         return null;
       }
 
