@@ -10,8 +10,7 @@ import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
 import {
   Plus,
   Trash2,
-  Clock,
-  FileIcon,
+  FileText,
   Search,
   Edit2,
   MoreHorizontal,
@@ -20,10 +19,14 @@ import {
   BookOpen,
   Settings,
   ChevronLeft,
-  Folder,
-  Sparkles,
-  PenTool,
+  ChevronRight,
+  FolderOpen,
+  Home,
+  Pencil,
   GraduationCap,
+  Zap,
+  Clock,
+  Calculator,
 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -259,7 +262,7 @@ export default function Dashboard() {
       title: 'AI Whiteboard',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
-      icon: <PenTool className="h-5 w-5" />,
+      icon: <Pencil className="h-5 w-5" />,
       color: 'blue',
       onClick: () => { createWhiteboard(); },
     },
@@ -268,7 +271,7 @@ export default function Dashboard() {
       title: 'Math Document',
       description: 'Type equations with instant solving',
       detail: 'LaTeX support & step-by-step',
-      icon: <Sparkles className="h-5 w-5" />,
+      icon: <Calculator className="h-5 w-5" />,
       color: 'purple',
       onClick: () => { toast.info('Math Document is coming soon!'); },
       comingSoon: true,
@@ -308,24 +311,33 @@ export default function Dashboard() {
       )}>
         {/* Sidebar Header */}
         <div className="p-4 flex items-center justify-between">
-          <button
-            onClick={() => createWhiteboard()}
-            className={cn(
-              "flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              sidebarCollapsed ? "p-2.5" : "px-4 py-2"
-            )}
-          >
-            <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
-            {!sidebarCollapsed && <span className="text-sm">New</span>}
-          </button>
-          {!sidebarCollapsed && (
+          {sidebarCollapsed ? (
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+              onClick={() => setSidebarCollapsed(false)}
+              className="w-full p-2.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground flex items-center justify-center"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
+          ) : (
+            <>
+              <button
+                onClick={() => createWhiteboard()}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "px-4 py-2"
+                )}
+              >
+                <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
+                <span className="text-sm">New</span>
+              </button>
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            </>
           )}
         </div>
 
@@ -341,7 +353,7 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Sparkles className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              <Home className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
               {!sidebarCollapsed && <span className="text-sm">Home</span>}
             </button>
             <button
@@ -353,7 +365,7 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Folder className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
               {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
             </button>
           </div>
@@ -372,7 +384,7 @@ export default function Dashboard() {
               sidebarCollapsed && "justify-center"
             )}
           >
-            <PenTool className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+            <Pencil className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
             {!sidebarCollapsed && <span className="text-sm">Quick Board</span>}
           </button>
           {user && (
@@ -450,7 +462,7 @@ export default function Dashboard() {
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
                   <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <PenTool className="w-6 h-6" strokeWidth={1.75} />
+                    <Pencil className="w-6 h-6" strokeWidth={1.75} />
                   </div>
                   <h2 className="text-lg font-semibold text-foreground mb-2">Create your first board</h2>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
@@ -490,7 +502,7 @@ export default function Dashboard() {
                         />
                       ) : (
                         <div className="flex items-center justify-center h-full">
-                          <PenTool className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
+                          <Pencil className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
                         </div>
                       )}
                     </div>
@@ -691,7 +703,7 @@ export default function Dashboard() {
                       >
                         <div className="flex items-center gap-3">
                           <div className="icon-container-sm bg-muted">
-                            <PenTool className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-medium text-foreground truncate text-sm">
