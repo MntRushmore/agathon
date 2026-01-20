@@ -17,7 +17,7 @@ import {
   Share2,
   Users,
   BookOpen,
-  Settings,
+  CreditCard,
   ChevronLeft,
   ChevronRight,
   FolderOpen,
@@ -389,15 +389,15 @@ export default function Dashboard() {
           </button>
           {user && (
             <button
-              onClick={() => {/* settings */}}
+              onClick={() => router.push('/billing')}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
                 "text-muted-foreground hover:bg-muted hover:text-foreground",
                 sidebarCollapsed && "justify-center"
               )}
             >
-              <Settings className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
-              {!sidebarCollapsed && <span className="text-sm">Settings</span>}
+              <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              {!sidebarCollapsed && <span className="text-sm">Plans & Usage</span>}
             </button>
           )}
 
