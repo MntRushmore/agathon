@@ -23,6 +23,44 @@ interface RecognitionResult {
   value?: string | number;
 }
 
+// Convert a limited subset of LaTeX into an evaluable string for nerdamer
+function latexToExpression(latex?: string): string | null {
+  if (!latex) return null;
+
+  let expr = latex;
+
+  // Strip whitespace and common wrappers
+  expr = expr.replace(/\\!/g, '').replace(/\s+/g, '');
+
+  // Handle \frac{a}{b}
+  expr = expr.replace(/\\frac\s*{([^}]+)}{([^}]+)}/g, '($1)/($2)');
+
+  // Replace multiplication and division symbols
+  expr = expr.replace(/\\cdot|\\times|·/g, '*').replace(/÷/g, '/');
+
+  // Replace power notation ^{n}
+  expr = expr.replace(/\^{([^}]+)}/g, '^($1)');
+
+  // Replace \sqrt{a} and \sqrt[n]{a}
+  expr = expr.replace(/\\sqrt{([^}]+)}/g, 'sqrt($1)');
+  expr = expr.replace(/\\sqrt\[([^\]]+)\]{([^}]+)}/g, 'root($1, $2)');
+
+  // Replace braces with parentheses
+  expr = expr.replace(/{/g, '(').replace(/}/g, ')');
+
+  // Remove LaTeX equals annotations; evaluate left-hand side
+  if (expr.includes('=')) {
+    expr = expr.split('=')[0];
+  }
+
+  // Basic sanity check to avoid empty or dangerous strings
+  if (!expr || /[^0-9+\-*/^().,a-zA-Z]/.test(expr)) {
+    return null;
+  }
+
+  return expr;
+}
+
 interface MyScriptMathOverlayProps {
   editor: Editor | null;
   enabled: boolean;
@@ -178,6 +216,23 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
         value: result.expressions?.[0]?.value ?? result.value,
       };
 
+      // If MyScript didn't compute a value (common for more advanced math),
+      // attempt a local evaluation using nerdamer as a fallback.
+      if ((recognition.value === undefined || recognition.value === null) && recognition.latex) {
+        const expr = latexToExpression(recognition.latex);
+        if (expr) {
+          try {
+            const nerdamer = await import('nerdamer');
+            // @ts-expect-error nerdamer types are not bundled
+            const evaluated = nerdamer.default ? nerdamer.default(expr).evaluate() : nerdamer(expr).evaluate();
+            const valueText = evaluated.text ? evaluated.text() : String(evaluated);
+            recognition.value = valueText;
+          } catch (evalError) {
+            console.warn('Fallback evaluation failed for', expr, evalError);
+          }
+        }
+      }
+
       return recognition;
     } catch (error) {
       console.error('MyScript recognition error:', error);
@@ -260,7 +315,9 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       if (!lastBounds) return;
 
       // Collect shapes that live on the same horizontal band as the latest stroke
-      const BAND_PADDING = 140;
+      // Tighten the vertical band so we only consider the local equation cluster
+      // immediately around the last stroke.
+      const BAND_PADDING = 90;
       const equationShapes = drawShapes.filter((shape: any) => {
         const bounds = editor.getShapePageBounds(shape);
         if (!bounds) return false;
@@ -297,7 +354,8 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
       if (signature === lastShapesSignatureRef.current) return;
       lastShapesSignatureRef.current = signature;
 
-      // Debounce recognition - wait 500ms after last change
+      // Debounce recognition - wait 1s after the last change so it only fires
+      // once the student pauses writing.
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
@@ -310,7 +368,7 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
             displayResult(result);
           }
         }
-      }, 500); // 500ms debounce - much faster than 2s!
+      }, 1000); // 1 second of inactivity before showing the quick answer
     };
 
     // Subscribe to editor changes

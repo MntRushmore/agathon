@@ -145,7 +145,7 @@ function ModeInfoDialog() {
         <DialogHeader>
           <DialogTitle>Help modes</DialogTitle>
           <DialogDescription>
-            Choose how strongly the tutor helps on your canvas.
+            Choose how strongly the tutor helps on your canvas. Quick mode is a fast on-canvas calculator that only runs when selected.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-6">
@@ -795,7 +795,7 @@ type AssignmentMeta = {
   subject?: string;
   gradeLevel?: string;
   instructions?: string;
-  defaultMode?: "off" | "feedback" | "suggest" | "answer";
+  defaultMode?: "off" | "quick" | "feedback" | "suggest" | "answer";
   // AI restriction settings from teacher
   allowAI?: boolean;
   allowedModes?: string[];
@@ -831,7 +831,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
+  const [assistanceMode, setAssistanceMode] = useState<"off" | "quick" | "feedback" | "suggest" | "answer">("off");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -895,6 +895,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Check if a specific mode is allowed
   const isModeAllowed = (mode: string) => {
+    if (mode === 'quick') return true; // Quick solve is local/inline
     if (!aiAllowed) return mode === 'off';
     if (mode === 'off') return true; // Off is always allowed
     return allowedModes.includes(mode);
@@ -983,11 +984,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
 
   // Helper function to get mode-aware status messages
-  const getStatusMessage = useCallback((mode: "off" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
+  const getStatusMessage = useCallback((mode: "off" | "quick" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
     if (statusType === "generating") {
       switch (mode) {
         case "off":
           return "";
+        case "quick":
+          return "Quick solving...";
         case "feedback":
           return "Adding feedback...";
         case "suggest":
@@ -999,6 +1002,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       switch (mode) {
         case "off":
           return "";
+        case "quick":
+          return "Quick answer added";
         case "feedback":
           return "Feedback added";
         case "suggest":
@@ -1069,14 +1074,17 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       }
 
       let mode = options?.modeOverride ?? assistanceMode;
-      // Note: We don't return early for mode === "off" anymore
-      // Quick solve (CAS) runs regardless of mode for instant answers
+      // Quick mode uses the on-canvas MyScript solver only; skip remote generation
+      if (mode === "quick") {
+        setStatus("idle");
+        setStatusMessage("");
+        return false;
+      }
 
-      // Enforce AI restrictions for non-quick modes
+      // Enforce AI restrictions for remote AI modes
       if (mode !== "off") {
         if (!aiAllowed) {
           logger.info('AI assistance is disabled for this assignment');
-          // Still allow quick solve to run, just skip the AI part
           mode = "off";
         } else if (!isModeAllowed(mode)) {
           logger.info({ mode }, 'This AI mode is not allowed for this assignment');
@@ -1324,18 +1332,19 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     );
 
   const handleAutoGeneration = useCallback(() => {
+    if (assistanceMode === "quick") return;
     void generateSolution({ source: "auto" });
-  }, [generateSolution]);
+  }, [assistanceMode, generateSolution]);
 
-  // Listen for user activity and trigger auto-generation after 2 seconds of inactivity
-  // Quick solve (CAS) always runs - it's super fast and gives instant answers
+  // Listen for user activity and trigger auto-generation after 2 seconds of inactivity.
+  // In Quick mode we skip remote generation because answers come from the on-canvas solver.
   useDebounceActivity(
     handleAutoGeneration,
     2000,
     editor,
     isUpdatingImageRef,
     isProcessingRef,
-    false  // Never disable - quick solve always runs
+    assistanceMode === "quick"
   );
 
   // Cancel in-flight requests when user edits the canvas
@@ -1711,12 +1720,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   return (
     <>
-      {/* MyScript real-time math recognition - always enabled for instant solving */}
+      {/* MyScript real-time math recognition - enabled in Quick mode for instant solving */}
       <MyScriptMathOverlay
         editor={editor}
-        enabled={assistanceMode === 'off'}
+        enabled={assistanceMode === 'quick'}
         onResult={(result) => {
-          if (assistanceMode === 'off' && result.value) {
+          if (assistanceMode === 'quick' && result.value) {
             trackAIUsage('myscript-quick', result.latex || '', String(result.value));
           }
         }}
@@ -1799,7 +1808,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     value={assistanceMode}
                     onValueChange={(value) => {
                       if (isModeAllowed(value)) {
-                        setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
+                        setAssistanceMode(value as "off" | "quick" | "feedback" | "suggest" | "answer");
                       }
                     }}
                     className="w-auto rounded-xl"
@@ -1807,6 +1816,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   >
                     <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
                       <TabsTrigger value="off" className="touch-target min-w-[60px] rounded-lg">Off</TabsTrigger>
+                      <TabsTrigger value="quick" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Quick</TabsTrigger>
                       {isModeAllowed('feedback') && (
                         <TabsTrigger value="feedback" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Feedback</TabsTrigger>
                       )}
