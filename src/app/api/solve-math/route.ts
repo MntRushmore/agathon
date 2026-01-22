@@ -77,10 +77,10 @@ export async function POST(req: NextRequest) {
       // Use Gemini vision to recognize AND solve the math in one call
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
-        },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken || apiKey}`,
+      },
         body: JSON.stringify({
           model,
           messages: [
@@ -234,7 +234,7 @@ Examples:
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+              Authorization: `Bearer ${accessToken || apiKey}`,
             },
             body: JSON.stringify({
               model,
