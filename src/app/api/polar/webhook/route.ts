@@ -1,11 +1,19 @@
 import { Webhooks } from '@polar-sh/nextjs';
-import type {
-  WebhookSubscriptionActivePayload,
-  WebhookSubscriptionCanceledPayload,
-  WebhookSubscriptionCreatedPayload,
-  WebhookSubscriptionRevokedPayload,
-  WebhookSubscriptionUpdatedPayload,
-} from '@polar-sh/sdk/webhooks';
+
+// Use generic types since Polar SDK exports may vary by version
+type WebhookSubscriptionPayload = {
+  data: {
+    id: string;
+    status: string;
+    productId: string;
+    customer: {
+      id: string;
+      externalId?: string | null;
+    };
+    endsAt?: string | null;
+    currentPeriodEnd?: string | null;
+  };
+};
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -20,17 +28,12 @@ if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_ID) {
 }
 
 async function syncProfileFromSubscription(
-  payload:
-    | WebhookSubscriptionCreatedPayload
-    | WebhookSubscriptionUpdatedPayload
-    | WebhookSubscriptionActivePayload
-    | WebhookSubscriptionCanceledPayload
-    | WebhookSubscriptionRevokedPayload,
+  payload: WebhookSubscriptionPayload,
   status: string,
 ) {
   const subscription = payload.data;
   const customer = subscription.customer;
-  const externalId = customer.externalId;
+  const externalId = customer?.externalId;
 
   if (!externalId) {
     console.warn('Polar webhook: subscription has no externalId, skipping sync.');
@@ -64,11 +67,11 @@ async function syncProfileFromSubscription(
 const webhookHandler = webhookSecret
   ? Webhooks({
       webhookSecret,
-      onSubscriptionCreated: (payload) => syncProfileFromSubscription(payload, payload.data.status),
-      onSubscriptionUpdated: (payload) => syncProfileFromSubscription(payload, payload.data.status),
-      onSubscriptionActive: (payload) => syncProfileFromSubscription(payload, payload.data.status ?? 'active'),
-      onSubscriptionCanceled: (payload) => syncProfileFromSubscription(payload, 'canceled'),
-      onSubscriptionRevoked: (payload) => syncProfileFromSubscription(payload, 'revoked'),
+      onSubscriptionCreated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
+      onSubscriptionUpdated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
+      onSubscriptionActive: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status ?? 'active'),
+      onSubscriptionCanceled: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'canceled'),
+      onSubscriptionRevoked: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'revoked'),
     })
   : null;
 
