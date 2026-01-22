@@ -266,14 +266,6 @@ ${jsonFormat}`;
     // Default to image-capable Gemini 3 Pro Image Preview for handwriting inputs
     const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
 
-    if (!projectId) {
-      solutionLogger.error({ requestId }, 'VERTEX_PROJECT_ID not configured');
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
-        { status: 500 }
-      );
-    }
-
     if (!accessToken && !apiKey) {
       solutionLogger.error({ requestId }, 'Vertex credentials missing');
       return NextResponse.json(
@@ -282,7 +274,18 @@ ${jsonFormat}`;
       );
     }
 
-    const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+    // If using OAuth token, we need the project/location endpoint; API keys use AI Studio endpoint
+    if (accessToken && !projectId) {
+      solutionLogger.error({ requestId }, 'VERTEX_PROJECT_ID not configured for OAuth flow');
+      return NextResponse.json(
+        { error: 'VERTEX_PROJECT_ID not configured' },
+        { status: 500 }
+      );
+    }
+
+    const apiUrl = accessToken
+      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -317,13 +320,19 @@ ${jsonFormat}`;
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorText = await response.text().catch(() => '');
+      let errorData: any = {};
+      try {
+        errorData = errorText ? JSON.parse(errorText) : {};
+      } catch {
+        errorData = { raw: errorText };
+      }
       solutionLogger.error({
         requestId,
         status: response.status,
         error: errorData
       }, 'Vertex AI API error');
-      throw new Error(errorData.error?.message || 'Vertex AI API error');
+      throw new Error(errorData.error?.message || errorData.message || errorData.raw || 'Vertex AI API error');
     }
 
     const data = await response.json();
