@@ -1,4 +1,7 @@
 import { NextRequest } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 
 interface CanvasContext {
   subject?: string;
@@ -15,20 +18,24 @@ interface ChatMessage {
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check - require login for all AI features
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { messages, canvasContext, isSocratic } = (await req.json()) as {
       messages: ChatMessage[];
       canvasContext: CanvasContext;
       isSocratic?: boolean;
     };
 
-    const apiKey = process.env.HACKCLUB_AI_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'HACKCLUB_AI_API_KEY not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // Build the base system prompt
     let systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
 
 Context about the student's work:
@@ -53,66 +60,141 @@ Remember: Your goal is to help the student LEARN, not just get answers.`;
       systemPrompt += `
 
 CRITICAL - SOCRATIC TUTORING MODE:
-You are currently in Socratic Mode. Your goal is to lead the student to the answer by asking probing, guiding questions based on their work. 
+You are currently in Socratic Mode. Your goal is to lead the student to the answer by asking probing, guiding questions based on their work.
 - NEVER provide the final answer or a complete step.
 - Focus on identifying what the student already knows and where they are stuck.
 - Ask 1-2 targeted questions at a time to nudge them toward the next logical step.
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
     }
 
-    const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
-      { role: 'system', content: systemPrompt },
-    ];
+    // Check and deduct credits
+    const { usePremium, creditBalance } = await checkAndDeductCredits(
+      user.id,
+      'chat',
+      'AI chat assistance'
+    );
 
-    messages.forEach((m, index) => {
-      if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
-        apiMessages.push({
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: canvasContext.imageBase64 },
-            },
-            {
-              type: 'text',
-              text: m.content,
-            },
-          ],
-        });
-      } else {
-        apiMessages.push({ role: m.role, content: m.content });
+    // Common response headers
+    const baseHeaders = {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Credits-Remaining': String(creditBalance),
+    };
+
+    if (usePremium) {
+      // Use Vertex AI (premium with image support)
+      const projectId = process.env.VERTEX_PROJECT_ID;
+      const location = process.env.VERTEX_LOCATION || 'us-central1';
+      const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+      const apiKey = process.env.VERTEX_API_KEY;
+      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+
+      if (!projectId) {
+        return new Response(
+          JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
       }
-    });
 
-    const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: apiMessages,
-        stream: true,
-      }),
-    });
+      if (!accessToken && !apiKey) {
+        return new Response(
+          JSON.stringify({ error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google API error:', errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to get response from AI' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
+      const baseUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+
+      const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
+        { role: 'system', content: systemPrompt },
+      ];
+
+      messages.forEach((m, index) => {
+        if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
+          apiMessages.push({
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: canvasContext.imageBase64 },
+              },
+              {
+                type: 'text',
+                text: m.content,
+              },
+            ],
+          });
+        } else {
+          apiMessages.push({ role: m.role, content: m.content });
+        }
+      });
+
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+        },
+        body: JSON.stringify({
+          model,
+          messages: apiMessages,
+          stream: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Google API error:', errorText);
+        return new Response(
+          JSON.stringify({ error: 'Failed to get response from AI' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      return new Response(response.body, {
+        headers: {
+          ...baseHeaders,
+          'X-AI-Provider': 'vertex',
+          'X-Image-Supported': 'true',
+        },
+      });
+    } else {
+      // Use Hack Club AI (free, text-only fallback)
+      // Build messages with image content converted to text
+      const userMessages = messages.map((m, index) => {
+        if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
+          return {
+            role: m.role,
+            content: [
+              { type: 'image_url', image_url: { url: canvasContext.imageBase64 } },
+              { type: 'text', text: m.content },
+            ],
+          };
+        }
+        return { role: m.role, content: m.content };
+      });
+
+      const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
+
+      try {
+        const response = await callHackClubAI(hackclubRequest);
+
+        return new Response(response.body, {
+          headers: {
+            ...baseHeaders,
+            'X-AI-Provider': 'hackclub',
+            'X-Image-Supported': 'false',
+          },
+        });
+      } catch (hackclubError) {
+        console.error('Hack Club AI error:', hackclubError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to get response from AI' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
-
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
-    });
   } catch (error) {
     console.error('Chat API error:', error);
     return new Response(

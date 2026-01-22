@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { solutionLogger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { callHackClubAI } from '@/lib/ai/hackclub';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -22,6 +25,17 @@ export async function POST(req: NextRequest) {
   solutionLogger.info({ requestId }, 'Solution generation request started');
 
   try {
+    // Auth check - require login for all AI features
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'AUTH_REQUIRED' },
+        { status: 401 }
+      );
+    }
+
     // Parse the request body
     const {
       image,
@@ -87,6 +101,76 @@ export async function POST(req: NextRequest) {
       requestId,
       imageSize: image.length
     }, 'Request payload received');
+
+    // Check and deduct credits (costs 2 credits for solution generation)
+    const { usePremium, creditBalance } = await checkAndDeductCredits(
+      user.id,
+      'generate-solution',
+      `Generate solution (${mode} mode)`
+    );
+
+    // If no credits, this feature requires image processing - return 402
+    if (!usePremium) {
+      solutionLogger.info({ requestId, creditBalance }, 'No credits for solution generation, trying text-only fallback');
+
+      // For solution generation, we can provide a text-only fallback
+      // but it won't be able to see the canvas
+      const textOnlyPrompt = getTextOnlyFallbackPrompt(mode, prompt);
+
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [
+            { role: 'system', content: textOnlyPrompt.systemPrompt },
+            { role: 'user', content: textOnlyPrompt.userMessage },
+          ],
+          stream: false,
+        });
+
+        const hackclubData = await hackclubResponse.json();
+        const textContent = hackclubData.choices?.[0]?.message?.content || '';
+
+        // Parse as JSON or create fallback structure
+        let feedback: StructuredFeedback;
+        try {
+          let jsonStr = textContent.trim();
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+          feedback = JSON.parse(jsonStr.trim());
+        } catch {
+          feedback = {
+            summary: 'Text-only feedback (upgrade for visual analysis)',
+            annotations: [
+              {
+                type: 'hint',
+                content: textContent || 'Please describe your work so I can help you.',
+                position: 'below',
+              },
+            ],
+          };
+        }
+
+        return NextResponse.json({
+          success: true,
+          feedback,
+          textContent: feedback.summary || '',
+          provider: 'hackclub',
+          creditsRemaining: creditBalance,
+          imageSupported: false,
+        });
+      } catch (hackclubError) {
+        solutionLogger.error({ requestId, error: hackclubError }, 'Hack Club AI fallback failed');
+        return NextResponse.json(
+          {
+            error: 'no_credits',
+            message: 'Solution generation requires credits for image analysis. Purchase credits to continue.',
+            upgradePrompt: true,
+            creditBalance,
+          },
+          { status: 402 }
+        );
+      }
+    }
 
     // Generate mode-specific prompt for text-based feedback
     const getModePrompt = (mode: string): string => {
@@ -173,24 +257,36 @@ ${jsonFormat}`;
       ? `${basePrompt}\n\nAdditional context from tutor: ${prompt}`
       : basePrompt;
 
-    solutionLogger.info({ requestId, mode }, 'Calling Hack Club API with Gemini for text feedback');
+    solutionLogger.info({ requestId, mode }, 'Calling Vertex AI (Gemini 3) for text feedback');
 
-    const apiKey = process.env.HACKCLUB_AI_API_KEY;
-    if (!apiKey) {
-      solutionLogger.error({ requestId }, 'HACKCLUB_AI_API_KEY not configured');
+    const projectId = process.env.VERTEX_PROJECT_ID;
+    const location = process.env.VERTEX_LOCATION || 'us-central1';
+    const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+    const apiKey = process.env.VERTEX_API_KEY;
+    // Default to image-capable Gemini 3 Pro Image Preview for handwriting inputs
+    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+
+    if (!projectId) {
+      solutionLogger.error({ requestId }, 'VERTEX_PROJECT_ID not configured');
       return NextResponse.json(
-        { error: 'HACKCLUB_AI_API_KEY not configured' },
+        { error: 'VERTEX_PROJECT_ID not configured' },
         { status: 500 }
       );
     }
 
-    // Call Hack Club API with Gemini 2.5 Flash (supports image input for analysis)
-    const apiUrl = 'https://ai.hackclub.com/proxy/v1/chat/completions';
-    const model = 'google/gemini-2.5-flash';
+    if (!accessToken && !apiKey) {
+      solutionLogger.error({ requestId }, 'Vertex credentials missing');
+      return NextResponse.json(
+        { error: 'Set VERTEX_ACCESS_TOKEN (preferred) or VERTEX_API_KEY' },
+        { status: 500 }
+      );
+    }
+
+    const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
     };
 
     const requestBody = {
@@ -226,8 +322,8 @@ ${jsonFormat}`;
         requestId,
         status: response.status,
         error: errorData
-      }, 'Hack Club API error');
-      throw new Error(errorData.error?.message || 'Hack Club API error');
+      }, 'Vertex AI API error');
+      throw new Error(errorData.error?.message || 'Vertex AI API error');
     }
 
     const data = await response.json();
@@ -275,28 +371,22 @@ ${jsonFormat}`;
 
     // Track AI usage
     try {
-      const { createServerSupabaseClient } = await import('@/lib/supabase/server');
-      const supabase = await createServerSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const inputTokens = data.usage?.prompt_tokens || 0;
+      const outputTokens = data.usage?.completion_tokens || 0;
 
-      if (user) {
-        const inputTokens = data.usage?.prompt_tokens || 0;
-        const outputTokens = data.usage?.completion_tokens || 0;
-
-        await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mode: `solution_${mode}`,
-            prompt: prompt || `${mode} mode text feedback`,
-            responseSummary: feedback.summary || 'Text feedback generated',
-            inputTokens,
-            outputTokens,
-            totalCost: 0,
-            modelUsed: model,
-          }),
-        });
-      }
+      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: `solution_${mode}`,
+          prompt: prompt || `${mode} mode text feedback`,
+          responseSummary: feedback.summary || 'Text feedback generated',
+          inputTokens,
+          outputTokens,
+          totalCost: 0,
+          modelUsed: model,
+        }),
+      });
     } catch (trackError) {
       solutionLogger.warn({ requestId, error: trackError }, 'Failed to track solution generation usage');
     }
@@ -305,6 +395,9 @@ ${jsonFormat}`;
       success: true,
       feedback,
       textContent: feedback.summary || '',
+      provider: 'vertex',
+      creditsRemaining: creditBalance,
+      imageSupported: true,
     });
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -323,4 +416,37 @@ ${jsonFormat}`;
       { status: 500 }
     );
   }
+}
+
+// Helper function for text-only fallback prompts
+function getTextOnlyFallbackPrompt(mode: string, additionalPrompt?: string): { systemPrompt: string; userMessage: string } {
+  const baseSystem = `You are a helpful math tutor. The student is working on a whiteboard but you cannot see their work.
+You must ask them to describe what they've written or provide the problem in text form.
+
+IMPORTANT: Respond with a valid JSON object only. No markdown, no code fences, just pure JSON.
+
+Response format:
+{
+  "summary": "Brief description of your response",
+  "annotations": [
+    {
+      "type": "hint",
+      "content": "Your helpful message",
+      "position": "below"
+    }
+  ]
+}`;
+
+  const modeMessages: Record<string, string> = {
+    feedback: 'I want feedback on my work, but I understand you cannot see my whiteboard. What should I describe to get help?',
+    suggest: 'I need a hint, but I understand you cannot see my whiteboard. Can you help me if I describe my work?',
+    answer: 'I want to see the full solution, but I understand you cannot see my whiteboard. Please ask me to describe the problem.',
+  };
+
+  return {
+    systemPrompt: baseSystem,
+    userMessage: additionalPrompt
+      ? `${modeMessages[mode] || modeMessages.suggest}\n\nContext: ${additionalPrompt}`
+      : modeMessages[mode] || modeMessages.suggest,
+  };
 }

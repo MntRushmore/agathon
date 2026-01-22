@@ -11,6 +11,9 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  // Credits
+  credits: number;
+  refreshCredits: () => Promise<void>;
   // Admin features
   isAdmin: boolean;
   isImpersonating: boolean;
@@ -34,6 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [originalProfile, setOriginalProfile] = useState<Profile | null>(null);
 
   const isAdmin = profile?.role === 'admin';
+
+  // Credits - derived from profile but can be refreshed
+  const credits = profile?.credits ?? 0;
+
+  const refreshCredits = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -173,6 +185,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signOut,
         refreshProfile,
+        credits: effectiveProfile?.credits ?? 0,
+        refreshCredits,
         isAdmin,
         isImpersonating,
         impersonatedProfile,

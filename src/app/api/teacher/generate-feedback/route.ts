@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -47,11 +49,6 @@ export async function POST(req: NextRequest) {
       .eq('submission_id', submissionId)
       .order('created_at', { ascending: true });
 
-    const apiKey = process.env.HACKCLUB_AI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: 'AI API key not configured' }, { status: 500 });
-    }
-
     const studentName = submission.student?.full_name || 'the student';
     const assignmentTitle = submission.assignment?.title || 'this assignment';
     const aiHelpCount = submission.ai_help_count || 0;
@@ -83,52 +80,90 @@ ${submission.assignment?.instructions ? `Assignment instructions: ${submission.a
 
 Please write constructive feedback for this student. Focus on effort and learning process, not just the final answer.`;
 
-    const messages: any[] = [
-      { role: 'system', content: systemPrompt },
-    ];
+    // Check if we have an image to analyze
+    const hasImage = boardImage || submission.student_board?.preview;
 
-    if (boardImage || submission.student_board?.preview) {
-      messages.push({
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: boardImage || submission.student_board?.preview },
+    // Check and deduct credits
+    const { usePremium, creditBalance } = await checkAndDeductCredits(
+      user.id,
+      'teacher-feedback',
+      `Teacher feedback for submission ${submissionId}`
+    );
+
+    let aiDraft = '';
+    let provider: 'vertex' | 'hackclub' = 'hackclub';
+
+    if (usePremium && hasImage) {
+      // Use Vertex AI with image
+      const projectId = process.env.VERTEX_PROJECT_ID;
+      const location = process.env.VERTEX_LOCATION || 'us-central1';
+      const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+      const apiKey = process.env.VERTEX_API_KEY;
+      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+
+      if (projectId && (accessToken || apiKey)) {
+        const messages: any[] = [
+          { role: 'system', content: systemPrompt },
+        ];
+
+        messages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: boardImage || submission.student_board?.preview },
+            },
+            {
+              type: 'text',
+              text: userPrompt,
+            },
+          ],
+        });
+
+        const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
           },
-          {
-            type: 'text',
-            text: userPrompt,
-          },
-        ],
-      });
-    } else {
-      messages.push({
-        role: 'user',
-        content: userPrompt,
-      });
+          body: JSON.stringify({
+            model,
+            messages,
+            max_tokens: 500,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          aiDraft = data.choices?.[0]?.message?.content || '';
+          provider = 'vertex';
+        }
+      }
     }
 
-    const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages,
-        max_tokens: 500,
-      }),
-    });
+    // Fallback to Hack Club AI (text-only) if Vertex didn't work or no credits
+    if (!aiDraft) {
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          stream: false,
+        });
 
-    if (!response.ok) {
-      console.error('AI API error:', await response.text());
-      return NextResponse.json({ error: 'Failed to generate feedback' }, { status: 500 });
+        const hackclubData = await hackclubResponse.json();
+        aiDraft = hackclubData.choices?.[0]?.message?.content || '';
+        provider = 'hackclub';
+      } catch (hackclubError) {
+        console.error('Hack Club AI error:', hackclubError);
+        return NextResponse.json({ error: 'Failed to generate feedback' }, { status: 500 });
+      }
     }
 
-    const data = await response.json();
-    const aiDraft = data.choices?.[0]?.message?.content || '';
-
+    // Save to database
     const { data: existingFeedback } = await supabase
       .from('teacher_feedback')
       .select('id')
@@ -156,12 +191,15 @@ Please write constructive feedback for this student. Focus on effort and learnin
         });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       feedback: aiDraft,
       studentName,
       aiHelpCount,
       solveCount,
       timeMinutes,
+      creditsRemaining: creditBalance,
+      provider,
+      imageAnalyzed: provider === 'vertex' && hasImage,
     });
   } catch (error) {
     console.error('Generate feedback error:', error);
@@ -173,7 +211,7 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -1,48 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
-
-// Check if text looks like a math expression
-function isMathExpression(text: string): boolean {
-  if (!text || text.trim().length < 2) return false;
-
-  const cleaned = text.trim();
-
-  // Must contain at least one digit
-  if (!/\d/.test(cleaned)) return false;
-
-  // Must contain a math operator or equals sign
-  if (!/[+\-*/=×÷^]/.test(cleaned)) return false;
-
-  // Should not be mostly text/words (allow short variable names like x, y, etc)
-  const wordCount = (cleaned.match(/[a-zA-Z]{3,}/g) || []).length;
-  if (wordCount > 2) return false;
-
-  return true;
-}
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
+import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check - require login for all AI features
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'AUTH_REQUIRED' },
+        { status: 401 }
+      );
+    }
+
     const { expression, image, variables, quick } = await req.json();
 
     // If image is provided, use Gemini vision to recognize and solve
     if (image && typeof image === 'string' && image.startsWith('data:image/')) {
-      const apiKey = process.env.HACKCLUB_AI_API_KEY;
-      if (!apiKey) {
+      // Image processing requires credits
+      const creditCheck = await checkUserCredits(user.id);
+
+      if (!creditCheck.hasCredits) {
         return NextResponse.json(
-          { error: 'HACKCLUB_AI_API_KEY not configured' },
+          {
+            error: 'no_credits',
+            message: 'Image recognition requires credits. Type the expression instead or purchase credits.',
+            upgradePrompt: true,
+            creditBalance: creditCheck.currentBalance,
+          },
+          { status: 402 }
+        );
+      }
+
+      // Deduct credit for image processing
+      const deduction = await deductCredits(user.id, 'solve-math', 'Math solve with image recognition');
+
+      if (!deduction.success) {
+        return NextResponse.json(
+          {
+            error: 'no_credits',
+            message: 'Failed to process credits. Please try again.',
+            creditBalance: deduction.newBalance,
+          },
+          { status: 402 }
+        );
+      }
+
+      const projectId = process.env.VERTEX_PROJECT_ID;
+      const location = process.env.VERTEX_LOCATION || 'us-central1';
+      const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+      const apiKey = process.env.VERTEX_API_KEY;
+      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+
+      if (!projectId) {
+        return NextResponse.json(
+          { error: 'VERTEX_PROJECT_ID not configured' },
           { status: 500 }
         );
       }
 
+      if (!accessToken && !apiKey) {
+        return NextResponse.json(
+          { error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' },
+          { status: 500 }
+        );
+      }
+
+      const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+
       // Use Gemini vision to recognize AND solve the math in one call
-      const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model,
           messages: [
             {
               role: 'user',
@@ -102,6 +140,7 @@ Examples:
           answer: null,
           recognized: null,
           reason: content.toLowerCase(),
+          creditsRemaining: deduction.newBalance,
         });
       }
 
@@ -121,6 +160,7 @@ Examples:
           answer: null,
           recognized,
           reason: 'could_not_solve',
+          creditsRemaining: deduction.newBalance,
         });
       }
 
@@ -129,6 +169,8 @@ Examples:
         answer,
         recognized,
         source: 'gemini-vision',
+        creditsRemaining: deduction.newBalance,
+        provider: 'vertex',
       });
     }
 
@@ -139,9 +181,8 @@ Examples:
       );
     }
 
-    // Quick mode: use CAS for instant computation
+    // Quick mode: use CAS for instant computation (no credits needed - local computation)
     if (quick) {
-      // Check if expression is suitable for CAS
       if (canQuickSolve(expression)) {
         const result = quickSolve(expression);
         if (result.success) {
@@ -149,6 +190,7 @@ Examples:
             success: true,
             answer: result.answer,
             source: 'cas',
+            provider: 'local',
           });
         }
         // If CAS fails, fall through to LLM
@@ -156,36 +198,46 @@ Examples:
       }
     }
 
-    const apiKey = process.env.HACKCLUB_AI_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'HACKCLUB_AI_API_KEY not configured' },
-        { status: 500 }
-      );
-    }
+    // Text-based solving - check credits and use appropriate provider
+    const creditCheck = await checkUserCredits(user.id);
 
-    // Build context about known variables
-    let variableContext = '';
-    if (variables && Object.keys(variables).length > 0) {
-      variableContext = '\n\nKnown variables:\n' +
-        Object.entries(variables)
-          .map(([name, value]) => `${name} = ${value}`)
-          .join('\n');
-    }
+    if (creditCheck.hasCredits) {
+      // Use Vertex AI with credits
+      const deduction = await deductCredits(user.id, 'solve-math', 'Math solve with AI');
 
-    // Call Hack Club API (Gemini) for solving
-    const response = await fetch('https://ai.hackclub.com/proxy/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
+      if (deduction.success) {
+        const projectId = process.env.VERTEX_PROJECT_ID;
+        const location = process.env.VERTEX_LOCATION || 'us-central1';
+        const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+        const apiKey = process.env.VERTEX_API_KEY;
+        const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+
+        if (!projectId || (!accessToken && !apiKey)) {
+          // Fall through to Hack Club AI
+        } else {
+          // Build context about known variables
+          let variableContext = '';
+          if (variables && Object.keys(variables).length > 0) {
+            variableContext = '\n\nKnown variables:\n' +
+              Object.entries(variables)
+                .map(([name, value]) => `${name} = ${value}`)
+                .join('\n');
+          }
+
+          const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
 
 RULES:
 1. Return ONLY the final numerical answer or simplified result
@@ -210,42 +262,79 @@ Examples:
 - Input: "\\frac{d}{dx} x^3" → Output: "3x²"
 - Input: "x^2 + 5x + 6 = 0" → Output: "x = -2, -3"
 - Input: "\\sin(30°)" → Output: "0.5"`,
+                },
+                {
+                  role: 'user',
+                  content: `Solve: ${expression}${variableContext}`,
+                },
+              ],
+              max_tokens: 100,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            let answer = data.choices?.[0]?.message?.content || '';
+            answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
+            answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
+
+            return NextResponse.json({
+              success: true,
+              answer: answer || '?',
+              source: 'llm',
+              creditsRemaining: deduction.newBalance,
+              provider: 'vertex',
+            });
+          }
+        }
+      }
+    }
+
+    // Fallback to Hack Club AI (free, text-only)
+    let variableContext = '';
+    if (variables && Object.keys(variables).length > 0) {
+      variableContext = '\n\nKnown variables:\n' +
+        Object.entries(variables)
+          .map(([name, value]) => `${name} = ${value}`)
+          .join('\n');
+    }
+
+    try {
+      const hackclubResponse = await callHackClubAI({
+        messages: [
+          {
+            role: 'system',
+            content: `You are a math solver. Given a mathematical expression or equation, compute the answer.
+Return ONLY the final numerical answer or simplified result. No explanations, no steps.
+If you cannot solve it, return "?"`,
           },
           {
             role: 'user',
             content: `Solve: ${expression}${variableContext}`,
           },
         ],
-        max_tokens: 100,
-      }),
-    });
+        stream: false,
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', errorText);
+      const hackclubData = await hackclubResponse.json();
+      let answer = hackclubData.choices?.[0]?.message?.content || '';
+      answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
+      answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
+
+      return NextResponse.json({
+        success: true,
+        answer: answer || '?',
+        source: 'llm',
+        creditsRemaining: creditCheck.currentBalance,
+        provider: 'hackclub',
+      });
+    } catch (hackclubError) {
+      console.error('Hack Club AI error:', hackclubError);
       return NextResponse.json(
-        { error: 'Solve API error', details: errorText },
+        { error: 'Failed to solve', details: 'AI service unavailable' },
         { status: 500 }
       );
     }
-
-    const data = await response.json();
-    let answer = data.choices?.[0]?.message?.content || '';
-
-    // Clean up the answer
-    answer = answer.trim();
-
-    // Remove any markdown formatting
-    answer = answer.replace(/\*\*/g, '').replace(/`/g, '');
-
-    // If it starts with "Answer:" or similar, remove it
-    answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
-
-    return NextResponse.json({
-      success: true,
-      answer: answer || '?',
-      source: 'llm',
-    });
   } catch (error) {
     console.error('Error solving math:', error);
     return NextResponse.json(

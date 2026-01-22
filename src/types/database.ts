@@ -23,6 +23,8 @@ export interface Profile {
   polar_customer_id?: string | null;
   polar_external_id?: string | null;
   plan_expires_at?: string | null;
+  credits?: number;
+  credits_updated_at?: string | null;
   created_at: string;
   updated_at: string;
   onboarding_completed?: boolean;
@@ -209,6 +211,28 @@ export interface AIUsageStats {
   interactionsByMode: Record<string, number>;
   estimatedCost: number;
   averagePerStudent: number;
+}
+
+// Credit transaction types
+export type CreditTransactionType =
+  | 'purchase'
+  | 'subscription_grant'
+  | 'usage'
+  | 'refund'
+  | 'admin_adjustment'
+  | 'bonus'
+  | 'signup_bonus';
+
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  balance_after: number;
+  transaction_type: CreditTransactionType;
+  description: string | null;
+  ai_route: string | null;
+  metadata: Json | null;
+  created_at: string;
 }
 
 export interface Database {
