@@ -128,7 +128,7 @@ Please write constructive feedback for this student. Focus on effort and learnin
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+            Authorization: `Bearer ${accessToken || apiKey}`,
           },
           body: JSON.stringify({
             model,

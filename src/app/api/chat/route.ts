@@ -136,7 +136,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+        Authorization: `Bearer ${accessToken || apiKey}`,
       },
       body: JSON.stringify({
         model,

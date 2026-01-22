@@ -289,7 +289,7 @@ ${jsonFormat}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+      Authorization: `Bearer ${accessToken || apiKey}`,
     };
 
     const requestBody = {
