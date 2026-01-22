@@ -101,7 +101,7 @@ Please write constructive feedback for this student. Focus on effort and learnin
       const apiKey = process.env.VERTEX_API_KEY;
       const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
 
-      if (projectId && (accessToken || apiKey)) {
+      if ((accessToken && projectId) || (!accessToken && apiKey)) {
         const messages: any[] = [
           { role: 'system', content: systemPrompt },
         ];
@@ -120,7 +120,9 @@ Please write constructive feedback for this student. Focus on effort and learnin
           ],
         });
 
-        const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+        const apiUrl = accessToken
+          ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+          : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
         const response = await fetch(apiUrl, {
           method: 'POST',

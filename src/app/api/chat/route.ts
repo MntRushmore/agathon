@@ -84,27 +84,29 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 
     if (usePremium) {
       // Use Vertex AI (premium with image support)
-      const projectId = process.env.VERTEX_PROJECT_ID;
-      const location = process.env.VERTEX_LOCATION || 'us-central1';
-      const accessToken = process.env.VERTEX_ACCESS_TOKEN;
-      const apiKey = process.env.VERTEX_API_KEY;
-      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+    const projectId = process.env.VERTEX_PROJECT_ID;
+    const location = process.env.VERTEX_LOCATION || 'us-central1';
+    const accessToken = process.env.VERTEX_ACCESS_TOKEN;
+    const apiKey = process.env.VERTEX_API_KEY;
+    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
 
-      if (!projectId) {
-        return new Response(
-          JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+    if (!accessToken && !apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-      if (!accessToken && !apiKey) {
-        return new Response(
-          JSON.stringify({ error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+    if (accessToken && !projectId) {
+      return new Response(
+        JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
-      const baseUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+    const baseUrl = accessToken
+      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
       const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
         { role: 'system', content: systemPrompt },
@@ -130,16 +132,16 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         }
       });
 
-      const response = await fetch(baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
-        },
-        body: JSON.stringify({
-          model,
-          messages: apiMessages,
-          stream: true,
+    const response = await fetch(baseUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : { 'x-goog-api-key': apiKey as string }),
+      },
+      body: JSON.stringify({
+        model,
+        messages: apiMessages,
+        stream: true,
         }),
       });
 

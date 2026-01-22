@@ -67,13 +67,6 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.VERTEX_API_KEY;
     const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
 
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
-        { status: 500 }
-      );
-    }
-
     if (!accessToken && !apiKey) {
       return NextResponse.json(
         { error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' },
@@ -81,7 +74,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+    if (accessToken && !projectId) {
+      return NextResponse.json(
+        { error: 'VERTEX_PROJECT_ID not configured' },
+        { status: 500 }
+      );
+    }
+
+    const apiUrl = accessToken
+      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
     // Call Gemini model for OCR via Vertex AI OpenAI-compatible endpoint
     const response = await fetch(apiUrl, {

@@ -94,18 +94,18 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.VERTEX_API_KEY;
     const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
 
-    if (!projectId) {
-      voiceLogger.error('VERTEX_PROJECT_ID not configured');
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
-        { status: 500 },
-      );
-    }
-
     if (!accessToken && !apiKey) {
       voiceLogger.error('Vertex credentials missing');
       return NextResponse.json(
         { error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' },
+        { status: 500 },
+      );
+    }
+
+    if (accessToken && !projectId) {
+      voiceLogger.error('VERTEX_PROJECT_ID not configured');
+      return NextResponse.json(
+        { error: 'VERTEX_PROJECT_ID not configured' },
         { status: 500 },
       );
     }
@@ -122,7 +122,9 @@ export async function POST(req: NextRequest) {
 
     voiceLogger.info('Calling Vertex AI Gemini 3.0 Pro Preview for workspace analysis');
 
-    const apiUrl = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`;
+    const apiUrl = accessToken
+      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
     const response = await fetch(apiUrl, {
       method: 'POST',
