@@ -293,7 +293,8 @@ ${jsonFormat}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      // Google AI Studio OpenAI endpoint requires Authorization header even with API key
+      Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
     };
 
     const requestBody = {

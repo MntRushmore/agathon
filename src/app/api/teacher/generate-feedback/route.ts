@@ -132,7 +132,8 @@ Please write constructive feedback for this student. Focus on effort and learnin
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            // Google AI Studio OpenAI endpoint requires Authorization header even with API key
+            Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
             model: effectiveModel,
