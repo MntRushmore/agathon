@@ -104,9 +104,13 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       );
     }
 
+    // For API key, use query param; for OAuth token, use Bearer auth
     const baseUrl = accessToken
       ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+
+    // For API key flow, use simpler model name without google/ prefix
+    const effectiveModel = accessToken ? model : model.replace('google/', '');
 
       const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
         { role: 'system', content: systemPrompt },
@@ -136,10 +140,10 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken || apiKey}`,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify({
-        model,
+        model: effectiveModel,
         messages: apiMessages,
         stream: true,
         }),

@@ -283,17 +283,21 @@ ${jsonFormat}`;
       );
     }
 
+    // For API key, use query param; for OAuth token, use Bearer auth
     const apiUrl = accessToken
       ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+
+    // For API key flow, use simpler model name without google/ prefix
+    const effectiveModel = accessToken ? model : model.replace('google/', '');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken || apiKey}`,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     };
 
     const requestBody = {
-      model,
+      model: effectiveModel,
       messages: [
         {
           role: 'user',

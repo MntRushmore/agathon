@@ -70,19 +70,23 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // For API key, use query param; for OAuth token, use Bearer auth
       const apiUrl = accessToken
         ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-        : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+        : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+
+      // For API key flow, use simpler model name without google/ prefix
+      const effectiveModel = accessToken ? model : model.replace('google/', '');
 
       // Use Gemini vision to recognize AND solve the math in one call
       const response = await fetch(apiUrl, {
         method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken || apiKey}`,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
         body: JSON.stringify({
-          model,
+          model: effectiveModel,
           messages: [
             {
               role: 'user',
@@ -226,18 +230,22 @@ Examples:
                 .join('\n');
           }
 
+          // For API key, use query param; for OAuth token, use Bearer auth
           const apiUrl = accessToken
             ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-            : 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+            : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+
+          // For API key flow, use simpler model name without google/ prefix
+          const effectiveModel = accessToken ? model : model.replace('google/', '');
 
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${accessToken || apiKey}`,
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
             },
             body: JSON.stringify({
-              model,
+              model: effectiveModel,
               messages: [
                 {
                   role: 'system',
