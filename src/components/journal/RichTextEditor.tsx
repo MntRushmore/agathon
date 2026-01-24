@@ -4,68 +4,12 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
-import { useEffect } from 'react';
+import MathExtension from '@aarkue/tiptap-math-extension';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
-import { Node, mergeAttributes } from '@tiptap/core';
-
-// Custom Math extension for inline LaTeX
-const MathInline = Node.create({
-  name: 'mathInline',
-  group: 'inline',
-  inline: true,
-  atom: true,
-
-  addAttributes() {
-    return {
-      latex: {
-        default: '',
-      },
-    };
-  },
-
-  parseHTML() {
-    return [
-      {
-        tag: 'span[data-math]',
-      },
-    ];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    const latex = HTMLAttributes.latex || '';
-    let html = '';
-    try {
-      html = katex.renderToString(latex, {
-        displayMode: false,
-        throwOnError: false,
-      });
-    } catch {
-      html = latex;
-    }
-    return ['span', mergeAttributes({ 'data-math': '', class: 'math-inline' }), ['span', { dangerouslySetInnerHTML: { __html: html } }]];
-  },
-
-  addNodeView() {
-    return ({ node }) => {
-      const dom = document.createElement('span');
-      dom.className = 'math-inline inline-block mx-0.5';
-      dom.setAttribute('data-math', '');
-      
-      try {
-        dom.innerHTML = katex.renderToString(node.attrs.latex, {
-          displayMode: false,
-          throwOnError: false,
-        });
-      } catch {
-        dom.textContent = node.attrs.latex;
-      }
-      
-      return { dom };
-    };
-  },
-});
+import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Quote } from 'lucide-react';
 
 interface RichTextEditorProps {
   content: string;
@@ -118,7 +62,12 @@ export function RichTextEditor({
         emptyEditorClass: 'is-editor-empty',
       }),
       Typography,
-      MathInline,
+      MathExtension.configure({
+        evaluation: false,
+        katexOptions: {
+          throwOnError: false,
+        },
+      }),
     ],
     content: parseContentToHTML(content),
     editorProps: {
@@ -142,6 +91,9 @@ export function RichTextEditor({
     },
   });
 
+  // Fixed left toolbar state - must be before any early returns
+  const [showToolbar, setShowToolbar] = useState(false);
+
   // Update editor content when prop changes externally
   useEffect(() => {
     if (editor && content) {
@@ -160,6 +112,83 @@ export function RichTextEditor({
 
   return (
     <div className={cn('relative', className)}>
+      {/* Fixed Left Sidebar Toolbar */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40">
+        <div className="flex flex-col items-center gap-1 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5">
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('heading', { level: 1 }) && 'bg-green-50 text-green-600'
+            )}
+            title="Heading 1"
+          >
+            <Heading1 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('heading', { level: 2 }) && 'bg-green-50 text-green-600'
+            )}
+            title="Heading 2"
+          >
+            <Heading2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('heading', { level: 3 }) && 'bg-green-50 text-green-600'
+            )}
+            title="Heading 3"
+          >
+            <Heading3 className="h-4 w-4" />
+          </button>
+          <div className="w-5 h-px bg-gray-200 my-1" />
+          <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('bulletList') && 'bg-green-50 text-green-600'
+            )}
+            title="Bullet List"
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('orderedList') && 'bg-green-50 text-green-600'
+            )}
+            title="Numbered List"
+          >
+            <ListOrdered className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('blockquote') && 'bg-green-50 text-green-600'
+            )}
+            title="Quote"
+          >
+            <Quote className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            className={cn(
+              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
+              editor.isActive('codeBlock') && 'bg-green-50 text-green-600'
+            )}
+            title="Code Block"
+          >
+            <Code className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Editor Content */}
       <EditorContent editor={editor} />
 
@@ -186,70 +215,104 @@ export function RichTextEditor({
 function parseContentToHTML(markdown: string): string {
   if (!markdown) return '';
   
-  let html = markdown;
-  
-  // Convert headings
-  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
-  // Convert bold
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  
-  // Convert italic
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  
-  // Convert inline code
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  
-  // Convert LaTeX math $...$
-  html = html.replace(/\$([^$]+)\$/g, (_, latex) => {
-    try {
-      const rendered = katex.renderToString(latex.trim(), {
-        displayMode: false,
-        throwOnError: false,
-      });
-      return `<span class="math-inline">${rendered}</span>`;
-    } catch {
-      return `$${latex}$`;
-    }
+  // First, handle code blocks (``` ... ```) - extract and replace with placeholders
+  const codeBlocks: string[] = [];
+  let processed = markdown.replace(/```[\s\S]*?```/g, (match) => {
+    const code = match.replace(/```\w*\n?/, '').replace(/```$/, '');
+    codeBlocks.push(`<pre><code>${code}</code></pre>`);
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
   
-  // Convert bullet lists
-  const bulletListRegex = /^- (.+)$/gm;
-  let inBulletList = false;
-  const lines = html.split('\n');
+  const lines = processed.split('\n');
   const processedLines: string[] = [];
+  let inBulletList = false;
+  let inOrderedList = false;
   
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const bulletMatch = line.match(/^- (.+)$/);
+    let line = lines[i];
     
-    if (bulletMatch) {
+    // Skip code block placeholders
+    if (line.match(/__CODE_BLOCK_\d+__/)) {
+      const idx = parseInt(line.match(/__CODE_BLOCK_(\d+)__/)?.[1] || '0');
+      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      processedLines.push(codeBlocks[idx]);
+      continue;
+    }
+    
+    // Check for headings/lists FIRST (on original line structure)
+    const h3Match = line.match(/^### (.+)$/);
+    const h2Match = line.match(/^## (.+)$/);
+    const h1Match = line.match(/^# (.+)$/);
+    const bulletMatch = line.match(/^[-*] (.+)$/);
+    const orderedMatch = line.match(/^\d+\. (.+)$/);
+    
+    // Helper function to process inline formatting
+    const processInline = (text: string): string => {
+      // Render LaTeX math $...$ using KaTeX
+      text = text.replace(/\$([^$\n]+)\$/g, (_, latex) => {
+        try {
+          const rendered = katex.renderToString(latex.trim(), {
+            displayMode: false,
+            throwOnError: false,
+          });
+          return `<span class="katex-rendered">${rendered}</span>`;
+        } catch {
+          return `$${latex}$`;
+        }
+      });
+      // Convert bold (before italic)
+      text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Convert italic
+      text = text.replace(/(?<![*\w])\*([^*]+)\*(?![*\w])/g, '<em>$1</em>');
+      // Convert inline code
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      return text;
+    };
+    
+    // Close any open lists if we're switching types
+    if (!bulletMatch && inBulletList) {
+      processedLines.push('</ul>');
+      inBulletList = false;
+    }
+    if (!orderedMatch && inOrderedList) {
+      processedLines.push('</ol>');
+      inOrderedList = false;
+    }
+    
+    if (h3Match) {
+      processedLines.push(`<h3>${processInline(h3Match[1])}</h3>`);
+    } else if (h2Match) {
+      processedLines.push(`<h2>${processInline(h2Match[1])}</h2>`);
+    } else if (h1Match) {
+      processedLines.push(`<h1>${processInline(h1Match[1])}</h1>`);
+    } else if (bulletMatch) {
       if (!inBulletList) {
         processedLines.push('<ul>');
         inBulletList = true;
       }
-      processedLines.push(`<li>${bulletMatch[1]}</li>`);
-    } else {
-      if (inBulletList) {
-        processedLines.push('</ul>');
-        inBulletList = false;
+      processedLines.push(`<li>${processInline(bulletMatch[1])}</li>`);
+    } else if (orderedMatch) {
+      if (!inOrderedList) {
+        processedLines.push('<ol>');
+        inOrderedList = true;
       }
-      // Wrap non-empty, non-HTML lines in paragraphs
-      if (line.trim() && !line.startsWith('<')) {
-        processedLines.push(`<p>${line}</p>`);
-      } else if (line.trim()) {
-        processedLines.push(line);
-      }
+      processedLines.push(`<li>${processInline(orderedMatch[1])}</li>`);
+    } else if (line.trim()) {
+      // Regular paragraph
+      processedLines.push(`<p>${processInline(line)}</p>`);
     }
   }
   
+  // Close any remaining open lists
   if (inBulletList) {
     processedLines.push('</ul>');
   }
+  if (inOrderedList) {
+    processedLines.push('</ol>');
+  }
   
-  return processedLines.join('\n');
+  return processedLines.join('');
 }
 
 // Convert HTML back to markdown
@@ -258,28 +321,36 @@ function htmlToMarkdown(html: string): string {
   
   let markdown = html;
   
-  // Convert headings
-  markdown = markdown.replace(/<h1[^>]*>([^<]+)<\/h1>/g, '# $1');
-  markdown = markdown.replace(/<h2[^>]*>([^<]+)<\/h2>/g, '## $1');
-  markdown = markdown.replace(/<h3[^>]*>([^<]+)<\/h3>/g, '### $1');
+  // Convert headings (add newline before for proper spacing)
+  markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/g, '\n# $1\n');
+  markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/g, '\n## $1\n');
+  markdown = markdown.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/g, '\n### $1\n');
   
   // Convert bold
-  markdown = markdown.replace(/<strong>([^<]+)<\/strong>/g, '**$1**');
+  markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/g, '**$1**');
   
   // Convert italic
-  markdown = markdown.replace(/<em>([^<]+)<\/em>/g, '*$1*');
+  markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/g, '*$1*');
   
   // Convert inline code
-  markdown = markdown.replace(/<code>([^<]+)<\/code>/g, '`$1`');
+  markdown = markdown.replace(/<code>([\s\S]*?)<\/code>/g, '`$1`');
   
-  // Convert lists
-  markdown = markdown.replace(/<ul[^>]*>/g, '');
-  markdown = markdown.replace(/<\/ul>/g, '');
-  markdown = markdown.replace(/<li>([^<]+)<\/li>/g, '- $1');
+  // Convert ordered lists with numbering
+  let listItemIndex = 0;
+  markdown = markdown.replace(/<ol[^>]*>/g, () => { listItemIndex = 0; return '\n'; });
+  markdown = markdown.replace(/<\/ol>/g, '\n');
+  markdown = markdown.replace(/<li>([\s\S]*?)<\/li>/g, (match, content) => {
+    // Check if we're in an ordered list context (crude check)
+    listItemIndex++;
+    return `- ${content}\n`;
+  });
+  
+  // Convert unordered lists
+  markdown = markdown.replace(/<ul[^>]*>/g, '\n');
+  markdown = markdown.replace(/<\/ul>/g, '\n');
   
   // Convert paragraphs
-  markdown = markdown.replace(/<p[^>]*>/g, '');
-  markdown = markdown.replace(/<\/p>/g, '\n');
+  markdown = markdown.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1\n\n');
   
   // Clean up
   markdown = markdown.replace(/<[^>]+>/g, ''); // Remove remaining HTML tags

@@ -88,50 +88,47 @@ Format your response as:
 ### Why This Helps
 [Explain why visualizing it this way aids understanding]`,
 
-  notes: `You are an expert educational content creator teaching with the Feynman technique. Create comprehensive, beautifully structured study notes that explain concepts simply.
+  notes: `You are an expert educational content creator. Create beautifully structured study notes using the Feynman technique (explain simply).
+
+CRITICAL: For ALL mathematical expressions, equations, and formulas, wrap them in dollar signs for LaTeX rendering:
+- Inline math: $a + b = c$ renders as proper math
+- Variables: $x$, $y$, $n$ 
+- Equations: $7 + 3 = 10$, $a + b = b + a$
+- Complex: $(a + b) + c = a + (b + c)$
+
+Example of correct formatting:
+"The **Commutative Property** states that $a + b = b + a$. For example, $7 + 3 = 3 + 7 = 10$."
 
 Format your response with clear markdown:
 
-# [Topic] Fundamentals
+# [Topic Title]
 
-[Introduction paragraph. Use $...$ for inline math like $a + b = b + a$ for commutative property and $(a + b) + c = a + (b + c)$ for associative property.]
+[Brief introduction. Use $...$ for any math.]
 
-## [Subtopic 1]
+## [Section Name]
 
-[Explain clearly with simple language. Include math equations using $...$ notation when relevant.]
+[Clear explanation with $math$ inline.]
 
-Key strategies include:
-
-- **[Strategy name]**: [clear explanation]
-- **[Strategy name]**: [clear explanation]  
-- **[Strategy name]**: [clear explanation]
-
-## [Subtopic 2]
-
-[Continue with another aspect of the topic]
-
-1. [Step or point]
-2. [Step or point]
-3. [Step or point]
+- **[Term]**: [explanation with $equations$ as needed]
+- **[Term]**: [explanation]
 
 ## Examples
 
-[Provide clear worked examples]
+### Example 1: [Title]
+[Problem using $math notation$]
+[Solution with $step = by = step$ equations]
 
 ## Key Takeaways
 
-- [Main point 1]
-- [Main point 2]
-- [Main point 3]
+- [Point with $math$ if needed]
+- [Point]
 
-IMPORTANT FORMATTING RULES:
-- Use # for main title, ## for sections, ### for subsections
-- Use $...$ for ALL math expressions (e.g., $4 + 4 = 8$, $a + b$)
+FORMATTING RULES:
+- ALWAYS use $...$ for ANY numbers in equations or math context (e.g., write $4 + 3 = 7$ not 4 + 3 = 7)
+- Use # for title, ## for sections, ### for subsections
 - Use **bold** for key terms
-- Use - for bullet points
-- Use 1. 2. 3. for numbered lists
-- Keep explanations simple like explaining to a child
-- Be thorough but concise`,
+- Use - for bullet points, 1. 2. 3. for numbered lists
+- Keep explanations simple`,
 };
 
 export async function POST(req: NextRequest) {
