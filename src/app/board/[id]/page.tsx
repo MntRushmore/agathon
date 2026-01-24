@@ -1146,11 +1146,19 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
-      try {
-        // Step 1: Capture viewport (excluding pending generated images)
-        const viewportBounds = editor.getViewportPageBounds();
-        
-        // Filter out pending generated images from the capture
+        try {
+          // Step 1: Capture viewport (excluding pending generated images)
+          const viewportBounds = editor.getViewportPageBounds();
+          
+          // Ensure viewport has reasonable dimensions to avoid SVG attribute errors
+          if (viewportBounds.width < 50 || viewportBounds.height < 50) {
+            logger.warn({ width: viewportBounds.width, height: viewportBounds.height }, 'Viewport too small for generation');
+            isProcessingRef.current = false;
+            return false;
+          }
+          
+          // Filter out pending generated images from the capture
+
         // so that accepting/rejecting them doesn't change the canvas hash
         const shapesToCapture = [...shapeIds].filter(id => !pendingImageIds.includes(id));
         
@@ -1228,24 +1236,32 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           throw new Error('Solution generation failed');
         }
 
-        const solutionData = await solutionResponse.json();
-        const feedback = solutionData.feedback;
-        const textContent = solutionData.textContent || '';
+          const solutionData = await solutionResponse.json();
+          const feedback = solutionData.feedback;
+          const textContent = solutionData.textContent || '';
+          const isPremium = solutionData.isPremium;
+          const imageUrl = solutionData.imageUrl as string | null | undefined;
 
-        logger.info({
-          hasFeedback: !!feedback,
-          annotationCount: feedback?.annotations?.length || 0,
-          summary: feedback?.summary?.slice(0, 100),
-        }, 'Solution data received');
+          logger.info({
+            hasFeedback: !!feedback,
+            annotationCount: feedback?.annotations?.length || 0,
+            summary: feedback?.summary?.slice(0, 100),
+            isPremium,
+            hasImageUrl: !!imageUrl,
+          }, 'Solution data received');
 
-        // If no feedback was returned, stop gracefully
-        if (!feedback || !feedback.annotations || feedback.annotations.length === 0 || signal.aborted) {
-          logger.info({ textContent }, 'No feedback annotations returned');
-          setStatus("idle");
-          setStatusMessage("");
-          isProcessingRef.current = false;
-          return false;
-        }
+          // If no feedback was returned, stop gracefully
+          const hasAnnotations = feedback?.annotations && feedback.annotations.length > 0;
+          const hasFeedbackContent = hasAnnotations || (isPremium && imageUrl);
+
+          if (!hasFeedbackContent || signal.aborted) {
+            logger.info({ textContent, hasAnnotations, isPremium, hasImageUrl: !!imageUrl }, 'No feedback content returned');
+            setStatus("idle");
+            setStatusMessage("");
+            isProcessingRef.current = false;
+            return false;
+          }
+
 
         if (signal.aborted) return false;
 
