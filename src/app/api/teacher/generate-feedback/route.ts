@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,22 +91,14 @@ Please write constructive feedback for this student. Focus on effort and learnin
     );
 
     let aiDraft = '';
-    let provider: 'vertex' | 'hackclub' = 'hackclub';
+    let provider: 'openrouter' | 'hackclub' = 'hackclub';
 
     if (usePremium && hasImage) {
-      // Use Vertex AI with image
-      const projectId = process.env.VERTEX_PROJECT_ID;
-      const location = process.env.VERTEX_LOCATION || 'us-central1';
-      const apiKey = process.env.VERTEX_API_KEY;
-      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+      // Use OpenRouter with image
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-      // Try to get service account token first
-      let accessToken: string | null = null;
-      if (isServiceAccountConfigured()) {
-        accessToken = await getVertexAccessToken();
-      }
-
-      if ((accessToken && projectId) || (!accessToken && apiKey)) {
+      if (openrouterApiKey) {
         const messages: any[] = [
           { role: 'system', content: systemPrompt },
         ];
@@ -126,22 +117,16 @@ Please write constructive feedback for this student. Focus on effort and learnin
           ],
         });
 
-        // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
-        const apiUrl = accessToken
-          ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-          : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-
-        // For API key flow, use simpler model name without google/ prefix
-        const effectiveModel = accessToken ? model : model.replace('google/', '');
-
-        const response = await fetch(apiUrl, {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+            Authorization: `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+            'X-Title': 'Whiteboard AI Tutor',
           },
           body: JSON.stringify({
-            model: effectiveModel,
+            model,
             messages,
             max_tokens: 500,
           }),
@@ -150,7 +135,7 @@ Please write constructive feedback for this student. Focus on effort and learnin
         if (response.ok) {
           const data = await response.json();
           aiDraft = data.choices?.[0]?.message?.content || '';
-          provider = 'vertex';
+          provider = 'openrouter' as any;
         }
       }
     }
@@ -211,7 +196,7 @@ Please write constructive feedback for this student. Focus on effort and learnin
       timeMinutes,
       creditsRemaining: creditBalance,
       provider,
-      imageAnalyzed: provider === 'vertex' && hasImage,
+      imageAnalyzed: provider === 'openrouter' && hasImage,
     });
   } catch (error) {
     console.error('Generate feedback error:', error);

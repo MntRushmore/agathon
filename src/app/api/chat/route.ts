@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
-import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 interface CanvasContext {
   subject?: string;
@@ -84,39 +83,16 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
     };
 
     if (usePremium) {
-      // Use Vertex AI (premium with image support)
-      const projectId = process.env.VERTEX_PROJECT_ID;
-      const location = process.env.VERTEX_LOCATION || 'us-central1';
-      const apiKey = process.env.VERTEX_API_KEY;
-      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+      // Use OpenRouter (premium with image support)
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-      // Try to get service account token first
-      let accessToken: string | null = null;
-      if (isServiceAccountConfigured()) {
-        accessToken = await getVertexAccessToken();
-      }
-
-      if (!accessToken && !apiKey) {
+      if (!openrouterApiKey) {
         return new Response(
-          JSON.stringify({ error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' }),
+          JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
       }
-
-      if (accessToken && !projectId) {
-        return new Response(
-          JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
-      const baseUrl = accessToken
-        ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-        : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-
-      // For API key flow, use simpler model name without google/ prefix
-      const effectiveModel = accessToken ? model : model.replace('google/', '');
 
       const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
         { role: 'system', content: systemPrompt },
@@ -142,22 +118,24 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         }
       });
 
-      const response = await fetch(baseUrl, {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+          Authorization: `Bearer ${openrouterApiKey}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': 'Whiteboard AI Tutor',
         },
-      body: JSON.stringify({
-        model: effectiveModel,
-        messages: apiMessages,
-        stream: true,
+        body: JSON.stringify({
+          model,
+          messages: apiMessages,
+          stream: true,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Google API error:', errorText);
+        console.error('OpenRouter API error:', errorText);
         return new Response(
           JSON.stringify({ error: 'Failed to get response from AI' }),
           { status: 500, headers: { 'Content-Type': 'application/json' } }
@@ -167,7 +145,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       return new Response(response.body, {
         headers: {
           ...baseHeaders,
-          'X-AI-Provider': 'vertex',
+          'X-AI-Provider': 'openrouter',
           'X-Image-Supported': 'true',
         },
       });

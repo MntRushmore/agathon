@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
-import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,48 +61,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const projectId = process.env.VERTEX_PROJECT_ID;
-    const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const apiKey = process.env.VERTEX_API_KEY;
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-    // Try to get service account token first
-    let accessToken: string | null = null;
-    if (isServiceAccountConfigured()) {
-      accessToken = await getVertexAccessToken();
-    }
-
-    if (!accessToken && !apiKey) {
+    if (!openrouterApiKey) {
       return NextResponse.json(
-        { error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' },
+        { error: 'OPENROUTER_API_KEY not configured' },
         { status: 500 }
       );
     }
 
-    if (accessToken && !projectId) {
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
-        { status: 500 }
-      );
-    }
-
-    // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
-    const apiUrl = accessToken
-      ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-
-    // For API key flow, use simpler model name without google/ prefix
-    const effectiveModel = accessToken ? model : model.replace('google/', '');
-
-    // Call Gemini model for OCR via Vertex AI OpenAI-compatible endpoint
-    const response = await fetch(apiUrl, {
+    // Call Gemini model for OCR via OpenRouter
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+        Authorization: `Bearer ${openrouterApiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Whiteboard AI Tutor',
       },
       body: JSON.stringify({
-        model: effectiveModel,
+        model,
         messages: [
           {
             role: 'user',
@@ -126,7 +104,7 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Vertex AI API error:', response.status, errorText);
+      console.error('OpenRouter API error:', response.status, errorText);
       return NextResponse.json(
         { error: 'OCR API error', details: errorText },
         { status: 500 }
@@ -140,7 +118,7 @@ export async function POST(req: NextRequest) {
       success: true,
       text: extractedText.trim(),
       creditsRemaining: deduction.newBalance,
-      provider: 'vertex',
+      provider: 'openrouter',
     });
   } catch (error) {
     console.error('OCR error:', error);

@@ -3,7 +3,6 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -258,52 +257,30 @@ ${jsonFormat}`;
       ? `${basePrompt}\n\nAdditional context from tutor: ${prompt}`
       : basePrompt;
 
-    solutionLogger.info({ requestId, mode }, 'Calling Vertex AI (Gemini 3) for text feedback');
+    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter for text feedback');
 
-    const projectId = process.env.VERTEX_PROJECT_ID;
-    const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const apiKey = process.env.VERTEX_API_KEY;
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-    // Try to get service account token first, then fall back to API key
-    let accessToken: string | null = null;
-    if (isServiceAccountConfigured()) {
-      accessToken = await getVertexAccessToken();
-      solutionLogger.debug({ requestId }, 'Using service account authentication');
-    }
-
-    if (!accessToken && !apiKey) {
-      solutionLogger.error({ requestId }, 'Vertex credentials missing');
+    if (!openrouterApiKey) {
+      solutionLogger.error({ requestId }, 'OpenRouter API key missing');
       return NextResponse.json(
-        { error: 'Configure service account (VERTEX_PRIVATE_KEY, VERTEX_CLIENT_EMAIL) or VERTEX_API_KEY' },
+        { error: 'OPENROUTER_API_KEY not configured' },
         { status: 500 }
       );
     }
 
-    // If using OAuth token, we need the project/location endpoint; API keys use AI Studio endpoint
-    if (accessToken && !projectId) {
-      solutionLogger.error({ requestId }, 'VERTEX_PROJECT_ID not configured for OAuth flow');
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
-        { status: 500 }
-      );
-    }
-
-    // For service account/OAuth token, use Vertex AI endpoint; for API key, use AI Studio endpoint
-    const apiUrl = accessToken
-      ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-
-    // For API key flow, use simpler model name without google/ prefix
-    const effectiveModel = accessToken ? model : model.replace('google/', '');
+    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+      Authorization: `Bearer ${openrouterApiKey}`,
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      'X-Title': 'Whiteboard AI Tutor',
     };
 
     const requestBody = {
-      model: effectiveModel,
+      model,
       messages: [
         {
           role: 'user',
@@ -414,7 +391,7 @@ ${jsonFormat}`;
       success: true,
       feedback,
       textContent: feedback.summary || '',
-      provider: 'vertex',
+      provider: 'openrouter',
       creditsRemaining: creditBalance,
       imageSupported: true,
     });

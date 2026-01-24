@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
-import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 /**
- * Uses Gemini 3.0 Pro Preview (via Vertex AI OpenAI-compatible endpoint)
+ * Uses Gemini via OpenRouter
  * to analyze the current whiteboard image and return a concise analysis.
  * Requires credits as this feature needs image processing.
  */
@@ -89,29 +88,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const projectId = process.env.VERTEX_PROJECT_ID;
-    const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const apiKey = process.env.VERTEX_API_KEY;
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-    // Try to get service account token first
-    let accessToken: string | null = null;
-    if (isServiceAccountConfigured()) {
-      accessToken = await getVertexAccessToken();
-    }
-
-    if (!accessToken && !apiKey) {
-      voiceLogger.error('Vertex credentials missing');
+    if (!openrouterApiKey) {
+      voiceLogger.error('OpenRouter API key missing');
       return NextResponse.json(
-        { error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' },
-        { status: 500 },
-      );
-    }
-
-    if (accessToken && !projectId) {
-      voiceLogger.error('VERTEX_PROJECT_ID not configured');
-      return NextResponse.json(
-        { error: 'VERTEX_PROJECT_ID not configured' },
+        { error: 'OPENROUTER_API_KEY not configured' },
         { status: 500 },
       );
     }
@@ -126,24 +109,18 @@ export async function POST(req: NextRequest) {
       ? `Here is a snapshot of the user canvas. Focus on: ${focus}`
       : 'Here is a snapshot of the user canvas. Describe what they are working on and how you could help.';
 
-    voiceLogger.info('Calling Vertex AI for workspace analysis');
+    voiceLogger.info('Calling OpenRouter for workspace analysis');
 
-    // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
-    const apiUrl = accessToken
-      ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
-
-    // For API key flow, use simpler model name without google/ prefix
-    const effectiveModel = accessToken ? model : model.replace('google/', '');
-
-    const response = await fetch(apiUrl, {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+        Authorization: `Bearer ${openrouterApiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+        'X-Title': 'Whiteboard AI Tutor',
       },
       body: JSON.stringify({
-        model: effectiveModel,
+        model,
         messages: [
           {
             role: 'system',
@@ -175,7 +152,7 @@ export async function POST(req: NextRequest) {
           status: response.status,
           error: errorData,
         },
-        'Vertex Gemini 3.0 Pro API error',
+        'OpenRouter API error',
       );
       return NextResponse.json(
         { error: 'Workspace analysis failed' },
@@ -204,7 +181,7 @@ export async function POST(req: NextRequest) {
       if (data.usage) {
         const inputTokens = data.usage.prompt_tokens || 0;
         const outputTokens = data.usage.completion_tokens || 0;
-        const totalCost = 0; // Vertex billing handled externally; tracking set to zero to avoid mis-estimation
+        const totalCost = 0; // OpenRouter billing handled externally; tracking set to zero to avoid mis-estimation
 
         await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
           method: 'POST',
@@ -228,7 +205,7 @@ export async function POST(req: NextRequest) {
       success: true,
       analysis,
       creditsRemaining: deduction.newBalance,
-      provider: 'vertex',
+      provider: 'openrouter',
     });
   } catch (error) {
     const duration = Date.now() - startTime;
