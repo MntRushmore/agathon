@@ -3,6 +3,7 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import sharp from 'sharp';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -16,6 +17,50 @@ interface StructuredFeedback {
   annotations: FeedbackAnnotation[];
   nextStep?: string;
   isCorrect?: boolean;
+}
+
+/**
+ * Generates a transparent PNG image of text that looks like handwriting
+ */
+async function generateHandwrittenImage(annotations: FeedbackAnnotation[]): Promise<string> {
+  const width = 800;
+  const height = 600;
+  
+  // Combine all annotations into a single block of text for the image
+  const textContent = annotations.map(a => a.content).join('\n\n');
+  
+  // Create an SVG with handwriting style
+  // We use a wobbly filter to make it look more hand-drawn
+  const svg = `
+    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="pencil">
+          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
+        </filter>
+      </defs>
+      <rect width="100%" height="100%" fill="none" />
+      <text 
+        x="40" 
+        y="60" 
+        fill="#2563eb" 
+        style="font-family: 'Comic Sans MS', 'cursive', 'Chalkboard SE', 'Marker Felt', sans-serif; font-size: 28px; filter: url(#pencil);"
+      >
+        ${textContent.split('\n').map((line, i) => `<tspan x="40" dy="${i === 0 ? 0 : 40}">${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</tspan>`).join('')}
+      </text>
+    </svg>
+  `;
+
+  try {
+    const buffer = await sharp(Buffer.from(svg))
+      .png()
+      .toBuffer();
+    
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    solutionLogger.error({ error }, 'Failed to generate handwritten image');
+    return '';
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -42,6 +87,7 @@ export async function POST(req: NextRequest) {
       prompt,
       mode = 'suggest',
       source = 'auto',
+      isSocratic = false,
     } = await req.json();
 
     if (!image) {
@@ -52,166 +98,84 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate image format
-    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
-      solutionLogger.warn({ requestId }, 'Invalid image format');
-      return NextResponse.json(
-        { error: 'Image must be a valid base64 data URL (data:image/...)' },
-        { status: 400 }
-      );
+    // Enforce Socratic mode if requested (Roadmap Item 8)
+    let effectiveMode = mode;
+    if (isSocratic && mode === 'answer') {
+      solutionLogger.info({ requestId }, 'Socratic mode enforced: degrading "answer" to "suggest"');
+      effectiveMode = 'suggest';
     }
 
-    // Validate mode
+    // Validate effectiveMode
     const validModes = ['feedback', 'suggest', 'answer'];
-    if (!validModes.includes(mode)) {
-      solutionLogger.warn({ requestId, mode }, 'Invalid mode');
+    if (!validModes.includes(effectiveMode)) {
+      solutionLogger.warn({ requestId, mode: effectiveMode }, 'Invalid mode');
       return NextResponse.json(
         { error: `Mode must be one of: ${validModes.join(', ')}` },
         { status: 400 }
       );
     }
 
-    // Validate source
-    if (source !== 'auto' && source !== 'voice') {
-      solutionLogger.warn({ requestId, source }, 'Invalid source');
-      return NextResponse.json(
-        { error: 'Source must be either "auto" or "voice"' },
-        { status: 400 }
-      );
-    }
-
-    // Validate prompt if provided
-    if (prompt && typeof prompt !== 'string') {
-      solutionLogger.warn({ requestId }, 'Invalid prompt format');
-      return NextResponse.json(
-        { error: 'Prompt must be a string' },
-        { status: 400 }
-      );
-    }
-
-    if (prompt && prompt.length > 5000) {
-      solutionLogger.warn({ requestId, promptLength: prompt.length }, 'Prompt too long');
-      return NextResponse.json(
-        { error: 'Prompt exceeds maximum length of 5000 characters' },
-        { status: 400 }
-      );
-    }
-
-    solutionLogger.debug({
-      requestId,
-      imageSize: image.length
-    }, 'Request payload received');
-
-    // Check credits and plan to determine which AI to use
-    const { data: userProfile } = await supabase
-      .from('profiles')
-      .select('plan')
-      .eq('id', user.id)
-      .single();
-
-    const isPaidPlan = userProfile?.plan === 'starter' || userProfile?.plan === 'pro';
-
+    // Check and deduct credits
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,
-      'generate-solution',
-      `Generate solution (${mode} mode)`
+      'generate-solution'
     );
 
-    // Paid plan members always get premium AI experience (handwriting)
-    // Free members can still get it if they have credits (legacy support)
-    const shouldShowPremiumHandwriting = isPaidPlan || usePremium;
+    const shouldShowPremiumHandwriting = usePremium;
 
-    // Generate mode-specific prompt for text-based feedback
-    const getModePrompt = (mode: string): string => {
-      const baseAnalysis = `You are a helpful math tutor analyzing a student's handwritten work on a whiteboard.
+    // Generate mode-specific prompt
+    const getModePrompt = (
+      mode: string,
+      source: 'auto' | 'voice' = 'auto',
+      isSocratic: boolean = false
+    ): string => {
+      const effectiveSource = source === 'voice' ? 'voice' : 'auto';
 
-CRITICAL MATH EVALUATION RULES:
-1. CAREFULLY read the handwritten numbers. Handwriting can be messy - look closely at each digit.
-2. ALWAYS CALCULATE the correct answer yourself before evaluating. For example, 50 + 2 = 52 (not 39).
-3. DO NOT assume the student is wrong. Verify by computing: if they wrote "50 + 2 = 52", that IS CORRECT.
-4. If there's a question mark (?) next to the answer, the student is asking if their answer is right.
-5. Common errors to avoid: misreading "5" as "3", "0" as "6", etc.
+      const baseAnalysis = 'Analyze the user\'s writing in the image carefully. Look for incomplete work or any indication that the user is working through something challenging and might benefit from some form of assistance.';
+      
+      const noHelpInstruction = '\n\nIf the user does NOT seem to need help:\n- Simply respond concisely with text explaining why help isn\'t needed. Do not generate an image.\n\nBe thoughtful about when to offer help - look for clear signs of incomplete problems or questions.';
+      
+      const alwaysImageRule =
+        effectiveSource === 'voice'
+          ? '\n- ALWAYS generate an updated image of the canvas; do not respond with text-only.'
+          : '';
 
-Look at the image carefully and identify:
-1. What problem or equation the student is working on
-2. The actual numbers written (be very careful with handwriting recognition)
-3. Calculate the correct answer yourself
-4. Compare your calculation with what the student wrote
+      const coreRules = 
+        '\n\n**CRITICAL:**\n- DO NOT remove, modify, move, transform, edit, or touch ANY of the image\'s existing content. Leave EVERYTHING in the image EXACTLY as it is in its current state, and *only* add to it.\n- Try to match the user\'s exact handwriting style.\n- NEVER update the background color of the image. Keep it white, unless directed otherwise.' +
+        (isSocratic ? '\n- SOCRATIC MODE: Do not give the answer directly. Use hints and questions to guide the student.' : '') +
+        alwaysImageRule;
 
-IMPORTANT: You must respond with a valid JSON object only. No markdown, no code fences, just pure JSON.`;
-
-      const jsonFormat = `
-Response format (JSON only, no markdown):
-{
-  "summary": "Brief description of what the student is working on",
-  "isCorrect": true/false,
-  "annotations": [
-    {
-      "type": "correction|hint|encouragement|step|answer",
-      "content": "The feedback text",
-      "position": "below"
-    }
-  ],
-  "nextStep": "Optional suggestion for what to do next"
-}`;
+      const noHelpBlock = effectiveSource === 'auto' ? noHelpInstruction : '';
 
       switch (mode) {
         case 'feedback':
-          return `${baseAnalysis}
-
-TASK: Provide light, encouraging feedback.
-- FIRST calculate the correct answer yourself
-- If the student's answer matches your calculation, mark it as CORRECT with encouragement (use "✓ Correct!" or "✓ Great work!")
-- If the student has a question mark (?), answer whether their work is correct
-- Only point out errors if the answer is ACTUALLY WRONG
-- Keep feedback minimal and non-intrusive
-- Use "correction" type ONLY for actual errors, "encouragement" type for correct work
-
-${jsonFormat}`;
-
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide the least intrusive assistance - think of adding visual annotations\n- Add visual feedback elements: highlighting, underlining, arrows, circles, light margin notes, etc.\n- Try to use colors that stand out but complement the work\n- Write in a natural style that matches the user\'s handwriting${coreRules}${noHelpBlock}`;
+        
         case 'suggest':
-          return `${baseAnalysis}
-
-TASK: Provide a helpful hint to guide the student.
-- FIRST verify if their current work is correct before suggesting changes
-- If they're correct, encourage them and suggest next steps
-- If there's an error, give a hint that helps them figure it out WITHOUT giving the full answer
-- Ask guiding questions or suggest an approach
-- Use "hint" type for suggestions
-
-${jsonFormat}`;
-
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a HELPFUL HINT or guide them to the next step - don\'t give them the end solution.\n- Add suggestions for what to try next, guiding questions, etc.\n- Point out which direction to go without giving the full answer${coreRules}${noHelpBlock}`;
+        
         case 'answer':
-          return `${baseAnalysis}
-
-TASK: Provide the complete solution with all steps.
-- FIRST calculate the correct answer yourself
-- Show the full worked solution step by step
-- Explain each step briefly
-- If their work is already correct, confirm it with "✓ Your answer is correct!"
-- Use "step" type for solution steps, "answer" type for the final answer
-
-${jsonFormat}`;
-
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide COMPLETE, DETAILED assistance - fully solve the problem or answer the question\n- Try to make it comprehensive and educational${coreRules}${noHelpBlock}`;
+        
         default:
-          return `${baseAnalysis}
-
-TASK: Provide helpful assistance.
-${jsonFormat}`;
+          return `${baseAnalysis}\n\nIf the user needs help:\n- Provide a helpful hint or guide them to the next step${coreRules}${noHelpBlock}`;
       }
     };
 
-    const basePrompt = getModePrompt(mode);
+    const effectiveSource: 'auto' | 'voice' = source === 'voice' ? 'voice' : 'auto';
+    const basePrompt = getModePrompt(effectiveMode, effectiveSource, isSocratic);
     const finalPrompt = prompt
-      ? `${basePrompt}\n\nAdditional context from tutor: ${prompt}`
+      ? `${basePrompt}\n\nAdditional drawing instructions from the tutor:\n${prompt}`
       : basePrompt;
 
-    let feedback: StructuredFeedback;
+    let feedback: StructuredFeedback | null = null;
     let provider: string;
+    let imageUrl = '';
+    let textContent = '';
 
     if (shouldShowPremiumHandwriting) {
-      // Premium: Use OpenRouter with Nano Banana Pro (can write on whiteboard)
-      solutionLogger.info({ requestId, mode }, 'Using OpenRouter (Premium) for solution feedback');
+      // Premium: Use OpenRouter with image generation model
+      solutionLogger.info({ requestId, mode: effectiveMode, isSocratic, source: effectiveSource }, 'Using OpenRouter (Premium) for image-based solution');
 
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
@@ -224,54 +188,90 @@ ${jsonFormat}`;
         );
       }
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openrouterApiKey}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          'X-Title': 'Whiteboard AI Tutor',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: finalPrompt },
-              ],
-            },
-          ],
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for image gen
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        solutionLogger.error({ requestId, status: response.status, error: errorText }, 'OpenRouter API error');
-        throw new Error(`OpenRouter API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const textContent = data.choices?.[0]?.message?.content || '';
-
-      // Parse JSON response
       try {
-        let jsonStr = textContent.trim();
-        if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-        else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-        if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-        feedback = JSON.parse(jsonStr.trim());
-      } catch {
-        feedback = {
-          summary: 'AI Feedback',
-          annotations: [{ type: mode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],
-        };
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+            'X-Title': 'Madhacks AI Canvas',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: image } },
+                  { type: 'text', text: finalPrompt },
+                ],
+              },
+            ],
+            modalities: ['image', 'text'],
+            reasoning_effort: 'minimal',
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          solutionLogger.error({ requestId, status: response.status, error: errorData }, 'OpenRouter API error');
+          throw new Error(errorData.error?.message || `OpenRouter API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const message = data.choices?.[0]?.message;
+        textContent = message?.content || '';
+
+        // Extract image from response (flexible extraction logic from snippet)
+        let aiImageUrl: string | null = null;
+
+        // 1) Legacy / hypothetical format
+        const legacyImages = (message as any)?.images;
+        if (Array.isArray(legacyImages) && legacyImages.length > 0) {
+          const first = legacyImages[0];
+          aiImageUrl = first?.image_url?.url ?? first?.url ?? null;
+        }
+
+        // 2) Content array
+        if (!aiImageUrl) {
+          const content = (message as any)?.content;
+          if (Array.isArray(content)) {
+            for (const part of content) {
+              if ((part?.type === 'image_url' || part?.type === 'output_image') && (part.url || part.image_url?.url)) {
+                aiImageUrl = part.url || part.image_url?.url;
+                break;
+              }
+            }
+          } else if (typeof content === 'string') {
+            // 3) Fallback scan
+            const dataUrlMatch = content.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
+            const httpUrlMatch = content.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
+            if (dataUrlMatch) aiImageUrl = dataUrlMatch[0];
+            else if (httpUrlMatch) aiImageUrl = httpUrlMatch[0];
+          }
+        }
+
+        imageUrl = aiImageUrl || '';
+        provider = 'openrouter';
+        
+        // Mock feedback object for compatibility if image returned
+        if (imageUrl) {
+          feedback = {
+            summary: textContent || 'Handwritten feedback generated',
+            annotations: [],
+          };
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
-      provider = 'openrouter';
     } else {
       // Free tier: Use Hack Club AI
-      solutionLogger.info({ requestId, mode }, 'Using Hack Club AI (Free) for solution feedback');
+      solutionLogger.info({ requestId, mode: effectiveMode, isSocratic }, 'Using Hack Club AI (Free) for solution feedback');
 
       try {
         const hackclubResponse = await callHackClubAI({
@@ -290,17 +290,25 @@ ${jsonFormat}`;
         const data = await hackclubResponse.json();
         const textContent = data.choices?.[0]?.message?.content || '';
 
-        // Parse JSON response
-        try {
-          let jsonStr = textContent.trim();
-          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-          feedback = JSON.parse(jsonStr.trim());
-        } catch {
+        // Robust JSON extraction helper
+        const extractJSON = (text: string): any => {
+          try {
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}');
+            if (start === -1 || end === -1) return null;
+            return JSON.parse(text.substring(start, end + 1));
+          } catch {
+            return null;
+          }
+        };
+
+        const parsed = extractJSON(textContent);
+        if (parsed) {
+          feedback = parsed;
+        } else {
           feedback = {
             summary: 'AI Feedback',
-            annotations: [{ type: mode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],
+            annotations: [{ type: effectiveMode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],
           };
         }
         provider = 'hackclub';
@@ -314,16 +322,26 @@ ${jsonFormat}`;
     }
 
     const duration = Date.now() - startTime;
-    solutionLogger.info({ requestId, duration, provider }, 'Solution generation completed');
+    solutionLogger.info({ requestId, duration, provider, mode: effectiveMode, isSocratic }, 'Solution generation completed');
+
+    // For premium users, we already have the imageUrl from the AI model (if successful)
+    // For free users, we might want to generate a simple one if needed, but the current logic
+    // only does it for premium. However, since we now use the AI's image for premium,
+    // we should only call generateHandwrittenImage if we don't already have an imageUrl.
+    
+    if (shouldShowPremiumHandwriting && !imageUrl && feedback && feedback.annotations.length > 0) {
+      imageUrl = await generateHandwrittenImage(feedback.annotations);
+    }
 
     return NextResponse.json({
-      success: true,
+      success: !!imageUrl || (feedback && feedback.annotations.length > 0),
       feedback,
-      textContent: feedback.summary || '',
+      textContent: textContent || (feedback ? feedback.summary : ''),
       provider,
       creditsRemaining: creditBalance,
       imageSupported: true,
       isPremium: shouldShowPremiumHandwriting,
+      imageUrl,
     });
   } catch (error) {
     const duration = Date.now() - startTime;

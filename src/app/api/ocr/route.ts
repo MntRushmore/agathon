@@ -1,122 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
-import { callHackClubAI } from '@/lib/ai/hackclub';
+import { ocrLogger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  const requestId = crypto.randomUUID();
+
+  ocrLogger.info({ requestId }, 'OCR request started');
+
   try {
-    // Auth check - require login for all AI features
-    const supabase = await createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required', code: 'AUTH_REQUIRED' },
-        { status: 401 }
-      );
-    }
-
     const { image } = await req.json();
 
     if (!image) {
+      ocrLogger.warn({ requestId }, 'No image provided in request');
       return NextResponse.json(
         { error: 'No image provided' },
         { status: 400 }
       );
     }
 
-    // Validate image format
-    if (typeof image !== 'string' || !image.startsWith('data:image/')) {
+    ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
+
+    if (!process.env.MISTRAL_API_KEY) {
+      ocrLogger.error({ requestId }, 'MISTRAL_API_KEY not configured');
       return NextResponse.json(
-        { error: 'Image must be a valid base64 data URL (data:image/...)' },
-        { status: 400 }
+        { error: 'MISTRAL_API_KEY not configured' },
+        { status: 500 }
       );
     }
 
-    const ocrPrompt = 'Look at this handwritten math. Extract ONLY the mathematical expression or equation. Return it as plain text (not LaTeX). For example: "3 + 5" or "2x + 3 = 7" or "y = 2x + 1". If you cannot read it clearly, return an empty string.';
+    ocrLogger.info({ requestId }, 'Calling Mistral Pixtral API for OCR');
 
-    // Check credits to determine which AI to use
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'ocr',
-      'OCR recognition'
-    );
-
-    let extractedText = '';
-    let provider = 'hackclub';
-
-    if (usePremium) {
-      // Premium: Use OpenRouter
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
-
-      if (openrouterApiKey) {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Whiteboard AI Tutor',
+    // Call Mistral Pixtral model for OCR via their API
+    const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'pixtral-12b-2409',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: image, // base64 data URL
+              },
+              {
+                type: 'text',
+                text: 'Extract all handwritten and typed text from this image. Return only the extracted text, preserving the structure and layout as much as possible. If there are mathematical equations, preserve them in a readable format.',
+              },
+            ],
           },
-          body: JSON.stringify({
-            model,
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: ocrPrompt },
-              ],
-            }],
-            max_tokens: 100,
-          }),
-        });
+        ],
+        max_tokens: 1000,
+      }),
+    });
 
-        if (response.ok) {
-          const data = await response.json();
-          extractedText = data.choices?.[0]?.message?.content?.trim() || '';
-          provider = 'openrouter';
-        }
-      }
+    if (!response.ok) {
+      const errorData = await response.json();
+      ocrLogger.error({
+        requestId,
+        status: response.status,
+        error: errorData
+      }, 'Mistral API error');
+      throw new Error(errorData.error?.message || 'Mistral API error');
     }
 
-    // Fallback to Hack Club AI if premium failed or not available
-    if (!extractedText && provider === 'hackclub') {
-      try {
-        const hackclubResponse = await callHackClubAI({
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: ocrPrompt },
-              ],
-            },
-          ],
-          stream: false,
-        });
+    const data = await response.json();
+    const extractedText = data.choices?.[0]?.message?.content || '';
 
-        const data = await hackclubResponse.json();
-        extractedText = data.choices?.[0]?.message?.content || '';
-        provider = 'hackclub';
-      } catch (hackclubError) {
-        console.error('Hack Club AI OCR error:', hackclubError);
-        return NextResponse.json(
-          { error: 'OCR API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
-          { status: 500 }
-        );
-      }
-    }
+    const duration = Date.now() - startTime;
+    ocrLogger.info({
+      requestId,
+      duration,
+      textLength: extractedText.length,
+      tokensUsed: data.usage?.total_tokens
+    }, 'OCR completed successfully');
 
     return NextResponse.json({
       success: true,
-      text: extractedText.trim(),
-      provider,
-      creditsRemaining: creditBalance,
-      isPremium: usePremium,
+      text: extractedText,
     });
   } catch (error) {
-    console.error('OCR error:', error);
+    const duration = Date.now() - startTime;
+    ocrLogger.error({
+      requestId,
+      duration,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, 'Error performing OCR');
+
     return NextResponse.json(
       {
         error: 'Failed to perform OCR',

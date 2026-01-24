@@ -814,19 +814,21 @@ type BoardContentProps = {
   boardTitle?: string;
   isSubmitted?: boolean;
   isAssignmentBoard?: boolean;
-  assignmentRestrictions?: {
-    allowAI?: boolean;
-    allowedModes?: string[];
-    hintLimit?: number | null;
-  } | null;
-  isTeacherViewing?: boolean;
-  hasBanner?: boolean;
-  submissionId?: string | null;
-  assignmentId?: string | null;
-  initialHintCount?: number;
-};
+    assignmentRestrictions?: {
+      allowAI?: boolean;
+      allowedModes?: string[];
+      hintLimit?: number | null;
+      socraticMode?: boolean;
+    } | null;
+    isTeacherViewing?: boolean;
+    hasBanner?: boolean;
+    submissionId?: string | null;
+    assignmentId?: string | null;
+    initialHintCount?: number;
+  };
 
 function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId, initialHintCount = 0 }: BoardContentProps) {
+
   const editor = useEditor();
   const router = useRouter();
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
@@ -1200,10 +1202,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         setStatus("generating");
         setStatusMessage(getStatusMessage(mode, "generating"));
 
-        const body: Record<string, unknown> = {
-          image: base64,
-          mode,
-        };
+          const body: Record<string, unknown> = {
+            image: base64,
+            mode,
+            isSocratic: assignmentRestrictions?.socraticMode ?? false,
+          };
+
 
         if (options?.promptOverride) {
           body.prompt = options.promptOverride;
@@ -1279,19 +1283,92 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
         const isFeedbackMode = mode === "feedback";
 
-          const isPremium = solutionData.isPremium;
+        const isPremium = solutionData.isPremium;
+        const imageUrl = solutionData.imageUrl as string | null | undefined;
+
+        // Create feedback shapes
+        const createdShapeIds: TLShapeId[] = [];
+
+        if (isPremium && imageUrl) {
+          // Premium: Paste a hand-drawn image of the feedback
+          const assetId = AssetRecordType.createId();
+          const shapeId = createShapeId();
+
+          // Load image to get dimensions
+          const img = new Image();
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.src = imageUrl;
+          });
+
+          // Scale image to fit viewport nicely
+          const scale = Math.min(
+            (viewportBounds.width * 0.8) / img.width,
+            (viewportBounds.height * 0.8) / img.height,
+            1.0
+          );
+          const w = img.width * scale;
+          const h = img.height * scale;
+
+          editor.createAssets([
+            {
+              id: assetId,
+              type: 'image',
+              typeName: 'asset',
+              props: {
+                name: 'ai-handwriting.png',
+                src: imageUrl,
+                w: img.width,
+                h: img.height,
+                mimeType: 'image/png',
+                isAnimated: false,
+              },
+              meta: {},
+            },
+          ]);
+
+          editor.createShape({
+            id: shapeId,
+            type: "image",
+            x: viewportBounds.x + (viewportBounds.width - w) / 2,
+            y: viewportBounds.y + (viewportBounds.height - h) / 2,
+            opacity: isFeedbackMode ? 1.0 : 0.8,
+            isLocked: true,
+            props: {
+              w,
+              h,
+              assetId,
+            },
+            meta: {
+              aiGenerated: true,
+              aiMode: mode,
+              aiTimestamp: new Date().toISOString(),
+            },
+          });
+
+          createdShapeIds.push(shapeId);
+        } else {
+          // Fallback or Free: Text/Note shapes
+          const noteWidth = 200;
+          const noteHeight = 100;
+          const padding = 15;
+          const verticalGap = 10;
+
+          let leftYOffset = viewportBounds.y + padding;
+          let rightYOffset = viewportBounds.y + padding;
+          const leftXPosition = viewportBounds.x + padding;
+          const rightXPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
 
           for (let i = 0; i < feedback.annotations.length; i++) {
             const annotation = feedback.annotations[i];
             const shapeId = createShapeId();
 
-            // Alternate sides: even index = right, odd index = left
             const isRightSide = i % 2 === 0;
             const xPosition = isRightSide ? rightXPosition : leftXPosition;
             const yOffset = isRightSide ? rightYOffset : leftYOffset;
 
             if (isPremium) {
-              // Premium: Actual AI handwriting (Text shape with draw font)
+              // Premium (without image): Actual AI handwriting (Text shape with draw font)
               editor.createShape({
                 id: shapeId,
                 type: "text",
@@ -1326,12 +1403,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                 props: {
                   richText: toRichText(annotation.content),
                   color: getAnnotationColor(annotation.type),
-                  size: 's',  // Small size for compact notes
+                  size: 's',
                   font: 'draw',
                   align: 'start',
                   verticalAlign: 'start',
                   growY: 0,
-                  fontSizeAdjustment: -2,  // Slightly smaller font
+                  fontSizeAdjustment: -2,
                   url: '',
                   scale: 1,
                 },
@@ -1346,18 +1423,10 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
             createdShapeIds.push(shapeId);
 
-          // Update the appropriate side's offset
-          if (isRightSide) {
-            rightYOffset += noteHeight + verticalGap;
-            // Wrap to top if running out of space
-            if (rightYOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
-              rightYOffset = viewportBounds.y + padding;
-            }
-          } else {
-            leftYOffset += noteHeight + verticalGap;
-            // Wrap to top if running out of space
-            if (leftYOffset + noteHeight > viewportBounds.y + viewportBounds.height) {
-              leftYOffset = viewportBounds.y + padding;
+            if (isRightSide) {
+              rightYOffset += noteHeight + verticalGap;
+            } else {
+              leftYOffset += noteHeight + verticalGap;
             }
           }
         }
@@ -1553,17 +1622,20 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     (shapeId: TLShapeId) => {
       if (!editor) return;
 
+      const shape = editor.getShape(shapeId);
+      if (!shape) return;
+
       // Set flag to prevent triggering activity detection
       isUpdatingImageRef.current = true;
 
       // First unlock to ensure we can update opacity
       editor.updateShape({
         id: shapeId,
-        type: "image",
+        type: shape.type as any,
         isLocked: false,
         opacity: 1,
         meta: {
-          ...editor.getShape(shapeId)?.meta,
+          ...shape.meta,
           aiGenerated: false, // Mark as no longer AI-generated content (accepted)
         }
       });
@@ -1571,7 +1643,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       // Then immediately lock it again to make it non-selectable
       editor.updateShape({
         id: shapeId,
-        type: "image",
+        type: shape.type as any,
         isLocked: true,
       });
 
@@ -1590,17 +1662,21 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       (shapeId: TLShapeId) => {
         if (!editor) return;
 
-        // Set flag to prevent triggering activity detection
-        isUpdatingImageRef.current = true;
+      const shape = editor.getShape(shapeId);
+      if (!shape) return;
 
-        // Unlock the shape first, then delete it
-        editor.updateShape({
-          id: shapeId,
-          type: "image",
-          isLocked: false,
-        });
-        
-        editor.deleteShape(shapeId);
+      // Set flag to prevent triggering activity detection
+      isUpdatingImageRef.current = true;
+
+      // Unlock the shape first, then delete it
+      editor.updateShape({
+        id: shapeId,
+        type: shape.type as any,
+        isLocked: false,
+      });
+      
+      editor.deleteShape(shapeId);
+
 
         // Remove from pending list
         setPendingImageIds((prev) => prev.filter((id) => id !== shapeId));
