@@ -1299,9 +1299,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
         const isFeedbackMode = mode === "feedback";
 
-        const isPremium = solutionData.isPremium;
-        const imageUrl = solutionData.imageUrl as string | null | undefined;
-
         // Create feedback shapes
         if (isPremium && imageUrl) {
           // Premium: Paste a hand-drawn image of the feedback
@@ -1363,16 +1360,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           createdShapeIds.push(shapeId);
         } else {
           // Fallback or Free: Text/Note shapes
-          const noteWidth = 200;
-          const noteHeight = 100;
-          const padding = 15;
-          const verticalGap = 10;
-
-          let leftYOffset = viewportBounds.y + padding;
-          let rightYOffset = viewportBounds.y + padding;
-          const leftXPosition = viewportBounds.x + padding;
-          const rightXPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
-
           for (let i = 0; i < feedback.annotations.length; i++) {
             const annotation = feedback.annotations[i];
             const shapeId = createShapeId();
