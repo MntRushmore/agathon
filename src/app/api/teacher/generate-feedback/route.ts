@@ -82,40 +82,37 @@ Please write constructive feedback for this student. Focus on effort and learnin
 
     // Check if we have an image to analyze
     const hasImage = boardImage || submission.student_board?.preview;
+    const imageUrl = boardImage || submission.student_board?.preview;
 
-    // Check and deduct credits
+    // Check credits to determine which AI to use
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,
       'teacher-feedback',
-      `Teacher feedback for submission ${submissionId}`
+      'Teacher feedback generation'
     );
 
     let aiDraft = '';
-    let provider: 'openrouter' | 'hackclub' = 'hackclub';
+    let provider = 'hackclub';
 
-    if (usePremium && hasImage) {
-      // Use OpenRouter with image
+    if (usePremium) {
+      // Premium: Use OpenRouter with Nano Banana Pro
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
       if (openrouterApiKey) {
-        const messages: any[] = [
-          { role: 'system', content: systemPrompt },
-        ];
+        const messages: any[] = [{ role: 'system', content: systemPrompt }];
 
-        messages.push({
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: boardImage || submission.student_board?.preview },
-            },
-            {
-              type: 'text',
-              text: userPrompt,
-            },
-          ],
-        });
+        if (hasImage) {
+          messages.push({
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'text', text: userPrompt },
+            ],
+          });
+        } else {
+          messages.push({ role: 'user', content: userPrompt });
+        }
 
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -135,20 +132,32 @@ Please write constructive feedback for this student. Focus on effort and learnin
         if (response.ok) {
           const data = await response.json();
           aiDraft = data.choices?.[0]?.message?.content || '';
-          provider = 'openrouter' as any;
+          provider = 'openrouter';
         }
       }
     }
 
-    // Fallback to Hack Club AI (text-only) if Vertex didn't work or no credits
+    // Fallback to Hack Club AI if premium failed or not available
     if (!aiDraft) {
       try {
+        const messages: any[] = [{ role: 'system', content: systemPrompt }];
+
+        if (hasImage) {
+          messages.push({
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl } },
+              { type: 'text', text: userPrompt },
+            ],
+          });
+        } else {
+          messages.push({ role: 'user', content: userPrompt });
+        }
+
         const hackclubResponse = await callHackClubAI({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
+          messages,
           stream: false,
+          max_tokens: 500,
         });
 
         const hackclubData = await hackclubResponse.json();
@@ -194,9 +203,10 @@ Please write constructive feedback for this student. Focus on effort and learnin
       aiHelpCount,
       solveCount,
       timeMinutes,
-      creditsRemaining: creditBalance,
       provider,
-      imageAnalyzed: provider === 'openrouter' && hasImage,
+      imageAnalyzed: hasImage,
+      creditsRemaining: creditBalance,
+      isPremium: usePremium,
     });
   } catch (error) {
     console.error('Generate feedback error:', error);

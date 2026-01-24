@@ -67,7 +67,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
     }
 
-    // Check and deduct credits
+    // Check credits to determine which AI to use
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,
       'chat',
@@ -82,8 +82,22 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       'X-Credits-Remaining': String(creditBalance),
     };
 
+    // Build messages with image content for vision model
+    const userMessages = messages.map((m, index) => {
+      if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
+        return {
+          role: m.role,
+          content: [
+            { type: 'image_url', image_url: { url: canvasContext.imageBase64 } },
+            { type: 'text', text: m.content },
+          ],
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     if (usePremium) {
-      // Use OpenRouter (premium with image support)
+      // Premium: Use OpenRouter with Nano Banana Pro
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
@@ -94,29 +108,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         );
       }
 
-      const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
-        { role: 'system', content: systemPrompt },
-      ];
-
-      messages.forEach((m, index) => {
-        if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
-          apiMessages.push({
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: { url: canvasContext.imageBase64 },
-              },
-              {
-                type: 'text',
-                text: m.content,
-              },
-            ],
-          });
-        } else {
-          apiMessages.push({ role: m.role, content: m.content });
-        }
-      });
+      const apiMessages: any[] = [{ role: 'system', content: systemPrompt }, ...userMessages];
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -147,24 +139,11 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
           ...baseHeaders,
           'X-AI-Provider': 'openrouter',
           'X-Image-Supported': 'true',
+          'X-Is-Premium': 'true',
         },
       });
     } else {
-      // Use Hack Club AI (free, text-only fallback)
-      // Build messages with image content converted to text
-      const userMessages = messages.map((m, index) => {
-        if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
-          return {
-            role: m.role,
-            content: [
-              { type: 'image_url', image_url: { url: canvasContext.imageBase64 } },
-              { type: 'text', text: m.content },
-            ],
-          };
-        }
-        return { role: m.role, content: m.content };
-      });
-
+      // Free tier: Use Hack Club AI
       const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
 
       try {
@@ -174,7 +153,8 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
           headers: {
             ...baseHeaders,
             'X-AI-Provider': 'hackclub',
-            'X-Image-Supported': 'false',
+            'X-Image-Supported': 'true',
+            'X-Is-Premium': 'false',
           },
         });
       } catch (hackclubError) {

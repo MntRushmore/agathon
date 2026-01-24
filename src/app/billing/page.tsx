@@ -49,13 +49,13 @@ type Plan = {
 
 const plans: Plan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
+    id: 'free',
+    name: 'Free',
     price: '$0',
     interval: 'forever',
-    description: 'Experiment freely with AI help and keep personal boards.',
+    description: 'Get started with AI-powered learning at no cost.',
     monthlyInteractions: 50,
-    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_STARTER_ID,
+    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID,
     features: [
       '50 AI assists each month',
       'Personal boards + exports',
@@ -63,15 +63,15 @@ const plans: Plan[] = [
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
+    id: 'premium',
+    name: 'Premium',
     price: '$12',
     interval: 'month',
-    description: 'For power users who need deeper AI insight and priority speed.',
+    description: 'Unlock unlimited AI assistance and premium features.',
     badge: 'Most popular',
     highlight: true,
     monthlyInteractions: 500,
-    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_ID,
+    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID,
     features: [
       '500 AI assists per month',
       'Priority AI queue + faster OCR',
@@ -97,7 +97,7 @@ export default function BillingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const activePlan = useMemo(() => {
-    const planTier = (profile as any)?.plan_tier || (profile as any)?.plan;
+    const planTier = profile?.plan_tier || 'free';
     return plans.find((plan) => plan.id === planTier) || plans[0];
   }, [profile]);
 

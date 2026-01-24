@@ -20,11 +20,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 
 const productPlanMap: Record<string, string> = {};
-if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_STARTER_ID) {
-  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_STARTER_ID] = 'starter';
+if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID) {
+  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID] = 'free';
 }
-if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_ID) {
-  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PRO_ID] = 'pro';
+if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID) {
+  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID] = 'premium';
 }
 
 async function syncProfileFromSubscription(

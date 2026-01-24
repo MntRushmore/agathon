@@ -1,32 +1,43 @@
 /**
- * Hack Club AI Provider - Free text-only fallback
- * OpenAI-compatible API at https://ai.hackclub.com/chat/completions
+ * Hack Club AI Provider - Free tier with vision support
+ * Uses https://ai.hackclub.com/proxy/v1/chat/completions for model selection
  */
 
 export interface HackClubMessage {
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
 }
 
 export interface HackClubCompletionOptions {
   messages: HackClubMessage[];
   stream?: boolean;
   max_tokens?: number;
+  model?: string;
 }
 
-const HACKCLUB_API_URL = 'https://ai.hackclub.com/chat/completions';
+// Use the proxy endpoint for model selection and vision support
+const HACKCLUB_API_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
 
 /**
- * Call Hack Club AI for text-only completions
+ * Call Hack Club AI for completions (supports vision models)
  * Returns a streaming or non-streaming response
  */
 export async function callHackClubAI(options: HackClubCompletionOptions): Promise<Response> {
+  const apiKey = process.env.HACKCLUB_AI_API_KEY;
+  const model = options.model || process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash';
+
+  if (!apiKey) {
+    throw new Error('HACKCLUB_AI_API_KEY not configured');
+  }
+
   const response = await fetch(HACKCLUB_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
+      model,
       messages: options.messages,
       stream: options.stream ?? true,
       ...(options.max_tokens && { max_tokens: options.max_tokens }),
@@ -43,8 +54,7 @@ export async function callHackClubAI(options: HackClubCompletionOptions): Promis
 }
 
 /**
- * System prompt addition for text-only mode
- * This is prepended to explain the limitations of text-only AI
+ * System prompt addition for text-only mode (legacy, kept for compatibility)
  */
 export const TEXT_ONLY_SYSTEM_ADDITION = `
 IMPORTANT: You are currently in text-only mode and cannot see any images or the student's canvas.
@@ -100,9 +110,36 @@ export function transformMessagesForTextOnly(
 }
 
 /**
- * Build a complete Hack Club AI request from chat parameters
+ * Build a complete Hack Club AI request with vision support
+ * Now passes through images instead of stripping them
  */
 export function buildHackClubRequest(
+  systemPrompt: string,
+  userMessages: Array<{
+    role: string;
+    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+  }>,
+  stream = true
+): HackClubCompletionOptions {
+  // Pass through messages with images intact for vision models
+  const messages: HackClubMessage[] = userMessages.map((msg) => ({
+    role: msg.role as 'user' | 'assistant' | 'system',
+    content: msg.content,
+  }));
+
+  return {
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...messages,
+    ],
+    stream,
+  };
+}
+
+/**
+ * Build a text-only request (strips images)
+ */
+export function buildHackClubTextOnlyRequest(
   systemPrompt: string,
   userMessages: Array<{
     role: string;

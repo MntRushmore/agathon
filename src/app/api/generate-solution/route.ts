@@ -102,75 +102,12 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    // Check and deduct credits (costs 2 credits for solution generation)
+    // Check credits to determine which AI to use
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,
       'generate-solution',
       `Generate solution (${mode} mode)`
     );
-
-    // If no credits, this feature requires image processing - return 402
-    if (!usePremium) {
-      solutionLogger.info({ requestId, creditBalance }, 'No credits for solution generation, trying text-only fallback');
-
-      // For solution generation, we can provide a text-only fallback
-      // but it won't be able to see the canvas
-      const textOnlyPrompt = getTextOnlyFallbackPrompt(mode, prompt);
-
-      try {
-        const hackclubResponse = await callHackClubAI({
-          messages: [
-            { role: 'system', content: textOnlyPrompt.systemPrompt },
-            { role: 'user', content: textOnlyPrompt.userMessage },
-          ],
-          stream: false,
-        });
-
-        const hackclubData = await hackclubResponse.json();
-        const textContent = hackclubData.choices?.[0]?.message?.content || '';
-
-        // Parse as JSON or create fallback structure
-        let feedback: StructuredFeedback;
-        try {
-          let jsonStr = textContent.trim();
-          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
-          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
-          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
-          feedback = JSON.parse(jsonStr.trim());
-        } catch {
-          feedback = {
-            summary: 'Text-only feedback (upgrade for visual analysis)',
-            annotations: [
-              {
-                type: 'hint',
-                content: textContent || 'Please describe your work so I can help you.',
-                position: 'below',
-              },
-            ],
-          };
-        }
-
-        return NextResponse.json({
-          success: true,
-          feedback,
-          textContent: feedback.summary || '',
-          provider: 'hackclub',
-          creditsRemaining: creditBalance,
-          imageSupported: false,
-        });
-      } catch (hackclubError) {
-        solutionLogger.error({ requestId, error: hackclubError }, 'Hack Club AI fallback failed');
-        return NextResponse.json(
-          {
-            error: 'no_credits',
-            message: 'Solution generation requires credits for image analysis. Purchase credits to continue.',
-            upgradePrompt: true,
-            creditBalance,
-          },
-          { status: 402 }
-        );
-      }
-    }
 
     // Generate mode-specific prompt for text-based feedback
     const getModePrompt = (mode: string): string => {
@@ -257,143 +194,124 @@ ${jsonFormat}`;
       ? `${basePrompt}\n\nAdditional context from tutor: ${prompt}`
       : basePrompt;
 
-    solutionLogger.info({ requestId, mode }, 'Calling OpenRouter for text feedback');
+    let feedback: StructuredFeedback;
+    let provider: string;
 
-    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+    if (usePremium) {
+      // Premium: Use OpenRouter with Nano Banana Pro (can write on whiteboard)
+      solutionLogger.info({ requestId, mode }, 'Using OpenRouter (Premium) for solution feedback');
 
-    if (!openrouterApiKey) {
-      solutionLogger.error({ requestId }, 'OpenRouter API key missing');
-      return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY not configured' },
-        { status: 500 }
-      );
-    }
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+      if (!openrouterApiKey) {
+        solutionLogger.error({ requestId }, 'OpenRouter API key missing');
+        return NextResponse.json(
+          { error: 'OPENROUTER_API_KEY not configured' },
+          { status: 500 }
+        );
+      }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openrouterApiKey}`,
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-      'X-Title': 'Whiteboard AI Tutor',
-    };
-
-    const requestBody = {
-      model,
-      messages: [
-        {
-          role: 'user',
-          content: [
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openrouterApiKey}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          'X-Title': 'Whiteboard AI Tutor',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
             {
-              type: 'image_url',
-              image_url: {
-                url: image,
-              },
-            },
-            {
-              type: 'text',
-              text: finalPrompt,
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: image } },
+                { type: 'text', text: finalPrompt },
+              ],
             },
           ],
-        },
-      ],
-    };
+        }),
+      });
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(requestBody),
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        solutionLogger.error({ requestId, status: response.status, error: errorText }, 'OpenRouter API error');
+        throw new Error(`OpenRouter API error: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      let errorData: any = {};
+      const data = await response.json();
+      const textContent = data.choices?.[0]?.message?.content || '';
+
+      // Parse JSON response
       try {
-        errorData = errorText ? JSON.parse(errorText) : {};
+        let jsonStr = textContent.trim();
+        if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+        else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+        if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+        feedback = JSON.parse(jsonStr.trim());
       } catch {
-        errorData = { raw: errorText };
+        feedback = {
+          summary: 'AI Feedback',
+          annotations: [{ type: mode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],
+        };
       }
-      solutionLogger.error({
-        requestId,
-        status: response.status,
-        error: errorData
-      }, 'Vertex AI API error');
-      throw new Error(errorData.error?.message || errorData.message || errorData.raw || 'Vertex AI API error');
-    }
+      provider = 'openrouter';
+    } else {
+      // Free tier: Use Hack Club AI
+      solutionLogger.info({ requestId, mode }, 'Using Hack Club AI (Free) for solution feedback');
 
-    const data = await response.json();
-    const message = data.choices?.[0]?.message;
-    let textContent = message?.content || '';
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: image } },
+                { type: 'text', text: finalPrompt },
+              ],
+            },
+          ],
+          stream: false,
+        });
 
-    // Parse the JSON response from Gemini
-    let feedback: StructuredFeedback;
-    try {
-      // Clean up potential markdown code fences
-      let jsonStr = textContent.trim();
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.slice(7);
-      } else if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.slice(3);
+        const data = await hackclubResponse.json();
+        const textContent = data.choices?.[0]?.message?.content || '';
+
+        // Parse JSON response
+        try {
+          let jsonStr = textContent.trim();
+          if (jsonStr.startsWith('```json')) jsonStr = jsonStr.slice(7);
+          else if (jsonStr.startsWith('```')) jsonStr = jsonStr.slice(3);
+          if (jsonStr.endsWith('```')) jsonStr = jsonStr.slice(0, -3);
+          feedback = JSON.parse(jsonStr.trim());
+        } catch {
+          feedback = {
+            summary: 'AI Feedback',
+            annotations: [{ type: mode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],
+          };
+        }
+        provider = 'hackclub';
+      } catch (hackclubError) {
+        solutionLogger.error({ requestId, error: hackclubError }, 'Hack Club AI error');
+        return NextResponse.json(
+          { error: 'Failed to generate solution', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { status: 500 }
+        );
       }
-      if (jsonStr.endsWith('```')) {
-        jsonStr = jsonStr.slice(0, -3);
-      }
-      jsonStr = jsonStr.trim();
-
-      feedback = JSON.parse(jsonStr);
-    } catch (parseError) {
-      solutionLogger.warn({ requestId, textContent }, 'Failed to parse JSON response, using raw text');
-      // Fallback: create a simple feedback structure from raw text
-      feedback = {
-        summary: 'AI Feedback',
-        annotations: [
-          {
-            type: mode === 'answer' ? 'answer' : 'hint',
-            content: textContent,
-            position: 'below',
-          },
-        ],
-      };
     }
 
     const duration = Date.now() - startTime;
-    solutionLogger.info({
-      requestId,
-      duration,
-      hasAnnotations: feedback.annotations?.length > 0,
-      tokensUsed: data.usage?.total_tokens
-    }, 'Solution generation completed successfully');
-
-    // Track AI usage
-    try {
-      const inputTokens = data.usage?.prompt_tokens || 0;
-      const outputTokens = data.usage?.completion_tokens || 0;
-
-      await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: `solution_${mode}`,
-          prompt: prompt || `${mode} mode text feedback`,
-          responseSummary: feedback.summary || 'Text feedback generated',
-          inputTokens,
-          outputTokens,
-          totalCost: 0,
-          modelUsed: model,
-        }),
-      });
-    } catch (trackError) {
-      solutionLogger.warn({ requestId, error: trackError }, 'Failed to track solution generation usage');
-    }
+    solutionLogger.info({ requestId, duration, provider }, 'Solution generation completed');
 
     return NextResponse.json({
       success: true,
       feedback,
       textContent: feedback.summary || '',
-      provider: 'openrouter',
+      provider,
       creditsRemaining: creditBalance,
       imageSupported: true,
+      isPremium: usePremium,
     });
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -401,48 +319,11 @@ ${jsonFormat}`;
       requestId,
       duration,
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
     }, 'Error generating solution');
 
     return NextResponse.json(
-      {
-        error: 'Failed to generate solution',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to generate solution', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
-}
-
-// Helper function for text-only fallback prompts
-function getTextOnlyFallbackPrompt(mode: string, additionalPrompt?: string): { systemPrompt: string; userMessage: string } {
-  const baseSystem = `You are a helpful math tutor. The student is working on a whiteboard but you cannot see their work.
-You must ask them to describe what they've written or provide the problem in text form.
-
-IMPORTANT: Respond with a valid JSON object only. No markdown, no code fences, just pure JSON.
-
-Response format:
-{
-  "summary": "Brief description of your response",
-  "annotations": [
-    {
-      "type": "hint",
-      "content": "Your helpful message",
-      "position": "below"
-    }
-  ]
-}`;
-
-  const modeMessages: Record<string, string> = {
-    feedback: 'I want feedback on my work, but I understand you cannot see my whiteboard. What should I describe to get help?',
-    suggest: 'I need a hint, but I understand you cannot see my whiteboard. Can you help me if I describe my work?',
-    answer: 'I want to see the full solution, but I understand you cannot see my whiteboard. Please ask me to describe the problem.',
-  };
-
-  return {
-    systemPrompt: baseSystem,
-    userMessage: additionalPrompt
-      ? `${modeMessages[mode] || modeMessages.suggest}\n\nContext: ${additionalPrompt}`
-      : modeMessages[mode] || modeMessages.suggest,
-  };
 }

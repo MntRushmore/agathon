@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
+import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,93 +33,87 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check credits - OCR requires image processing (no text-only fallback possible)
-    const creditCheck = await checkUserCredits(user.id);
+    const ocrPrompt = 'Look at this handwritten math. Extract ONLY the mathematical expression or equation. Return it as plain text (not LaTeX). For example: "3 + 5" or "2x + 3 = 7" or "y = 2x + 1". If you cannot read it clearly, return an empty string.';
 
-    if (!creditCheck.hasCredits) {
-      return NextResponse.json(
-        {
-          error: 'no_credits',
-          message: 'OCR requires credits for image processing. Purchase credits to continue.',
-          upgradePrompt: true,
-          creditBalance: creditCheck.currentBalance,
-        },
-        { status: 402 }
-      );
-    }
+    // Check credits to determine which AI to use
+    const { usePremium, creditBalance } = await checkAndDeductCredits(
+      user.id,
+      'ocr',
+      'OCR recognition'
+    );
 
-    // Deduct credit
-    const deduction = await deductCredits(user.id, 'ocr', 'OCR handwriting recognition');
+    let extractedText = '';
+    let provider = 'hackclub';
 
-    if (!deduction.success) {
-      return NextResponse.json(
-        {
-          error: 'no_credits',
-          message: 'Failed to process credits. Please try again.',
-          creditBalance: deduction.newBalance,
-        },
-        { status: 402 }
-      );
-    }
+    if (usePremium) {
+      // Premium: Use OpenRouter
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
 
-    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
-
-    if (!openrouterApiKey) {
-      return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Call Gemini model for OCR via OpenRouter
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openrouterApiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-        'X-Title': 'Whiteboard AI Tutor',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: image,
-                },
-              },
-              {
-                type: 'text',
-                text: 'Look at this handwritten math. Extract ONLY the mathematical expression or equation. Return it as plain text (not LaTeX). For example: "3 + 5" or "2x + 3 = 7" or "y = 2x + 1". If you cannot read it clearly, return an empty string.',
-              },
-            ],
+      if (openrouterApiKey) {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+            'X-Title': 'Whiteboard AI Tutor',
           },
-        ],
-      }),
-    });
+          body: JSON.stringify({
+            model,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: image } },
+                { type: 'text', text: ocrPrompt },
+              ],
+            }],
+            max_tokens: 100,
+          }),
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouter API error:', response.status, errorText);
-      return NextResponse.json(
-        { error: 'OCR API error', details: errorText },
-        { status: 500 }
-      );
+        if (response.ok) {
+          const data = await response.json();
+          extractedText = data.choices?.[0]?.message?.content?.trim() || '';
+          provider = 'openrouter';
+        }
+      }
     }
 
-    const data = await response.json();
-    const extractedText = data.choices?.[0]?.message?.content || '';
+    // Fallback to Hack Club AI if premium failed or not available
+    if (!extractedText && provider === 'hackclub') {
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: image } },
+                { type: 'text', text: ocrPrompt },
+              ],
+            },
+          ],
+          stream: false,
+        });
+
+        const data = await hackclubResponse.json();
+        extractedText = data.choices?.[0]?.message?.content || '';
+        provider = 'hackclub';
+      } catch (hackclubError) {
+        console.error('Hack Club AI OCR error:', hackclubError);
+        return NextResponse.json(
+          { error: 'OCR API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { status: 500 }
+        );
+      }
+    }
 
     return NextResponse.json({
       success: true,
       text: extractedText.trim(),
-      creditsRemaining: deduction.newBalance,
-      provider: 'openrouter',
+      provider,
+      creditsRemaining: creditBalance,
+      isPremium: usePremium,
     });
   } catch (error) {
     console.error('OCR error:', error);

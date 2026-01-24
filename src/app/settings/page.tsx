@@ -171,8 +171,8 @@ export default function SettingsPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <Badge variant={profile.plan_tier === 'pro' ? 'default' : 'secondary'}>
-                  {profile.plan_tier || 'Starter'}
+                <Badge variant={profile.plan_tier === 'premium' ? 'default' : 'secondary'}>
+                  {profile.plan_tier === 'premium' ? 'Premium' : profile.plan_tier === 'free' ? 'Free' : profile.plan_tier || 'Free'}
                 </Badge>
                 {profile.plan_status && (
                   <p className="text-sm text-muted-foreground mt-1">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
+import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
@@ -19,69 +19,16 @@ export async function POST(req: NextRequest) {
 
     const { expression, image, variables, quick } = await req.json();
 
-    // If image is provided, use Gemini vision to recognize and solve
+    // Check credits to determine which AI to use
+    const { usePremium, creditBalance } = await checkAndDeductCredits(
+      user.id,
+      'solve-math',
+      'Math solving'
+    );
+
+    // If image is provided, use vision AI to recognize and solve
     if (image && typeof image === 'string' && image.startsWith('data:image/')) {
-      // Image processing requires credits
-      const creditCheck = await checkUserCredits(user.id);
-
-      if (!creditCheck.hasCredits) {
-        return NextResponse.json(
-          {
-            error: 'no_credits',
-            message: 'Image recognition requires credits. Type the expression instead or purchase credits.',
-            upgradePrompt: true,
-            creditBalance: creditCheck.currentBalance,
-          },
-          { status: 402 }
-        );
-      }
-
-      // Deduct credit for image processing
-      const deduction = await deductCredits(user.id, 'solve-math', 'Math solve with image recognition');
-
-      if (!deduction.success) {
-        return NextResponse.json(
-          {
-            error: 'no_credits',
-            message: 'Failed to process credits. Please try again.',
-            creditBalance: deduction.newBalance,
-          },
-          { status: 402 }
-        );
-      }
-
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
-
-      if (!openrouterApiKey) {
-        return NextResponse.json(
-          { error: 'OPENROUTER_API_KEY not configured' },
-          { status: 500 }
-        );
-      }
-
-      // Use OpenRouter vision to recognize AND solve the math in one call
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openrouterApiKey}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          'X-Title': 'Whiteboard AI Tutor',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image_url',
-                  image_url: { url: image },
-                },
-                {
-                  type: 'text',
-                  text: `Look at this handwritten content. If it contains a math expression or equation, recognize it and solve it.
+      const visionPrompt = `Look at this handwritten content. If it contains a math expression or equation, recognize it and solve it.
 
 IMPORTANT RULES:
 1. First, determine if this is a math problem. If it's NOT a math problem (just text, drawing, etc.), respond with exactly: NOT_MATH
@@ -100,28 +47,73 @@ IMPORTANT RULES:
 Examples:
 - "36 + 15" → EXPRESSION: 36 + 15, ANSWER: 51
 - "9 + 18" → EXPRESSION: 9 + 18, ANSWER: 27
-- "3 + 14" → EXPRESSION: 3 + 14, ANSWER: 17
 - "hello world" → NOT_MATH
-- "2x + 5 = 15" → EXPRESSION: 2x + 5 = 15, ANSWER: x = 5`,
-                },
-              ],
-            },
-          ],
-          max_tokens: 150,
-        }),
-      });
+- "2x + 5 = 15" → EXPRESSION: 2x + 5 = 15, ANSWER: x = 5`;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenRouter vision API error:', response.status, errorText);
-        return NextResponse.json(
-          { error: 'Vision API error', details: errorText },
-          { status: 500 }
-        );
+      let content = '';
+      let provider = 'hackclub';
+
+      if (usePremium) {
+        // Premium: Use OpenRouter
+        const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+        const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+
+        if (openrouterApiKey) {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${openrouterApiKey}`,
+              'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+              'X-Title': 'Whiteboard AI Tutor',
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: image } },
+                  { type: 'text', text: visionPrompt },
+                ],
+              }],
+              max_tokens: 150,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            content = data.choices?.[0]?.message?.content?.trim() || '';
+            provider = 'openrouter';
+          }
+        }
       }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content?.trim() || '';
+      // Fallback to Hack Club AI if premium failed or not available
+      if (!content) {
+        try {
+          const hackclubResponse = await callHackClubAI({
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: image } },
+                { type: 'text', text: visionPrompt },
+              ],
+            }],
+            stream: false,
+            max_tokens: 150,
+          });
+
+          const data = await hackclubResponse.json();
+          content = data.choices?.[0]?.message?.content?.trim() || '';
+          provider = 'hackclub';
+        } catch (hackclubError) {
+          console.error('Hack Club AI vision error:', hackclubError);
+          return NextResponse.json(
+            { error: 'Vision API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+            { status: 500 }
+          );
+        }
+      }
 
       // Parse the response
       if (content === 'NOT_MATH' || content === 'INCOMPLETE' || content === 'UNCLEAR') {
@@ -130,7 +122,8 @@ Examples:
           answer: null,
           recognized: null,
           reason: content.toLowerCase(),
-          creditsRemaining: deduction.newBalance,
+          creditsRemaining: creditBalance,
+          provider,
         });
       }
 
@@ -140,8 +133,6 @@ Examples:
 
       const recognized = expressionMatch?.[1]?.trim() || '';
       let answer = answerMatch?.[1]?.trim() || '';
-
-      // Clean up the answer
       answer = answer.replace(/\*\*/g, '').replace(/`/g, '').trim();
 
       if (!answer || answer === '?') {
@@ -150,7 +141,8 @@ Examples:
           answer: null,
           recognized,
           reason: 'could_not_solve',
-          creditsRemaining: deduction.newBalance,
+          creditsRemaining: creditBalance,
+          provider,
         });
       }
 
@@ -159,8 +151,9 @@ Examples:
         answer,
         recognized,
         source: 'gemini-vision',
-        creditsRemaining: deduction.newBalance,
-        provider: 'openrouter',
+        creditsRemaining: creditBalance,
+        provider,
+        isPremium: usePremium,
       });
     }
 
@@ -183,99 +176,11 @@ Examples:
             provider: 'local',
           });
         }
-        // If CAS fails, fall through to LLM
         console.log('CAS failed, falling back to LLM:', result.error);
       }
     }
 
-    // Text-based solving - check credits and use appropriate provider
-    const creditCheck = await checkUserCredits(user.id);
-
-    if (creditCheck.hasCredits) {
-      // Use OpenRouter with credits
-      const deduction = await deductCredits(user.id, 'solve-math', 'Math solve with AI');
-
-      if (deduction.success) {
-        const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-        const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
-
-        if (openrouterApiKey) {
-          // Build context about known variables
-          let variableContext = '';
-          if (variables && Object.keys(variables).length > 0) {
-            variableContext = '\n\nKnown variables:\n' +
-              Object.entries(variables)
-                .map(([name, value]) => `${name} = ${value}`)
-                .join('\n');
-          }
-
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${openrouterApiKey}`,
-              'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-              'X-Title': 'Whiteboard AI Tutor',
-            },
-            body: JSON.stringify({
-              model,
-              messages: [
-                {
-                  role: 'system',
-                  content: `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
-
-RULES:
-1. Return ONLY the final numerical answer or simplified result
-2. Do NOT show work or steps
-3. Do NOT include explanations
-4. Understand LaTeX notation: \\frac{a}{b} means a/b, ^{n} means power, \\sqrt{x} means square root, \\int means integral, etc.
-5. If it's an equation to solve (like "2x + 5 = 15"), return the solution (like "x = 5")
-6. If it's an expression to evaluate (like "3 + 5"), return the result (like "8")
-7. If it's a simplification, return simplified form
-8. For integrals, return the antiderivative with + C
-9. For derivatives, return the derivative
-10. For trig, use degrees unless radians specified
-11. Round decimals to 4 places max
-12. If you cannot solve it or it's incomplete, return "?"
-
-Examples:
-- Input: "2 + 3" → Output: "5"
-- Input: "\\frac{1}{2} + \\frac{1}{4}" → Output: "3/4"
-- Input: "2x + 5 = 15" → Output: "x = 5"
-- Input: "\\sqrt{144}" → Output: "12"
-- Input: "\\int x^2 dx" → Output: "x³/3 + C"
-- Input: "\\frac{d}{dx} x^3" → Output: "3x²"
-- Input: "x^2 + 5x + 6 = 0" → Output: "x = -2, -3"
-- Input: "\\sin(30°)" → Output: "0.5"`,
-                },
-                {
-                  role: 'user',
-                  content: `Solve: ${expression}${variableContext}`,
-                },
-              ],
-              max_tokens: 100,
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            let answer = data.choices?.[0]?.message?.content || '';
-            answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
-            answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
-
-            return NextResponse.json({
-              success: true,
-              answer: answer || '?',
-              source: 'llm',
-              creditsRemaining: deduction.newBalance,
-              provider: 'openrouter',
-            });
-          }
-        }
-      }
-    }
-
-    // Fallback to Hack Club AI (free, text-only)
+    // Text-based solving
     let variableContext = '';
     if (variables && Object.keys(variables).length > 0) {
       variableContext = '\n\nKnown variables:\n' +
@@ -284,49 +189,98 @@ Examples:
           .join('\n');
     }
 
-    try {
-      const hackclubResponse = await callHackClubAI({
-        messages: [
-          {
-            role: 'system',
-            content: `You are a math solver. Given a mathematical expression or equation, compute the answer.
-Return ONLY the final numerical answer or simplified result. No explanations, no steps.
-If you cannot solve it, return "?"`,
-          },
-          {
-            role: 'user',
-            content: `Solve: ${expression}${variableContext}`,
-          },
-        ],
-        stream: false,
-      });
+    const mathPrompt = `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
 
-      const hackclubData = await hackclubResponse.json();
-      let answer = hackclubData.choices?.[0]?.message?.content || '';
-      answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
-      answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
+RULES:
+1. Return ONLY the final numerical answer or simplified result
+2. Do NOT show work or steps
+3. Do NOT include explanations
+4. Understand LaTeX notation: \\frac{a}{b} means a/b, ^{n} means power, \\sqrt{x} means square root, \\int means integral, etc.
+5. If it's an equation to solve (like "2x + 5 = 15"), return the solution (like "x = 5")
+6. If it's an expression to evaluate (like "3 + 5"), return the result (like "8")
+7. Round decimals to 4 places max
+8. If you cannot solve it or it's incomplete, return "?"
 
-      return NextResponse.json({
-        success: true,
-        answer: answer || '?',
-        source: 'llm',
-        creditsRemaining: creditCheck.currentBalance,
-        provider: 'hackclub',
-      });
-    } catch (hackclubError) {
-      console.error('Hack Club AI error:', hackclubError);
-      return NextResponse.json(
-        { error: 'Failed to solve', details: 'AI service unavailable' },
-        { status: 500 }
-      );
+Examples:
+- Input: "2 + 3" → Output: "5"
+- Input: "\\frac{1}{2} + \\frac{1}{4}" → Output: "3/4"
+- Input: "2x + 5 = 15" → Output: "x = 5"
+- Input: "\\sqrt{144}" → Output: "12"`;
+
+    let answer = '';
+    let provider = 'hackclub';
+
+    if (usePremium) {
+      // Premium: Use OpenRouter
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+
+      if (openrouterApiKey) {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${openrouterApiKey}`,
+            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+            'X-Title': 'Whiteboard AI Tutor',
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: mathPrompt },
+              { role: 'user', content: `Solve: ${expression}${variableContext}` },
+            ],
+            max_tokens: 100,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          answer = data.choices?.[0]?.message?.content || '';
+          provider = 'openrouter';
+        }
+      }
     }
+
+    // Fallback to Hack Club AI
+    if (!answer) {
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [
+            { role: 'system', content: mathPrompt },
+            { role: 'user', content: `Solve: ${expression}${variableContext}` },
+          ],
+          stream: false,
+          max_tokens: 100,
+        });
+
+        const hackclubData = await hackclubResponse.json();
+        answer = hackclubData.choices?.[0]?.message?.content || '';
+        provider = 'hackclub';
+      } catch (hackclubError) {
+        console.error('Hack Club AI error:', hackclubError);
+        return NextResponse.json(
+          { error: 'Failed to solve', details: 'AI service unavailable' },
+          { status: 500 }
+        );
+      }
+    }
+
+    answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
+    answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
+
+    return NextResponse.json({
+      success: true,
+      answer: answer || '?',
+      source: 'llm',
+      creditsRemaining: creditBalance,
+      provider,
+      isPremium: usePremium,
+    });
   } catch (error) {
     console.error('Error solving math:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to solve',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to solve', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
