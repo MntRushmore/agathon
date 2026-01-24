@@ -433,7 +433,7 @@ export default function JournalEditorPage() {
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4">
+      <header className="flex items-center justify-between px-5 py-4 relative z-[60]">
         {/* Left - Title */}
         <div className="flex items-center gap-3">
           <button
@@ -488,7 +488,7 @@ export default function JournalEditorPage() {
 
             {/* Slash Command Menu */}
             {showSlashMenu && searchExpanded && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-2xl shadow-lg border border-gray-100 py-3 max-h-[420px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-white rounded-2xl shadow-2xl border border-gray-200 py-3 max-h-[420px] overflow-y-auto">
                 {slashCommands.map((category, catIndex) => {
                   const filteredItems = category.items.filter(item =>
                     item.label.toLowerCase().includes(slashFilter.toLowerCase())
