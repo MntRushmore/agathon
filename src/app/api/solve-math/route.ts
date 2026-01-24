@@ -3,6 +3,7 @@ import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,13 +53,18 @@ export async function POST(req: NextRequest) {
 
       const projectId = process.env.VERTEX_PROJECT_ID;
       const location = process.env.VERTEX_LOCATION || 'us-central1';
-      const accessToken = process.env.VERTEX_ACCESS_TOKEN;
       const apiKey = process.env.VERTEX_API_KEY;
-      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+
+      // Try to get service account token first
+      let accessToken: string | null = null;
+      if (isServiceAccountConfigured()) {
+        accessToken = await getVertexAccessToken();
+      }
 
       if (!accessToken && !apiKey) {
         return NextResponse.json(
-          { error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' },
+          { error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' },
           { status: 500 }
         );
       }
@@ -70,9 +76,9 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // For API key, use query param; for OAuth token, use Bearer auth
+      // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
       const apiUrl = accessToken
-        ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+        ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
         : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
 
       // For API key flow, use simpler model name without google/ prefix
@@ -81,11 +87,10 @@ export async function POST(req: NextRequest) {
       // Use Gemini vision to recognize AND solve the math in one call
       const response = await fetch(apiUrl, {
         method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Google AI Studio OpenAI endpoint requires Authorization header even with API key
-        Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
-      },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({
           model: effectiveModel,
           messages: [
@@ -215,11 +220,16 @@ Examples:
       if (deduction.success) {
         const projectId = process.env.VERTEX_PROJECT_ID;
         const location = process.env.VERTEX_LOCATION || 'us-central1';
-        const accessToken = process.env.VERTEX_ACCESS_TOKEN;
         const apiKey = process.env.VERTEX_API_KEY;
-        const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+        const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
 
-        if (!accessToken && !apiKey) {
+        // Try to get service account token first
+        let textAccessToken: string | null = null;
+        if (isServiceAccountConfigured()) {
+          textAccessToken = await getVertexAccessToken();
+        }
+
+        if (!textAccessToken && !apiKey) {
           // Fall through to Hack Club AI
         } else {
           // Build context about known variables
@@ -231,19 +241,19 @@ Examples:
                 .join('\n');
           }
 
-          // For API key, use query param; for OAuth token, use Bearer auth
-          const apiUrl = accessToken
-            ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+          // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
+          const textApiUrl = textAccessToken
+            ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
             : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
 
           // For API key flow, use simpler model name without google/ prefix
-          const effectiveModel = accessToken ? model : model.replace('google/', '');
+          const effectiveModel = textAccessToken ? model : model.replace('google/', '');
 
-          const response = await fetch(apiUrl, {
+          const response = await fetch(textApiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              Authorization: textAccessToken ? `Bearer ${textAccessToken}` : `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
               model: effectiveModel,

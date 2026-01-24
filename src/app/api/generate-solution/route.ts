@@ -3,6 +3,7 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -261,15 +262,20 @@ ${jsonFormat}`;
 
     const projectId = process.env.VERTEX_PROJECT_ID;
     const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const accessToken = process.env.VERTEX_ACCESS_TOKEN;
     const apiKey = process.env.VERTEX_API_KEY;
-    // Default to image-capable Gemini 3 Pro Image Preview for handwriting inputs
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+
+    // Try to get service account token first, then fall back to API key
+    let accessToken: string | null = null;
+    if (isServiceAccountConfigured()) {
+      accessToken = await getVertexAccessToken();
+      solutionLogger.debug({ requestId }, 'Using service account authentication');
+    }
 
     if (!accessToken && !apiKey) {
       solutionLogger.error({ requestId }, 'Vertex credentials missing');
       return NextResponse.json(
-        { error: 'Set VERTEX_ACCESS_TOKEN (preferred) or VERTEX_API_KEY' },
+        { error: 'Configure service account (VERTEX_PRIVATE_KEY, VERTEX_CLIENT_EMAIL) or VERTEX_API_KEY' },
         { status: 500 }
       );
     }
@@ -283,9 +289,9 @@ ${jsonFormat}`;
       );
     }
 
-    // For API key, use query param; for OAuth token, use Bearer auth
+    // For service account/OAuth token, use Vertex AI endpoint; for API key, use AI Studio endpoint
     const apiUrl = accessToken
-      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
       : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
 
     // For API key flow, use simpler model name without google/ prefix
@@ -293,7 +299,6 @@ ${jsonFormat}`;
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      // Google AI Studio OpenAI endpoint requires Authorization header even with API key
       Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
     };
 
