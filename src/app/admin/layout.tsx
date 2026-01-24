@@ -98,19 +98,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             {adminNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
+                      isActive
+                        ? 'bg-zinc-900 text-white shadow-lg shadow-zinc-200 dark:shadow-none'
+                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                    )}
+                  >
+                    <item.icon className={cn("h-4 w-4", isActive ? "text-white" : "text-zinc-400")} />
+                    {item.label}
+                  </Link>
               );
             })}
           </nav>

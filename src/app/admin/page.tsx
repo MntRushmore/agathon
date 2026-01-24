@@ -168,109 +168,128 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold">Platform Overview</h1>
-        <p className="text-muted-foreground">
-          Monitor and manage your educational platform
+        <h1 className="text-3xl font-bold tracking-tight">Platform Overview</h1>
+        <p className="text-muted-foreground mt-1">
+          Monitor and manage your educational ecosystem in real-time.
         </p>
       </div>
 
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertTitle>System Alert</AlertTitle>
           <AlertDescription>
             {error}
             <br />
             <br />
-            Run the <code className="bg-destructive/10 px-1 rounded">FIX_INFINITE_RECURSION.sql</code> script in your Supabase SQL editor to fix database permission issues.
+            <span className="font-semibold">Action Required:</span> Run the <code className="bg-destructive/10 px-1 rounded mx-1">FIX_ADMIN_PERMISSIONS.sql</code> script in your Supabase SQL editor to resolve database recursion and access issues.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="border-none shadow-sm bg-blue-50/50 dark:bg-blue-950/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-3xl font-bold">{stats?.totalUsers}</p>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalUsers}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {stats?.totalStudents} students, {stats?.totalTeachers} teachers, {stats?.totalAdmins} admins
+            <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-400" />{stats?.totalStudents} Students</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />{stats?.totalTeachers} Teachers</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-emerald-50/50 dark:bg-emerald-950/10">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Active Classes</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalClasses}</p>
+              </div>
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                <BookOpen className="h-6 w-6 text-emerald-600" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              {stats?.totalAssignments} assignments across all classes
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-none shadow-sm bg-purple-50/50 dark:bg-purple-950/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Classes</p>
-                <p className="text-3xl font-bold">{stats?.totalClasses}</p>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">AI Interactions</p>
+                <p className="text-3xl font-bold mt-1">{stats?.totalAIUsage}</p>
               </div>
-              <BookOpen className="h-8 w-8 text-green-500" />
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {stats?.totalAssignments} assignments
+            <p className="text-xs text-muted-foreground mt-4">
+              Estimated infrastructure cost: <span className="font-semibold text-foreground">${(stats?.totalAICost || 0).toFixed(2)}</span>
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-none shadow-sm bg-orange-50/50 dark:bg-orange-950/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">AI Interactions</p>
-                <p className="text-3xl font-bold">{stats?.totalAIUsage}</p>
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Growth</p>
+                <p className="text-3xl font-bold mt-1">+{stats?.newUsersWeek}</p>
               </div>
-              <Sparkles className="h-8 w-8 text-purple-500" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Total cost: ${(stats?.totalAICost || 0).toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Growth (7 days)</p>
-                <p className="text-3xl font-bold">+{stats?.newUsersWeek}</p>
+              <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl">
+                <TrendingUp className="h-6 w-6 text-orange-600" />
               </div>
-              <TrendingUp className="h-8 w-8 text-emerald-500" />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {stats?.newUsersMonth} this month
+            <p className="text-xs text-muted-foreground mt-4">
+              {stats?.newUsersMonth} new users this month
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Additional Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* AI Usage Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              AI Usage by Mode
+        <Card className="border-none shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              Intelligence Distribution
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-4 pt-4">
               {Object.entries(stats?.aiByMode || {}).length === 0 ? (
-                <p className="text-muted-foreground text-sm">No AI usage recorded yet</p>
+                <div className="text-center py-12 bg-muted/30 rounded-xl">
+                  <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-muted-foreground text-sm">No AI data available yet</p>
+                </div>
               ) : (
                 Object.entries(stats?.aiByMode || {}).map(([mode, count]) => (
-                  <div key={mode} className="flex items-center justify-between">
-                    <span className="capitalize">{mode}</span>
-                    <span className="font-medium">{count}</span>
+                  <div key={mode} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="capitalize font-medium">{mode}</span>
+                      <span className="text-muted-foreground">{count} usage events</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-purple-500 rounded-full" 
+                        style={{ width: `${Math.min(100, (count / (stats?.totalAIUsage || 1)) * 100)}%` }}
+                      />
+                    </div>
                   </div>
                 ))
               )}
@@ -278,36 +297,42 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Content Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Layout className="h-5 w-5" />
-              Content Overview
+        {/* Platform Content */}
+        <Card className="border-none shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <Layout className="h-5 w-5 text-blue-500" />
+              Content Pulse
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Layout className="h-4 w-4 text-muted-foreground" />
-                  Total Boards
-                </span>
-                <span className="font-medium">{stats?.totalBoards}</span>
+            <div className="space-y-6 pt-4">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
+                <div className="p-2 bg-background rounded-lg shadow-sm">
+                  <Layout className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Total Whiteboards</p>
+                  <p className="text-2xl font-bold">{stats?.totalBoards}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  Total Submissions
-                </span>
-                <span className="font-medium">{stats?.totalSubmissions}</span>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
+                <div className="p-2 bg-background rounded-lg shadow-sm">
+                  <FileText className="h-5 w-5 text-emerald-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Student Submissions</p>
+                  <p className="text-2xl font-bold">{stats?.totalSubmissions}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                  Total Assignments
-                </span>
-                <span className="font-medium">{stats?.totalAssignments}</span>
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/30">
+                <div className="p-2 bg-background rounded-lg shadow-sm">
+                  <BookOpen className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Active Assignments</p>
+                  <p className="text-2xl font-bold">{stats?.totalAssignments}</p>
+                </div>
               </div>
             </div>
           </CardContent>

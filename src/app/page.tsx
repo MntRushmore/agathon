@@ -13,12 +13,13 @@ import {
   FileText,
   Search,
   Edit2,
-  MoreHorizontal,
-  Share2,
-  Users,
-  BookOpen,
-  CreditCard,
-  ChevronLeft,
+    MoreHorizontal,
+    Share2,
+    Users,
+    BookOpen,
+    CreditCard,
+    Shield,
+    ChevronLeft,
   ChevronRight,
   FolderOpen,
   Home,
@@ -278,6 +279,19 @@ export default function Dashboard() {
     },
   ];
 
+  // Add Admin card
+  if (profile?.role === 'admin') {
+    featureCards.unshift({
+      id: 'admin',
+      title: 'Admin Console',
+      description: 'Manage users, content, and platform analytics',
+      detail: 'Administrative controls',
+      icon: <Shield className="h-5 w-5" />,
+      color: 'blue',
+      onClick: () => { router.push('/admin'); },
+    });
+  }
+
   // Add teacher/student specific cards
   if (profile?.role === 'teacher') {
     featureCards.push({
@@ -387,19 +401,32 @@ export default function Dashboard() {
             <Pencil className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
             {!sidebarCollapsed && <span className="text-sm">Quick Board</span>}
           </button>
-          {user && (
-            <button
-              onClick={() => router.push('/billing')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                sidebarCollapsed && "justify-center"
-              )}
-            >
-              <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
-              {!sidebarCollapsed && <span className="text-sm">Plans & Usage</span>}
-            </button>
-          )}
+            {user && (
+              <button
+                onClick={() => router.push('/billing')}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                  "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  sidebarCollapsed && "justify-center"
+                )}
+              >
+                <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+                {!sidebarCollapsed && <span className="text-sm">Plans & Usage</span>}
+              </button>
+            )}
+            {profile?.role === 'admin' && (
+              <button
+                onClick={() => router.push('/admin')}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                  "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  sidebarCollapsed && "justify-center"
+                )}
+              >
+                <Shield className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+                {!sidebarCollapsed && <span className="text-sm">Admin Console</span>}
+              </button>
+            )}
 
           {/* User info / Sign in */}
           {!sidebarCollapsed && (
