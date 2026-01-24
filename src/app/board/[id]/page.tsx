@@ -1287,8 +1287,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const imageUrl = solutionData.imageUrl as string | null | undefined;
 
         // Create feedback shapes
-        const createdShapeIds: TLShapeId[] = [];
-
         if (isPremium && imageUrl) {
           // Premium: Paste a hand-drawn image of the feedback
           const assetId = AssetRecordType.createId();
