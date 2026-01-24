@@ -277,6 +277,15 @@ export default function Dashboard() {
       onClick: () => { toast.info('Math Document is coming soon!'); },
       comingSoon: true,
     },
+    {
+      id: 'journal',
+      title: 'Journal',
+      description: 'Write notes with AI-powered study tools',
+      detail: 'Flashcards, Feynman method & more',
+      icon: <BookOpen className="h-5 w-5" />,
+      color: 'green',
+      onClick: () => { router.push('/journal'); },
+    },
   ];
 
   // Add Admin card
