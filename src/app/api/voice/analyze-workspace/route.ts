@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
+import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 /**
  * Uses Gemini 3.0 Pro Preview (via Vertex AI OpenAI-compatible endpoint)
@@ -90,14 +91,19 @@ export async function POST(req: NextRequest) {
 
     const projectId = process.env.VERTEX_PROJECT_ID;
     const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const accessToken = process.env.VERTEX_ACCESS_TOKEN;
     const apiKey = process.env.VERTEX_API_KEY;
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
+
+    // Try to get service account token first
+    let accessToken: string | null = null;
+    if (isServiceAccountConfigured()) {
+      accessToken = await getVertexAccessToken();
+    }
 
     if (!accessToken && !apiKey) {
       voiceLogger.error('Vertex credentials missing');
       return NextResponse.json(
-        { error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' },
+        { error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' },
         { status: 500 },
       );
     }
@@ -120,11 +126,11 @@ export async function POST(req: NextRequest) {
       ? `Here is a snapshot of the user canvas. Focus on: ${focus}`
       : 'Here is a snapshot of the user canvas. Describe what they are working on and how you could help.';
 
-    voiceLogger.info('Calling Vertex AI Gemini 3.0 Pro Preview for workspace analysis');
+    voiceLogger.info('Calling Vertex AI for workspace analysis');
 
-    // For API key, use query param; for OAuth token, use Bearer auth
+    // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
     const apiUrl = accessToken
-      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+      ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
       : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
 
     // For API key flow, use simpler model name without google/ prefix
@@ -134,7 +140,6 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Google AI Studio OpenAI endpoint requires Authorization header even with API key
         Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
       },
       body: JSON.stringify({

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits } from '@/lib/ai/credits';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
+import { getVertexAccessToken, isServiceAccountConfigured } from '@/lib/ai/vertex-auth';
 
 interface CanvasContext {
   subject?: string;
@@ -84,33 +85,38 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 
     if (usePremium) {
       // Use Vertex AI (premium with image support)
-    const projectId = process.env.VERTEX_PROJECT_ID;
-    const location = process.env.VERTEX_LOCATION || 'us-central1';
-    const accessToken = process.env.VERTEX_ACCESS_TOKEN;
-    const apiKey = process.env.VERTEX_API_KEY;
-    const model = process.env.VERTEX_MODEL_ID || 'google/gemini-3-pro-image-preview';
+      const projectId = process.env.VERTEX_PROJECT_ID;
+      const location = process.env.VERTEX_LOCATION || 'us-central1';
+      const apiKey = process.env.VERTEX_API_KEY;
+      const model = process.env.VERTEX_MODEL_ID || 'google/gemini-2.0-flash';
 
-    if (!accessToken && !apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'Vertex credentials missing (set VERTEX_ACCESS_TOKEN or VERTEX_API_KEY)' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+      // Try to get service account token first
+      let accessToken: string | null = null;
+      if (isServiceAccountConfigured()) {
+        accessToken = await getVertexAccessToken();
+      }
 
-    if (accessToken && !projectId) {
-      return new Response(
-        JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+      if (!accessToken && !apiKey) {
+        return new Response(
+          JSON.stringify({ error: 'Vertex credentials missing (configure service account or VERTEX_API_KEY)' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    // For API key, use query param; for OAuth token, use Bearer auth
-    const baseUrl = accessToken
-      ? `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
-      : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+      if (accessToken && !projectId) {
+        return new Response(
+          JSON.stringify({ error: 'VERTEX_PROJECT_ID not configured' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
-    // For API key flow, use simpler model name without google/ prefix
-    const effectiveModel = accessToken ? model : model.replace('google/', '');
+      // For service account, use Vertex AI endpoint; for API key, use AI Studio endpoint
+      const baseUrl = accessToken
+        ? `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi/chat/completions`
+        : `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${apiKey}`;
+
+      // For API key flow, use simpler model name without google/ prefix
+      const effectiveModel = accessToken ? model : model.replace('google/', '');
 
       const apiMessages: { role: string; content: string | { type: string; text?: string; image_url?: { url: string } }[] }[] = [
         { role: 'system', content: systemPrompt },
@@ -136,13 +142,12 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         }
       });
 
-    const response = await fetch(baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Google AI Studio OpenAI endpoint requires Authorization header even with API key
-        Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
-      },
+      const response = await fetch(baseUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: accessToken ? `Bearer ${accessToken}` : `Bearer ${apiKey}`,
+        },
       body: JSON.stringify({
         model: effectiveModel,
         messages: apiMessages,
