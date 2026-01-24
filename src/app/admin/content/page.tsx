@@ -70,22 +70,34 @@ export default function AdminContentPage() {
           .limit(100),
       ]);
 
-      if (classesResult.status === 'fulfilled' && classesResult.value.data) {
-        setClasses(classesResult.value.data);
-      } else if (classesResult.status === 'rejected') {
-        console.error('Classes error:', classesResult.reason);
+      if (classesResult.status === 'fulfilled') {
+        if (classesResult.value.error) {
+          console.error('Classes query error:', classesResult.value.error);
+          toast.error(`Classes: ${classesResult.value.error.message}`);
+        }
+        setClasses(classesResult.value.data || []);
+      } else {
+        console.error('Classes query rejected:', classesResult.reason);
       }
 
-      if (assignmentsResult.status === 'fulfilled' && assignmentsResult.value.data) {
-        setAssignments(assignmentsResult.value.data);
-      } else if (assignmentsResult.status === 'rejected') {
-        console.error('Assignments error:', assignmentsResult.reason);
+      if (assignmentsResult.status === 'fulfilled') {
+        if (assignmentsResult.value.error) {
+          console.error('Assignments query error:', assignmentsResult.value.error);
+          toast.error(`Assignments: ${assignmentsResult.value.error.message}`);
+        }
+        setAssignments(assignmentsResult.value.data || []);
+      } else {
+        console.error('Assignments query rejected:', assignmentsResult.reason);
       }
 
-      if (boardsResult.status === 'fulfilled' && boardsResult.value.data) {
-        setBoards(boardsResult.value.data);
-      } else if (boardsResult.status === 'rejected') {
-        console.error('Boards error:', boardsResult.reason);
+      if (boardsResult.status === 'fulfilled') {
+        if (boardsResult.value.error) {
+          console.error('Boards query error:', boardsResult.value.error);
+          toast.error(`Boards: ${boardsResult.value.error.message}`);
+        }
+        setBoards(boardsResult.value.data || []);
+      } else {
+        console.error('Boards query rejected:', boardsResult.reason);
       }
     } catch (error) {
       console.error('Error loading all content:', error);
@@ -195,30 +207,39 @@ export default function AdminContentPage() {
         <p className="text-muted-foreground">View and manage all platform content</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="classes" className="gap-2">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-zinc-100/80 dark:bg-zinc-900/50 p-1.5 rounded-2xl h-auto gap-1 border border-zinc-200/50 dark:border-zinc-800/50">
+          <TabsTrigger 
+            value="classes" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+          >
             <BookOpen className="h-4 w-4" />
             Classes ({classes.length})
           </TabsTrigger>
-          <TabsTrigger value="assignments" className="gap-2">
+          <TabsTrigger 
+            value="assignments" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+          >
             <FileText className="h-4 w-4" />
             Assignments ({assignments.length})
           </TabsTrigger>
-          <TabsTrigger value="boards" className="gap-2">
+          <TabsTrigger 
+            value="boards" 
+            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+          >
             <Layout className="h-4 w-4" />
             Boards ({boards.length})
           </TabsTrigger>
         </TabsList>
 
-        <div className="mt-4">
-          <div className="relative max-w-sm mb-4">
+        <div className="mt-6">
+          <div className="relative max-w-md mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-10 h-11 bg-background border-muted-foreground/20 rounded-xl"
             />
           </div>
 

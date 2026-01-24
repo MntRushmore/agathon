@@ -102,12 +102,24 @@ export async function POST(req: NextRequest) {
       imageSize: image.length
     }, 'Request payload received');
 
-    // Check credits to determine which AI to use
+    // Check credits and plan to determine which AI to use
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .single();
+
+    const isPaidPlan = userProfile?.plan === 'starter' || userProfile?.plan === 'pro';
+
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,
       'generate-solution',
       `Generate solution (${mode} mode)`
     );
+
+    // Paid plan members always get premium AI experience (handwriting)
+    // Free members can still get it if they have credits (legacy support)
+    const shouldShowPremiumHandwriting = isPaidPlan || usePremium;
 
     // Generate mode-specific prompt for text-based feedback
     const getModePrompt = (mode: string): string => {
@@ -197,7 +209,7 @@ ${jsonFormat}`;
     let feedback: StructuredFeedback;
     let provider: string;
 
-    if (usePremium) {
+    if (shouldShowPremiumHandwriting) {
       // Premium: Use OpenRouter with Nano Banana Pro (can write on whiteboard)
       solutionLogger.info({ requestId, mode }, 'Using OpenRouter (Premium) for solution feedback');
 
@@ -311,7 +323,7 @@ ${jsonFormat}`;
       provider,
       creditsRemaining: creditBalance,
       imageSupported: true,
-      isPremium: usePremium,
+      isPremium: shouldShowPremiumHandwriting,
     });
   } catch (error) {
     const duration = Date.now() - startTime;

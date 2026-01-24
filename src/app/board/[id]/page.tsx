@@ -1279,43 +1279,72 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
         const isFeedbackMode = mode === "feedback";
 
-        for (let i = 0; i < feedback.annotations.length; i++) {
-          const annotation = feedback.annotations[i];
-          const shapeId = createShapeId();
+          const isPremium = solutionData.isPremium;
 
-          // Alternate sides: even index = right, odd index = left
-          const isRightSide = i % 2 === 0;
-          const xPosition = isRightSide ? rightXPosition : leftXPosition;
-          const yOffset = isRightSide ? rightYOffset : leftYOffset;
+          for (let i = 0; i < feedback.annotations.length; i++) {
+            const annotation = feedback.annotations[i];
+            const shapeId = createShapeId();
 
-          editor.createShape({
-            id: shapeId,
-            type: "note",
-            x: xPosition,
-            y: yOffset,
-            opacity: isFeedbackMode ? 1.0 : 0.7,
-            isLocked: true,
-            props: {
-              richText: toRichText(annotation.content),
-              color: getAnnotationColor(annotation.type),
-              size: 's',  // Small size for compact notes
-              font: 'draw',
-              align: 'start',
-              verticalAlign: 'start',
-              growY: 0,
-              fontSizeAdjustment: -2,  // Slightly smaller font
-              url: '',
-              scale: 1,
-            },
-            meta: {
-              aiGenerated: true,
-              aiMode: mode,
-              aiAnnotationType: annotation.type,
-              aiTimestamp: new Date().toISOString(),
-            },
-          });
+            // Alternate sides: even index = right, odd index = left
+            const isRightSide = i % 2 === 0;
+            const xPosition = isRightSide ? rightXPosition : leftXPosition;
+            const yOffset = isRightSide ? rightYOffset : leftYOffset;
 
-          createdShapeIds.push(shapeId);
+            if (isPremium) {
+              // Premium: Actual AI handwriting (Text shape with draw font)
+              editor.createShape({
+                id: shapeId,
+                type: "text",
+                x: xPosition,
+                y: yOffset,
+                opacity: isFeedbackMode ? 1.0 : 0.8,
+                isLocked: true,
+                props: {
+                  text: annotation.content,
+                  color: getAnnotationColor(annotation.type),
+                  size: 'm',
+                  font: 'draw',
+                  align: 'start',
+                  scale: 1,
+                },
+                meta: {
+                  aiGenerated: true,
+                  aiMode: mode,
+                  aiAnnotationType: annotation.type,
+                  aiTimestamp: new Date().toISOString(),
+                },
+              });
+            } else {
+              // Free: Sticky notes
+              editor.createShape({
+                id: shapeId,
+                type: "note",
+                x: xPosition,
+                y: yOffset,
+                opacity: isFeedbackMode ? 1.0 : 0.7,
+                isLocked: true,
+                props: {
+                  richText: toRichText(annotation.content),
+                  color: getAnnotationColor(annotation.type),
+                  size: 's',  // Small size for compact notes
+                  font: 'draw',
+                  align: 'start',
+                  verticalAlign: 'start',
+                  growY: 0,
+                  fontSizeAdjustment: -2,  // Slightly smaller font
+                  url: '',
+                  scale: 1,
+                },
+                meta: {
+                  aiGenerated: true,
+                  aiMode: mode,
+                  aiAnnotationType: annotation.type,
+                  aiTimestamp: new Date().toISOString(),
+                },
+              });
+            }
+
+            createdShapeIds.push(shapeId);
 
           // Update the appropriate side's offset
           if (isRightSide) {
