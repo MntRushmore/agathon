@@ -25,7 +25,7 @@ import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { MarkdownRenderer } from '@/components/journal/MarkdownRenderer';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 
 interface JournalData {
   id: string;
@@ -86,9 +86,7 @@ export default function JournalEditorPage() {
   const [slashFilter, setSlashFilter] = useState('');
   const commandInputRef = useRef<HTMLInputElement>(null);
 
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
   // Load journal
   useEffect(() => {
@@ -613,46 +611,13 @@ export default function JournalEditorPage() {
           </div>
         )}
 
-        {/* Content View - Edit or Rendered */}
-        <div className="relative min-h-[60vh]">
-          {isEditing ? (
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onBlur={() => {
-                if (content.trim()) {
-                  setIsEditing(false);
-                }
-              }}
-              autoFocus
-              className={cn(
-                'w-full min-h-[60vh] p-0 resize-none',
-                'text-base leading-relaxed',
-                'bg-transparent border-none outline-none',
-                'text-gray-900 placeholder:text-gray-400',
-                'focus:ring-0 focus:outline-none'
-              )}
-              style={{
-                fontSize: '16px',
-                lineHeight: '1.6',
-              }}
-            />
-          ) : content.trim() ? (
-            <div 
-              className="pb-20 cursor-text"
-              onClick={() => setIsEditing(true)}
-            >
-              <MarkdownRenderer content={content} />
-            </div>
-          ) : (
-            <p 
-              className="text-gray-400 text-base cursor-text"
-              onClick={() => setIsEditing(true)}
-            >
-              Click here to start writing...
-            </p>
-          )}
+        {/* WYSIWYG Rich Text Editor */}
+        <div className="relative min-h-[60vh] pb-20">
+          <RichTextEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Start writing or click a button above to generate notes..."
+          />
         </div>
       </main>
 
