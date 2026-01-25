@@ -27,12 +27,31 @@ type CreditPack = {
   price: number;
   bonus?: number;
   popular?: boolean;
+  productId?: string;
 };
 
 const creditPacks: CreditPack[] = [
-  { id: 'pack-50', credits: 50, price: 5 },
-  { id: 'pack-150', credits: 150, price: 12, bonus: 25, popular: true },
-  { id: 'pack-500', credits: 500, price: 35, bonus: 100 },
+  {
+    id: 'pack-50',
+    credits: 50,
+    price: 5,
+    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID,
+  },
+  {
+    id: 'pack-150',
+    credits: 150,
+    price: 12,
+    bonus: 25,
+    popular: true,
+    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID,
+  },
+  {
+    id: 'pack-500',
+    credits: 500,
+    price: 35,
+    bonus: 100,
+    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID,
+  },
 ];
 
 export default function CreditsPage() {
@@ -72,15 +91,29 @@ export default function CreditsPage() {
     }
   }, [profile]);
 
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
   const purchaseCredits = (pack: CreditPack) => {
     if (!user) {
       router.push('/?auth=required');
       return;
     }
 
-    // TODO: Integrate with Polar checkout for credit packs
-    // For now, show a message
-    alert(`Credit pack purchase coming soon! ${pack.credits} credits for $${pack.price}`);
+    if (!pack.productId) {
+      alert('Credit pack not configured. Please contact support.');
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('products', pack.productId);
+    params.set('customerExternalId', user.id);
+    if (user.email) params.set('customerEmail', user.email);
+    if (profile?.full_name) params.set('customerName', profile.full_name);
+    // Include metadata to identify this as a credit purchase
+    params.set('metadata', JSON.stringify({ type: 'credit_pack', credits: pack.credits + (pack.bonus || 0) }));
+
+    setCheckoutLoading(pack.id);
+    window.location.href = `/api/polar/checkout?${params.toString()}`;
   };
 
   const getTransactionIcon = (type: string, amount: number) => {
@@ -227,8 +260,13 @@ export default function CreditsPage() {
                     className="w-full mt-4"
                     variant={pack.popular ? 'default' : 'outline'}
                     onClick={() => purchaseCredits(pack)}
+                    disabled={checkoutLoading === pack.id || !pack.productId}
                   >
-                    Purchase
+                    {checkoutLoading === pack.id
+                      ? 'Redirecting...'
+                      : pack.productId
+                        ? 'Purchase'
+                        : 'Coming Soon'}
                   </Button>
                 </CardContent>
               </Card>
