@@ -174,11 +174,11 @@ const webhookHandler = webhookSecret
       onSubscriptionCanceled: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'canceled'),
       onSubscriptionRevoked: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'revoked'),
       // One-time order events (for credit packs)
-      onOrderCreated: (payload: unknown) => {
+      onOrderCreated: async (payload: unknown) => {
         const orderPayload = payload as WebhookOrderPayload;
         // Check if this is a credit pack purchase
         if (creditPackMap[orderPayload.data.productId] || orderPayload.data.metadata?.type === 'credit_pack') {
-          grantCreditsFromOrder(orderPayload);
+          await grantCreditsFromOrder(orderPayload);
         }
       },
     })
