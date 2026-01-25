@@ -168,8 +168,8 @@ export default function WebViewWrapper() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {loading && (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#0066cc" />
-          <Text style={styles.loadingText}>Loading AI Whiteboard...</Text>
+          <ActivityIndicator size="large" color="#0C5E70" />
+          <Text style={styles.loadingText}>Loading Agathon...</Text>
         </View>
       )}
 

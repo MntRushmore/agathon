@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, BookOpen, ArrowLeft } from 'lucide-react';
+import { Plus, BookOpen, ChevronLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
+import { Logo } from '@/components/ui/logo';
 
 interface Journal {
   id: string;
@@ -81,67 +81,74 @@ export default function JournalsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] p-4 md:p-8 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
+    <div className="min-h-screen bg-background p-4 md:p-8 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-4 mb-6 md:mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push('/')}
-            className="min-h-[44px] min-w-[44px] touch-manipulation"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl md:text-3xl font-bold flex-1">Journals</h1>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/')}
+              className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <Logo size="md" />
+          </div>
           <Button
             onClick={createJournal}
-            className="min-h-[44px] min-w-[44px] touch-manipulation bg-[#16A34A] hover:bg-[#15803d]"
+            className="min-h-[44px] touch-manipulation bg-primary hover:bg-primary/90"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Journal
           </Button>
         </div>
 
+        {/* Page Title */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-foreground">Journals</h1>
+          <p className="text-sm text-muted-foreground mt-1">Your study notes and writings</p>
+        </div>
+
         {loading ? (
-          <div className="text-center py-8">Loading...</div>
+          <div className="text-center py-8 text-muted-foreground">Loading...</div>
         ) : journals.length === 0 ? (
-          <Card className="p-8 md:p-12 text-center bg-white border-gray-200">
-            <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h2 className="text-xl font-semibold mb-2">No journals yet</h2>
-            <p className="text-gray-500 mb-6">
+          <div className="border-2 border-dashed border-border rounded-xl p-12 text-center">
+            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">No journals yet</h2>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
               Create your first journal to start writing with AI-powered study tools
             </p>
             <Button
               onClick={createJournal}
-              className="min-h-[44px] touch-manipulation bg-[#16A34A] hover:bg-[#15803d]"
+              className="min-h-[44px] touch-manipulation"
             >
               <Plus className="h-4 w-4 mr-2" />
               Create Journal
             </Button>
-          </Card>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {journals.map((journal) => (
-              <Card
+              <div
                 key={journal.id}
-                className="cursor-pointer hover:shadow-lg active:shadow-md active:scale-[0.98] transition-all touch-manipulation bg-white border-gray-200"
+                className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-primary/20 active:scale-[0.99] transition-all touch-manipulation"
                 onClick={() => router.push(`/journal/${journal.id}`)}
               >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg truncate flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-[#16A34A]" />
-                    {journal.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                    {getPreview(journal.content)}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Updated {formatDistance(new Date(journal.updated_at), new Date(), { addSuffix: true })}
-                  </p>
-                </CardContent>
-              </Card>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="font-medium text-foreground truncate flex-1">{journal.title}</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {getPreview(journal.content)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Updated {formatDistance(new Date(journal.updated_at), new Date(), { addSuffix: true })}
+                </p>
+              </div>
             ))}
           </div>
         )}

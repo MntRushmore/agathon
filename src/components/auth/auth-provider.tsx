@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { Profile } from '@/types/database';
@@ -25,6 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +129,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsImpersonating(false);
     setImpersonatedProfile(null);
     setOriginalProfile(null);
+    // Redirect to login page after sign out
+    router.push('/login');
   };
 
   const startImpersonation = async (userId: string) => {

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const adminNavItems = [
-  { href: '/admin', label: 'Dashboard', icon: BarChart3 },
+  { href: '/admin', label: 'Overview', icon: BarChart3 },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/content', label: 'Content', icon: FileText },
 ];
@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       }
 
       if (user && !profile) {
-        return; // Profile still loading
+        return;
       }
 
       if (profile?.role !== 'admin') {
@@ -49,7 +49,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Verifying admin access...</p>
+          <p className="mt-4 text-muted-foreground">Verifying access...</p>
         </div>
       </div>
     );
@@ -63,61 +63,72 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Impersonation Banner */}
       {isImpersonating && (
-        <div className="bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-4">
-          <span>You are impersonating a user</span>
+        <div className="bg-amber-100 border-b border-amber-200 text-amber-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-4">
+          <span>You are viewing as another user</span>
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
             onClick={stopImpersonation}
+            className="border-amber-300 hover:bg-amber-50"
           >
-            Stop Impersonating
+            Exit
           </Button>
         </div>
       )}
 
-      {/* Admin Header */}
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-lg">Admin Console</span>
-          </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to App
-            </Link>
-          </Button>
-        </div>
-      </div>
-
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 border-r min-h-[calc(100vh-65px)] bg-card">
-          <nav className="p-4 space-y-1">
+        <aside className="w-56 border-r border-border min-h-screen bg-card fixed left-0 top-0 flex flex-col">
+          {/* Header */}
+          <div className="p-4 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
+                <Shield className="h-4 w-4 text-background" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Admin</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-1">
             {adminNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-                      isActive
-                        ? 'bg-zinc-900 text-white shadow-lg shadow-zinc-200 dark:shadow-none'
-                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
-                    )}
-                  >
-                    <item.icon className={cn("h-4 w-4", isActive ? "text-white" : "text-zinc-400")} />
-                    {item.label}
-                  </Link>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-accent text-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
               );
             })}
           </nav>
+
+          {/* Back to App */}
+          <div className="p-3 border-t border-border">
+            <Link
+              href="/"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to App
+            </Link>
+          </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 ml-56">
+          <div className="max-w-6xl mx-auto p-8">{children}</div>
+        </main>
       </div>
     </div>
   );

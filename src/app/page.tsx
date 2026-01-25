@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
 import { getStudentAssignments } from '@/lib/api/assignments';
-import { AuthModal } from '@/components/auth/auth-modal';
 import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
 import {
   Plus,
@@ -51,6 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/ui/logo";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -77,9 +77,9 @@ type ColorVariant = 'green' | 'blue' | 'purple';
 
 const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string }> = {
   green: {
-    iconBg: 'bg-[oklch(0.94_0.03_155)]',
-    iconColor: 'text-[oklch(0.45_0.12_155)]',
-    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_155)]',
+    iconBg: 'bg-[oklch(0.94_0.03_200)]',
+    iconColor: 'text-[oklch(0.42_0.08_200)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_200)]',
   },
   blue: {
     iconBg: 'bg-[oklch(0.94_0.03_240)]',
@@ -103,7 +103,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showMyFiles, setShowMyFiles] = useState(false);
 
   // Rename state
@@ -115,16 +114,16 @@ export default function Dashboard() {
   const [shareBoardId, setShareBoardId] = useState<string | null>(null);
   const [shareBoardTitle, setShareBoardTitle] = useState('');
 
-  // Show auth modal if required
+  // Redirect to login if auth required
   useEffect(() => {
     if (searchParams.get('auth') === 'required') {
-      setAuthModalOpen(true);
+      router.push('/login');
       toast.info('Please sign in to continue');
     }
     if (searchParams.get('error') === 'teacher_only') {
       toast.error('Access denied. Only teachers can access the teacher dashboard.');
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -337,23 +336,13 @@ export default function Dashboard() {
           {sidebarCollapsed ? (
             <button
               onClick={() => setSidebarCollapsed(false)}
-              className="w-full p-2.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground flex items-center justify-center"
+              className="w-full flex items-center justify-center"
             >
-              <ChevronRight className="h-4 w-4" />
+              <Logo size="sm" />
             </button>
           ) : (
             <>
-              <button
-                onClick={() => createWhiteboard()}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                  "px-4 py-2"
-                )}
-              >
-                <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
-                <span className="text-sm">New</span>
-              </button>
+              <Logo size="sm" showText />
               <button
                 onClick={() => setSidebarCollapsed(true)}
                 className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
@@ -362,6 +351,21 @@ export default function Dashboard() {
               </button>
             </>
           )}
+        </div>
+
+        {/* New Board Button */}
+        <div className="px-3 pb-2">
+          <button
+            onClick={() => createWhiteboard()}
+            className={cn(
+              "w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
+            )}
+          >
+            <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
+            {!sidebarCollapsed && <span className="text-sm">New</span>}
+          </button>
         </div>
 
         {/* Primary Navigation */}
@@ -441,15 +445,25 @@ export default function Dashboard() {
           {!sidebarCollapsed && (
             <div className="pt-2 mt-2 border-t border-border">
               {user ? (
-                <div className="px-3 py-2">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {profile?.full_name || user.email?.split('@')[0]}
-                  </p>
-                  <p className="text-xs text-muted-foreground capitalize">{profile?.role || 'User'}</p>
-                </div>
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted rounded-lg transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                    {profile?.full_name
+                      ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                      : user.email?.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {profile?.full_name || user.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-muted-foreground capitalize">{profile?.role || 'User'}</p>
+                  </div>
+                </button>
               ) : (
                 <button
-                  onClick={() => setAuthModalOpen(true)}
+                  onClick={() => router.push('/login')}
                   className="w-full px-3 py-2.5 text-sm text-left hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
                 >
                   Sign in
@@ -762,7 +776,7 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Sign in to save your boards and access all features
                   </p>
-                  <Button onClick={() => setAuthModalOpen(true)} variant="outline">
+                  <Button onClick={() => router.push('/login')} variant="outline">
                     Sign In
                   </Button>
                 </div>
@@ -797,8 +811,6 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
 
       {shareBoardId && (
         <ShareBoardDialog

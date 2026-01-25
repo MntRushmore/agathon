@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Search, MoreVertical, Eye, Trash2, BookOpen, FileText, Layout } from 'lucide-react';
+import { Search, MoreVertical, Eye, Trash2, BookOpen, FileText, Layout, Pen } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
 
@@ -35,6 +35,7 @@ export default function AdminContentPage() {
   const [classes, setClasses] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [boards, setBoards] = useState<any[]>([]);
+  const [journals, setJournals] = useState<any[]>([]);
 
   useEffect(() => {
     // Only load if user is admin
@@ -54,7 +55,7 @@ export default function AdminContentPage() {
     // Load all tabs at once for initial load
     setLoading(true);
     try {
-      const [classesResult, assignmentsResult, boardsResult] = await Promise.allSettled([
+      const [classesResult, assignmentsResult, boardsResult, journalsResult] = await Promise.allSettled([
         supabase
           .from('classes')
           .select(`*, teacher:profiles!teacher_id(full_name, email)`)
@@ -66,6 +67,11 @@ export default function AdminContentPage() {
         supabase
           .from('whiteboards')
           .select(`*, owner:profiles!user_id(full_name, email)`)
+          .order('created_at', { ascending: false })
+          .limit(100),
+        supabase
+          .from('journals')
+          .select(`*`)
           .order('created_at', { ascending: false })
           .limit(100),
       ]);
@@ -98,6 +104,16 @@ export default function AdminContentPage() {
         setBoards(boardsResult.value.data || []);
       } else {
         console.error('Boards query rejected:', boardsResult.reason);
+      }
+
+      if (journalsResult.status === 'fulfilled') {
+        if (journalsResult.value.error) {
+          console.error('Journals query error:', journalsResult.value.error);
+          toast.error(`Journals: ${journalsResult.value.error.message}`);
+        }
+        setJournals(journalsResult.value.data || []);
+      } else {
+        console.error('Journals query rejected:', journalsResult.reason);
       }
     } catch (error) {
       console.error('Error loading all content:', error);
@@ -150,6 +166,20 @@ export default function AdminContentPage() {
           }
           setBoards(boardData || []);
           break;
+
+        case 'journals':
+          const { data: journalData, error: journalError } = await supabase
+            .from('journals')
+            .select(`*`)
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+          if (journalError) {
+            console.error('Journals error:', journalError);
+            toast.error(`Failed to load journals: ${journalError.message}`);
+          }
+          setJournals(journalData || []);
+          break;
       }
     } catch (error: any) {
       console.error('Error loading content:', error);
@@ -166,7 +196,7 @@ export default function AdminContentPage() {
 
     try {
       const table =
-        type === 'class' ? 'classes' : type === 'assignment' ? 'assignments' : 'whiteboards';
+        type === 'class' ? 'classes' : type === 'assignment' ? 'assignments' : type === 'journal' ? 'journals' : 'whiteboards';
       const { error } = await supabase.from(table).delete().eq('id', id);
 
       if (error) throw error;
@@ -200,51 +230,62 @@ export default function AdminContentPage() {
     b.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredJournals = journals.filter((j) =>
+    j.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Content Moderation</h1>
-        <p className="text-muted-foreground">View and manage all platform content</p>
+        <h1 className="text-2xl font-semibold text-foreground">Content</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage platform content</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-zinc-100/80 dark:bg-zinc-900/50 p-1.5 rounded-2xl h-auto gap-1 border border-zinc-200/50 dark:border-zinc-800/50">
-          <TabsTrigger 
-            value="classes" 
-            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+        <TabsList className="bg-muted p-1 rounded-lg h-auto gap-1">
+          <TabsTrigger
+            value="classes"
+            className="rounded-md px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm"
           >
             <BookOpen className="h-4 w-4" />
             Classes ({classes.length})
           </TabsTrigger>
-          <TabsTrigger 
-            value="assignments" 
-            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+          <TabsTrigger
+            value="assignments"
+            className="rounded-md px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm"
           >
             <FileText className="h-4 w-4" />
             Assignments ({assignments.length})
           </TabsTrigger>
-          <TabsTrigger 
-            value="boards" 
-            className="rounded-xl px-5 py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-900 dark:data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-200 gap-2 font-medium"
+          <TabsTrigger
+            value="boards"
+            className="rounded-md px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm"
           >
             <Layout className="h-4 w-4" />
             Boards ({boards.length})
           </TabsTrigger>
+          <TabsTrigger
+            value="journals"
+            className="rounded-md px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2 text-sm"
+          >
+            <Pen className="h-4 w-4" />
+            Journals ({journals.length})
+          </TabsTrigger>
         </TabsList>
 
         <div className="mt-6">
-          <div className="relative max-w-md mb-6">
+          <div className="relative max-w-sm mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-background border-muted-foreground/20 rounded-xl"
+              className="pl-9"
             />
           </div>
 
           <TabsContent value="classes">
-            <div className="border rounded-lg">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -314,7 +355,7 @@ export default function AdminContentPage() {
           </TabsContent>
 
           <TabsContent value="assignments">
-            <div className="border rounded-lg">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -384,7 +425,7 @@ export default function AdminContentPage() {
           </TabsContent>
 
           <TabsContent value="boards">
-            <div className="border rounded-lg">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -441,6 +482,80 @@ export default function AdminContentPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDelete('board', item.id, item.title || 'Untitled')}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="journals">
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>User ID</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Updated</TableHead>
+                    <TableHead className="w-[80px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredJournals.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No journals found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredJournals.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.title || 'Untitled'}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs font-mono">
+                          {item.user_id?.slice(0, 8)}...
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDistance(new Date(item.created_at), new Date(), {
+                            addSuffix: true,
+                          })}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDistance(new Date(item.updated_at), new Date(), {
+                            addSuffix: true,
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => window.open(`/journal/${item.id}`, '_blank')}
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete('journal', item.id, item.title || 'Untitled')}
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />

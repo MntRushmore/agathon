@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AI Whiteboard",
-    "slug": "ai-whiteboard",
+    "name": "Agathon",
+    "slug": "agathon",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
@@ -10,11 +10,11 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0C5E70"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aiwhiteboard.app",
+      "bundleIdentifier": "com.agathon.app",
       "buildNumber": "1.0.0",
       "infoPlist": {
         "UISupportsDocumentBrowser": true,
@@ -32,7 +32,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0C5E70"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -43,7 +43,7 @@
     "plugins": [
       "expo-web-browser"
     ],
-    "scheme": "aiwhiteboard",
+    "scheme": "agathon",
     "extra": {
       "eas": {
         "projectId": "3fd5f734-a242-4040-9a1a-be0875665910"

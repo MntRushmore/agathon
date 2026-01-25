@@ -1,29 +1,308 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import MathExtension from '@aarkue/tiptap-math-extension';
-import { useEffect, useState } from 'react';
+import { Extension } from '@tiptap/core';
+import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
-import { Heading1, Heading2, Heading3, List, ListOrdered, Code, Quote } from 'lucide-react';
+import {
+  Heading1, Heading2, Heading3, List, ListOrdered, Code, Quote,
+  Sparkles, Layers, ClipboardList, ImagePlus, Type, Minus,
+  Table, ChevronDown, Sigma, PenTool, LineChart, BarChart3,
+  FileText, Link, Image, AudioLines, Video, Youtube, FileType
+} from 'lucide-react';
+import tippy, { Instance as TippyInstance } from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
+
+// Slash command item type
+interface SlashCommandItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  category: string;
+  description?: string;
+}
+
+// All available slash commands
+const slashCommandItems: SlashCommandItem[] = [
+  // Build with Feynman
+  { id: 'notes', label: 'Generate notes', icon: Sparkles, category: 'Build with Feynman', description: 'AI-generated study notes' },
+  { id: 'practice', label: 'Generate practice problems', icon: ClipboardList, category: 'Build with Feynman', description: 'AI-generated practice problems' },
+  { id: 'flashcards', label: 'Generate flashcards', icon: Layers, category: 'Build with Feynman', description: 'AI-generated flashcards' },
+  { id: 'generate-image', label: 'Generate image', icon: ImagePlus, category: 'Build with Feynman', description: 'AI-generated diagram' },
+  // Basic editing
+  { id: 'text', label: 'Text', icon: Type, category: 'Basic editing', description: 'Plain text paragraph' },
+  { id: 'h1', label: 'Heading 1', icon: Heading1, category: 'Basic editing', description: 'Large heading' },
+  { id: 'h2', label: 'Heading 2', icon: Heading2, category: 'Basic editing', description: 'Medium heading' },
+  { id: 'h3', label: 'Heading 3', icon: Heading3, category: 'Basic editing', description: 'Small heading' },
+  { id: 'bullet', label: 'Bullet list', icon: List, category: 'Basic editing', description: 'Unordered list' },
+  { id: 'numbered', label: 'Numbered list', icon: ListOrdered, category: 'Basic editing', description: 'Ordered list' },
+  { id: 'quote', label: 'Quote', icon: Quote, category: 'Basic editing', description: 'Block quote' },
+  { id: 'divider', label: 'Divider', icon: Minus, category: 'Basic editing', description: 'Horizontal line' },
+  // Advanced editing
+  { id: 'table', label: 'Table', icon: Table, category: 'Advanced editing', description: 'Data table' },
+  { id: 'details', label: 'Details', icon: ChevronDown, category: 'Advanced editing', description: 'Collapsible section' },
+  { id: 'code', label: 'Code block', icon: Code, category: 'Advanced editing', description: 'Code snippet' },
+  { id: 'latex', label: 'LaTeX block', icon: Sigma, category: 'Advanced editing', description: 'Math equation' },
+  // Interactive editing
+  { id: 'whiteboard', label: 'Whiteboard', icon: PenTool, category: 'Interactive editing', description: 'Drawing canvas' },
+  { id: 'desmos', label: 'Desmos graph', icon: LineChart, category: 'Interactive editing', description: 'Interactive graph' },
+  { id: 'chart', label: 'Chart', icon: BarChart3, category: 'Interactive editing', description: 'Data visualization' },
+  // Journals
+  { id: 'subjournal', label: 'Subjournal', icon: FileText, category: 'Journals', description: 'Create sub-journal' },
+  { id: 'link-journal', label: 'Link to journal', icon: Link, category: 'Journals', description: 'Link existing journal' },
+  // Media
+  { id: 'image', label: 'Image', icon: Image, category: 'Media', description: 'Upload image' },
+  { id: 'audio', label: 'Audio', icon: AudioLines, category: 'Media', description: 'Upload audio' },
+  { id: 'video', label: 'Video', icon: Video, category: 'Media', description: 'Upload video' },
+  { id: 'youtube', label: 'YouTube', icon: Youtube, category: 'Media', description: 'Embed YouTube' },
+  { id: 'pdf', label: 'PDF', icon: FileType, category: 'Media', description: 'Upload PDF' },
+];
 
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
   className?: string;
+  onSlashCommand?: (commandId: string) => void;
 }
 
-export function RichTextEditor({ 
-  content, 
-  onChange, 
+// Slash command menu component
+interface SlashCommandMenuProps {
+  items: SlashCommandItem[];
+  command: (item: SlashCommandItem) => void;
+  selectedIndex: number;
+}
+
+interface SlashCommandMenuRef {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+}
+
+const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
+  ({ items, command, selectedIndex }, ref) => {
+    const [localSelectedIndex, setLocalSelectedIndex] = useState(selectedIndex);
+
+    useEffect(() => {
+      setLocalSelectedIndex(selectedIndex);
+    }, [selectedIndex]);
+
+    const selectItem = useCallback((index: number) => {
+      const item = items[index];
+      if (item) {
+        command(item);
+      }
+    }, [items, command]);
+
+    useImperativeHandle(ref, () => ({
+      onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+        if (event.key === 'ArrowUp') {
+          setLocalSelectedIndex((prev) => (prev - 1 + items.length) % items.length);
+          return true;
+        }
+        if (event.key === 'ArrowDown') {
+          setLocalSelectedIndex((prev) => (prev + 1) % items.length);
+          return true;
+        }
+        if (event.key === 'Enter') {
+          selectItem(localSelectedIndex);
+          return true;
+        }
+        return false;
+      },
+    }), [items.length, localSelectedIndex, selectItem]);
+
+    // Group items by category
+    const groupedItems = items.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = [];
+      }
+      acc[item.category].push(item);
+      return acc;
+    }, {} as Record<string, SlashCommandItem[]>);
+
+    let globalIndex = 0;
+
+    return (
+      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
+        {Object.entries(groupedItems).map(([category, categoryItems]) => (
+          <div key={category}>
+            <div className="px-3 py-1.5 text-xs font-medium text-gray-400 uppercase tracking-wider">
+              {category}
+            </div>
+            {categoryItems.map((item) => {
+              const currentIndex = globalIndex++;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => selectItem(currentIndex)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
+                    currentIndex === localSelectedIndex ? 'bg-green-50' : 'hover:bg-gray-50'
+                  )}
+                >
+                  <Icon className={cn(
+                    'h-5 w-5 flex-shrink-0',
+                    currentIndex === localSelectedIndex ? 'text-green-600' : 'text-gray-400'
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className={cn(
+                      'text-sm font-medium',
+                      currentIndex === localSelectedIndex ? 'text-green-600' : 'text-gray-700'
+                    )}>
+                      {item.label}
+                    </div>
+                    {item.description && (
+                      <div className="text-xs text-gray-400 truncate">
+                        {item.description}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        {items.length === 0 && (
+          <div className="px-3 py-4 text-sm text-gray-400 text-center">
+            No commands found
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+SlashCommandMenu.displayName = 'SlashCommandMenu';
+
+export function RichTextEditor({
+  content,
+  onChange,
   placeholder = 'Start writing...',
-  className 
+  className,
+  onSlashCommand
 }: RichTextEditorProps) {
+  // Create slash command extension
+  const SlashCommands = Extension.create({
+    name: 'slashCommands',
+    addOptions() {
+      return {
+        suggestion: {
+          char: '/',
+          command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommandItem }) => {
+            // Delete the slash command text
+            editor.chain().focus().deleteRange(range).run();
+
+            // Handle the command
+            const commandId = props.id;
+
+            // Format commands that can be handled directly in the editor
+            switch (commandId) {
+              case 'h1':
+                editor.chain().focus().toggleHeading({ level: 1 }).run();
+                break;
+              case 'h2':
+                editor.chain().focus().toggleHeading({ level: 2 }).run();
+                break;
+              case 'h3':
+                editor.chain().focus().toggleHeading({ level: 3 }).run();
+                break;
+              case 'bullet':
+                editor.chain().focus().toggleBulletList().run();
+                break;
+              case 'numbered':
+                editor.chain().focus().toggleOrderedList().run();
+                break;
+              case 'quote':
+                editor.chain().focus().toggleBlockquote().run();
+                break;
+              case 'code':
+                editor.chain().focus().toggleCodeBlock().run();
+                break;
+              case 'divider':
+                editor.chain().focus().setHorizontalRule().run();
+                break;
+              default:
+                // Pass to parent handler for AI commands and interactive elements
+                if (onSlashCommand) {
+                  onSlashCommand(commandId);
+                }
+            }
+          },
+        },
+      };
+    },
+    addProseMirrorPlugins() {
+      return [
+        Suggestion({
+          editor: this.editor,
+          ...this.options.suggestion,
+          items: ({ query }: { query: string }) => {
+            return slashCommandItems.filter(item =>
+              item.label.toLowerCase().includes(query.toLowerCase())
+            );
+          },
+          render: () => {
+            let component: ReactRenderer | null = null;
+            let popup: TippyInstance[] | null = null;
+
+            return {
+              onStart: (props: SuggestionProps<SlashCommandItem>) => {
+                component = new ReactRenderer(SlashCommandMenu, {
+                  props: {
+                    ...props,
+                    selectedIndex: 0,
+                  },
+                  editor: props.editor,
+                });
+
+                if (!props.clientRect) return;
+
+                popup = tippy('body', {
+                  getReferenceClientRect: props.clientRect as () => DOMRect,
+                  appendTo: () => document.body,
+                  content: component.element,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                });
+              },
+              onUpdate: (props: SuggestionProps<SlashCommandItem>) => {
+                component?.updateProps(props);
+
+                if (!props.clientRect || !popup) return;
+
+                popup[0]?.setProps({
+                  getReferenceClientRect: props.clientRect as () => DOMRect,
+                });
+              },
+              onKeyDown: (props: SuggestionKeyDownProps) => {
+                if (props.event.key === 'Escape') {
+                  popup?.[0]?.hide();
+                  return true;
+                }
+
+                // @ts-ignore - component ref
+                return component?.ref?.onKeyDown?.(props) ?? false;
+              },
+              onExit: () => {
+                popup?.[0]?.destroy();
+                component?.destroy();
+              },
+            };
+          },
+        }),
+      ];
+    },
+  });
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -68,6 +347,7 @@ export function RichTextEditor({
           throwOnError: false,
         },
       }),
+      SlashCommands,
     ],
     content: parseContentToHTML(content),
     editorProps: {
@@ -206,6 +486,46 @@ export function RichTextEditor({
         .math-inline .katex {
           font-size: 1em;
         }
+        /* TipTap Math Extension styling */
+        .Tiptap-mathematics-editor {
+          background: #f5f5f5;
+          border-radius: 4px;
+          padding: 2px 6px;
+          font-family: 'KaTeX_Math', 'Times New Roman', serif;
+        }
+        .Tiptap-mathematics-render {
+          padding: 0 2px;
+        }
+        .Tiptap-mathematics-editor:focus {
+          outline: 2px solid #22c55e;
+          outline-offset: 1px;
+        }
+        /* Rendered KaTeX math styling */
+        .katex-rendered {
+          display: inline-block;
+          padding: 0 2px;
+        }
+        .katex-rendered .katex {
+          font-size: 1.1em;
+        }
+        /* Block math display */
+        .Tiptap-mathematics-render--display {
+          display: block;
+          text-align: center;
+          margin: 1em 0;
+        }
+        /* Remove tippy.js default styling */
+        .tippy-box {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        .tippy-content {
+          padding: 0 !important;
+        }
+        .tippy-arrow {
+          display: none !important;
+        }
       `}</style>
     </div>
   );
@@ -214,10 +534,27 @@ export function RichTextEditor({
 // Convert markdown to HTML for TipTap
 function parseContentToHTML(markdown: string): string {
   if (!markdown) return '';
-  
-  // First, handle code blocks (``` ... ```) - extract and replace with placeholders
+
+  // First, preserve HTML embeds (iframes, divs with embeds, audio, video) - extract and replace with placeholders
+  const htmlEmbeds: string[] = [];
+  let processed = markdown.replace(/<div class="(youtube-embed|desmos-embed|whiteboard-embed)"[\s\S]*?<\/div>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
+  });
+
+  // Preserve standalone HTML elements (audio, video, iframe)
+  processed = processed.replace(/<(audio|video|iframe)[^>]*>[\s\S]*?<\/\1>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
+  });
+  processed = processed.replace(/<(audio|video|iframe)[^>]*\/>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
+  });
+
+  // Handle code blocks (``` ... ```) - extract and replace with placeholders
   const codeBlocks: string[] = [];
-  let processed = markdown.replace(/```[\s\S]*?```/g, (match) => {
+  processed = processed.replace(/```[\s\S]*?```/g, (match) => {
     const code = match.replace(/```\w*\n?/, '').replace(/```$/, '');
     codeBlocks.push(`<pre><code>${code}</code></pre>`);
     return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
@@ -231,6 +568,15 @@ function parseContentToHTML(markdown: string): string {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
     
+    // Skip HTML embed placeholders
+    if (line.match(/__HTML_EMBED_\d+__/)) {
+      const idx = parseInt(line.match(/__HTML_EMBED_(\d+)__/)?.[1] || '0');
+      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      processedLines.push(htmlEmbeds[idx]);
+      continue;
+    }
+
     // Skip code block placeholders
     if (line.match(/__CODE_BLOCK_\d+__/)) {
       const idx = parseInt(line.match(/__CODE_BLOCK_(\d+)__/)?.[1] || '0');
@@ -318,20 +664,51 @@ function parseContentToHTML(markdown: string): string {
 // Convert HTML back to markdown
 function htmlToMarkdown(html: string): string {
   if (!html) return '';
-  
+
   let markdown = html;
-  
+
+  // Preserve HTML embeds (youtube, desmos, whiteboard, audio, video) - extract and protect them
+  const htmlEmbeds: string[] = [];
+  markdown = markdown.replace(/<div class="(youtube-embed|desmos-embed|whiteboard-embed)"[\s\S]*?<\/div>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
+  markdown = markdown.replace(/<(audio|video)[^>]*>[\s\S]*?<\/\1>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
+  markdown = markdown.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
+
+  // Convert TipTap math extension nodes back to $...$ syntax
+  // The math extension stores the latex in a data attribute or special structure
+  markdown = markdown.replace(/<span[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*data-latex="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
+  markdown = markdown.replace(/<span[^>]*data-latex="([^"]*)"[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
+
+  // Convert inline math that was rendered with katex-rendered class
+  markdown = markdown.replace(/<span[^>]*class="katex-rendered"[^>]*>[\s\S]*?<\/span>/g, (match) => {
+    // Try to extract the original latex - it's usually lost, so we preserve the rendered HTML
+    // Best approach is to look for annotation with original tex
+    const texMatch = match.match(/<annotation encoding="application\/x-tex">([^<]+)<\/annotation>/);
+    if (texMatch) {
+      return `$${texMatch[1]}$`;
+    }
+    return match;
+  });
+
   // Convert headings (add newline before for proper spacing)
   markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/g, '\n# $1\n');
   markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/g, '\n## $1\n');
   markdown = markdown.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/g, '\n### $1\n');
-  
+
   // Convert bold
   markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/g, '**$1**');
-  
+
   // Convert italic
   markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/g, '*$1*');
-  
+
   // Convert inline code
   markdown = markdown.replace(/<code>([\s\S]*?)<\/code>/g, '`$1`');
   
@@ -351,10 +728,19 @@ function htmlToMarkdown(html: string): string {
   
   // Convert paragraphs
   markdown = markdown.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1\n\n');
-  
-  // Clean up
+
+  // Extract LaTeX from any remaining KaTeX rendered output before stripping HTML
+  // KaTeX includes the original tex in an annotation element
+  markdown = markdown.replace(/<span class="katex">[\s\S]*?<annotation encoding="application\/x-tex">([^<]+)<\/annotation>[\s\S]*?<\/span>/g, '$$$1$$');
+
+  // Clean up - remove remaining HTML tags (but not our preserved ones)
   markdown = markdown.replace(/<[^>]+>/g, ''); // Remove remaining HTML tags
   markdown = markdown.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
-  
+
+  // Restore preserved HTML embeds
+  htmlEmbeds.forEach((embed, idx) => {
+    markdown = markdown.replace(`__PRESERVE_HTML_${idx}__`, `\n\n${embed}\n\n`);
+  });
+
   return markdown.trim();
 }

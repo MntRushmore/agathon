@@ -76,18 +76,18 @@
   --card-foreground: oklch(0.20 0.01 60);
   --popover: oklch(0.995 0.003 90);
   --popover-foreground: oklch(0.20 0.01 60);
-  --primary: oklch(0.50 0.12 155);          /* Soft sage green primary */
+  --primary: oklch(0.42 0.08 200);          /* Brand teal rgb(12, 94, 112) */
   --primary-foreground: oklch(0.995 0.003 90);
   --secondary: oklch(0.96 0.008 90);        /* Light crème secondary */
   --secondary-foreground: oklch(0.25 0.01 60);
   --muted: oklch(0.94 0.01 85);             /* Warmer muted background */
   --muted-foreground: oklch(0.50 0.01 60);  /* Better contrast for secondary text */
-  --accent: oklch(0.94 0.02 155);           /* Soft green accent background */
+  --accent: oklch(0.94 0.02 200);           /* Soft teal accent background */
   --accent-foreground: oklch(0.25 0.01 60);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.90 0.012 85);           /* Warm subtle borders */
   --input: oklch(0.92 0.01 85);
-  --ring: oklch(0.50 0.12 155);             /* Green ring to match primary */
+  --ring: oklch(0.42 0.08 200);             /* Teal ring to match primary */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -95,12 +95,12 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.975 0.006 90);
   --sidebar-foreground: oklch(0.20 0.01 60);
-  --sidebar-primary: oklch(0.50 0.12 155);
+  --sidebar-primary: oklch(0.42 0.08 200);
   --sidebar-primary-foreground: oklch(0.995 0.003 90);
-  --sidebar-accent: oklch(0.94 0.02 155);
+  --sidebar-accent: oklch(0.94 0.02 200);
   --sidebar-accent-foreground: oklch(0.25 0.01 60);
   --sidebar-border: oklch(0.90 0.012 85);
-  --sidebar-ring: oklch(0.50 0.12 155);
+  --sidebar-ring: oklch(0.42 0.08 200);
 
   /* Refined shadows for depth - softer and warmer */
   --shadow-xs: 0 1px 2px 0 rgb(45 35 25 / 0.03);
@@ -110,8 +110,8 @@
   --shadow-xl: 0 20px 25px -5px rgb(45 35 25 / 0.08), 0 8px 10px -6px rgb(45 35 25 / 0.04);
 
   /* Semantic accent colors - Soft, muted palette */
-  --accent-green: oklch(0.55 0.14 155);     /* Primary soft sage green */
-  --accent-green-muted: oklch(0.94 0.03 155);
+  --accent-green: oklch(0.42 0.08 200);     /* Brand teal rgb(12, 94, 112) */
+  --accent-green-muted: oklch(0.94 0.03 200);
   --accent-blue: oklch(0.58 0.14 240);      /* Soft dusty blue */
   --accent-blue-muted: oklch(0.94 0.03 240);
   --accent-purple: oklch(0.52 0.16 290);    /* Soft lavender */
@@ -123,8 +123,8 @@
 
   /* Light sidebar (matching the crème theme) */
   --sidebar-dark: oklch(0.98 0.005 90);
-  --sidebar-dark-hover: oklch(0.94 0.02 155);
-  --sidebar-dark-active: oklch(0.90 0.03 155);
+  --sidebar-dark-hover: oklch(0.94 0.02 200);
+  --sidebar-dark-active: oklch(0.90 0.03 200);
   --sidebar-dark-border: oklch(0.90 0.012 85);
   --sidebar-dark-text: oklch(0.45 0.01 60);
   --sidebar-dark-text-active: oklch(0.20 0.01 60);
@@ -137,18 +137,18 @@
   --card-foreground: oklch(0.95 0.005 90);
   --popover: oklch(0.20 0.01 60);
   --popover-foreground: oklch(0.95 0.005 90);
-  --primary: oklch(0.65 0.12 155);
+  --primary: oklch(0.55 0.08 200);
   --primary-foreground: oklch(0.16 0.01 60);
   --secondary: oklch(0.25 0.01 60);
   --secondary-foreground: oklch(0.95 0.005 90);
   --muted: oklch(0.25 0.01 60);
   --muted-foreground: oklch(0.65 0.005 90);
-  --accent: oklch(0.28 0.02 155);
+  --accent: oklch(0.28 0.02 200);
   --accent-foreground: oklch(0.95 0.005 90);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.65 0.12 155);
+  --ring: oklch(0.55 0.08 200);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -156,16 +156,16 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.18 0.01 60);
   --sidebar-foreground: oklch(0.95 0.005 90);
-  --sidebar-primary: oklch(0.65 0.12 155);
+  --sidebar-primary: oklch(0.55 0.08 200);
   --sidebar-primary-foreground: oklch(0.16 0.01 60);
-  --sidebar-accent: oklch(0.28 0.02 155);
+  --sidebar-accent: oklch(0.28 0.02 200);
   --sidebar-accent-foreground: oklch(0.95 0.005 90);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.65 0.12 155);
+  --sidebar-ring: oklch(0.55 0.08 200);
 
   /* Dark mode accent colors */
-  --accent-green: oklch(0.65 0.12 155);
-  --accent-green-muted: oklch(0.25 0.04 155);
+  --accent-green: oklch(0.55 0.08 200);
+  --accent-green-muted: oklch(0.25 0.04 200);
   --accent-blue: oklch(0.65 0.12 240);
   --accent-blue-muted: oklch(0.25 0.04 240);
   --accent-purple: oklch(0.62 0.14 290);
@@ -177,8 +177,8 @@
 
   /* Dark sidebar colors */
   --sidebar-dark: oklch(0.14 0.01 60);
-  --sidebar-dark-hover: oklch(0.22 0.02 155);
-  --sidebar-dark-active: oklch(0.28 0.03 155);
+  --sidebar-dark-hover: oklch(0.22 0.02 200);
+  --sidebar-dark-active: oklch(0.28 0.03 200);
   --sidebar-dark-border: oklch(0.25 0.01 60);
   --sidebar-dark-text: oklch(0.60 0.005 90);
   --sidebar-dark-text-active: oklch(0.95 0.005 90);
@@ -467,7 +467,7 @@ select {
 .board-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: oklch(0.85 0.02 155);
+  border-color: oklch(0.85 0.02 200);
 }
 
 .board-card:active {
@@ -485,7 +485,7 @@ select {
 
 .feature-card:hover {
   box-shadow: var(--shadow-sm);
-  border-color: oklch(0.85 0.02 155);
+  border-color: oklch(0.85 0.02 200);
 }
 
 /* Empty state card - dashed border */
@@ -496,8 +496,8 @@ select {
 }
 
 .empty-state-card:hover {
-  border-color: oklch(0.75 0.08 155);
-  background: oklch(0.96 0.02 155 / 50%);
+  border-color: oklch(0.75 0.08 200);
+  background: oklch(0.96 0.02 200 / 50%);
 }
 
 /* Icon container - neutral with consistent sizing */
@@ -525,10 +525,10 @@ select {
   border-radius: 12px;
 }
 
-/* Green accent icon container */
+/* Teal accent icon container (brand color) */
 .icon-container-green {
-  background: oklch(0.94 0.03 155);
-  color: oklch(0.45 0.12 155);
+  background: oklch(0.94 0.03 200);
+  color: oklch(0.42 0.08 200);
 }
 
 /* Button press feedback */

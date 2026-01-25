@@ -219,8 +219,8 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">User Management</h1>
-        <p className="text-muted-foreground">View, edit, and manage all platform users</p>
+        <h1 className="text-2xl font-semibold text-foreground">Users</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage platform users and roles</p>
       </div>
 
       {/* Filters */}
@@ -248,7 +248,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="border rounded-lg">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
