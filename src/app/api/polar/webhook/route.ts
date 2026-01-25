@@ -14,6 +14,24 @@ type WebhookSubscriptionPayload = {
     currentPeriodEnd?: string | null;
   };
 };
+
+type WebhookOrderPayload = {
+  data: {
+    id: string;
+    status: string;
+    productId: string;
+    amount: number;
+    customer: {
+      id: string;
+      externalId?: string | null;
+      email?: string | null;
+    };
+    metadata?: {
+      type?: string;
+      credits?: number;
+    };
+  };
+};
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -25,6 +43,88 @@ if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID) {
 }
 if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID) {
   productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID] = 'premium';
+}
+
+// Credit pack product mapping (product ID -> total credits including bonus)
+const creditPackMap: Record<string, number> = {};
+if (process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID) {
+  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID] = 50;
+}
+if (process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID) {
+  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID] = 175; // 150 + 25 bonus
+}
+if (process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID) {
+  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID] = 600; // 500 + 100 bonus
+}
+
+async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
+  const order = payload.data;
+  const customer = order.customer;
+  const externalId = customer?.externalId;
+
+  if (!externalId) {
+    console.warn('Polar webhook: order has no externalId, skipping credit grant.');
+    return;
+  }
+
+  // Determine credits to grant - from metadata or product mapping
+  let creditsToGrant = order.metadata?.credits || creditPackMap[order.productId];
+
+  if (!creditsToGrant) {
+    console.warn('Polar webhook: unknown credit pack product', order.productId);
+    return;
+  }
+
+  const supabase = await createServerSupabaseClient();
+
+  // Get current user credits
+  const { data: profile, error: fetchError } = await supabase
+    .from('profiles')
+    .select('credits')
+    .eq('id', externalId)
+    .single();
+
+  if (fetchError) {
+    console.error('Polar webhook: failed to fetch profile for credit grant', fetchError);
+    return;
+  }
+
+  const currentCredits = profile?.credits || 0;
+  const newCredits = currentCredits + creditsToGrant;
+
+  // Update credits
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({
+      credits: newCredits,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', externalId);
+
+  if (updateError) {
+    console.error('Polar webhook: failed to update credits', updateError);
+    return;
+  }
+
+  // Log the transaction
+  const { error: txError } = await supabase.from('credit_transactions').insert({
+    user_id: externalId,
+    amount: creditsToGrant,
+    balance_after: newCredits,
+    transaction_type: 'purchase',
+    description: `Purchased ${creditsToGrant} credits`,
+    metadata: {
+      polar_order_id: order.id,
+      polar_product_id: order.productId,
+      amount_paid: order.amount,
+    },
+  });
+
+  if (txError) {
+    console.error('Polar webhook: failed to log credit transaction', txError);
+  }
+
+  console.log(`Polar webhook: granted ${creditsToGrant} credits to user ${externalId}`);
 }
 
 async function syncProfileFromSubscription(
@@ -67,11 +167,20 @@ async function syncProfileFromSubscription(
 const webhookHandler = webhookSecret
   ? Webhooks({
       webhookSecret,
+      // Subscription events
       onSubscriptionCreated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
       onSubscriptionUpdated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
       onSubscriptionActive: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status ?? 'active'),
       onSubscriptionCanceled: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'canceled'),
       onSubscriptionRevoked: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'revoked'),
+      // One-time order events (for credit packs)
+      onOrderCreated: (payload: unknown) => {
+        const orderPayload = payload as WebhookOrderPayload;
+        // Check if this is a credit pack purchase
+        if (creditPackMap[orderPayload.data.productId] || orderPayload.data.metadata?.type === 'credit_pack') {
+          grantCreditsFromOrder(orderPayload);
+        }
+      },
     })
   : null;
 

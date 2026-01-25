@@ -1,11 +1,19 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, View, ActivityIndicator, Text } from 'react-native';
-import { WebView } from 'react-native-webview';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, ActivityIndicator, Text, Linking } from 'react-native';
+import { WebView, WebViewNavigation } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
 
-// Use your production Vercel URL
-const WEB_APP_URL = 'https://whiteboard-delta-wine.vercel.app/';
+// Production Agathon URL - update this to your actual production URL
+const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://agathon.app';
+
+// URL patterns that should open in external browser (OAuth flows)
+const EXTERNAL_URL_PATTERNS = [
+  'accounts.google.com',
+  'github.com/login',
+  'appleid.apple.com',
+];
 
 export default function WebViewWrapper() {
   const webViewRef = useRef<WebView>(null);
@@ -164,6 +172,64 @@ export default function WebViewWrapper() {
     loadToken();
   }, []);
 
+  // Handle OAuth and external URL navigation
+  const shouldOpenExternally = useCallback((url: string): boolean => {
+    return EXTERNAL_URL_PATTERNS.some(pattern => url.includes(pattern));
+  }, []);
+
+  const handleNavigationRequest = useCallback((request: WebViewNavigation): boolean => {
+    const { url } = request;
+
+    // Check if this URL should be opened in external browser (OAuth flows)
+    if (shouldOpenExternally(url)) {
+      // Open OAuth URLs in system browser for proper auth flow
+      WebBrowser.openBrowserAsync(url, {
+        showInRecents: true,
+        dismissButtonStyle: 'close',
+      }).catch((err) => {
+        console.error('Failed to open browser:', err);
+        // Fallback to system linking
+        Linking.openURL(url);
+      });
+      return false; // Prevent WebView from loading this URL
+    }
+
+    // Allow all other URLs to load in WebView
+    return true;
+  }, [shouldOpenExternally]);
+
+  // Handle deep links back from OAuth
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      const { url } = event;
+      // Check if this is a callback URL from OAuth
+      if (url.startsWith('agathon://') || url.includes('/auth/callback')) {
+        // Extract the callback path and reload in WebView
+        const callbackUrl = url.replace('agathon://', WEB_APP_URL);
+        if (webViewRef.current) {
+          webViewRef.current.injectJavaScript(`
+            window.location.href = '${callbackUrl}';
+            true;
+          `);
+        }
+      }
+    };
+
+    // Listen for deep links
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if app was opened via deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
       {loading && (
@@ -199,6 +265,8 @@ export default function WebViewWrapper() {
         }}
         injectedJavaScript={injectedJavaScript}
         onMessage={handleMessage}
+        // Handle OAuth and external URL navigation
+        onShouldStartLoadWithRequest={handleNavigationRequest}
         // Navigation
         allowsBackForwardNavigationGestures={false}
         // Media
