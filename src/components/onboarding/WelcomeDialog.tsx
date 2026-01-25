@@ -129,7 +129,7 @@ export function WelcomeDialog({
               </div>
             </div>
             <div className="text-center space-y-2">
-              <DialogTitle className="text-2xl">Welcome to AI Whiteboard, {userName}! 👋</DialogTitle>
+              <DialogTitle className="text-2xl">Welcome to Agathon, {userName}! 👋</DialogTitle>
               <DialogDescription className="text-base">
                 An AI-powered canvas where you can solve problems, get hints, and learn by doing.
                 Let's take a quick tour to get you started!
@@ -194,7 +194,7 @@ export function WelcomeDialog({
             <div className="text-center space-y-2">
               <DialogTitle className="text-2xl">Powerful Features</DialogTitle>
               <DialogDescription>
-                Here's what you can do with AI Whiteboard:
+                Here's what you can do with Agathon:
               </DialogDescription>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

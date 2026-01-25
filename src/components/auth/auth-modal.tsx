@@ -19,7 +19,7 @@ export function AuthModal({ open, onOpenChange, defaultTab = 'signin' }: AuthMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Welcome to AI Whiteboard</DialogTitle>
+          <DialogTitle>Welcome to Agathon</DialogTitle>
           <DialogDescription>
             Sign in to save your work and access it from anywhere
           </DialogDescription>

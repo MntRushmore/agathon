@@ -259,7 +259,7 @@ export default function Dashboard() {
   const featureCards: FeatureCard[] = [
     {
       id: 'whiteboard',
-      title: 'AI Whiteboard',
+      title: 'Agathon',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
       icon: <Pencil className="h-5 w-5" />,

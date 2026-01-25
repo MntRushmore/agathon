@@ -19,13 +19,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Whiteboard",
+  title: "Agathon",
   description: "AI-powered whiteboard with intelligent assistance",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "AI Whiteboard",
+    title: "Agathon",
   },
   formatDetection: {
     telephone: false,
