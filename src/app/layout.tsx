@@ -19,8 +19,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agathon",
-  description: "AI-powered whiteboard with intelligent assistance",
+  title: {
+    default: "Agathon",
+    template: "%s | Agathon",
+  },
+  description: "The AI-powered learning companion that helps you understand, not just answer. Draw problems, get hints, and learn by doing.",
+  keywords: ["AI tutor", "learning", "education", "math help", "homework help", "study assistant", "whiteboard"],
+  authors: [{ name: "Agathon" }],
+  creator: "Agathon",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://agathon.app"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "Agathon",
+    title: "Agathon - AI Learning Companion",
+    description: "The AI-powered learning companion that helps you understand, not just answer. Draw problems, get hints, and learn by doing.",
+    images: [
+      {
+        url: "/logo/agathonwide.png",
+        width: 1200,
+        height: 630,
+        alt: "Agathon - AI Learning Companion",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Agathon - AI Learning Companion",
+    description: "The AI-powered learning companion that helps you understand, not just answer.",
+    images: ["/logo/agathonwide.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   appleWebApp: {
     capable: true,
