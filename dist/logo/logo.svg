@@ -1,0 +1,15 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stylized A resembling a desk lamp -->
+  <!-- Left leg of A -->
+  <path d="M22 68 L36 20 L42 20 L28 68 Z" fill="currentColor"/>
+  <!-- Right leg of A -->
+  <path d="M58 68 L44 20 L38 20 L52 68 Z" fill="currentColor"/>
+  <!-- Crossbar of A -->
+  <rect x="30" y="44" width="20" height="6" fill="currentColor"/>
+  <!-- Lamp bulb at top -->
+  <circle cx="40" cy="12" r="6" fill="currentColor"/>
+  <!-- Light rays -->
+  <path d="M40 6 L40 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M46 8 L50 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M34 8 L30 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>

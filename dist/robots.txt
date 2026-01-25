@@ -1,0 +1,12 @@
+# Agathon robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://agathon.app/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth/

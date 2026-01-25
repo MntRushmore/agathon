@@ -17,6 +17,7 @@ interface StructuredFeedback {
   annotations: FeedbackAnnotation[];
   nextStep?: string;
   isCorrect?: boolean;
+  solution?: string;
 }
 
 /**
@@ -270,17 +271,45 @@ export async function POST(req: NextRequest) {
         clearTimeout(timeoutId);
       }
     } else {
-      // Free tier: Use Hack Club AI
+      // Free tier: Use Hack Club AI with helpful math feedback
       solutionLogger.info({ requestId, mode: effectiveMode, isSocratic }, 'Using Hack Club AI (Free) for solution feedback');
+
+      // Build a structured prompt for helpful math tutoring with LaTeX support
+      const freePrompt = `You are a friendly math tutor. Look at the student's work and help them.
+
+MODE: ${effectiveMode === 'answer' ? 'Solve the problem completely, show all steps.' : effectiveMode === 'feedback' ? 'Check their work, point out any errors, explain what went wrong.' : 'Give a helpful hint to guide them to the next step (don\'t give the answer).'}
+${isSocratic ? 'Ask guiding questions to help them think.' : ''}
+
+IMPORTANT RULES:
+- For ANY math, use LaTeX: wrap equations in $...$ (inline) or $$...$$ (display)
+- Examples: $x = 5$, $\\frac{3}{4}$, $2^3 = 8$, $\\sqrt{16} = 4$
+- Be encouraging and helpful
+- Keep explanations clear but concise
+
+Respond in JSON:
+{
+  "summary": "Brief summary of the feedback",
+  "isCorrect": true/false/null,
+  "annotations": [
+    {
+      "type": "hint|correction|encouragement|step|answer",
+      "content": "Your feedback with $LaTeX$ math"
+    }
+  ],
+  "solution": "Full worked solution with $$LaTeX$$ (only for answer mode)"
+}
+
+Only output valid JSON.`;
 
       try {
         const hackclubResponse = await callHackClubAI({
+          model: 'google/gemini-2.5-flash',
           messages: [
             {
               role: 'user',
               content: [
                 { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: finalPrompt },
+                { type: 'text', text: freePrompt },
               ],
             },
           ],
@@ -304,8 +333,14 @@ export async function POST(req: NextRequest) {
 
         const parsed = extractJSON(textContent);
         if (parsed) {
-          feedback = parsed;
+          feedback = {
+            summary: parsed.summary || 'AI Feedback',
+            annotations: Array.isArray(parsed.annotations) ? parsed.annotations : [],
+            isCorrect: parsed.isCorrect,
+            solution: parsed.solution,
+          };
         } else {
+          // Fallback: use raw text
           feedback = {
             summary: 'AI Feedback',
             annotations: [{ type: effectiveMode === 'answer' ? 'answer' : 'hint', content: textContent, position: 'below' }],

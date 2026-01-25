@@ -10,6 +10,7 @@ import {
   type TLUiOverrides,
   getSnapshot,
   loadSnapshot,
+  Box,
 } from "tldraw";
 import { toRichText } from "@tldraw/tlschema";
 import React, { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
@@ -63,6 +64,10 @@ import { celebrateMilestone } from "@/lib/celebrations";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { MyScriptMathOverlay } from "@/components/board/MyScriptMathOverlay";
+import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board/tools/LassoSolveTool";
+import { GoDeepPanel } from "@/components/board/GoDeepPanel";
+import { GoDeepButton } from "@/components/board/GoDeepButton";
+import { FeedbackCard } from "@/components/board/FeedbackCard";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -840,6 +845,16 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
+    const [goDeepOpen, setGoDeepOpen] = useState(false);
+    const [goDeepImage, setGoDeepImage] = useState<string | null>(null);
+    const [goDeepAnswer, setGoDeepAnswer] = useState<string>("");
+    const [feedbackCard, setFeedbackCard] = useState<{
+      summary: string;
+      annotations: { type: string; content: string }[];
+      isCorrect?: boolean | null;
+      solution?: string;
+      position: { x: number; y: number };
+    } | null>(null);
     const [userId, setUserId] = useState<string>("");
     const [showOnboarding, setShowOnboarding] = useState(true);
     const [hintLimit, setHintLimit] = useState<number | null>(assignmentRestrictions?.hintLimit ?? null);
@@ -1359,77 +1374,28 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
           createdShapeIds.push(shapeId);
         } else {
-          // Fallback or Free: Text/Note shapes
-          for (let i = 0; i < feedback.annotations.length; i++) {
-            const annotation = feedback.annotations[i];
-            const shapeId = createShapeId();
+          // Free tier: Show floating FeedbackCard with LaTeX support
+          // Position card in top-right area of the viewport
+          const cardX = viewportBounds.x + viewportBounds.width - 340;
+          const cardY = viewportBounds.y + 80;
 
-            const isRightSide = i % 2 === 0;
-            const xPosition = isRightSide ? rightXPosition : leftXPosition;
-            const yOffset = isRightSide ? rightYOffset : leftYOffset;
+          // Convert screen coordinates
+          const screenPoint = editor.pageToScreen({ x: cardX, y: cardY });
 
-            if (isPremium) {
-              // Premium (without image): Actual AI handwriting (Text shape with draw font)
-              editor.createShape({
-                id: shapeId,
-                type: "text",
-                x: xPosition,
-                y: yOffset,
-                opacity: isFeedbackMode ? 1.0 : 0.8,
-                isLocked: true,
-                props: {
-                  text: annotation.content,
-                  color: getAnnotationColor(annotation.type),
-                  size: 'm',
-                  font: 'draw',
-                  align: 'start',
-                  scale: 1,
-                },
-                meta: {
-                  aiGenerated: true,
-                  aiMode: mode,
-                  aiAnnotationType: annotation.type,
-                  aiTimestamp: new Date().toISOString(),
-                },
-              });
-            } else {
-              // Free: Sticky notes
-              editor.createShape({
-                id: shapeId,
-                type: "note",
-                x: xPosition,
-                y: yOffset,
-                opacity: isFeedbackMode ? 1.0 : 0.7,
-                isLocked: true,
-                props: {
-                  richText: toRichText(annotation.content),
-                  color: getAnnotationColor(annotation.type),
-                  size: 's',
-                  font: 'draw',
-                  align: 'start',
-                  verticalAlign: 'start',
-                  growY: 0,
-                  fontSizeAdjustment: -2,
-                  url: '',
-                  scale: 1,
-                },
-                meta: {
-                  aiGenerated: true,
-                  aiMode: mode,
-                  aiAnnotationType: annotation.type,
-                  aiTimestamp: new Date().toISOString(),
-                },
-              });
-            }
+          setFeedbackCard({
+            summary: feedback.summary || '',
+            annotations: feedback.annotations.map((a: { type: string; content: string }) => ({
+              type: a.type,
+              content: a.content,
+            })),
+            isCorrect: feedback.isCorrect,
+            solution: (feedback as any).solution,
+            position: { x: screenPoint.x, y: screenPoint.y },
+          });
 
-            createdShapeIds.push(shapeId);
-
-            if (isRightSide) {
-              rightYOffset += noteHeight + verticalGap;
-            } else {
-              leftYOffset += noteHeight + verticalGap;
-            }
-          }
+          // Also store the image for "Go Deeper" feature
+          setGoDeepImage(base64);
+          setGoDeepAnswer(feedback.summary || textContent);
         }
 
         // Only add to pending list if not in feedback mode
@@ -1587,6 +1553,208 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     isProcessingRef,
     assistanceMode === "quick"
   );
+
+  // Generate solution for specific lassoed shapes
+  const generateSolutionForShapes = useCallback(
+    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }) => {
+      if (!editor || shapeIds.length === 0 || isProcessingRef.current) return;
+
+      // Determine which mode to use - prefer the current assistanceMode, default to 'answer'
+      let mode = assistanceMode === 'off' || assistanceMode === 'quick' ? 'answer' : assistanceMode;
+
+      // Enforce AI restrictions
+      if (!aiAllowed) {
+        toast.error('AI assistance is disabled for this assignment');
+        return;
+      }
+      if (!isModeAllowed(mode)) {
+        toast.error(`${mode} mode is not allowed for this assignment`);
+        return;
+      }
+
+      isProcessingRef.current = true;
+      setStatus('generating');
+      setStatusMessage('Solving selected problem...');
+
+      try {
+        logger.info({ shapeIds: shapeIds.length, bounds }, 'Lasso solve starting');
+
+        // Capture only the lassoed shapes
+        let blob: Blob | undefined;
+        try {
+          // Create bounds box for the capture with some padding
+          const captureBounds = new Box(
+            bounds.x - 20,
+            bounds.y - 20,
+            bounds.width + 40,
+            bounds.height + 40
+          );
+
+          const result = await editor.toImage(shapeIds, {
+            format: 'png',
+            bounds: captureBounds,
+            background: true,
+            scale: 1,
+            padding: 0,
+          });
+          blob = result.blob;
+        } catch (captureError) {
+          logger.error({ captureError }, 'Failed to capture shapes with toImage');
+          throw new Error('Failed to capture selected shapes');
+        }
+
+        if (!blob) {
+          throw new Error('Failed to capture shapes - no blob returned');
+        }
+
+        logger.info({ blobSize: blob.size }, 'Shape capture successful');
+
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+
+        const solutionResponse = await fetch('/api/generate-solution', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64,
+            mode,
+            isSocratic: assignmentRestrictions?.socraticMode ?? false,
+            source: 'lasso',
+          }),
+        });
+
+        if (!solutionResponse.ok) {
+          throw new Error('Solution generation failed');
+        }
+
+        const solutionData = await solutionResponse.json();
+        const feedback = solutionData.feedback;
+        const isPremium = solutionData.isPremium;
+        const imageUrl = solutionData.imageUrl as string | null | undefined;
+
+        const hasAnnotations = feedback?.annotations && feedback.annotations.length > 0;
+        const hasFeedbackContent = hasAnnotations || (isPremium && imageUrl);
+
+        if (!hasFeedbackContent) {
+          setStatus('idle');
+          setStatusMessage('');
+          toast.info('No solution needed for this selection');
+          return;
+        }
+
+        // Set flag to prevent triggering activity detection
+        isUpdatingImageRef.current = true;
+
+        // Position the response near the lassoed area (to the right)
+        const responseX = bounds.x + bounds.width + 30;
+        const responseY = bounds.y;
+
+        if (isPremium && imageUrl) {
+          // Premium: place the generated image
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = imageUrl;
+          });
+
+          const maxWidth = 400;
+          const scale = Math.min(1, maxWidth / img.width);
+          const w = img.width * scale;
+          const h = img.height * scale;
+
+          const assetId = AssetRecordType.createId();
+          editor.createAssets([{
+            id: assetId,
+            type: 'image',
+            typeName: 'asset',
+            props: {
+              name: 'ai-solution.png',
+              src: imageUrl,
+              w: img.width,
+              h: img.height,
+              mimeType: 'image/png',
+              isAnimated: false,
+            },
+            meta: {},
+          }]);
+
+          const shapeId = createShapeId();
+          editor.createShape({
+            id: shapeId,
+            type: 'image',
+            x: responseX,
+            y: responseY,
+            isLocked: true,
+            opacity: 0.9,
+            props: { w, h, assetId },
+            meta: {
+              aiGenerated: true,
+              aiMode: mode,
+              aiTimestamp: new Date().toISOString(),
+            },
+          });
+
+          setPendingImageIds((prev) => [...prev, shapeId]);
+        } else if (hasAnnotations) {
+          // Free tier: show FeedbackCard with LaTeX support
+          const screenPoint = editor.pageToScreen({ x: responseX, y: responseY });
+
+          setFeedbackCard({
+            summary: feedback.summary || '',
+            annotations: feedback.annotations.map((a: any) => ({
+              type: a.type,
+              content: a.content || a.message || '',
+            })),
+            isCorrect: feedback.isCorrect,
+            solution: (feedback as any).solution,
+            position: { x: screenPoint.x, y: screenPoint.y },
+          });
+
+          // Store for "Go Deeper" feature
+          setGoDeepImage(base64);
+          setGoDeepAnswer(feedback.summary || '');
+        }
+
+        // Track AI usage
+        await trackAIUsage(mode, 'Lasso-selected problem');
+
+        setStatus('idle');
+        setStatusMessage('');
+        toast.success('Solution generated!');
+
+      } catch (error) {
+        console.error('[LassoSolve] Error:', error);
+        logger.error({ error, message: error instanceof Error ? error.message : 'unknown' }, 'Lasso solve error');
+        setStatus('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Generation failed');
+        setTimeout(() => {
+          setStatus('idle');
+          setErrorMessage('');
+        }, 3000);
+      } finally {
+        isProcessingRef.current = false;
+        isUpdatingImageRef.current = false;
+      }
+    },
+    [editor, assistanceMode, aiAllowed, isModeAllowed, assignmentRestrictions, trackAIUsage],
+  );
+
+  // Listen for lasso solve events
+  useEffect(() => {
+    const handleLassoSolve = (event: Event) => {
+      const customEvent = event as CustomEvent<LassoSolveCompleteEvent>;
+      const { shapeIds, bounds } = customEvent.detail;
+      void generateSolutionForShapes(shapeIds, bounds);
+    };
+
+    window.addEventListener('lasso-solve-complete', handleLassoSolve);
+    return () => window.removeEventListener('lasso-solve-complete', handleLassoSolve);
+  }, [generateSolutionForShapes]);
 
   // Cancel in-flight requests when user edits the canvas
   useEffect(() => {
@@ -2201,6 +2369,71 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
           )}
 
+          {/* Go Deeper Button - fixed position, toggles the panel */}
+          {!isTeacherViewing && editor && (
+            <div className="fixed bottom-20 right-4 z-[1000] ios-safe-bottom ios-safe-right">
+              <GoDeepButton
+                isOpen={goDeepOpen}
+                onClick={async () => {
+                  if (goDeepOpen) {
+                    setGoDeepOpen(false);
+                    return;
+                  }
+                  if (!editor) return;
+                  // Capture current canvas state
+                  const shapeIds = editor.getCurrentPageShapeIds();
+                  if (shapeIds.size === 0) {
+                    toast.info('Draw something first to explore it deeper!');
+                    return;
+                  }
+                  try {
+                    const viewportBounds = editor.getViewportPageBounds();
+                    const { blob } = await editor.toImage([...shapeIds], {
+                      format: 'png',
+                      bounds: viewportBounds,
+                      background: true,
+                      scale: 0.75,
+                    });
+                    if (blob) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setGoDeepImage(reader.result as string);
+                        setGoDeepOpen(true);
+                      };
+                      reader.readAsDataURL(blob);
+                    }
+                  } catch (err) {
+                    console.error('Failed to capture canvas:', err);
+                    toast.error('Failed to capture canvas');
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Go Deeper Panel */}
+          <GoDeepPanel
+            isOpen={goDeepOpen}
+            onClose={() => setGoDeepOpen(false)}
+            problemImage={goDeepImage}
+            originalAnswer={goDeepAnswer}
+          />
+
+          {/* Feedback Card (Free tier) */}
+          {feedbackCard && (
+            <FeedbackCard
+              summary={feedbackCard.summary}
+              annotations={feedbackCard.annotations as any}
+              isCorrect={feedbackCard.isCorrect}
+              solution={feedbackCard.solution}
+              position={feedbackCard.position}
+              onClose={() => setFeedbackCard(null)}
+              onDragEnd={(x, y) => {
+                setFeedbackCard(prev => prev ? { ...prev, position: { x, y } } : null);
+              }}
+            />
+          )}
+
     </>
   );
 }
@@ -2493,6 +2726,7 @@ export default function BoardPage() {
 
         <Tldraw
           licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
+          tools={[LassoSolveTool]}
           overrides={hugeIconsOverrides}
           components={{
             Toolbar: CustomToolbar,
