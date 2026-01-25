@@ -161,6 +161,16 @@ function EraserIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+function LassoIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M7 15C4.5 15 3 13 3 10.5C3 7 6 4 10.5 4C15 4 18 6.5 18 9.5C18 12 16.5 14 14 15" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M14 15C14 15 15 17 15 19C15 20.5 14 21 13 21C12 21 11 20 11 19C11 17.5 12 15 14 15Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 15L7 12" strokeLinecap="round" strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
 export function CustomToolbar() {
   const editor = useEditor();
   const [penSettingsOpen, setPenSettingsOpen] = useState(false);
@@ -203,6 +213,7 @@ export function CustomToolbar() {
   const tools = [
     { id: 'select', icon: <SelectIcon />, shortcut: 'V', label: 'Select' },
     { id: 'hand', icon: <HandIcon />, shortcut: 'H', label: 'Pan' },
+    { id: 'lasso-solve', icon: <LassoIcon />, shortcut: 'L', label: 'Lasso Solve' },
   ];
 
   const drawingTools = [

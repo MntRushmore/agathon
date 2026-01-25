@@ -38,7 +38,8 @@
   ],
   "exclude": [
     "node_modules",
-    "expo-app"
+    "expo-app",
+    "remotion-video"
   ],
   "extends": "expo/tsconfig.base"
 }
