@@ -22,7 +22,12 @@ import {
   Activity,
   Clock,
   Zap,
+  Coins,
+  Crown,
+  Plus,
+  Check,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Stats {
   totalUsers: number;
@@ -42,12 +47,13 @@ interface Stats {
 
 export default function AdminDashboardPage() {
   const supabase = createClient();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingAccount, setUpdatingAccount] = useState(false);
 
   // Feature flags (mock - would come from database)
   const [featureFlags, setFeatureFlags] = useState({
@@ -210,6 +216,60 @@ New Users (Month),${stats.newUsersMonth}`;
     a.click();
   };
 
+  // Add credits to own account
+  const addCredits = async (amount: number) => {
+    if (!profile?.id) return;
+    setUpdatingAccount(true);
+    try {
+      const currentCredits = profile.credits || 0;
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          credits: currentCredits + amount,
+          credits_updated_at: new Date().toISOString()
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+      await refreshProfile();
+      toast.success(`Added ${amount} credits to your account`);
+    } catch (err: any) {
+      console.error('Error adding credits:', err);
+      toast.error('Failed to add credits');
+    } finally {
+      setUpdatingAccount(false);
+    }
+  };
+
+  // Set plan tier
+  const setPlanTier = async (tier: 'free' | 'premium') => {
+    if (!profile?.id) return;
+    setUpdatingAccount(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          plan_tier: tier,
+          plan_status: tier === 'premium' ? 'active' : null,
+          plan_expires_at: tier === 'premium'
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year
+            : null
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+      await refreshProfile();
+      toast.success(tier === 'premium' ? 'Upgraded to Premium!' : 'Switched to Free plan');
+    } catch (err: any) {
+      console.error('Error updating plan:', err);
+      toast.error('Failed to update plan');
+    } finally {
+      setUpdatingAccount(false);
+    }
+  };
+
+  const isPremium = profile?.plan_tier === 'premium' && profile?.plan_status === 'active';
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -229,6 +289,73 @@ New Users (Month),${stats.newUsersMonth}`;
             <Download className="w-4 h-4 mr-2" strokeWidth={2} />
             Export CSV
           </Button>
+        </div>
+      </div>
+
+      {/* My Account Quick Actions */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+          <Crown className="h-4 w-4 text-amber-500" strokeWidth={2} />
+          My Account (Admin Tools)
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Current Status */}
+          <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
+            <Coins className="w-4 h-4 text-amber-500" strokeWidth={2} />
+            <span className="text-sm font-medium">{profile?.credits || 0} credits</span>
+          </div>
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isPremium ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/50'}`}>
+            <Crown className={`w-4 h-4 ${isPremium ? 'text-amber-600' : 'text-muted-foreground'}`} strokeWidth={2} />
+            <span className={`text-sm font-medium ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`}>
+              {isPremium ? 'Premium' : 'Free'}
+            </span>
+          </div>
+
+          <div className="h-6 w-px bg-border mx-1" />
+
+          {/* Add Credits */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => addCredits(100)}
+            disabled={updatingAccount}
+          >
+            <Plus className="w-4 h-4 mr-1.5" strokeWidth={2} />
+            +100 Credits
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => addCredits(1000)}
+            disabled={updatingAccount}
+          >
+            <Plus className="w-4 h-4 mr-1.5" strokeWidth={2} />
+            +1000 Credits
+          </Button>
+
+          <div className="h-6 w-px bg-border mx-1" />
+
+          {/* Toggle Plan */}
+          {isPremium ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPlanTier('free')}
+              disabled={updatingAccount}
+            >
+              Switch to Free
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={() => setPlanTier('premium')}
+              disabled={updatingAccount}
+              className="bg-amber-600 hover:bg-amber-700 text-white border-0"
+            >
+              <Crown className="w-4 h-4 mr-1.5" strokeWidth={2} />
+              Make Premium
+            </Button>
+          )}
         </div>
       </div>
 
