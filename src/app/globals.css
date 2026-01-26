@@ -579,3 +579,110 @@ button:active {
 .page-transition {
   animation: page-enter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Focus mode - hides distractions */
+.focus-mode .feature-card:not(:hover) {
+  opacity: 0.7;
+}
+
+.focus-mode aside {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.focus-mode aside:hover {
+  opacity: 1;
+}
+
+/* Card lift animation on hover */
+.board-card,
+.feature-card {
+  will-change: transform, box-shadow;
+}
+
+/* Primary card highlight */
+.feature-card.ring-2 {
+  background: linear-gradient(135deg, var(--card) 0%, oklch(0.96 0.02 200 / 30%) 100%);
+}
+
+/* Coming soon overlay */
+.feature-card .grayscale-\[30\%\] {
+  filter: grayscale(30%);
+}
+
+/* Keyboard shortcut kbd styling */
+kbd {
+  font-family: var(--font-mono);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+/* Smooth collapsible transitions */
+[data-state="open"] > [data-collapsible-content] {
+  animation: collapsible-down 0.2s ease-out;
+}
+
+[data-state="closed"] > [data-collapsible-content] {
+  animation: collapsible-up 0.2s ease-out;
+}
+
+@keyframes collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+/* Progress bar styling */
+.progress-bar {
+  transition: width 0.3s ease;
+}
+
+/* Pomodoro timer pulse animation */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.pomodoro-active {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Floating button hover effect */
+.fixed.bottom-6.right-6 {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* List view hover effect */
+.group.flex.items-center.gap-4.p-3:hover {
+  transform: translateX(2px);
+}
+
+/* Icon stroke weight consistency */
+.lucide {
+  stroke-width: 2;
+}
+
+/* Badge styling improvements */
+.badge {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}

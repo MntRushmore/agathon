@@ -70,41 +70,21 @@ export function LatexRenderer({ content, className = '' }: LatexRendererProps) {
 
     while (remaining.length > 0) {
       // Look for inline math $...$
-      // Make sure we don't match $$ (block math)
-      const inlineMatch = remaining.match(/(?<!\$)\$(?!\$)([^$\n]+)\$(?!\$)/);
-      if (inlineMatch && inlineMatch.index !== undefined) {
-        // Add text before the match
-        if (inlineMatch.index > 0) {
-          parts.push(
-            <span key={`text-${key++}`}>
-              {formatText(remaining.slice(0, inlineMatch.index))}
-            </span>
-          );
+      // Use a simpler regex that avoids lookbehind (not supported in all browsers)
+      // Find first $ that's not followed by another $
+      let startIdx = -1;
+      for (let i = 0; i < remaining.length; i++) {
+        if (remaining[i] === '$') {
+          // Check if it's not part of $$
+          if (remaining[i + 1] !== '$' && (i === 0 || remaining[i - 1] !== '$')) {
+            startIdx = i;
+            break;
+          }
         }
+      }
 
-        // Render inline math
-        try {
-          const html = katex.renderToString(inlineMatch[1].trim(), {
-            displayMode: false,
-            throwOnError: false,
-          });
-          parts.push(
-            <span
-              key={`inline-${key++}`}
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
-          );
-        } catch {
-          parts.push(
-            <span key={`inline-err-${key++}`} className="text-red-500">
-              {inlineMatch[0]}
-            </span>
-          );
-        }
-
-        remaining = remaining.slice(inlineMatch.index + inlineMatch[0].length);
-      } else {
-        // No more inline math, add remaining text
+      if (startIdx === -1) {
+        // No inline math found
         if (remaining) {
           parts.push(
             <span key={`text-final-${key++}`}>{formatText(remaining)}</span>
@@ -112,6 +92,62 @@ export function LatexRenderer({ content, className = '' }: LatexRendererProps) {
         }
         break;
       }
+
+      // Find closing $
+      let endIdx = -1;
+      for (let i = startIdx + 1; i < remaining.length; i++) {
+        if (remaining[i] === '$' && remaining[i + 1] !== '$' && remaining[i - 1] !== '$') {
+          // Also make sure there's no newline in between
+          const content = remaining.slice(startIdx + 1, i);
+          if (!content.includes('\n')) {
+            endIdx = i;
+            break;
+          }
+        }
+      }
+
+      if (endIdx === -1) {
+        // No closing $ found, treat rest as text
+        if (remaining) {
+          parts.push(
+            <span key={`text-final-${key++}`}>{formatText(remaining)}</span>
+          );
+        }
+        break;
+      }
+
+      // Add text before the match
+      if (startIdx > 0) {
+        parts.push(
+          <span key={`text-${key++}`}>
+            {formatText(remaining.slice(0, startIdx))}
+          </span>
+        );
+      }
+
+      // Extract and render inline math
+      const mathContent = remaining.slice(startIdx + 1, endIdx);
+      try {
+        const html = katex.renderToString(mathContent.trim(), {
+          displayMode: false,
+          throwOnError: false,
+        });
+        parts.push(
+          <span
+            key={`inline-${key++}`}
+            className="inline-block align-middle"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      } catch {
+        parts.push(
+          <span key={`inline-err-${key++}`} className="text-red-500">
+            ${mathContent}$
+          </span>
+        );
+      }
+
+      remaining = remaining.slice(endIdx + 1);
     }
 
     return parts;

@@ -84,7 +84,7 @@ export function AISidePanel({ getCanvasContext, className }: AISidePanelProps) {
       <Button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'fixed bottom-20 right-4 z-[1050] h-14 w-14 rounded-full',
+          'fixed bottom-6 right-4 z-[1050] h-12 w-12 rounded-full',
           'bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700',
           'shadow-[0_8px_30px_rgb(124,58,237,0.3)] hover:shadow-[0_8px_40px_rgb(124,58,237,0.4)]',
           'transition-all duration-200 hover:scale-105',
@@ -95,9 +95,9 @@ export function AISidePanel({ getCanvasContext, className }: AISidePanelProps) {
         aria-label="Open AI Assistant"
         data-tutorial="chat-button"
       >
-        <MessageCircle className="h-6 w-6" />
+        <MessageCircle className="h-5 w-5" />
         {messages.length > 0 && (
-          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center ring-2 ring-white">
+          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-medium flex items-center justify-center ring-2 ring-white">
             {messages.length > 9 ? '9+' : messages.length}
           </span>
         )}
