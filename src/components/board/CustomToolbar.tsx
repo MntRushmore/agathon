@@ -1,13 +1,15 @@
 'use client';
 
-import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle } from 'tldraw';
+import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle, createShapeId } from 'tldraw';
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Undo2,
   Redo2,
   ChevronDown,
+  Pi,
 } from 'lucide-react';
+import { MathKeyboard } from './MathKeyboard';
 import {
   Popover,
   PopoverContent,
@@ -174,6 +176,7 @@ function LassoIcon({ size = 20 }: { size?: number }) {
 export function CustomToolbar() {
   const editor = useEditor();
   const [penSettingsOpen, setPenSettingsOpen] = useState(false);
+  const [mathKeyboardOpen, setMathKeyboardOpen] = useState(false);
 
   const currentToolId = useValue('current tool', () => editor.getCurrentToolId(), [editor]);
   const canUndo = useValue('can undo', () => editor.getCanUndo(), [editor]);
@@ -207,6 +210,33 @@ export function CustomToolbar() {
   const handleContainerPointerDown = (e: React.PointerEvent) => {
     e.stopPropagation();
   };
+
+  const handleInsertMath = useCallback((latex: string) => {
+    // Insert math as a text shape at the center of the viewport
+    const viewportBounds = editor.getViewportScreenBounds();
+    const center = editor.screenToPage({
+      x: viewportBounds.x + viewportBounds.width / 2,
+      y: viewportBounds.y + viewportBounds.height / 2,
+    });
+
+    const shapeId = createShapeId();
+    editor.createShape({
+      id: shapeId,
+      type: 'text',
+      x: center.x - 50,
+      y: center.y - 20,
+      props: {
+        text: latex,
+        font: 'serif',
+        size: 'm',
+        align: 'middle',
+      },
+    });
+
+    // Select the new shape
+    editor.select(shapeId);
+    editor.setCurrentTool('select');
+  }, [editor]);
 
   const currentColorHex = COLORS.find(c => c.value === currentColor)?.hex ?? '#1a1a1a';
 
@@ -359,6 +389,18 @@ export function CustomToolbar() {
         {/* Separator */}
         <div className="w-px h-8 bg-gray-200 mx-1" />
 
+        {/* Math Keyboard Button */}
+        <ToolButton
+          icon={<Pi className="w-5 h-5" />}
+          shortcut="M"
+          isActive={mathKeyboardOpen}
+          onClick={() => setMathKeyboardOpen(!mathKeyboardOpen)}
+          label="Math Symbols"
+        />
+
+        {/* Separator */}
+        <div className="w-px h-8 bg-gray-200 mx-1" />
+
         {/* Undo/Redo */}
         <div className="flex items-center gap-0.5">
           <button
@@ -395,6 +437,14 @@ export function CustomToolbar() {
           </button>
         </div>
       </div>
+
+      {/* Math Keyboard */}
+      <MathKeyboard
+        isOpen={mathKeyboardOpen}
+        onClose={() => setMathKeyboardOpen(false)}
+        onInsert={handleInsertMath}
+        position={{ x: window.innerWidth / 2 - 190, y: window.innerHeight - 400 }}
+      />
     </div>
   );
 }
