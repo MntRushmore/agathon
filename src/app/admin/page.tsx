@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Users,
   BookOpen,
@@ -12,6 +15,13 @@ import {
   FileText,
   Layout,
   AlertCircle,
+  Download,
+  RefreshCw,
+  ToggleLeft,
+  ToggleRight,
+  Activity,
+  Clock,
+  Zap,
 } from 'lucide-react';
 
 interface Stats {
@@ -37,6 +47,15 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Feature flags (mock - would come from database)
+  const [featureFlags, setFeatureFlags] = useState({
+    aiEnabled: true,
+    collaborationEnabled: true,
+    newOnboarding: false,
+    betaFeatures: false,
+  });
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
@@ -156,14 +175,61 @@ export default function AdminDashboardPage() {
     return null;
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboard();
+    setRefreshing(false);
+  };
+
+  const toggleFeatureFlag = (flag: keyof typeof featureFlags) => {
+    setFeatureFlags(prev => ({ ...prev, [flag]: !prev[flag] }));
+  };
+
+  const exportToCSV = () => {
+    if (!stats) return;
+
+    const csvContent = `Metric,Value
+Total Users,${stats.totalUsers}
+Students,${stats.totalStudents}
+Teachers,${stats.totalTeachers}
+Admins,${stats.totalAdmins}
+Classes,${stats.totalClasses}
+Assignments,${stats.totalAssignments}
+Whiteboards,${stats.totalBoards}
+Submissions,${stats.totalSubmissions}
+AI Requests,${stats.totalAIUsage}
+AI Cost,$${stats.totalAICost.toFixed(2)}
+New Users (Week),${stats.newUsersWeek}
+New Users (Month),${stats.newUsersMonth}`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `agathon-stats-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Overview</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Platform statistics and insights
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Platform statistics and insights
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2} />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportToCSV}>
+            <Download className="w-4 h-4 mr-2" strokeWidth={2} />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Error Alert */}
@@ -307,6 +373,124 @@ export default function AdminDashboardPage() {
               </div>
               <span className="text-sm font-medium">{stats?.totalAssignments}</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Flags */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+          <Zap className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+          Feature Flags
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Object.entries(featureFlags).map(([key, enabled]) => (
+            <div key={key} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-foreground capitalize">
+                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {enabled ? 'Enabled' : 'Disabled'}
+                </p>
+              </div>
+              <button
+                onClick={() => toggleFeatureFlag(key as keyof typeof featureFlags)}
+                className="text-primary hover:opacity-80 transition-opacity"
+              >
+                {enabled ? (
+                  <ToggleRight className="w-8 h-8" strokeWidth={1.5} />
+                ) : (
+                  <ToggleLeft className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          onClick={() => router.push('/admin/users')}
+          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+              <Users className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">User Management</p>
+              <p className="text-xs text-muted-foreground">View and manage users</p>
+            </div>
+          </div>
+        </button>
+        <button
+          onClick={() => router.push('/admin/content')}
+          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+              <FileText className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Content Moderation</p>
+              <p className="text-xs text-muted-foreground">Review flagged content</p>
+            </div>
+          </div>
+        </button>
+        <button
+          onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
+          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+              <Activity className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Database Console</p>
+              <p className="text-xs text-muted-foreground">Open Supabase dashboard</p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Activity Feed - Placeholder */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+          Recent Activity
+        </h2>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <Users className="w-4 h-4 text-green-600 dark:text-green-400" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-foreground">New user signup</p>
+              <p className="text-xs text-muted-foreground">2 minutes ago</p>
+            </div>
+            <Badge variant="secondary" className="text-xs">User</Badge>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-foreground">AI usage spike detected</p>
+              <p className="text-xs text-muted-foreground">15 minutes ago</p>
+            </div>
+            <Badge variant="secondary" className="text-xs">AI</Badge>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-foreground">New class created</p>
+              <p className="text-xs text-muted-foreground">1 hour ago</p>
+            </div>
+            <Badge variant="secondary" className="text-xs">Class</Badge>
           </div>
         </div>
       </div>

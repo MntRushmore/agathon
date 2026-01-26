@@ -1,39 +1,58 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
 import { getStudentAssignments } from '@/lib/api/assignments';
 import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
+import { getTimeBasedGreeting, getFriendlyTimestamp } from '@/components/dashboard/study-tips';
 import {
   Plus,
   Trash2,
-  FileText,
   Search,
   Edit2,
-    MoreHorizontal,
-    Share2,
-    Users,
-    BookOpen,
-    CreditCard,
-    Shield,
-    ChevronLeft,
+  MoreHorizontal,
+  Share2,
+  Users,
+  BookOpen,
+  CreditCard,
+  Shield,
+  ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   FolderOpen,
   Home,
   Pencil,
   GraduationCap,
-  Zap,
   Clock,
   Calculator,
+  Sparkles,
+  Star,
+  StarOff,
+  Copy,
+  Filter,
+  Grid3X3,
+  List,
+  Timer,
+  Target,
+  Pause,
+  RotateCcw,
+  X,
+  Settings,
+  HelpCircle,
+  Zap,
+  FileText,
+  StickyNote,
 } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { toast } from "sonner";
-import { formatDistance } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +68,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 
@@ -62,35 +86,57 @@ type Whiteboard = {
   created_at: string;
   updated_at: string;
   preview?: string;
+  is_favorite?: boolean;
+  is_archived?: boolean;
+  folder_id?: string;
+  tags?: string[];
   metadata?: {
     templateId?: string;
     subject?: string;
     gradeLevel?: string;
     instructions?: string;
     defaultMode?: 'off' | 'feedback' | 'suggest' | 'answer';
+    boardType?: 'math' | 'notes' | 'diagram' | 'general';
   };
   sharedPermission?: 'view' | 'edit';
 };
 
-// Feature card color variants - muted, professional crème palette
-type ColorVariant = 'green' | 'blue' | 'purple';
+// Feature card color variants - muted, professional creme palette
+type ColorVariant = 'green' | 'blue' | 'purple' | 'amber';
 
-const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string }> = {
+const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string; accentBg: string }> = {
   green: {
     iconBg: 'bg-[oklch(0.94_0.03_200)]',
     iconColor: 'text-[oklch(0.42_0.08_200)]',
     hoverBorder: 'group-hover:border-[oklch(0.85_0.04_200)]',
+    accentBg: 'bg-[oklch(0.94_0.03_200)]',
   },
   blue: {
     iconBg: 'bg-[oklch(0.94_0.03_240)]',
     iconColor: 'text-[oklch(0.45_0.12_240)]',
     hoverBorder: 'group-hover:border-[oklch(0.85_0.04_240)]',
+    accentBg: 'bg-[oklch(0.94_0.03_240)]',
   },
   purple: {
     iconBg: 'bg-[oklch(0.94_0.03_290)]',
     iconColor: 'text-[oklch(0.45_0.14_290)]',
     hoverBorder: 'group-hover:border-[oklch(0.85_0.04_290)]',
+    accentBg: 'bg-[oklch(0.94_0.03_290)]',
   },
+  amber: {
+    iconBg: 'bg-[oklch(0.95_0.03_75)]',
+    iconColor: 'text-[oklch(0.55_0.12_75)]',
+    hoverBorder: 'group-hover:border-[oklch(0.88_0.04_75)]',
+    accentBg: 'bg-[oklch(0.95_0.03_75)]',
+  },
+};
+
+// Board type icons
+const boardTypeIcons: Record<string, React.ReactNode> = {
+  math: <Calculator className="w-3.5 h-3.5" strokeWidth={2} />,
+  notes: <FileText className="w-3.5 h-3.5" strokeWidth={2} />,
+  diagram: <Grid3X3 className="w-3.5 h-3.5" strokeWidth={2} />,
+  general: <Pencil className="w-3.5 h-3.5" strokeWidth={2} />,
 };
 
 export default function Dashboard() {
@@ -105,6 +151,24 @@ export default function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMyFiles, setShowMyFiles] = useState(false);
 
+  // Greeting state
+  const greeting = useMemo(() => getTimeBasedGreeting(), []);
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'favorites' | 'recent' | 'archived'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Sidebar section states
+  const [toolsOpen, setToolsOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Pomodoro timer state
+  const [pomodoroActive, setPomodoroActive] = useState(false);
+  const [pomodoroTime, setPomodoroTime] = useState(25 * 60); // 25 minutes
+  const [pomodoroMode, setPomodoroMode] = useState<'work' | 'break'>('work');
+
+
   // Rename state
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
@@ -113,6 +177,63 @@ export default function Dashboard() {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareBoardId, setShareBoardId] = useState<string | null>(null);
   const [shareBoardTitle, setShareBoardTitle] = useState('');
+
+  // Quick capture state
+  const [quickNoteOpen, setQuickNoteOpen] = useState(false);
+  const [quickNoteContent, setQuickNoteContent] = useState('');
+
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key.toLowerCase()) {
+          case 'a':
+            e.preventDefault();
+            createWhiteboard();
+            break;
+          case 'j':
+            e.preventDefault();
+            router.push('/journal');
+            break;
+          case 'k':
+            e.preventDefault();
+            // Global search focus
+            document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+            break;
+          case 'n':
+            e.preventDefault();
+            setQuickNoteOpen(true);
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
+
+  // Pomodoro timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (pomodoroActive && pomodoroTime > 0) {
+      interval = setInterval(() => {
+        setPomodoroTime((t) => t - 1);
+      }, 1000);
+    } else if (pomodoroTime === 0) {
+      setPomodoroActive(false);
+      if (pomodoroMode === 'work') {
+        toast.success('Work session complete! Take a 5-minute break.');
+        setPomodoroTime(5 * 60);
+        setPomodoroMode('break');
+      } else {
+        toast.success('Break over! Ready for another session?');
+        setPomodoroTime(25 * 60);
+        setPomodoroMode('work');
+      }
+    }
+    return () => clearInterval(interval);
+  }, [pomodoroActive, pomodoroTime, pomodoroMode]);
 
   // Redirect to login if auth required
   useEffect(() => {
@@ -222,6 +343,39 @@ export default function Dashboard() {
     }
   }
 
+  async function duplicateWhiteboard(board: Whiteboard) {
+    try {
+      const { data, error } = await supabase
+        .from('whiteboards')
+        .insert([
+          {
+            name: `${board.title} (Copy)`,
+            title: `${board.title} (Copy)`,
+            user_id: user?.id,
+            data: {},
+            metadata: board.metadata,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      toast.success('Board duplicated');
+      fetchWhiteboards();
+    } catch (error) {
+      console.error('Error duplicating whiteboard:', error);
+      toast.error('Failed to duplicate whiteboard');
+    }
+  }
+
+  async function toggleFavorite(id: string, isFavorite: boolean) {
+    // This would update the database - for now just update local state
+    setWhiteboards(whiteboards.map(w =>
+      w.id === id ? { ...w, is_favorite: !isFavorite } : w
+    ));
+    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+  }
+
   async function handleRename() {
     if (!renameId) return;
 
@@ -244,6 +398,36 @@ export default function Dashboard() {
     }
   }
 
+  // Filter boards
+  const filteredBoards = useMemo(() => {
+    let boards = whiteboards;
+
+    // Apply search
+    if (searchQuery) {
+      boards = boards.filter(b =>
+        b.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply filter
+    switch (filterType) {
+      case 'favorites':
+        boards = boards.filter(b => b.is_favorite);
+        break;
+      case 'archived':
+        boards = boards.filter(b => b.is_archived);
+        break;
+      case 'recent':
+        boards = boards.slice(0, 10);
+        break;
+    }
+
+    return boards;
+  }, [whiteboards, searchQuery, filterType]);
+
+  // Last active board for "Continue where you left off"
+  const lastActiveBoard = whiteboards[0];
+
   // Feature cards for the main dashboard
   type FeatureCard = {
     id: string;
@@ -254,6 +438,7 @@ export default function Dashboard() {
     color: ColorVariant;
     onClick: () => void;
     comingSoon?: boolean;
+    isPrimary?: boolean;
   };
 
   const featureCards: FeatureCard[] = [
@@ -262,16 +447,17 @@ export default function Dashboard() {
       title: 'Agathon',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
-      icon: <Pencil className="h-5 w-5" />,
+      icon: <Pencil className="h-5 w-5" strokeWidth={2} />,
       color: 'blue',
       onClick: () => { createWhiteboard(); },
+      isPrimary: true,
     },
     {
       id: 'math',
       title: 'Math Document',
       description: 'Type equations with instant solving',
       detail: 'LaTeX support & step-by-step',
-      icon: <Calculator className="h-5 w-5" />,
+      icon: <Calculator className="h-5 w-5" strokeWidth={2} />,
       color: 'purple',
       onClick: () => { toast.info('Math Document is coming soon!'); },
       comingSoon: true,
@@ -281,7 +467,7 @@ export default function Dashboard() {
       title: 'Journal',
       description: 'Write notes with AI-powered study tools',
       detail: 'Flashcards, Feynman method & more',
-      icon: <BookOpen className="h-5 w-5" />,
+      icon: <BookOpen className="h-5 w-5" strokeWidth={2} />,
       color: 'green',
       onClick: () => { router.push('/journal'); },
     },
@@ -294,8 +480,8 @@ export default function Dashboard() {
       title: 'Admin Console',
       description: 'Manage users, content, and platform analytics',
       detail: 'Administrative controls',
-      icon: <Shield className="h-5 w-5" />,
-      color: 'blue',
+      icon: <Shield className="h-5 w-5" strokeWidth={2} />,
+      color: 'amber',
       onClick: () => { router.push('/admin'); },
     });
   }
@@ -307,7 +493,7 @@ export default function Dashboard() {
       title: 'My Classes',
       description: 'Manage your classes and students',
       detail: 'Create assignments & track progress',
-      icon: <Users className="h-5 w-5" />,
+      icon: <Users className="h-5 w-5" strokeWidth={2} />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/teacher/classes'); },
     });
@@ -317,15 +503,21 @@ export default function Dashboard() {
       title: 'Join a Class',
       description: 'Enter a class code from your teacher',
       detail: 'Access assignments & get help',
-      icon: <GraduationCap className="h-5 w-5" />,
+      icon: <GraduationCap className="h-5 w-5" strokeWidth={2} />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/student/join'); },
     });
   }
 
+  const formatPomodoroTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar - Light crème theme */}
+      {/* Sidebar */}
       <aside className={cn(
         "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
         "bg-card border-r border-border",
@@ -347,29 +539,47 @@ export default function Dashboard() {
                 onClick={() => setSidebarCollapsed(true)}
                 className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
               </button>
             </>
           )}
         </div>
 
-        {/* New Board Button */}
+        {/* New Board Dropdown */}
         <div className="px-3 pb-2">
-          <button
-            onClick={() => createWhiteboard()}
-            className={cn(
-              "w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
-            )}
-          >
-            <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
-            {!sidebarCollapsed && <span className="text-sm">New</span>}
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
+                )}
+              >
+                <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
+                {!sidebarCollapsed && <span className="text-sm">New</span>}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem onClick={() => createWhiteboard()}>
+                <Pencil className="w-4 h-4 mr-2" strokeWidth={2} />
+                New Board
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
+                <Zap className="w-4 h-4 mr-2" strokeWidth={2} />
+                Quick Board
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/journal')}>
+                <BookOpen className="w-4 h-4 mr-2" strokeWidth={2} />
+                New Journal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex-1 px-3 py-2">
+        <nav className="flex-1 px-3 py-2 overflow-y-auto">
           <div className="space-y-1">
             <button
               onClick={() => setShowMyFiles(false)}
@@ -380,7 +590,7 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Home className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              <Home className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
               {!sidebarCollapsed && <span className="text-sm">Home</span>}
             </button>
             <button
@@ -392,10 +602,67 @@ export default function Dashboard() {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
+              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
               {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
             </button>
           </div>
+
+          {/* Collapsible Tools Section */}
+          {!sidebarCollapsed && (
+            <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="mt-4">
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Tools
+                {toolsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1 mt-1">
+                <button
+                  onClick={() => setPomodoroActive(!pomodoroActive)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                >
+                  <Timer className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <span className="text-sm flex-1">Pomodoro</span>
+                  {pomodoroActive && (
+                    <span className="text-xs font-mono text-primary">{formatPomodoroTime(pomodoroTime)}</span>
+                  )}
+                </button>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Collapsible Settings Section */}
+          {!sidebarCollapsed && (
+            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="mt-2">
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Settings
+                {settingsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1 mt-1">
+                {user && (
+                  <button
+                    onClick={() => router.push('/billing')}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                  >
+                    <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                    <span className="text-sm">Plans & Usage</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => toast.info('Settings coming soon!')}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                >
+                  <Settings className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <span className="text-sm">Preferences</span>
+                </button>
+                <button
+                  onClick={() => toast.info('Help center coming soon!')}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                >
+                  <HelpCircle className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <span className="text-sm">Help</span>
+                </button>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </nav>
 
         {/* Divider */}
@@ -403,43 +670,31 @@ export default function Dashboard() {
 
         {/* Secondary Navigation / Footer */}
         <div className="p-3 space-y-1">
-          <button
-            onClick={() => router.push('/board/temp-' + Date.now())}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-              sidebarCollapsed && "justify-center"
-            )}
-          >
-            <Pencil className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
-            {!sidebarCollapsed && <span className="text-sm">Quick Board</span>}
-          </button>
-            {user && (
-              <button
-                onClick={() => router.push('/billing')}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                  "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  sidebarCollapsed && "justify-center"
-                )}
-              >
-                <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
-                {!sidebarCollapsed && <span className="text-sm">Plans & Usage</span>}
-              </button>
-            )}
-            {profile?.role === 'admin' && (
-              <button
-                onClick={() => router.push('/admin')}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                  "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  sidebarCollapsed && "justify-center"
-                )}
-              >
-                <Shield className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.75} />
-                {!sidebarCollapsed && <span className="text-sm">Admin Console</span>}
-              </button>
-            )}
+          {/* Admin Console - only show here for admin */}
+          {profile?.role === 'admin' && (
+            <button
+              onClick={() => router.push('/admin')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                "text-muted-foreground hover:bg-muted hover:text-foreground",
+                sidebarCollapsed && "justify-center"
+              )}
+            >
+              <Shield className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+              {!sidebarCollapsed && <span className="text-sm">Admin Console</span>}
+            </button>
+          )}
+
+          {/* Storage indicator */}
+          {!sidebarCollapsed && user && (
+            <div className="px-3 py-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Storage</span>
+                <span>2.4 GB / 5 GB</span>
+              </div>
+              <Progress value={48} className="h-1.5" />
+            </div>
+          )}
 
           {/* User info / Sign in */}
           {!sidebarCollapsed && (
@@ -484,16 +739,61 @@ export default function Dashboard() {
           <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight">My Boards</h1>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Boards</h1>
                 <p className="text-sm text-muted-foreground mt-1">All your whiteboards in one place</p>
               </div>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search boards..."
-                  className="pl-9 bg-card border-border"
-                />
+              <div className="flex items-center gap-3">
+                {/* View mode toggle */}
+                <div className="flex items-center bg-muted rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      "p-1.5 rounded-md transition-colors",
+                      viewMode === 'grid' ? "bg-card shadow-sm" : "hover:bg-card/50"
+                    )}
+                  >
+                    <Grid3X3 className="w-4 h-4" strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      "p-1.5 rounded-md transition-colors",
+                      viewMode === 'list' ? "bg-card shadow-sm" : "hover:bg-card/50"
+                    )}
+                  >
+                    <List className="w-4 h-4" strokeWidth={2} />
+                  </button>
+                </div>
+
+                {/* Filter dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Filter className="w-4 h-4" strokeWidth={2} />
+                      {filterType === 'all' ? 'All' : filterType === 'favorites' ? 'Favorites' : filterType === 'recent' ? 'Recent' : 'Archived'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setFilterType('all')}>All Boards</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterType('favorites')}>Favorites</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterType('recent')}>Recent</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setFilterType('archived')}>Archived</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Search */}
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={2} />
+                  <Input
+                    type="text"
+                    placeholder="Search boards..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-card border-border"
+                    data-search-input
+                  />
+                </div>
               </div>
             </div>
 
@@ -507,14 +807,14 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : whiteboards.length === 0 ? (
+            ) : filteredBoards.length === 0 && !searchQuery ? (
               /* Empty State */
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
                   <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <Pencil className="w-6 h-6" strokeWidth={1.75} />
+                    <Pencil className="w-6 h-6" strokeWidth={2} />
                   </div>
-                  <h2 className="text-lg font-semibold text-foreground mb-2">Create your first board</h2>
+                  <h2 className="text-lg font-bold text-foreground mb-2">Create your first board</h2>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                     Start with a blank whiteboard and draw, write equations, or get AI tutoring help.
                   </p>
@@ -524,56 +824,210 @@ export default function Dashboard() {
                   </Button>
                 </div>
               </div>
+            ) : filteredBoards.length === 0 && searchQuery ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="text-center">
+                  <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" strokeWidth={1.5} />
+                  <h2 className="text-lg font-bold text-foreground mb-2">No boards found</h2>
+                  <p className="text-sm text-muted-foreground">
+                    No boards match "{searchQuery}"
+                  </p>
+                </div>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className={cn(
+                viewMode === 'grid'
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+                  : "space-y-2"
+              )}>
                 {/* Create New Card */}
-                <button
-                  onClick={() => createWhiteboard()}
-                  className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
-                >
-                  <div className="icon-container icon-container-green">
-                    <Plus className="w-5 h-5" strokeWidth={2} />
-                  </div>
-                  <span className="text-sm font-medium text-muted-foreground">New Board</span>
-                </button>
-
-                {whiteboards.map((board) => (
-                  <div
-                    key={board.id}
-                    className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
-                    onClick={() => router.push(`/board/${board.id}`)}
+                {viewMode === 'grid' && (
+                  <button
+                    onClick={() => createWhiteboard()}
+                    className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
                   >
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                      {board.preview ? (
-                        <img
-                          src={board.preview}
-                          alt={board.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <Pencil className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
-                        </div>
-                      )}
+                    <div className="icon-container icon-container-green">
+                      <Plus className="w-5 h-5" strokeWidth={2.5} />
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-foreground truncate text-sm">
-                            {board.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
-                          </p>
+                    <span className="text-sm font-medium text-muted-foreground">New Board</span>
+                  </button>
+                )}
+
+                {filteredBoards.map((board) => (
+                  viewMode === 'grid' ? (
+                    <div
+                      key={board.id}
+                      className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
+                      onClick={() => router.push(`/board/${board.id}`)}
+                    >
+                      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                        {board.preview ? (
+                          <img
+                            src={board.preview}
+                            alt={board.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <Pencil className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
+                          </div>
+                        )}
+                        {/* Board type badge */}
+                        {board.metadata?.boardType && (
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-card/90 backdrop-blur-sm rounded-md flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {boardTypeIcons[board.metadata.boardType]}
+                            <span className="capitalize">{board.metadata.boardType}</span>
+                          </div>
+                        )}
+                        {/* Favorite indicator */}
+                        {board.is_favorite && (
+                          <div className="absolute top-2 right-2">
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" strokeWidth={2} />
+                          </div>
+                        )}
+                        {/* Quick actions on hover */}
+                        <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              duplicateWhiteboard(board);
+                            }}
+                          >
+                            <Copy className="w-4 h-4" strokeWidth={2} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShareBoardId(board.id);
+                              setShareBoardTitle(board.title);
+                              setShareDialogOpen(true);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" strokeWidth={2} />
+                          </Button>
                         </div>
+                      </div>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground truncate text-sm">
+                              {board.title}
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {getFriendlyTimestamp(new Date(board.updated_at))}
+                            </p>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
+                              >
+                                <MoreHorizontal className="w-4 h-4" strokeWidth={2} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(board.id, board.is_favorite || false);
+                              }}>
+                                {board.is_favorite ? (
+                                  <>
+                                    <StarOff className="w-4 h-4 mr-2" strokeWidth={2} />
+                                    Remove from favorites
+                                  </>
+                                ) : (
+                                  <>
+                                    <Star className="w-4 h-4 mr-2" strokeWidth={2} />
+                                    Add to favorites
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                setRenameId(board.id);
+                                setRenameTitle(board.title);
+                              }}>
+                                <Edit2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                duplicateWhiteboard(board);
+                              }}>
+                                <Copy className="w-4 h-4 mr-2" strokeWidth={2} />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => {
+                                e.stopPropagation();
+                                setShareBoardId(board.id);
+                                setShareBoardTitle(board.title);
+                                setShareDialogOpen(true);
+                              }}>
+                                <Share2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                Share
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteWhiteboard(board.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* List view */
+                    <div
+                      key={board.id}
+                      className="group flex items-center gap-4 p-3 bg-card rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
+                      onClick={() => router.push(`/board/${board.id}`)}
+                    >
+                      <div className="w-16 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
+                        {board.preview ? (
+                          <img src={board.preview} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full">
+                            <Pencil className="w-5 h-5 text-muted-foreground/30" strokeWidth={1.5} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-sm text-foreground truncate">{board.title}</h3>
+                          {board.is_favorite && (
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" strokeWidth={2} />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{getFriendlyTimestamp(new Date(board.updated_at))}</p>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
+                          e.stopPropagation();
+                          setShareBoardId(board.id);
+                          setShareBoardTitle(board.title);
+                          setShareDialogOpen(true);
+                        }}>
+                          <Share2 className="w-4 h-4" strokeWidth={2} />
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="w-4 h-4" strokeWidth={2} />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -582,17 +1036,15 @@ export default function Dashboard() {
                               setRenameId(board.id);
                               setRenameTitle(board.title);
                             }}>
-                              <Edit2 className="w-4 h-4 mr-2" />
+                              <Edit2 className="w-4 h-4 mr-2" strokeWidth={2} />
                               Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
-                              setShareBoardId(board.id);
-                              setShareBoardTitle(board.title);
-                              setShareDialogOpen(true);
+                              duplicateWhiteboard(board);
                             }}>
-                              <Share2 className="w-4 h-4 mr-2" />
-                              Share
+                              <Copy className="w-4 h-4 mr-2" strokeWidth={2} />
+                              Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -602,14 +1054,14 @@ export default function Dashboard() {
                                 deleteWhiteboard(board.id);
                               }}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" />
+                              <Trash2 className="w-4 h-4 mr-2" strokeWidth={2} />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
                     </div>
-                  </div>
+                  )
                 ))}
               </div>
             )}
@@ -617,8 +1069,8 @@ export default function Dashboard() {
             {/* Assignments Section for Students */}
             {profile?.role === 'student' && assignments.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
+                <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" strokeWidth={2} />
                   My Assignments
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -637,7 +1089,7 @@ export default function Dashboard() {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <BookOpen className="w-12 h-12 text-muted-foreground/50" />
+                            <BookOpen className="w-12 h-12 text-muted-foreground/50" strokeWidth={1.5} />
                           </div>
                         )}
                         <div className={cn(
@@ -653,7 +1105,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="p-4">
-                        <h3 className="font-medium text-foreground">
+                        <h3 className="font-semibold text-foreground">
                           {submission.assignment.title}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -661,8 +1113,8 @@ export default function Dashboard() {
                         </p>
                         {submission.assignment.due_date && (
                           <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2">
-                            <Clock className="w-3.5 h-3.5" />
-                            Due {formatDistance(new Date(submission.assignment.due_date), new Date(), { addSuffix: true })}
+                            <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                            Due {getFriendlyTimestamp(new Date(submission.assignment.due_date))}
                           </p>
                         )}
                       </div>
@@ -676,15 +1128,16 @@ export default function Dashboard() {
           /* Dashboard Home View */
           <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
             <div className="max-w-2xl w-full">
-              {/* Greeting */}
+              {/* Simple Greeting */}
               <div className="text-center mb-10">
-                <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
-                  {user ? `Hi, ${profile?.full_name?.split(' ')[0] || 'there'}` : 'Welcome'}
+                <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+                  {greeting}, {user ? (profile?.full_name?.split(' ')[0] || 'there') : 'there'}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mt-2">
                   What would you like to work on?
                 </p>
               </div>
+
 
               {/* Feature Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -696,13 +1149,23 @@ export default function Dashboard() {
                       onClick={card.onClick}
                       disabled={creating && card.id === 'whiteboard'}
                       className={cn(
-                        "group feature-card rounded-xl p-5 text-left transition-all duration-200",
+                        "group feature-card rounded-xl p-5 text-left transition-all duration-200 relative overflow-hidden",
                         "hover:shadow-md active:scale-[0.99]",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
                         colors.hoverBorder,
-                        card.comingSoon && "opacity-70"
+                        card.isPrimary && "ring-2 ring-primary/20 border-primary/30",
+                        card.comingSoon && "opacity-50"
                       )}
                     >
+                      {/* Coming soon overlay */}
+                      {card.comingSoon && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
+                          <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                            Coming Soon
+                          </span>
+                        </div>
+                      )}
+
                       <div className="flex items-start gap-4">
                         <div className={cn(
                           "icon-container",
@@ -716,9 +1179,10 @@ export default function Dashboard() {
                             <h3 className="text-sm font-semibold text-foreground">
                               {card.title}
                             </h3>
-                            {card.comingSoon && (
-                              <span className="px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground rounded-full">
-                                Soon
+                            {card.isPrimary && (
+                              <span className="text-[10px] font-medium text-primary flex items-center gap-0.5">
+                                <Sparkles className="w-3 h-3" strokeWidth={2} />
+                                AI
                               </span>
                             )}
                           </div>
@@ -760,7 +1224,7 @@ export default function Dashboard() {
                               {board.title}
                             </h3>
                             <p className="text-xs text-muted-foreground">
-                              {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
+                              {getFriendlyTimestamp(new Date(board.updated_at))}
                             </p>
                           </div>
                         </div>
@@ -785,6 +1249,79 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Pomodoro Timer Popup */}
+      {pomodoroActive && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-4 z-40">
+          <div className="flex items-center gap-2">
+            <Timer className={cn(
+              "w-5 h-5",
+              pomodoroMode === 'work' ? "text-primary" : "text-green-500"
+            )} strokeWidth={2} />
+            <span className="text-2xl font-mono font-bold">{formatPomodoroTime(pomodoroTime)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setPomodoroActive(false)}
+            >
+              <Pause className="w-4 h-4" strokeWidth={2} />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60);
+              }}
+            >
+              <RotateCcw className="w-4 h-4" strokeWidth={2} />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setPomodoroActive(false)}
+            >
+              <X className="w-4 h-4" strokeWidth={2} />
+            </Button>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            {pomodoroMode === 'work' ? 'Focus' : 'Break'}
+          </Badge>
+        </div>
+      )}
+
+      {/* Quick Note Dialog */}
+      <Dialog open={quickNoteOpen} onOpenChange={setQuickNoteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <StickyNote className="w-5 h-5" strokeWidth={2} />
+              Quick Note
+            </DialogTitle>
+            <DialogDescription>
+              Capture a quick thought or idea.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <textarea
+              value={quickNoteContent}
+              onChange={(e) => setQuickNoteContent(e.target.value)}
+              placeholder="What's on your mind?"
+              className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickNoteOpen(false)}>Cancel</Button>
+            <Button onClick={() => {
+              toast.success('Note saved!');
+              setQuickNoteContent('');
+              setQuickNoteOpen(false);
+            }}>Save Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Rename Dialog */}
       <Dialog open={!!renameId} onOpenChange={(open) => !open && setRenameId(null)}>
