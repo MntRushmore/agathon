@@ -140,6 +140,58 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
         continue;
       }
 
+      // Markdown table detection
+      if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+        flushList();
+        const tableLines: string[] = [trimmedLine];
+        i++;
+        // Collect all table lines
+        while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+          tableLines.push(lines[i].trim());
+          i++;
+        }
+        i--; // Back up one since the for loop will increment
+
+        // Parse the table (need at least header + separator + 1 row)
+        if (tableLines.length >= 2) {
+          const parseRow = (row: string) => row.split('|').slice(1, -1).map(cell => cell.trim());
+          const headerCells = parseRow(tableLines[0]);
+
+          // Check if second line is a separator (|----|)
+          const isSeparator = tableLines[1].match(/^\|[-:\s|]+\|$/);
+          const dataStartIndex = isSeparator ? 2 : 1;
+          const bodyRows = tableLines.slice(dataStartIndex).map(parseRow);
+
+          elements.push(
+            <div key={`table-${key++}`} className="my-4 overflow-x-auto">
+              <table className="min-w-full border-collapse border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    {headerCells.map((cell, j) => (
+                      <th key={j} className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                        {renderInlineContent(cell)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bodyRows.map((row, rowIdx) => (
+                    <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {row.map((cell, cellIdx) => (
+                        <td key={cellIdx} className="border border-gray-300 px-4 py-2 text-gray-700">
+                          {renderInlineContent(cell)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        continue;
+      }
+
       // Regular paragraph
       flushList();
       elements.push(

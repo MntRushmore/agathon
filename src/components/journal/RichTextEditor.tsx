@@ -5,6 +5,10 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import MathExtension from '@aarkue/tiptap-math-extension';
+import { Table as TiptapTable } from '@tiptap/extension-table';
+import { TableRow as TiptapTableRow } from '@tiptap/extension-table-row';
+import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
+import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
 import { Extension } from '@tiptap/core';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { useEffect, useState, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
@@ -228,6 +232,9 @@ export function RichTextEditor({
               case 'divider':
                 editor.chain().focus().setHorizontalRule().run();
                 break;
+              case 'table':
+                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                break;
               default:
                 // Pass to parent handler for AI commands and interactive elements
                 if (onSlashCommand) {
@@ -345,6 +352,27 @@ export function RichTextEditor({
         evaluation: false,
         katexOptions: {
           throwOnError: false,
+        },
+      }),
+      TiptapTable.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full my-4',
+        },
+      }),
+      TiptapTableRow.configure({
+        HTMLAttributes: {
+          class: '',
+        },
+      }),
+      TiptapTableHeader.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 bg-gray-100 px-4 py-2 text-left font-semibold',
+        },
+      }),
+      TiptapTableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 px-4 py-2',
         },
       }),
       SlashCommands,
@@ -526,6 +554,51 @@ export function RichTextEditor({
         .tippy-arrow {
           display: none !important;
         }
+        /* Table styling */
+        .ProseMirror table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          margin: 1em 0;
+          overflow: hidden;
+        }
+        .ProseMirror table td,
+        .ProseMirror table th {
+          min-width: 1em;
+          border: 1px solid #d1d5db;
+          padding: 8px 12px;
+          vertical-align: top;
+          box-sizing: border-box;
+          position: relative;
+        }
+        .ProseMirror table th {
+          font-weight: 600;
+          text-align: left;
+          background-color: #f3f4f6;
+        }
+        .ProseMirror table .selectedCell:after {
+          z-index: 2;
+          position: absolute;
+          content: "";
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          background: rgba(34, 197, 94, 0.2);
+          pointer-events: none;
+        }
+        .ProseMirror table .column-resize-handle {
+          position: absolute;
+          right: -2px;
+          top: 0;
+          bottom: -2px;
+          width: 4px;
+          background-color: #22c55e;
+          pointer-events: none;
+        }
+        .tableWrapper {
+          overflow-x: auto;
+        }
       `}</style>
     </div>
   );
@@ -559,7 +632,32 @@ function parseContentToHTML(markdown: string): string {
     codeBlocks.push(`<pre><code>${code}</code></pre>`);
     return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
-  
+
+  // Handle markdown tables - extract and convert to HTML tables
+  const tables: string[] = [];
+  processed = processed.replace(/(\|.+\|)\n(\|[-:| ]+\|)\n((?:\|.+\|\n?)+)/g, (match, headerRow, separator, bodyRows) => {
+    const parseRow = (row: string) => row.split('|').slice(1, -1).map(cell => cell.trim());
+    const headers = parseRow(headerRow);
+    const rows = bodyRows.trim().split('\n').map((r: string) => parseRow(r));
+
+    let tableHtml = '<table><thead><tr>';
+    headers.forEach(h => {
+      tableHtml += `<th>${h}</th>`;
+    });
+    tableHtml += '</tr></thead><tbody>';
+    rows.forEach((row: string[]) => {
+      tableHtml += '<tr>';
+      row.forEach(cell => {
+        tableHtml += `<td>${cell}</td>`;
+      });
+      tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    tables.push(tableHtml);
+    return `__TABLE_${tables.length - 1}__`;
+  });
+
   const lines = processed.split('\n');
   const processedLines: string[] = [];
   let inBulletList = false;
@@ -583,6 +681,15 @@ function parseContentToHTML(markdown: string): string {
       if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
       if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
       processedLines.push(codeBlocks[idx]);
+      continue;
+    }
+
+    // Skip table placeholders
+    if (line.match(/__TABLE_\d+__/)) {
+      const idx = parseInt(line.match(/__TABLE_(\d+)__/)?.[1] || '0');
+      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      processedLines.push(tables[idx]);
       continue;
     }
     
