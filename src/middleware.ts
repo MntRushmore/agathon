@@ -2,6 +2,20 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || '';
+
+  // Handle demo.agathon.app subdomain - serve demo page directly, no auth needed
+  if (hostname.startsWith('demo.')) {
+    // If accessing root of demo subdomain, show the demo page
+    if (request.nextUrl.pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/demo';
+      return NextResponse.rewrite(url);
+    }
+    // Allow other paths (like /videos for the video file)
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

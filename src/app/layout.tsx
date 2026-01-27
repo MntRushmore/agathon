@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
+import { Agentation } from "agentation";
 
 // Force dynamic rendering for all pages
 export const dynamic = 'force-dynamic';
@@ -79,6 +80,7 @@ export default function RootLayout({
         <AppProviders>
           {children}
         </AppProviders>
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );

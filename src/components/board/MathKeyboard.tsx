@@ -1,158 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Undo2, Redo2, Clipboard, Delete, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
 
-interface MathSymbol {
-  display: string;
-  latex: string;
-  label?: string;
-}
-
-interface MathCategory {
-  name: string;
-  symbols: MathSymbol[];
-}
-
-const mathCategories: MathCategory[] = [
-  {
-    name: 'Basic',
-    symbols: [
-      { display: '+', latex: '+' },
-      { display: '−', latex: '-' },
-      { display: '×', latex: '\\times' },
-      { display: '÷', latex: '\\div' },
-      { display: '=', latex: '=' },
-      { display: '≠', latex: '\\neq' },
-      { display: '±', latex: '\\pm' },
-      { display: '∓', latex: '\\mp' },
-    ],
-  },
-  {
-    name: 'Comparison',
-    symbols: [
-      { display: '<', latex: '<' },
-      { display: '>', latex: '>' },
-      { display: '≤', latex: '\\leq' },
-      { display: '≥', latex: '\\geq' },
-      { display: '≈', latex: '\\approx' },
-      { display: '∼', latex: '\\sim' },
-      { display: '≡', latex: '\\equiv' },
-      { display: '∝', latex: '\\propto' },
-    ],
-  },
-  {
-    name: 'Fractions & Roots',
-    symbols: [
-      { display: '½', latex: '\\frac{a}{b}', label: 'a/b' },
-      { display: '√', latex: '\\sqrt{x}', label: '√x' },
-      { display: '∛', latex: '\\sqrt[3]{x}', label: '∛x' },
-      { display: 'ⁿ√', latex: '\\sqrt[n]{x}', label: 'ⁿ√x' },
-      { display: 'x²', latex: 'x^{2}', label: 'x²' },
-      { display: 'xⁿ', latex: 'x^{n}', label: 'xⁿ' },
-      { display: 'xₙ', latex: 'x_{n}', label: 'xₙ' },
-      { display: 'aᵇc', latex: 'a^{b}_{c}', label: 'sup+sub' },
-    ],
-  },
-  {
-    name: 'Greek',
-    symbols: [
-      { display: 'α', latex: '\\alpha' },
-      { display: 'β', latex: '\\beta' },
-      { display: 'γ', latex: '\\gamma' },
-      { display: 'δ', latex: '\\delta' },
-      { display: 'θ', latex: '\\theta' },
-      { display: 'λ', latex: '\\lambda' },
-      { display: 'π', latex: '\\pi' },
-      { display: 'σ', latex: '\\sigma' },
-      { display: 'φ', latex: '\\phi' },
-      { display: 'ω', latex: '\\omega' },
-      { display: 'Δ', latex: '\\Delta' },
-      { display: 'Σ', latex: '\\Sigma' },
-    ],
-  },
-  {
-    name: 'Calculus',
-    symbols: [
-      { display: '∫', latex: '\\int' },
-      { display: '∬', latex: '\\iint' },
-      { display: '∮', latex: '\\oint' },
-      { display: '∂', latex: '\\partial' },
-      { display: '∇', latex: '\\nabla' },
-      { display: '∞', latex: '\\infty' },
-      { display: 'lim', latex: '\\lim_{x \\to a}', label: 'limit' },
-      { display: 'd/dx', latex: '\\frac{d}{dx}', label: 'derivative' },
-    ],
-  },
-  {
-    name: 'Sets & Logic',
-    symbols: [
-      { display: '∈', latex: '\\in' },
-      { display: '∉', latex: '\\notin' },
-      { display: '⊂', latex: '\\subset' },
-      { display: '⊃', latex: '\\supset' },
-      { display: '∪', latex: '\\cup' },
-      { display: '∩', latex: '\\cap' },
-      { display: '∅', latex: '\\emptyset' },
-      { display: '∀', latex: '\\forall' },
-      { display: '∃', latex: '\\exists' },
-      { display: '¬', latex: '\\neg' },
-      { display: '∧', latex: '\\land' },
-      { display: '∨', latex: '\\lor' },
-    ],
-  },
-  {
-    name: 'Arrows',
-    symbols: [
-      { display: '→', latex: '\\rightarrow' },
-      { display: '←', latex: '\\leftarrow' },
-      { display: '↔', latex: '\\leftrightarrow' },
-      { display: '⇒', latex: '\\Rightarrow' },
-      { display: '⇐', latex: '\\Leftarrow' },
-      { display: '⇔', latex: '\\Leftrightarrow' },
-      { display: '↑', latex: '\\uparrow' },
-      { display: '↓', latex: '\\downarrow' },
-    ],
-  },
-  {
-    name: 'Brackets',
-    symbols: [
-      { display: '( )', latex: '\\left( \\right)', label: '( )' },
-      { display: '[ ]', latex: '\\left[ \\right]', label: '[ ]' },
-      { display: '{ }', latex: '\\left\\{ \\right\\}', label: '{ }' },
-      { display: '| |', latex: '\\left| \\right|', label: '| |' },
-      { display: '⌊ ⌋', latex: '\\lfloor \\rfloor', label: 'floor' },
-      { display: '⌈ ⌉', latex: '\\lceil \\rceil', label: 'ceil' },
-    ],
-  },
-  {
-    name: 'Functions',
-    symbols: [
-      { display: 'sin', latex: '\\sin' },
-      { display: 'cos', latex: '\\cos' },
-      { display: 'tan', latex: '\\tan' },
-      { display: 'log', latex: '\\log' },
-      { display: 'ln', latex: '\\ln' },
-      { display: 'exp', latex: '\\exp' },
-      { display: 'max', latex: '\\max' },
-      { display: 'min', latex: '\\min' },
-    ],
-  },
-];
+type LayoutType = 'numbers' | 'operators' | 'letters' | 'greek';
 
 interface MathKeyboardProps {
   isOpen: boolean;
   onClose: () => void;
   onInsert: (latex: string) => void;
-  position?: { x: number; y: number };
 }
 
-export function MathKeyboard({ isOpen, onClose, onInsert, position }: MathKeyboardProps) {
-  const [activeCategory, setActiveCategory] = useState(0);
+export function MathKeyboard({ isOpen, onClose, onInsert }: MathKeyboardProps) {
   const [inputValue, setInputValue] = useState('');
-  const [showPreview, setShowPreview] = useState(true);
+  const [activeLayout, setActiveLayout] = useState<LayoutType>('numbers');
+  const [history, setHistory] = useState<string[]>(['']);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
 
   // Close on Escape
   useEffect(() => {
@@ -165,140 +31,438 @@ export function MathKeyboard({ isOpen, onClose, onInsert, position }: MathKeyboa
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const addToHistory = useCallback((value: string) => {
+    setHistory(prev => [...prev.slice(0, historyIndex + 1), value]);
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
+
+  const insertAtCursor = useCallback((text: string) => {
+    const newValue = inputValue.slice(0, cursorPosition) + text + inputValue.slice(cursorPosition);
+    setInputValue(newValue);
+    setCursorPosition(cursorPosition + text.length);
+    addToHistory(newValue);
+  }, [inputValue, cursorPosition, addToHistory]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      setHistoryIndex(prev => prev - 1);
+      setInputValue(history[historyIndex - 1]);
+    }
+  }, [historyIndex, history]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(prev => prev + 1);
+      setInputValue(history[historyIndex + 1]);
+    }
+  }, [historyIndex, history]);
+
+  const handlePaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      insertAtCursor(text);
+    } catch (err) {
+      console.error('Failed to paste:', err);
+    }
+  }, [insertAtCursor]);
+
+  const handleBackspace = useCallback(() => {
+    if (cursorPosition > 0) {
+      const newValue = inputValue.slice(0, cursorPosition - 1) + inputValue.slice(cursorPosition);
+      setInputValue(newValue);
+      setCursorPosition(prev => prev - 1);
+      addToHistory(newValue);
+    }
+  }, [inputValue, cursorPosition, addToHistory]);
+
+  const handleCursorLeft = useCallback(() => {
+    setCursorPosition(prev => Math.max(0, prev - 1));
+  }, []);
+
+  const handleCursorRight = useCallback(() => {
+    setCursorPosition(prev => Math.min(inputValue.length, prev + 1));
+  }, [inputValue.length]);
+
+  const handleInsert = useCallback(() => {
+    if (inputValue.trim()) {
+      // Pass raw LaTeX without $ delimiters - the toolbar will handle display
+      onInsert(inputValue);
+      setInputValue('');
+      setCursorPosition(0);
+      setHistory(['']);
+      setHistoryIndex(0);
+    }
+  }, [inputValue, onInsert]);
+
   if (!isOpen) return null;
 
-  const handleSymbolClick = (symbol: MathSymbol) => {
-    const latex = symbol.latex;
-    setInputValue(prev => prev + latex);
-    onInsert(latex);
+  const layouts = [
+    { id: 'numbers' as const, label: '123' },
+    { id: 'operators' as const, label: '∞≠∈' },
+    { id: 'letters' as const, label: 'abc' },
+    { id: 'greek' as const, label: 'αβγ' },
+  ];
+
+  // Number pad layout
+  const numberKeys = [
+    [
+      { display: 'x', latex: 'x', superscript: 'y' },
+      { display: 'n', latex: 'n', superscript: '' },
+      { display: 'a', latex: 'a', superscript: '' },
+    ],
+    [
+      { display: '<', latex: '<' },
+      { display: '>', latex: '>' },
+    ],
+    [
+      { display: '(', latex: '(' },
+      { display: ')', latex: ')' },
+    ],
+  ];
+
+  const numpad = [
+    ['7', '8', '9', '÷'],
+    ['4', '5', '6', '×'],
+    ['1', '2', '3', '-'],
+    ['0', '.', '=', '+'],
+  ];
+
+  const rightKeys = [
+    [
+      { display: 'e', latex: 'e', superscript: 'ln' },
+      { display: 'i', latex: 'i', superscript: '' },
+      { display: 'π', latex: '\\pi', superscript: 'sin' },
+    ],
+    [
+      { display: '□²', latex: '^{2}', isTemplate: true },
+      { display: '□ⁿ', latex: '^{}', isTemplate: true },
+      { display: '√□', latex: '\\sqrt{}', isTemplate: true },
+    ],
+    [
+      { display: '∫', latex: '\\int_{0}^{\\infty}', isTemplate: true },
+      { display: '∀', latex: '\\forall' },
+    ],
+  ];
+
+  // Operators layout
+  const operatorKeys = [
+    ['∞', '≠', '≈', '≤', '≥', '±'],
+    ['∈', '∉', '⊂', '⊃', '∪', '∩'],
+    ['∧', '∨', '¬', '→', '↔', '⇒'],
+    ['∑', '∏', '∂', '∇', '∅', '∃'],
+  ];
+
+  // Letters layout
+  const letterKeys = [
+    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+    ['z', 'x', 'c', 'v', 'b', 'n', 'm'],
+  ];
+
+  // Greek layout
+  const greekKeys = [
+    ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ'],
+    ['ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π'],
+    ['ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'],
+    ['Γ', 'Δ', 'Θ', 'Λ', 'Ξ', 'Π', 'Σ', 'Φ', 'Ψ', 'Ω'],
+  ];
+
+  const greekLatexMap: Record<string, string> = {
+    'α': '\\alpha', 'β': '\\beta', 'γ': '\\gamma', 'δ': '\\delta',
+    'ε': '\\epsilon', 'ζ': '\\zeta', 'η': '\\eta', 'θ': '\\theta',
+    'ι': '\\iota', 'κ': '\\kappa', 'λ': '\\lambda', 'μ': '\\mu',
+    'ν': '\\nu', 'ξ': '\\xi', 'ο': 'o', 'π': '\\pi',
+    'ρ': '\\rho', 'σ': '\\sigma', 'τ': '\\tau', 'υ': '\\upsilon',
+    'φ': '\\phi', 'χ': '\\chi', 'ψ': '\\psi', 'ω': '\\omega',
+    'Γ': '\\Gamma', 'Δ': '\\Delta', 'Θ': '\\Theta', 'Λ': '\\Lambda',
+    'Ξ': '\\Xi', 'Π': '\\Pi', 'Σ': '\\Sigma', 'Φ': '\\Phi',
+    'Ψ': '\\Psi', 'Ω': '\\Omega',
   };
 
-  const handleInsertExpression = () => {
-    if (inputValue.trim()) {
-      onInsert(`$${inputValue}$`);
-      setInputValue('');
-    }
+  const operatorLatexMap: Record<string, string> = {
+    '∞': '\\infty', '≠': '\\neq', '≈': '\\approx', '≤': '\\leq', '≥': '\\geq', '±': '\\pm',
+    '∈': '\\in', '∉': '\\notin', '⊂': '\\subset', '⊃': '\\supset', '∪': '\\cup', '∩': '\\cap',
+    '∧': '\\land', '∨': '\\lor', '¬': '\\neg', '→': '\\rightarrow', '↔': '\\leftrightarrow', '⇒': '\\Rightarrow',
+    '∑': '\\sum', '∏': '\\prod', '∂': '\\partial', '∇': '\\nabla', '∅': '\\emptyset', '∃': '\\exists',
+    '÷': '\\div', '×': '\\times',
+  };
+
+  const handleKeyPress = (key: string) => {
+    const latex = greekLatexMap[key] || operatorLatexMap[key] || key;
+    insertAtCursor(latex);
   };
 
   return (
     <div
       className={cn(
-        "fixed z-[1200] bg-white rounded-xl shadow-xl border border-gray-200",
-        "w-[380px] max-w-[95vw] animate-in fade-in slide-in-from-bottom-2 duration-200"
+        "fixed z-[1200] bg-[#d1d3d9] rounded-xl shadow-2xl",
+        "w-[520px] max-w-[95vw] animate-in fade-in slide-in-from-bottom-2 duration-200",
+        "bottom-20 left-1/2 -translate-x-1/2"
       )}
-      style={{
-        left: position?.x ?? '50%',
-        top: position?.y ?? '50%',
-        transform: position ? 'none' : 'translate(-50%, -50%)',
-      }}
+      onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-        <span className="text-sm font-medium text-gray-700">Math Symbols</span>
+      {/* Math Input Field */}
+      <div className="bg-white m-2 rounded-lg p-3 flex items-center gap-2">
+        <div className="flex-1 min-h-[40px] flex items-center justify-center text-xl">
+          {inputValue ? (
+            <LatexRenderer content={`$${inputValue}$`} />
+          ) : (
+            <span className="text-gray-400 text-base">Type or tap to enter math</span>
+          )}
+        </div>
         <button
-          onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+          onClick={() => setInputValue('')}
+          className="p-1.5 hover:bg-gray-100 rounded transition-colors"
         >
           <X className="w-4 h-4 text-gray-400" />
         </button>
       </div>
 
-      {/* LaTeX Input with Preview */}
-      <div className="px-3 py-2 border-b border-gray-100">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type LaTeX or click symbols..."
-            className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleInsertExpression();
-              }
-            }}
-          />
-          <button
-            onClick={handleInsertExpression}
-            disabled={!inputValue.trim()}
-            className="px-3 py-1.5 text-sm font-medium text-white bg-violet-500 rounded-md hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Insert
-          </button>
+      {/* Layout Tabs & Action Buttons */}
+      <div className="flex items-center justify-between px-2 py-1.5">
+        {/* Layout Selector */}
+        <div className="flex gap-1">
+          {layouts.map((layout) => (
+            <button
+              key={layout.id}
+              onClick={() => setActiveLayout(layout.id)}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+                activeLayout === layout.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-200/50"
+              )}
+            >
+              {layout.label}
+            </button>
+          ))}
         </div>
 
-        {/* Live Preview */}
-        {inputValue && showPreview && (
-          <div className="mt-2 p-2 bg-gray-50 rounded-md min-h-[40px] flex items-center justify-center">
-            <div className="text-lg">
-              <LatexRenderer content={`$${inputValue}$`} />
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleUndo}
+            disabled={historyIndex <= 0}
+            className="p-2 rounded-md hover:bg-gray-200/50 disabled:opacity-30 transition-colors"
+          >
+            <Undo2 className="w-4 h-4 text-gray-600" />
+          </button>
+          <button
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            className="p-2 rounded-md hover:bg-gray-200/50 disabled:opacity-30 transition-colors"
+          >
+            <Redo2 className="w-4 h-4 text-gray-600" />
+          </button>
+          <button
+            onClick={handlePaste}
+            className="p-2 rounded-md hover:bg-gray-200/50 transition-colors"
+          >
+            <Clipboard className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+      </div>
+
+      {/* Keyboard Area */}
+      <div className="p-2 pt-0">
+        {activeLayout === 'numbers' && (
+          <div className="flex gap-1.5">
+            {/* Left column - variables */}
+            <div className="flex flex-col gap-1">
+              {[
+                { display: 'x', latex: 'x', sup: 'y' },
+                { display: 'n', latex: 'n', sup: '' },
+                { display: '<', latex: '<', sup: '' },
+                { display: '(', latex: '(', sup: '' },
+                { display: '⇧', latex: '', isShift: true },
+              ].map((key, i) => (
+                <button
+                  key={i}
+                  onClick={() => !key.isShift && handleKeyPress(key.latex)}
+                  className={cn(
+                    "w-12 h-11 rounded-lg text-lg font-medium transition-all relative",
+                    key.isShift
+                      ? "bg-[#acb0b9] text-gray-700"
+                      : "bg-white shadow-sm hover:bg-gray-50 active:scale-95"
+                  )}
+                >
+                  {key.display}
+                  {key.sup && (
+                    <span className="absolute top-1 right-1.5 text-[10px] text-gray-400">{key.sup}</span>
+                  )}
+                </button>
+              ))}
             </div>
+
+            {/* Second left column */}
+            <div className="flex flex-col gap-1">
+              {[
+                { display: 'y', latex: 'y', sup: '' },
+                { display: 'a', latex: 'a', sup: '' },
+                { display: '>', latex: '>', sup: '' },
+                { display: ')', latex: ')', sup: '' },
+              ].map((key, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleKeyPress(key.latex)}
+                  className="w-12 h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all relative"
+                >
+                  {key.display}
+                </button>
+              ))}
+            </div>
+
+            {/* Number pad */}
+            <div className="flex-1 grid grid-cols-4 gap-1">
+              {numpad.flat().map((key, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleKeyPress(key)}
+                  className="h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all"
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            {/* Right column - special functions */}
+            <div className="flex flex-col gap-1">
+              {[
+                { display: 'e', latex: 'e', sup: 'ln' },
+                { display: 'i', latex: 'i', sup: '' },
+                { display: '□²', latex: '^{2}', sup: '' },
+                { display: '∫', latex: '\\int_{}^{}', sup: '' },
+              ].map((key, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleKeyPress(key.latex)}
+                  className="w-12 h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all relative"
+                >
+                  {key.display}
+                  {key.sup && (
+                    <span className="absolute top-1 right-1.5 text-[10px] text-gray-400">{key.sup}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Far right column */}
+            <div className="flex flex-col gap-1">
+              {[
+                { display: 'π', latex: '\\pi', sup: 'sin' },
+                { display: '√', latex: '\\sqrt{}', sup: '' },
+                { display: '∀', latex: '\\forall', sup: '' },
+              ].map((key, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleKeyPress(key.latex)}
+                  className="w-12 h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all relative"
+                >
+                  {key.display}
+                  {key.sup && (
+                    <span className="absolute top-1 right-1.5 text-[10px] text-gray-400">{key.sup}</span>
+                  )}
+                </button>
+              ))}
+              <button
+                onClick={handleBackspace}
+                className="w-12 h-11 rounded-lg bg-[#acb0b9] text-gray-700 hover:bg-[#9ca0a9] active:scale-95 transition-all flex items-center justify-center"
+              >
+                <Delete className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Navigation column */}
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={handleCursorLeft}
+                className="w-10 h-11 rounded-lg bg-[#acb0b9] text-gray-700 hover:bg-[#9ca0a9] active:scale-95 transition-all flex items-center justify-center"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleCursorRight}
+                className="w-10 h-11 rounded-lg bg-[#acb0b9] text-gray-700 hover:bg-[#9ca0a9] active:scale-95 transition-all flex items-center justify-center"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleInsert}
+                className="w-10 h-[90px] rounded-lg bg-[#acb0b9] text-gray-700 hover:bg-[#9ca0a9] active:scale-95 transition-all flex items-center justify-center"
+              >
+                <CornerDownLeft className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeLayout === 'operators' && (
+          <div className="grid grid-cols-6 gap-1">
+            {operatorKeys.flat().map((key, i) => (
+              <button
+                key={i}
+                onClick={() => handleKeyPress(key)}
+                className="h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                {key}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {activeLayout === 'letters' && (
+          <div className="space-y-1">
+            {letterKeys.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex justify-center gap-1">
+                {row.map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => handleKeyPress(key)}
+                    className="w-10 h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+            ))}
+            <div className="flex justify-center gap-1 pt-1">
+              <button
+                onClick={() => insertAtCursor(' ')}
+                className="w-40 h-10 rounded-lg bg-white shadow-sm text-sm text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                space
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeLayout === 'greek' && (
+          <div className="space-y-1">
+            {greekKeys.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex justify-center gap-1">
+                {row.map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => handleKeyPress(key)}
+                    className="w-11 h-11 rounded-lg bg-white shadow-sm text-lg font-medium hover:bg-gray-50 active:scale-95 transition-all"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto border-b border-gray-100 px-1 py-1 gap-1 scrollbar-hide">
-        {mathCategories.map((category, index) => (
-          <button
-            key={category.name}
-            onClick={() => setActiveCategory(index)}
-            className={cn(
-              "px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors",
-              activeCategory === index
-                ? "bg-violet-100 text-violet-700"
-                : "text-gray-500 hover:bg-gray-100"
-            )}
-          >
-            {category.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Symbol Grid */}
-      <div className="p-2 max-h-[200px] overflow-y-auto">
-        <div className="grid grid-cols-6 gap-1">
-          {mathCategories[activeCategory].symbols.map((symbol, index) => (
-            <button
-              key={index}
-              onClick={() => handleSymbolClick(symbol)}
-              title={symbol.label || symbol.latex}
-              className={cn(
-                "h-10 flex items-center justify-center rounded-md border border-gray-100",
-                "hover:bg-violet-50 hover:border-violet-200 transition-colors",
-                "text-lg font-medium text-gray-700"
-              )}
-            >
-              {symbol.display}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Templates */}
-      <div className="px-3 py-2 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <p className="text-xs text-gray-500 mb-1.5">Quick templates</p>
-        <div className="flex flex-wrap gap-1">
-          {[
-            { label: 'Fraction', latex: '\\frac{}{} ' },
-            { label: 'Square root', latex: '\\sqrt{} ' },
-            { label: 'Power', latex: '^{} ' },
-            { label: 'Subscript', latex: '_{} ' },
-            { label: 'Sum', latex: '\\sum_{i=1}^{n} ' },
-            { label: 'Integral', latex: '\\int_{a}^{b} ' },
-          ].map((template) => (
-            <button
-              key={template.label}
-              onClick={() => {
-                setInputValue(prev => prev + template.latex);
-                onInsert(template.latex);
-              }}
-              className="px-2 py-0.5 text-xs bg-white border border-gray-200 rounded hover:bg-violet-50 hover:border-violet-200 transition-colors"
-            >
-              {template.label}
-            </button>
-          ))}
-        </div>
+      {/* Bottom row with close */}
+      <div className="flex justify-end p-2 pt-0">
+        <button
+          onClick={onClose}
+          className="px-4 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-200/50 rounded-md transition-colors"
+        >
+          Done
+        </button>
       </div>
     </div>
   );

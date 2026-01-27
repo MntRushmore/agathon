@@ -212,7 +212,7 @@ export function CustomToolbar() {
   };
 
   const handleInsertMath = useCallback((latex: string) => {
-    // Insert math as a text shape at the center of the viewport
+    // Insert math as a LaTeX shape at the center of the viewport
     const viewportBounds = editor.getViewportScreenBounds();
     const center = editor.screenToPage({
       x: viewportBounds.x + viewportBounds.width / 2,
@@ -222,18 +222,20 @@ export function CustomToolbar() {
     const shapeId = createShapeId();
     editor.createShape({
       id: shapeId,
-      type: 'text',
-      x: center.x - 50,
-      y: center.y - 20,
+      type: 'latex',
+      x: center.x - 100,
+      y: center.y - 30,
+      isLocked: false,
       props: {
-        text: latex,
-        font: 'serif',
-        size: 'm',
-        align: 'middle',
+        latex: latex,
+        w: 200,
+        h: 60,
+        color: '#1a1a1a',
+        fontSize: 24,
       },
     });
 
-    // Select the new shape
+    // Select the new shape so user can drag it
     editor.select(shapeId);
     editor.setCurrentTool('select');
   }, [editor]);
@@ -439,12 +441,13 @@ export function CustomToolbar() {
       </div>
 
       {/* Math Keyboard */}
-      <MathKeyboard
-        isOpen={mathKeyboardOpen}
-        onClose={() => setMathKeyboardOpen(false)}
-        onInsert={handleInsertMath}
-        position={{ x: window.innerWidth / 2 - 190, y: window.innerHeight - 400 }}
-      />
+      {mathKeyboardOpen && (
+        <MathKeyboard
+          isOpen={mathKeyboardOpen}
+          onClose={() => setMathKeyboardOpen(false)}
+          onInsert={handleInsertMath}
+        />
+      )}
     </div>
   );
 }
