@@ -6,13 +6,21 @@ export async function middleware(request: NextRequest) {
 
   // Handle demo.agathon.app subdomain - serve demo page directly, no auth needed
   if (hostname.startsWith('demo.')) {
-    // If accessing root of demo subdomain, show the demo page
     if (request.nextUrl.pathname === '/') {
       const url = request.nextUrl.clone();
       url.pathname = '/demo';
       return NextResponse.rewrite(url);
     }
-    // Allow other paths (like /videos for the video file)
+    return NextResponse.next();
+  }
+
+  // Handle pitch.agathon.app subdomain - serve pitch deck page
+  if (hostname.startsWith('pitch.')) {
+    if (request.nextUrl.pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/pitch';
+      return NextResponse.rewrite(url);
+    }
     return NextResponse.next();
   }
 
