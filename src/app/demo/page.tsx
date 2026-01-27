@@ -49,7 +49,7 @@ export default function DemoPage() {
 
       {/* CTA */}
       <a
-        href="/"
+        href="https://agathon.app"
         className="mt-8 px-6 py-3 bg-white text-black font-medium rounded-full hover:bg-gray-100 transition-colors"
       >
         Try Agathon Free

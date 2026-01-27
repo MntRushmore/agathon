@@ -12,7 +12,7 @@ export default function PitchPage() {
       <div className="flex items-center justify-between px-6 py-4 bg-black/80 backdrop-blur-sm border-b border-white/10">
         <Logo size="md" showText className="text-white" />
         <a
-          href="/"
+          href="https://agathon.app"
           className="px-4 py-2 text-sm font-medium text-white bg-white/10 rounded-full hover:bg-white/20 transition-colors"
         >
           Try Agathon

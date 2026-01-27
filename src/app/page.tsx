@@ -75,6 +75,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -534,6 +535,11 @@ export default function Dashboard() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Show landing page for non-authenticated users
+  if (!authLoading && !user) {
+    return <LandingPage />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -1269,17 +1275,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Sign in prompt */}
-              {!user && (
-                <div className="mt-12 text-center p-6 bg-card rounded-xl border border-border">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Sign in to save your boards and access all features
-                  </p>
-                  <Button onClick={() => router.push('/login')} variant="outline">
-                    Sign In
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
         )}
