@@ -68,6 +68,7 @@ import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board
 import { GoDeepPanel } from "@/components/board/GoDeepPanel";
 import { GoDeepButton } from "@/components/board/GoDeepButton";
 import { FeedbackCard } from "@/components/board/FeedbackCard";
+import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -2727,6 +2728,7 @@ export default function BoardPage() {
         <Tldraw
           licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
           tools={[LassoSolveTool]}
+          shapeUtils={[LaTeXShapeUtil]}
           overrides={hugeIconsOverrides}
           components={{
             Toolbar: CustomToolbar,

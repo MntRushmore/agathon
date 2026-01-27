@@ -182,6 +182,11 @@ export default function Dashboard() {
   const [quickNoteOpen, setQuickNoteOpen] = useState(false);
   const [quickNoteContent, setQuickNoteContent] = useState('');
 
+  // Usage limits (free plan)
+  const [journalCount, setJournalCount] = useState(0);
+  const FREE_BOARD_LIMIT = 3;
+  const FREE_JOURNAL_LIMIT = 3;
+
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -249,6 +254,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!authLoading && user) {
       fetchWhiteboards();
+      fetchJournalCount();
       if (profile?.role === 'student') {
         fetchAssignments();
       }
@@ -256,6 +262,20 @@ export default function Dashboard() {
       setLoading(false);
     }
   }, [user, profile, authLoading]);
+
+  async function fetchJournalCount() {
+    try {
+      const { count, error } = await supabase
+        .from('journals')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      setJournalCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching journal count:', error);
+    }
+  }
 
   async function fetchWhiteboards() {
     try {
@@ -685,14 +705,29 @@ export default function Dashboard() {
             </button>
           )}
 
-          {/* Storage indicator */}
+          {/* Usage indicator */}
           {!sidebarCollapsed && user && (
-            <div className="px-3 py-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <span>Storage</span>
-                <span>2.4 GB / 5 GB</span>
+            <div className="px-3 py-2 space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Pencil className="w-3 h-3" />
+                    Boards
+                  </span>
+                  <span>{whiteboards.length} / {FREE_BOARD_LIMIT}</span>
+                </div>
+                <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />
               </div>
-              <Progress value={48} className="h-1.5" />
+              <div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="w-3 h-3" />
+                    Journals
+                  </span>
+                  <span>{journalCount} / {FREE_JOURNAL_LIMIT}</span>
+                </div>
+                <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />
+              </div>
             </div>
           )}
 
@@ -1131,7 +1166,7 @@ export default function Dashboard() {
               {/* Simple Greeting */}
               <div className="text-center mb-10">
                 <h1 className="text-3xl font-semibold text-foreground tracking-tight">
-                  {greeting}, {user ? (profile?.full_name?.split(' ')[0] || 'there') : 'there'}
+                  {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : '!'}
                 </h1>
                 <p className="text-muted-foreground mt-2">
                   What would you like to work on?
@@ -1157,8 +1192,8 @@ export default function Dashboard() {
                         card.comingSoon && "opacity-50"
                       )}
                     >
-                      {/* Coming soon overlay */}
-                      {card.comingSoon && (
+                      {/* Coming soon overlay - only show when signed in */}
+                      {card.comingSoon && user && (
                         <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
                           <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                             Coming Soon
