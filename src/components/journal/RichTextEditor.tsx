@@ -10,6 +10,7 @@ import { TableRow as TiptapTableRow } from '@tiptap/extension-table-row';
 import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
 import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
 import { Extension } from '@tiptap/core';
+import { TextSelection } from '@tiptap/pm/state';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { cn } from '@/lib/utils';
@@ -391,6 +392,40 @@ export function RichTextEditor({
           'prose-strong:font-semibold prose-strong:text-gray-900',
         ),
       },
+      handleClick: (view, pos, event) => {
+        // Check if clicked on a math node
+        const target = event.target as HTMLElement;
+        const mathNode = target.closest('.tiptap-math.latex');
+        if (mathNode) {
+          // Find the node at this position
+          const { state } = view;
+          const $pos = state.doc.resolve(pos);
+          const node = $pos.nodeAfter || $pos.nodeBefore;
+
+          if (node && node.type.name === 'inlineMath') {
+            const latex = node.attrs.latex || '';
+            const isDisplay = node.attrs.display === 'yes';
+            const wrapper = isDisplay ? '$$' : '$';
+
+            // Get the position of the math node
+            let nodePos = pos;
+            if ($pos.nodeBefore && $pos.nodeBefore.type.name === 'inlineMath') {
+              nodePos = pos - $pos.nodeBefore.nodeSize;
+            }
+
+            // Replace the node with editable text
+            const tr = state.tr;
+            tr.delete(nodePos, nodePos + node.nodeSize);
+            tr.insertText(`${wrapper}${latex}${wrapper}`, nodePos);
+            // Position cursor at end of the inserted LaTeX text
+            const cursorPos = nodePos + wrapper.length + latex.length;
+            tr.setSelection(TextSelection.create(tr.doc, cursorPos));
+            view.dispatch(tr);
+            return true;
+          }
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
@@ -525,6 +560,21 @@ export function RichTextEditor({
         .Tiptap-mathematics-editor:focus {
           outline: 2px solid #22c55e;
           outline-offset: 1px;
+        }
+        /* Math nodes - clickable and hoverable */
+        .tiptap-math.latex {
+          cursor: pointer;
+          padding: 2px 4px;
+          border-radius: 4px;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .tiptap-math.latex:hover {
+          background-color: #e0f2f4;
+          box-shadow: 0 0 0 2px #a8d5db;
+        }
+        .ProseMirror .tiptap-math.latex.ProseMirror-selectednode {
+          background-color: #cce8eb;
+          box-shadow: 0 0 0 2px #0d9488;
         }
         /* Rendered KaTeX math styling */
         .katex-rendered {
