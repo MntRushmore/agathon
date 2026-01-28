@@ -395,7 +395,7 @@ export function RichTextEditor({
       handleClick: (view, pos, event) => {
         // Check if clicked on a math node
         const target = event.target as HTMLElement;
-        const mathNode = target.closest('.tiptap-math.latex');
+        const mathNode = target.closest('.tiptap-math.latex') as HTMLElement;
         if (mathNode) {
           // Find the node at this position
           const { state } = view;
@@ -417,9 +417,9 @@ export function RichTextEditor({
             const tr = state.tr;
             tr.delete(nodePos, nodePos + node.nodeSize);
             tr.insertText(`${wrapper}${latex}${wrapper}`, nodePos);
-            // Position cursor at end of the inserted LaTeX text
-            const cursorPos = nodePos + wrapper.length + latex.length;
-            tr.setSelection(TextSelection.create(tr.doc, cursorPos));
+            // Position cursor inside the LaTeX, selecting all the LaTeX content
+            const cursorPos = nodePos + wrapper.length;
+            tr.setSelection(TextSelection.create(tr.doc, cursorPos, cursorPos + latex.length));
             view.dispatch(tr);
             return true;
           }
@@ -431,6 +431,55 @@ export function RichTextEditor({
       const html = editor.getHTML();
       const markdown = htmlToMarkdown(html);
       onChange(markdown);
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Check if there are any $...$ patterns in text nodes that need to be converted
+      const { state } = editor;
+      const { doc, selection } = state;
+      const cursorPos = selection.from;
+
+      // Find text nodes with $...$ patterns
+      let foundMatch = false;
+      doc.descendants((node, pos) => {
+        if (node.isText && node.text) {
+          const text = node.text;
+          // Match $...$ but not $$...$$
+          const regex = /(?<!\$)\$([^$]+)\$(?!\$)/g;
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            const matchStart = pos + match.index;
+            const matchEnd = matchStart + match[0].length;
+
+            // Only convert if cursor is NOT inside this match
+            if (cursorPos < matchStart || cursorPos > matchEnd) {
+              // Found a match that needs converting - do it after this iteration
+              const latex = match[1];
+              foundMatch = true;
+
+              // Use setTimeout to avoid modifying during iteration
+              setTimeout(() => {
+                const { state: newState } = editor;
+                const tr = newState.tr;
+
+                // Verify the text is still there
+                const $pos = newState.doc.resolve(matchStart);
+                const textNode = $pos.nodeAfter;
+                if (textNode?.isText && textNode.text?.includes(match![0])) {
+                  // Delete the $...$ text
+                  tr.delete(matchStart, matchEnd);
+                  // Insert a math node
+                  const mathNodeType = newState.schema.nodes.inlineMath;
+                  if (mathNodeType) {
+                    tr.insert(matchStart, mathNodeType.create({ latex }));
+                    editor.view.dispatch(tr);
+                  }
+                }
+              }, 0);
+              return false; // Stop searching
+            }
+          }
+        }
+      });
     },
   });
 
