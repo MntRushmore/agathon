@@ -151,7 +151,7 @@ function ContentWithEmbeds({
 }) {
   // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
-  const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]+)\]/g)];
+  const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
 
   // Remove placeholders from the content for the editor (they'll be rendered separately)
   const editorContent = content
