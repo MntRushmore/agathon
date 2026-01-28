@@ -129,8 +129,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsImpersonating(false);
     setImpersonatedProfile(null);
     setOriginalProfile(null);
-    // Redirect to login page after sign out
-    router.push('/login');
+    // Redirect to home page after sign out
+    router.push('/');
   };
 
   const startImpersonation = async (userId: string) => {
