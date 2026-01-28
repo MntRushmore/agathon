@@ -534,6 +534,16 @@ export function RichTextEditor({
         .katex-rendered .katex {
           font-size: 1.1em;
         }
+        /* Block/display math styling */
+        .katex-display {
+          display: block;
+          text-align: center;
+          margin: 1em 0;
+          overflow-x: auto;
+        }
+        .katex-display .katex {
+          font-size: 1.2em;
+        }
         /* Block math display */
         .Tiptap-mathematics-render--display {
           display: block;
@@ -623,6 +633,14 @@ function parseContentToHTML(markdown: string): string {
     return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
   });
 
+  // Handle display math ($$...$$) - convert to TipTap math nodes
+  const displayMathBlocks: string[] = [];
+  processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (_, latex) => {
+    const escapedLatex = latex.trim().replace(/"/g, '&quot;');
+    displayMathBlocks.push(`<p><span data-type="inlineMath" data-latex="${escapedLatex}" data-display="yes"></span></p>`);
+    return `__DISPLAY_MATH_${displayMathBlocks.length - 1}__`;
+  });
+
   // Handle code blocks (``` ... ```) - extract and replace with placeholders
   const codeBlocks: string[] = [];
   processed = processed.replace(/```[\s\S]*?```/g, (match) => {
@@ -682,6 +700,15 @@ function parseContentToHTML(markdown: string): string {
       continue;
     }
 
+    // Skip display math placeholders
+    if (line.match(/__DISPLAY_MATH_\d+__/)) {
+      const idx = parseInt(line.match(/__DISPLAY_MATH_(\d+)__/)?.[1] || '0');
+      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      processedLines.push(displayMathBlocks[idx]);
+      continue;
+    }
+
     // Skip table placeholders
     if (line.match(/__TABLE_\d+__/)) {
       const idx = parseInt(line.match(/__TABLE_(\d+)__/)?.[1] || '0');
@@ -700,17 +727,14 @@ function parseContentToHTML(markdown: string): string {
     
     // Helper function to process inline formatting
     const processInline = (text: string): string => {
-      // Render LaTeX math $...$ using KaTeX
-      text = text.replace(/\$([^$\n]+)\$/g, (_, latex) => {
-        try {
-          const rendered = katex.renderToString(latex.trim(), {
-            displayMode: false,
-            throwOnError: false,
-          });
-          return `<span class="katex-rendered">${rendered}</span>`;
-        } catch {
-          return `$${latex}$`;
-        }
+      // First restore any display math placeholders that might be inline
+      text = text.replace(/__DISPLAY_MATH_(\d+)__/g, (_, idx) => {
+        return displayMathBlocks[parseInt(idx)] || '';
+      });
+      // Convert LaTeX math $...$ to TipTap math nodes
+      text = text.replace(/\$([^$]+)\$/g, (_, latex) => {
+        const escapedLatex = latex.trim().replace(/"/g, '&quot;');
+        return `<span data-type="inlineMath" data-latex="${escapedLatex}"></span>`;
       });
       // Convert bold (before italic)
       text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');

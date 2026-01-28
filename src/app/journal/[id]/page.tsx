@@ -1412,18 +1412,15 @@ export default function JournalEditorPage() {
     const newContent = content ? content + '\n\n' + block.content : block.content;
     setContent(newContent);
 
-    // Mark block as accepted
-    setPendingBlocks(prev => prev.map(b =>
-      b.id === blockId ? { ...b, status: 'accepted' as const } : b
-    ));
+    // Remove the block from pending
+    setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
     toast.success('Section added!');
   };
 
   // Deny a single pending block
   const handleDenyBlock = (blockId: string) => {
-    setPendingBlocks(prev => prev.map(b =>
-      b.id === blockId ? { ...b, status: 'denied' as const } : b
-    ));
+    // Remove the block from pending
+    setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
   };
 
   // Accept all pending blocks
@@ -1436,18 +1433,15 @@ export default function JournalEditorPage() {
     const newContent = content ? content + '\n\n' + combinedContent : combinedContent;
     setContent(newContent);
 
-    // Mark all as accepted
-    setPendingBlocks(prev => prev.map(b =>
-      b.status === 'pending' ? { ...b, status: 'accepted' as const } : b
-    ));
+    // Clear all pending blocks to remove the UI
+    setPendingBlocks([]);
     toast.success('All sections added!');
   };
 
   // Deny all pending blocks
   const handleDenyAllBlocks = () => {
-    setPendingBlocks(prev => prev.map(b =>
-      b.status === 'pending' ? { ...b, status: 'denied' as const } : b
-    ));
+    // Clear all pending blocks to remove the UI
+    setPendingBlocks([]);
   };
 
   // Clear pending blocks (dismiss the diff UI)
@@ -1500,15 +1494,6 @@ export default function JournalEditorPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF9F6]">
-      {/* Loading overlay */}
-      {isGenerating && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 shadow-xl flex items-center gap-4">
-            <Loader2 className="h-6 w-6 animate-spin text-teal-700" />
-            <span className="text-gray-700 font-medium">Generating content...</span>
-          </div>
-        </div>
-      )}
 
       {/* Topic Prompt Modal */}
       {showTopicModal && (
