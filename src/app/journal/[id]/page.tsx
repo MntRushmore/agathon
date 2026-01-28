@@ -156,7 +156,6 @@ function ContentWithEmbeds({
   // Remove placeholders from the content for the editor (they'll be rendered separately)
   const editorContent = content
     .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
-    .replace(/\n*\*\*📊 Graph:.*?\*\*\n*/g, '\n')
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
     .trim();
 
@@ -176,10 +175,10 @@ function ContentWithEmbeds({
             }
           });
 
-          // Re-add desmos placeholders at the end
+          // Re-add desmos placeholders at the end (just the placeholder, no label)
           desmosMatches.forEach(match => {
             if (!fullContent.includes(match[0])) {
-              fullContent += `\n\n**📊 Graph: $${match[2]}$**\n${match[0]}`;
+              fullContent += `\n\n${match[0]}`;
             }
           });
 
@@ -1048,12 +1047,15 @@ export default function JournalEditorPage() {
   const handleDesmosInsert = () => {
     const desmosId = `desmos-${Date.now()}`;
 
-    // Add to embedded desmos graphs (empty expression - user will add their own)
-    setEmbeddedDesmos(prev => [...prev, { id: desmosId, expression: '' }]);
+    // Add a placeholder in the content (no need for separate state - rendered from content)
+    const desmosPlaceholder = `[DESMOS:${desmosId}:]`;
 
-    // Add a placeholder in the content
-    const desmosPlaceholder = `\n\n[DESMOS:${desmosId}:]\n`;
-    const newContent = content ? content + desmosPlaceholder : desmosPlaceholder;
+    // Check if this exact placeholder already exists (prevent duplicates)
+    if (content.includes(desmosPlaceholder)) {
+      return;
+    }
+
+    const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
     setContent(newContent);
     toast.success('Graph added! Type equations directly in the calculator.');
   };
@@ -1150,13 +1152,14 @@ export default function JournalEditorPage() {
     if (!desmosExpression.trim()) return;
 
     const desmosId = `desmos-${Date.now()}`;
+    const desmosPlaceholder = `[DESMOS:${desmosId}:${desmosExpression}]`;
 
-    // Add to embedded desmos graphs
-    setEmbeddedDesmos(prev => [...prev, { id: desmosId, expression: desmosExpression }]);
+    // Check if this exact placeholder already exists (prevent duplicates)
+    if (content.includes(desmosPlaceholder)) {
+      return;
+    }
 
-    // Add a placeholder in the content
-    const desmosPlaceholder = `\n\n**📊 Graph: $${desmosExpression}$**\n\n[DESMOS:${desmosId}:${desmosExpression}]\n`;
-    const newContent = content ? content + desmosPlaceholder : desmosPlaceholder;
+    const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
     setContent(newContent);
     setShowDesmosModal(false);
     setDesmosExpression('');
@@ -2347,13 +2350,8 @@ export default function JournalEditorPage() {
               toast.success('Whiteboard deleted');
             }}
             onDeleteDesmos={(id) => {
-              // Remove from embedded desmos
-              setEmbeddedDesmos(prev => prev.filter(d => d.id !== id));
-              // Remove placeholder from content (including the graph label)
-              setContent(prev => prev
-                .replace(new RegExp(`\\n*\\*\\*📊 Graph:.*?\\*\\*\\n*`, 'g'), '\n')
-                .replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n')
-              );
+              // Remove placeholder from content
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
               toast.success('Graph deleted');
             }}
             onSlashCommand={executeCommand}
