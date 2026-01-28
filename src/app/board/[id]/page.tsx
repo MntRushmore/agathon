@@ -1017,16 +1017,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const handlePointerDown = (e: PointerEvent) => {
       if (e.pointerType === 'pen') {
         // Apple Pencil detected - could add visual feedback or special features
-        console.log('Apple Pencil detected');
       }
     };
 
     const handleTouchStart = (e: TouchEvent) => {
       // Palm rejection - ignore large touch areas
       const touch = e.touches[0];
-      if (touch && (touch as any).radiusX > 20) {
+      if (touch && (touch as Touch & { radiusX?: number }).radiusX && (touch as Touch & { radiusX?: number }).radiusX! > 20) {
         // Likely a palm, but don't prevent - TLDraw handles this
-        console.log('Large touch detected (possible palm)');
       }
     };
 

@@ -85,9 +85,10 @@ export default function StudentJoinPage() {
           celebrateMilestone('first_class_joined');
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error joining class:', error);
-      if (error.message === 'Already enrolled in this class') {
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage === 'Already enrolled in this class') {
         toast({
           title: 'Already enrolled',
           description: 'You are already a member of this class',

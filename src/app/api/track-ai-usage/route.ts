@@ -36,7 +36,19 @@ export async function POST(req: NextRequest) {
 
       const summaryText = responseSummary || (aiResponse ? aiResponse.slice(0, 500) : null);
 
-      const usageData: any = {
+      const usageData: {
+        student_id: string;
+        mode: string;
+        prompt?: string;
+        response_summary?: string | null;
+        concept_tags?: string[];
+        input_tokens: number;
+        output_tokens: number;
+        total_cost: number;
+        model_used: string;
+        submission_id?: string;
+        assignment_id?: string;
+      } = {
         student_id: user.id,
         mode,
         prompt,

@@ -123,7 +123,7 @@ export function FeedbackCard({
               <span className="text-sm font-medium">Not quite</span>
             </div>
           )}
-          {isCorrect === null || isCorrect === undefined && (
+          {(isCorrect === null || isCorrect === undefined) && (
             <span className="text-sm font-medium text-gray-600">Feedback</span>
           )}
         </div>

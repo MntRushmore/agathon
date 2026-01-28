@@ -16,6 +16,15 @@ interface ChatMessage {
   content: string;
 }
 
+type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+interface APIMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string | MessageContentPart[];
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Auth check - require login for all AI features
@@ -83,13 +92,13 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
     };
 
     // Build messages with image content for vision model
-    const userMessages = messages.map((m, index) => {
+    const userMessages: APIMessage[] = messages.map((m, index) => {
       if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
         return {
           role: m.role,
           content: [
-            { type: 'image_url', image_url: { url: canvasContext.imageBase64 } },
-            { type: 'text', text: m.content },
+            { type: 'image_url' as const, image_url: { url: canvasContext.imageBase64 } },
+            { type: 'text' as const, text: m.content },
           ],
         };
       }
@@ -108,7 +117,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         );
       }
 
-      const apiMessages: any[] = [{ role: 'system', content: systemPrompt }, ...userMessages];
+      const apiMessages: APIMessage[] = [{ role: 'system', content: systemPrompt }, ...userMessages];
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',

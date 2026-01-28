@@ -26,6 +26,13 @@ interface ClassMemberWithStudent {
   };
 }
 
+interface FetchedAssignment {
+  id: string;
+  title: string;
+  due_date: string | null;
+  created_at: string;
+}
+
 interface AssignmentWithStats {
   id: string;
   title: string;
@@ -63,7 +70,7 @@ export default function ClassDetailPage() {
 
       // Fetch stats for each assignment
       const assignmentsWithStats = await Promise.all(
-        fetchedAssignments.map(async (assignment: any) => {
+        (fetchedAssignments as FetchedAssignment[]).map(async (assignment) => {
           try {
             const stats = await getAssignmentStats(assignment.id);
             return {

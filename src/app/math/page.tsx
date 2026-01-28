@@ -10,10 +10,17 @@ import { Plus, FileText, ArrowLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
 
+interface MathEquation {
+  id: string;
+  latex?: string;
+  recognized?: string;
+  solution?: string | null;
+}
+
 interface MathWhiteboard {
   id: string;
   title: string;
-  equations: any[];
+  equations: MathEquation[];
   created_at: string;
   updated_at: string;
 }

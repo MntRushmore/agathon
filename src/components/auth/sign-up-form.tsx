@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const supabase = createClient();
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
@@ -41,15 +43,15 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
       // Since email confirmation is disabled, user is automatically signed in
       if (data.user && data.session) {
         toast.success('Account created successfully!');
-        // Redirect to dashboard
-        window.location.href = '/';
+        onSuccess?.();
+        router.push('/');
       } else {
         toast.success('Account created! Please check your email to verify your account.');
+        onSuccess?.();
       }
-
-      onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign up';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -72,8 +74,9 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up with Google');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
+      toast.error(message);
       setLoading(false);
     }
   };

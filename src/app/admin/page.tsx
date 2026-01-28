@@ -156,9 +156,9 @@ export default function AdminDashboardPage() {
         newUsersWeek: newUsersWeek ?? 0,
         newUsersMonth: newUsersMonth ?? 0,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading admin dashboard:', error);
-      setError(error?.message || 'Failed to load dashboard data.');
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -233,7 +233,7 @@ New Users (Month),${stats.newUsersMonth}`;
       if (error) throw error;
       await refreshProfile();
       toast.success(`Added ${amount} credits to your account`);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error adding credits:', err);
       toast.error('Failed to add credits');
     } finally {
@@ -260,7 +260,7 @@ New Users (Month),${stats.newUsersMonth}`;
       if (error) throw error;
       await refreshProfile();
       toast.success(tier === 'premium' ? 'Upgraded to Premium!' : 'Switched to Free plan');
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error updating plan:', err);
       toast.error('Failed to update plan');
     } finally {

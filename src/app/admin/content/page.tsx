@@ -181,9 +181,9 @@ export default function AdminContentPage() {
           setJournals(journalData || []);
           break;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading content:', error);
-      toast.error(`Failed to load content: ${error?.message || 'Unknown error'}`);
+      toast.error(`Failed to load content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

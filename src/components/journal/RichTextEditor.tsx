@@ -11,7 +11,7 @@ import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
 import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
 import { Extension } from '@tiptap/core';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
-import { useEffect, useState, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
+import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
@@ -296,8 +296,8 @@ export function RichTextEditor({
                   return true;
                 }
 
-                // @ts-ignore - component ref
-                return component?.ref?.onKeyDown?.(props) ?? false;
+                const ref = component?.ref as SlashCommandMenuRef | null;
+                return ref?.onKeyDown?.(props) ?? false;
               },
               onExit: () => {
                 popup?.[0]?.destroy();
@@ -399,8 +399,6 @@ export function RichTextEditor({
     },
   });
 
-  // Fixed left toolbar state - must be before any early returns
-  const [showToolbar, setShowToolbar] = useState(false);
 
   // Update editor content when prop changes externally
   useEffect(() => {

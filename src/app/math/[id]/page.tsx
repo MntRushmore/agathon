@@ -23,11 +23,18 @@ const CorcaEditor = dynamic(
   }
 );
 
+interface LegacyEquation {
+  id?: string;
+  latex?: string;
+  recognized?: string;
+  solution?: string | null;
+}
+
 interface MathDocumentData {
   id: string;
   user_id: string;
   title: string;
-  equations: any[]; // Legacy format
+  equations: LegacyEquation[]; // Legacy format
   blocks?: Block[]; // New format
   variables: Record<string, number>;
   created_at: string;
@@ -67,16 +74,18 @@ export default function MathEditorPage() {
 
       if (data.blocks && Array.isArray(data.blocks)) {
         // Migrate all block types to 'rich' (new unified type)
-        loadedBlocks = data.blocks.map((b: any) => {
+        // Using Record type since data from DB may have old block types
+        loadedBlocks = data.blocks.map((b: Record<string, unknown>) => {
+          const blockType = b.type as string;
           // Convert old types to new 'rich' type
-          if (b.type === 'text' || b.type === 'paragraph' || b.type === 'math') {
-            return { ...b, type: 'rich' as const };
+          if (blockType === 'text' || blockType === 'paragraph' || blockType === 'math') {
+            return { id: b.id as string, content: b.content as string, type: 'rich' as const };
           }
-          return b;
+          return b as unknown as Block;
         });
       } else if (data.equations && Array.isArray(data.equations)) {
         // Migrate from old equation format - combine into rich blocks
-        loadedBlocks = data.equations.map((eq: any) => ({
+        loadedBlocks = data.equations.map((eq: LegacyEquation) => ({
           id: eq.id || crypto.randomUUID(),
           type: 'rich' as const,
           content: eq.latex || eq.recognized || '',
@@ -98,9 +107,10 @@ export default function MathEditorPage() {
   }, [params.id, user, supabase, router]);
 
   // Auto-save with debounce
+  const documentId = document?.id;
   const saveDocument = useCallback(
     debounce(async (newTitle: string, newBlocks: Block[]) => {
-      if (!document) return;
+      if (!documentId) return;
 
       await supabase
         .from('math_whiteboards')
@@ -115,17 +125,17 @@ export default function MathEditorPage() {
           })),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', document.id);
+        .eq('id', documentId);
     }, 1000),
-    [document, supabase]
+    [documentId, supabase]
   );
 
   // Save on changes
   useEffect(() => {
-    if (document && !loading) {
+    if (documentId && !loading) {
       saveDocument(title, blocks);
     }
-  }, [title, blocks, document, loading, saveDocument]);
+  }, [title, blocks, documentId, loading, saveDocument]);
 
   // Handle title change
   const handleTitleChange = (newTitle: string) => {

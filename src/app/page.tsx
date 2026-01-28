@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -36,8 +36,8 @@ import {
   Grid3X3,
   List,
   Timer,
-  Target,
   Pause,
+  Play,
   RotateCcw,
   X,
   Settings,
@@ -46,9 +46,8 @@ import {
   FileText,
   StickyNote,
 } from 'lucide-react';
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -75,11 +74,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
-import { LandingPage } from "@/components/landing/LandingPage";
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { AgoraLandingPage } from "@/components/landing/AgoraLandingPage";
 
 type Whiteboard = {
   id: string;
@@ -168,7 +163,7 @@ export default function Dashboard() {
   const [pomodoroActive, setPomodoroActive] = useState(false);
   const [pomodoroTime, setPomodoroTime] = useState(25 * 60); // 25 minutes
   const [pomodoroMode, setPomodoroMode] = useState<'work' | 'break'>('work');
-
+  const [pomodoroPaused, setPomodoroPaused] = useState(false);
 
   // Rename state
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -189,45 +184,16 @@ export default function Dashboard() {
   const FREE_JOURNAL_LIMIT = 3;
 
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) {
-        switch (e.key.toLowerCase()) {
-          case 'a':
-            e.preventDefault();
-            createWhiteboard();
-            break;
-          case 'j':
-            e.preventDefault();
-            router.push('/journal');
-            break;
-          case 'k':
-            e.preventDefault();
-            // Global search focus
-            document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
-            break;
-          case 'n':
-            e.preventDefault();
-            setQuickNoteOpen(true);
-            break;
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [router]);
-
   // Pomodoro timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (pomodoroActive && pomodoroTime > 0) {
+    if (pomodoroActive && !pomodoroPaused && pomodoroTime > 0) {
       interval = setInterval(() => {
         setPomodoroTime((t) => t - 1);
       }, 1000);
-    } else if (pomodoroTime === 0) {
+    } else if (pomodoroTime === 0 && pomodoroActive) {
       setPomodoroActive(false);
+      setPomodoroPaused(false);
       if (pomodoroMode === 'work') {
         toast.success('Work session complete! Take a 5-minute break.');
         setPomodoroTime(5 * 60);
@@ -239,7 +205,7 @@ export default function Dashboard() {
       }
     }
     return () => clearInterval(interval);
-  }, [pomodoroActive, pomodoroTime, pomodoroMode]);
+  }, [pomodoroActive, pomodoroPaused, pomodoroTime, pomodoroMode]);
 
   // Redirect to login if auth required
   useEffect(() => {
@@ -307,7 +273,7 @@ export default function Dashboard() {
     }
   }
 
-  async function createWhiteboard() {
+  const createWhiteboard = useCallback(async () => {
     if (creating) return;
 
     if (!user) {
@@ -340,13 +306,42 @@ export default function Dashboard() {
 
       toast.success('Board created');
       router.push(`/board/${data.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating whiteboard:', error);
       toast.error('Failed to create whiteboard');
     } finally {
       setCreating(false);
     }
-  }
+  }, [creating, user, router, supabase]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key.toLowerCase()) {
+          case 'a':
+            e.preventDefault();
+            createWhiteboard();
+            break;
+          case 'j':
+            e.preventDefault();
+            router.push('/journal');
+            break;
+          case 'k':
+            e.preventDefault();
+            document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+            break;
+          case 'n':
+            e.preventDefault();
+            setQuickNoteOpen(true);
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router, createWhiteboard]);
 
   async function deleteWhiteboard(id: string) {
     try {
@@ -390,11 +385,22 @@ export default function Dashboard() {
   }
 
   async function toggleFavorite(id: string, isFavorite: boolean) {
-    // This would update the database - for now just update local state
-    setWhiteboards(whiteboards.map(w =>
-      w.id === id ? { ...w, is_favorite: !isFavorite } : w
-    ));
-    toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+    try {
+      const { error } = await supabase
+        .from('whiteboards')
+        .update({ is_favorite: !isFavorite })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setWhiteboards(whiteboards.map(w =>
+        w.id === id ? { ...w, is_favorite: !isFavorite } : w
+      ));
+      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorite');
+    }
   }
 
   async function handleRename() {
@@ -538,7 +544,7 @@ export default function Dashboard() {
 
   // Show landing page for non-authenticated users
   if (!authLoading && !user) {
-    return <LandingPage />;
+    return <AgoraLandingPage />;
   }
 
   return (
@@ -1294,29 +1300,42 @@ export default function Dashboard() {
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setPomodoroActive(false)}
+              onClick={() => setPomodoroPaused(!pomodoroPaused)}
+              title={pomodoroPaused ? "Resume" : "Pause"}
             >
-              <Pause className="w-4 h-4" strokeWidth={2} />
+              {pomodoroPaused ? (
+                <Play className="w-4 h-4" strokeWidth={2} />
+              ) : (
+                <Pause className="w-4 h-4" strokeWidth={2} />
+              )}
             </Button>
             <Button
               size="icon"
               variant="ghost"
               onClick={() => {
                 setPomodoroTime(pomodoroMode === 'work' ? 25 * 60 : 5 * 60);
+                setPomodoroPaused(false);
               }}
+              title="Reset"
             >
               <RotateCcw className="w-4 h-4" strokeWidth={2} />
             </Button>
             <Button
               size="icon"
               variant="ghost"
-              onClick={() => setPomodoroActive(false)}
+              onClick={() => {
+                setPomodoroActive(false);
+                setPomodoroPaused(false);
+                setPomodoroTime(25 * 60);
+                setPomodoroMode('work');
+              }}
+              title="Stop"
             >
               <X className="w-4 h-4" strokeWidth={2} />
             </Button>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {pomodoroMode === 'work' ? 'Focus' : 'Break'}
+            {pomodoroPaused ? 'Paused' : pomodoroMode === 'work' ? 'Focus' : 'Break'}
           </Badge>
         </div>
       )}

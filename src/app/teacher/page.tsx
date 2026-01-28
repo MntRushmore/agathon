@@ -60,6 +60,37 @@ interface RecentActivity {
   className?: string;
 }
 
+interface SubmissionStatus {
+  status: string;
+}
+
+interface AssignmentWithClass {
+  id: string;
+  title: string;
+  due_date: string | null;
+  is_published: boolean;
+  class: { id: string; name: string };
+}
+
+interface RecentSubmission {
+  id: string;
+  status: string;
+  submitted_at: string | null;
+  updated_at: string;
+  student: { full_name: string } | null;
+  assignment: {
+    title: string;
+    class: { name: string } | null;
+  } | null;
+}
+
+interface RecentJoin {
+  id: string;
+  joined_at: string;
+  student: { full_name: string } | null;
+  class: { name: string } | null;
+}
+
 export default function TeacherDashboardPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -110,7 +141,7 @@ export default function TeacherDashboardPage() {
         totalStudents = count || 0;
       }
 
-      let assignments: any[] = [];
+      let assignments: AssignmentWithClass[] = [];
       let allAssignments: { id: string }[] = [];
       if (classIds.length > 0) {
         const { data } = await supabase
@@ -126,7 +157,7 @@ export default function TeacherDashboardPage() {
           .eq('is_published', true)
           .order('created_at', { ascending: false })
           .limit(5);
-        assignments = data || [];
+        assignments = (data || []) as unknown as AssignmentWithClass[];
       }
 
       const assignmentsWithStats = await Promise.all(
@@ -140,8 +171,8 @@ export default function TeacherDashboardPage() {
             ...a,
             submissionStats: {
               total: submissions?.length || 0,
-              submitted: submissions?.filter((s: any) => s.status === 'submitted').length || 0,
-              inProgress: submissions?.filter((s: any) => s.status === 'in_progress').length || 0,
+              submitted: submissions?.filter((s: SubmissionStatus) => s.status === 'submitted').length || 0,
+              inProgress: submissions?.filter((s: SubmissionStatus) => s.status === 'in_progress').length || 0,
             },
           };
         })
@@ -209,7 +240,7 @@ export default function TeacherDashboardPage() {
           .order('submitted_at', { ascending: false })
           .limit(5);
 
-        recentSubmissions?.forEach((s: any) => {
+        (recentSubmissions as RecentSubmission[] | null)?.forEach((s) => {
           if (s.submitted_at) {
             activity.push({
               id: s.id,
@@ -235,7 +266,7 @@ export default function TeacherDashboardPage() {
           .order('joined_at', { ascending: false })
           .limit(5);
 
-        recentJoins?.forEach((j: any) => {
+        (recentJoins as RecentJoin[] | null)?.forEach((j) => {
           activity.push({
             id: j.id,
             type: 'join',

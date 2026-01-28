@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Build the message content
-    const content: any[] = [];
+    type MessageContentPart =
+      | { type: 'text'; text: string }
+      | { type: 'image_url'; image_url: { url: string } };
+    const content: MessageContentPart[] = [];
 
     if (image) {
       content.push({

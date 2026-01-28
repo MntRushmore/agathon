@@ -31,8 +31,9 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
 
       toast.success('Signed in successfully!');
       onSuccess?.();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -50,8 +51,9 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      toast.error(message);
       setLoading(false);
     }
   };

@@ -159,11 +159,11 @@ export default function CreateAssignmentPage() {
       });
 
       router.push('/teacher/classes');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error publishing assignment:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to publish assignment',
+        description: error instanceof Error ? error.message : 'Failed to publish assignment',
         variant: 'destructive',
       });
     } finally {

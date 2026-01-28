@@ -37,8 +37,9 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      toast.error(message);
       setLoading(false);
     }
   };
@@ -57,8 +58,9 @@ export default function LoginPage() {
 
       toast.success('Signed in successfully!');
       router.push('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -89,8 +91,9 @@ export default function LoginPage() {
       } else {
         toast.success('Account created! Please check your email to verify your account.');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to sign up';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -111,8 +114,9 @@ export default function LoginPage() {
       if (error) throw error;
 
       toast.success('Password reset link sent to your email!');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset email');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to send reset email';
+      toast.error(message);
     } finally {
       setLoading(false);
     }

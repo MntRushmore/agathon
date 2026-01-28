@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SignInForm } from './sign-in-form';
@@ -14,6 +14,13 @@ interface AuthModalProps {
 
 export function AuthModal({ open, onOpenChange, defaultTab = 'signin' }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
+
+  // Sync activeTab when defaultTab or open state changes
+  useEffect(() => {
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
