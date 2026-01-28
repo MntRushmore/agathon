@@ -233,9 +233,9 @@ export default function LoginPage() {
           {/* Waitlist notice */}
           <p className="text-center text-sm text-[#666] mt-6">
             Don&apos;t have an account?{' '}
-            <span className="text-[#1a1a1a] font-medium">
+            <Link href="/?waitlist=true" className="text-[#1a1a1a] font-medium hover:underline">
               Join our waitlist!
-            </span>
+            </Link>
           </p>
 
           {/* Footer links */}
