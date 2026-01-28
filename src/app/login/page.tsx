@@ -14,10 +14,8 @@ export default function LoginPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = createClient();
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -60,39 +58,6 @@ export default function LoginPage() {
       router.push('/');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to sign in';
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            role: 'student',
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.user && data.session) {
-        toast.success('Account created successfully!');
-        router.push('/');
-      } else {
-        toast.success('Account created! Please check your email to verify your account.');
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sign up';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -154,12 +119,10 @@ export default function LoginPage() {
           {/* Title */}
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-[#1a1a1a] mb-2">
-              {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+              Welcome back
             </h1>
             <p className="text-[#666]">
-              {mode === 'signin'
-                ? 'Sign in to continue learning'
-                : 'Start your learning journey today'}
+              Sign in to continue learning
             </p>
           </div>
 
@@ -201,26 +164,9 @@ export default function LoginPage() {
 
           {/* Form */}
           <form
-            onSubmit={mode === 'signin' ? handleEmailSignIn : handleEmailSignUp}
+            onSubmit={handleEmailSignIn}
             className="space-y-4"
           >
-            {mode === 'signup' && (
-              <div>
-                <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
-                  Full name
-                </label>
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  disabled={loading}
-                  className="w-full h-11 px-4 bg-white border border-[#E8E4DC] rounded-xl text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#1a1a1a] transition-colors"
-                />
-              </div>
-            )}
-
             <div>
               <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
                 Email
@@ -248,7 +194,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  minLength={mode === 'signup' ? 6 : undefined}
                   className="w-full h-11 px-4 pr-11 bg-white border border-[#E8E4DC] rounded-xl text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#1a1a1a] transition-colors"
                 />
                 <button
@@ -265,55 +210,32 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {mode === 'signin' && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  disabled={loading}
-                  className="text-sm text-[#666] hover:text-[#1a1a1a] transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
-            )}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="text-sm text-[#666] hover:text-[#1a1a1a] transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
 
             <button
               type="submit"
               disabled={loading}
               className="w-full h-11 bg-[#1a1a1a] hover:bg-[#333] text-white font-medium rounded-xl transition-colors disabled:opacity-50"
             >
-              {loading
-                ? 'Please wait...'
-                : mode === 'signin'
-                  ? 'Sign in'
-                  : 'Create account'}
+              {loading ? 'Please wait...' : 'Sign in'}
             </button>
           </form>
 
-          {/* Toggle mode */}
+          {/* Waitlist notice */}
           <p className="text-center text-sm text-[#666] mt-6">
-            {mode === 'signin' ? (
-              <>
-                Don&apos;t have an account?{' '}
-                <button
-                  onClick={() => setMode('signup')}
-                  className="text-[#1a1a1a] font-medium hover:underline"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  onClick={() => setMode('signin')}
-                  className="text-[#1a1a1a] font-medium hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            )}
+            Don&apos;t have an account?{' '}
+            <span className="text-[#1a1a1a] font-medium">
+              Join our waitlist!
+            </span>
           </p>
 
           {/* Footer links */}
