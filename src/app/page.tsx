@@ -542,8 +542,17 @@ export default function Dashboard() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   // Show landing page for non-authenticated users
-  if (!authLoading && !user) {
+  if (!user) {
     return <AgoraLandingPage />;
   }
 
