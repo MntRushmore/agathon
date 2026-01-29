@@ -25,8 +25,8 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           elements.push(
             <ul key={`list-${key++}`} className="my-4 ml-6 space-y-2">
               {listItems.map((item, i) => (
-                <li key={i} className="text-gray-700 leading-relaxed flex items-start gap-2">
-                  <span className="text-gray-400 mt-2">•</span>
+                <li key={i} className="text-[#5C4B3A] leading-relaxed flex items-start gap-2">
+                  <span className="text-[#9B8B78] mt-2">•</span>
                   <span>{renderInlineContent(item)}</span>
                 </li>
               ))}
@@ -36,8 +36,8 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           elements.push(
             <ol key={`list-${key++}`} className="my-4 ml-6 space-y-2">
               {listItems.map((item, i) => (
-                <li key={i} className="text-gray-700 leading-relaxed flex items-start gap-3">
-                  <span className="text-gray-500 font-medium">{i + 1}.</span>
+                <li key={i} className="text-[#5C4B3A] leading-relaxed flex items-start gap-3">
+                  <span className="text-[#7D6B58] font-medium">{i + 1}.</span>
                   <span>{renderInlineContent(item)}</span>
                 </li>
               ))}
@@ -63,7 +63,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       if (trimmedLine.startsWith('# ')) {
         flushList();
         elements.push(
-          <h1 key={`h1-${key++}`} className="text-3xl font-bold text-gray-900 mt-8 mb-4 first:mt-0">
+          <h1 key={`h1-${key++}`} className="text-3xl font-bold text-[#3A2E1E] mt-8 mb-4 first:mt-0">
             {renderInlineContent(trimmedLine.slice(2))}
           </h1>
         );
@@ -74,7 +74,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       if (trimmedLine.startsWith('## ')) {
         flushList();
         elements.push(
-          <h2 key={`h2-${key++}`} className="text-2xl font-bold text-gray-900 mt-8 mb-3">
+          <h2 key={`h2-${key++}`} className="text-2xl font-bold text-[#3A2E1E] mt-8 mb-3">
             {renderInlineContent(trimmedLine.slice(3))}
           </h2>
         );
@@ -85,7 +85,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       if (trimmedLine.startsWith('### ')) {
         flushList();
         elements.push(
-          <h3 key={`h3-${key++}`} className="text-xl font-semibold text-gray-800 mt-6 mb-2">
+          <h3 key={`h3-${key++}`} className="text-xl font-semibold text-[#4A3728] mt-6 mb-2">
             {renderInlineContent(trimmedLine.slice(4))}
           </h3>
         );
@@ -95,7 +95,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       // Horizontal rule
       if (trimmedLine === '---' || trimmedLine === '***') {
         flushList();
-        elements.push(<hr key={`hr-${key++}`} className="my-6 border-gray-200" />);
+        elements.push(<hr key={`hr-${key++}`} className="my-6 border-[#CFC0A8]" />);
         continue;
       }
 
@@ -131,8 +131,8 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           i++;
         }
         elements.push(
-          <pre key={`code-${key++}`} className="my-4 p-4 bg-[#F5F2EB] rounded-lg overflow-x-auto">
-            <code className="text-sm text-gray-800 font-mono whitespace-pre">
+          <pre key={`code-${key++}`} className="my-4 p-4 bg-[#EDE3CC] rounded-lg overflow-x-auto">
+            <code className="text-sm text-[#4A3728] font-mono whitespace-pre">
               {codeLines.join('\n')}
             </code>
           </pre>
@@ -164,11 +164,11 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
 
           elements.push(
             <div key={`table-${key++}`} className="my-4 overflow-x-auto">
-              <table className="min-w-full border-collapse border border-gray-300">
+              <table className="min-w-full border-collapse border border-[#CFC0A8]">
                 <thead>
-                  <tr className="bg-gray-100">
+                  <tr className="bg-[#E8DCC0]">
                     {headerCells.map((cell, j) => (
-                      <th key={j} className="border border-gray-300 px-4 py-2 text-left font-semibold text-gray-700">
+                      <th key={j} className="border border-[#CFC0A8] px-4 py-2 text-left font-semibold text-[#5C4B3A]">
                         {renderInlineContent(cell)}
                       </th>
                     ))}
@@ -176,9 +176,9 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
                 </thead>
                 <tbody>
                   {bodyRows.map((row, rowIdx) => (
-                    <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-[#F7F0E3]' : 'bg-[#F0E4CC]'}>
                       {row.map((cell, cellIdx) => (
-                        <td key={cellIdx} className="border border-gray-300 px-4 py-2 text-gray-700">
+                        <td key={cellIdx} className="border border-[#CFC0A8] px-4 py-2 text-[#5C4B3A]">
                           {renderInlineContent(cell)}
                         </td>
                       ))}
@@ -195,7 +195,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       // Regular paragraph
       flushList();
       elements.push(
-        <p key={`p-${key++}`} className="text-gray-700 leading-relaxed my-3">
+        <p key={`p-${key++}`} className="text-[#5C4B3A] leading-relaxed my-3">
           {renderInlineContent(trimmedLine)}
         </p>
       );
@@ -265,14 +265,14 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           break;
         case 'bold':
           parts.push(
-            <strong key={`bold-${key++}`} className="font-semibold text-gray-900">
+            <strong key={`bold-${key++}`} className="font-semibold text-[#3A2E1E]">
               {earliest.match[1]}
             </strong>
           );
           break;
         case 'code':
           parts.push(
-            <code key={`code-${key++}`} className="px-1.5 py-0.5 bg-gray-100 rounded text-sm font-mono">
+            <code key={`code-${key++}`} className="px-1.5 py-0.5 bg-[#E8DCC0] rounded text-sm font-mono">
               {earliest.match[1]}
             </code>
           );
@@ -286,7 +286,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
   };
 
   return (
-    <div className={cn('prose prose-gray max-w-none', className)}>
+    <div className={cn('prose max-w-none', className)}>
       {renderMarkdown(content)}
     </div>
   );

@@ -57,6 +57,7 @@ import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
+import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import dynamic from 'next/dynamic';
 
 // Simple markdown renderer for chat messages
@@ -67,23 +68,23 @@ function renderMarkdown(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     // Headers (order matters - check longer patterns first)
-    .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-gray-800">$1</h6>')
-    .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-gray-800">$1</h5>')
-    .replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-[13px] mt-2.5 mb-0.5 text-gray-800">$1</h4>')
-    .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[14px] mt-2.5 mb-0.5 text-gray-800">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[15px] mt-3 mb-1 text-gray-900">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="font-bold text-[16px] mt-3 mb-1 text-gray-900">$1</h2>')
+    .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-[#4A3728]">$1</h6>')
+    .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-[#4A3728]">$1</h5>')
+    .replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-[13px] mt-2.5 mb-0.5 text-[#4A3728]">$1</h4>')
+    .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[14px] mt-2.5 mb-0.5 text-[#4A3728]">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[15px] mt-3 mb-1 text-[#3A2E1E]">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 class="font-bold text-[16px] mt-3 mb-1 text-[#3A2E1E]">$1</h2>')
     // Bold and italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-[#4A3728]">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     // Inline code
-    .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-[12px] font-mono text-gray-700">$1</code>')
+    .replace(/`([^`]+)`/g, '<code class="bg-[#E8DCC0] px-1 py-0.5 rounded text-[12px] font-mono text-[#5C4B3A]">$1</code>')
     // Unordered lists
-    .replace(/^\* (.+)$/gm, '<li class="ml-3 list-disc text-gray-700">$1</li>')
-    .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-gray-700">$1</li>')
+    .replace(/^\* (.+)$/gm, '<li class="ml-3 list-disc text-[#5C4B3A]">$1</li>')
+    .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-[#5C4B3A]">$1</li>')
     // Ordered lists
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-3 list-decimal text-gray-700">$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li class="ml-3 list-decimal text-[#5C4B3A]">$1</li>')
     // Line breaks
     .replace(/\n\n/g, '</p><p class="mt-1.5">')
     .replace(/\n/g, '<br />');
@@ -100,12 +101,12 @@ function renderMarkdown(text: string): string {
 // Dynamically import tldraw to avoid SSR issues
 const InlineWhiteboard = dynamic(
   () => import('@/components/journal/InlineWhiteboard').then(mod => mod.InlineWhiteboard),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-100 rounded-xl animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[400px] bg-[#E8DCC0] rounded-xl animate-pulse" /> }
 );
 
 const InlineDesmos = dynamic(
   () => import('@/components/journal/InlineDesmos').then(mod => mod.InlineDesmos),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-100 rounded-xl animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[400px] bg-[#E8DCC0] rounded-xl animate-pulse" /> }
 );
 
 interface JournalData {
@@ -194,7 +195,7 @@ function ContentWithEmbeds({
         const wb = embeddedWhiteboards.find(w => w.id === id);
         return (
           <div key={`wb-${id}`} className="my-4 group relative">
-            <div className="text-sm text-gray-500 mb-2 flex items-center justify-between">
+            <div className="text-sm text-[#7D6B58] mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PenTool className="h-4 w-4" />
                 <span>Whiteboard</span>
@@ -202,7 +203,7 @@ function ContentWithEmbeds({
               {onDeleteWhiteboard && (
                 <button
                   onClick={() => onDeleteWhiteboard(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-[#9B8B78] hover:text-[#A85535] hover:bg-[#F0DCD0] rounded-lg transition-all"
                   title="Delete whiteboard"
                 >
                   <X className="h-4 w-4" />
@@ -225,7 +226,7 @@ function ContentWithEmbeds({
         const expression = match[2];
         return (
           <div key={`desmos-${id}`} className="my-4 group relative">
-            <div className="text-sm text-gray-500 mb-2 flex items-center justify-between">
+            <div className="text-sm text-[#7D6B58] mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <LineChart className="h-4 w-4" />
                 <span>Desmos Graph</span>
@@ -233,7 +234,7 @@ function ContentWithEmbeds({
               {onDeleteDesmos && (
                 <button
                   onClick={() => onDeleteDesmos(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-[#9B8B78] hover:text-[#A85535] hover:bg-[#F0DCD0] rounded-lg transition-all"
                   title="Delete graph"
                 >
                   <X className="h-4 w-4" />
@@ -256,58 +257,58 @@ const slashCommands = [
   {
     category: 'Build with Agathon',
     items: [
-      { id: 'notes', icon: Sparkles, label: 'Generate notes', color: 'text-teal-700' },
-      { id: 'practice', icon: ClipboardList, label: 'Generate practice problems', color: 'text-gray-600' },
-      { id: 'flashcards', icon: Layers, label: 'Generate flashcards', color: 'text-blue-500' },
-      { id: 'generate-image', icon: ImagePlus, label: 'Generate image', color: 'text-gray-600' },
+      { id: 'notes', icon: Sparkles, label: 'Generate notes', color: 'text-[#1A6B8A]' },
+      { id: 'practice', icon: ClipboardList, label: 'Generate practice problems', color: 'text-[#6B5A48]' },
+      { id: 'flashcards', icon: Layers, label: 'Generate flashcards', color: 'text-[#3A6B9F]' },
+      { id: 'generate-image', icon: ImagePlus, label: 'Generate image', color: 'text-[#6B5A48]' },
     ],
   },
   {
     category: 'Basic editing',
     items: [
-      { id: 'text', icon: Type, label: 'Text', color: 'text-gray-600' },
-      { id: 'h1', icon: Heading1, label: 'Heading 1', color: 'text-gray-600' },
-      { id: 'h2', icon: Heading2, label: 'Heading 2', color: 'text-gray-600' },
-      { id: 'h3', icon: Heading3, label: 'Heading 3', color: 'text-gray-600' },
-      { id: 'bullet', icon: List, label: 'Bullet list', color: 'text-gray-600' },
-      { id: 'numbered', icon: ListOrdered, label: 'Numbered list', color: 'text-gray-600' },
-      { id: 'quote', icon: Quote, label: 'Quote', color: 'text-gray-600' },
-      { id: 'divider', icon: Minus, label: 'Divider', color: 'text-gray-600' },
+      { id: 'text', icon: Type, label: 'Text', color: 'text-[#6B5A48]' },
+      { id: 'h1', icon: Heading1, label: 'Heading 1', color: 'text-[#6B5A48]' },
+      { id: 'h2', icon: Heading2, label: 'Heading 2', color: 'text-[#6B5A48]' },
+      { id: 'h3', icon: Heading3, label: 'Heading 3', color: 'text-[#6B5A48]' },
+      { id: 'bullet', icon: List, label: 'Bullet list', color: 'text-[#6B5A48]' },
+      { id: 'numbered', icon: ListOrdered, label: 'Numbered list', color: 'text-[#6B5A48]' },
+      { id: 'quote', icon: Quote, label: 'Quote', color: 'text-[#6B5A48]' },
+      { id: 'divider', icon: Minus, label: 'Divider', color: 'text-[#6B5A48]' },
     ],
   },
   {
     category: 'Advanced editing',
     items: [
-      { id: 'table', icon: Table, label: 'Table', color: 'text-teal-700' },
-      { id: 'details', icon: ChevronDown, label: 'Details', color: 'text-gray-600' },
-      { id: 'code', icon: Code, label: 'Code block', color: 'text-gray-600' },
-      { id: 'latex', icon: Sigma, label: 'LaTeX block', color: 'text-gray-600' },
+      { id: 'table', icon: Table, label: 'Table', color: 'text-[#1A6B8A]' },
+      { id: 'details', icon: ChevronDown, label: 'Details', color: 'text-[#6B5A48]' },
+      { id: 'code', icon: Code, label: 'Code block', color: 'text-[#6B5A48]' },
+      { id: 'latex', icon: Sigma, label: 'LaTeX block', color: 'text-[#6B5A48]' },
     ],
   },
   {
     category: 'Interactive editing',
     items: [
-      { id: 'whiteboard', icon: PenTool, label: 'Whiteboard', color: 'text-gray-600' },
-      { id: 'desmos', icon: LineChart, label: 'Desmos graph', color: 'text-gray-600' },
-      { id: 'chart', icon: BarChart3, label: 'Chart', color: 'text-gray-600' },
+      { id: 'whiteboard', icon: PenTool, label: 'Whiteboard', color: 'text-[#6B5A48]' },
+      { id: 'desmos', icon: LineChart, label: 'Desmos graph', color: 'text-[#6B5A48]' },
+      { id: 'chart', icon: BarChart3, label: 'Chart', color: 'text-[#6B5A48]' },
     ],
   },
   {
     category: 'Journals',
     items: [
-      { id: 'subjournal', icon: FileText, label: 'Subjournal', color: 'text-gray-600' },
-      { id: 'link-journal', icon: Link, label: 'Link to existing journal', color: 'text-gray-600' },
+      { id: 'subjournal', icon: FileText, label: 'Subjournal', color: 'text-[#6B5A48]' },
+      { id: 'link-journal', icon: Link, label: 'Link to existing journal', color: 'text-[#6B5A48]' },
     ],
   },
   {
     category: 'Media',
     items: [
-      { id: 'video-library', icon: Clapperboard, label: 'Add from Video Library', color: 'text-teal-700' },
-      { id: 'image', icon: Image, label: 'Image', color: 'text-gray-600' },
-      { id: 'audio', icon: AudioLines, label: 'Audio', color: 'text-gray-600' },
-      { id: 'video', icon: Video, label: 'Video', color: 'text-gray-600' },
-      { id: 'youtube', icon: Youtube, label: 'YouTube', color: 'text-gray-600' },
-      { id: 'pdf', icon: FileType, label: 'PDF', color: 'text-gray-600' },
+      { id: 'video-library', icon: Clapperboard, label: 'Add from Video Library', color: 'text-[#1A6B8A]' },
+      { id: 'image', icon: Image, label: 'Image', color: 'text-[#6B5A48]' },
+      { id: 'audio', icon: AudioLines, label: 'Audio', color: 'text-[#6B5A48]' },
+      { id: 'video', icon: Video, label: 'Video', color: 'text-[#6B5A48]' },
+      { id: 'youtube', icon: Youtube, label: 'YouTube', color: 'text-[#6B5A48]' },
+      { id: 'pdf', icon: FileType, label: 'PDF', color: 'text-[#6B5A48]' },
     ],
   },
 ];
@@ -326,6 +327,7 @@ export default function JournalEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Topic prompt modal state
   const [showTopicModal, setShowTopicModal] = useState(false);
@@ -1486,8 +1488,8 @@ export default function JournalEditorPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#FAF9F6]">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      <div className="h-screen flex items-center justify-center bg-[#F2E8D5]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#9B8B78]" />
       </div>
     );
   }
@@ -1496,24 +1498,32 @@ export default function JournalEditorPage() {
   const allCommands = getAllCommands();
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
+    <div className="min-h-screen bg-[#F2E8D5] flex">
+      <JournalSidebar
+        activeJournalId={params.id as string}
+        onCollapseChange={setSidebarCollapsed}
+      />
+      <div className={cn(
+        "flex-1 transition-all duration-300 ease-out min-h-screen",
+        sidebarCollapsed ? "ml-16" : "ml-56"
+      )}>
 
       {/* Topic Prompt Modal */}
       {showTopicModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div 
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-[#3A2E1E] mb-2">
                 {pendingAction === 'Agathon Method' && 'Ask Agathon to teach you'}
                 {pendingAction === 'Flashcards' && 'Create flashcards'}
                 {pendingAction === 'Practice Problems' && 'Generate practice problems'}
                 {pendingAction === 'Notes' && 'Create notes'}
                 {pendingAction === 'Image' && 'Generate an image'}
               </h3>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-[#7D6B58] mb-4">
                 {getActionPromptText(pendingAction || '')}
               </p>
               <input
@@ -1531,24 +1541,24 @@ export default function JournalEditorPage() {
                   }
                 }}
                 placeholder="e.g., Addition, Fractions, Photosynthesis..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#1A6B8A]/30 focus:border-[#2D8BAB] transition-all"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
               <button
                 onClick={() => {
                   setShowTopicModal(false);
                   setPendingAction(null);
                   setTopicInput('');
                 }}
-                className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleTopicSubmit}
                 disabled={!topicInput.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 text-white font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#155A73] text-white font-medium hover:bg-[#0E4A60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Generate
               </button>
@@ -1557,23 +1567,16 @@ export default function JournalEditorPage() {
         </div>
       )}
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4 relative z-[60]">
-        {/* Left - Title */}
+      {/* Header controls */}
+      <header className="flex items-center justify-between px-5 py-4 relative z-[60] border-b border-[#E8DCC0]">
+        {/* Left - Navigation */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/journal')}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="p-1 hover:bg-[#E8DCC0]/50 rounded transition-colors"
           >
-            <Square className="h-5 w-5 text-gray-800 fill-gray-800" strokeWidth={2} />
+            <Square className="h-5 w-5 text-[#4A3728] fill-[#4A3728]" strokeWidth={2} />
           </button>
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            className="text-base font-semibold bg-transparent border-none outline-none text-gray-900 placeholder:text-gray-400 focus:ring-0"
-            placeholder="New Journal"
-          />
         </div>
 
         {/* Center - Chat/Command bar */}
@@ -1588,20 +1591,20 @@ export default function JournalEditorPage() {
                   }
                 }}
                 className={cn(
-                  'flex items-center gap-3 bg-[#C1E5E9] rounded-xl px-3 py-2.5 cursor-pointer',
+                  'flex items-center gap-3 bg-[#C2B280] rounded-xl px-3 py-2.5 cursor-pointer',
                   'transition-all duration-300 ease-out',
                   searchExpanded
-                    ? 'min-w-[600px] bg-[#A8D5DB] shadow-lg rounded-b-none'
-                    : 'min-w-[420px] hover:bg-[#A8D5DB]'
+                    ? 'min-w-[600px] bg-[#B0A06A] shadow-lg rounded-b-none'
+                    : 'min-w-[420px] hover:bg-[#B0A06A]'
                 )}
               >
                 {searchExpanded ? (
                   <>
                     {isChatting ? (
-                      <Loader2 className="h-5 w-5 text-[#0C5E70] flex-shrink-0 animate-spin" />
+                      <Loader2 className="h-5 w-5 text-[#3A2E1E] flex-shrink-0 animate-spin" />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-[#9ED3D9] flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-4 w-4 text-[#0C5E70]" />
+                      <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-4 w-4 text-[#3A2E1E]" />
                       </div>
                     )}
                     <input
@@ -1639,16 +1642,16 @@ export default function JournalEditorPage() {
                         }
                       }}
                       placeholder='Ask anything or type "/" for commands...'
-                      className="flex-1 bg-transparent border-none outline-none text-[#0C5E70] text-sm placeholder:text-[#0C5E70]/60 focus:ring-0"
+                      className="flex-1 bg-transparent border-none outline-none text-[#3A2E1E] text-sm placeholder:text-[#3A2E1E]/60 focus:ring-0"
                       disabled={isChatting}
                     />
                     {chatInput.trim() && !showSlashMenu && (
                       <button
                         onClick={handleChatSubmit}
                         disabled={isChatting}
-                        className="w-7 h-7 rounded-lg bg-[#9ED3D9] flex items-center justify-center hover:bg-[#8CC4CB] transition-colors disabled:opacity-50"
+                        className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center hover:bg-[#908050] transition-colors disabled:opacity-50"
                       >
-                        <ArrowUp className="h-4 w-4 text-[#0C5E70]" />
+                        <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
                       </button>
                     )}
                     {chatMessages.length > 0 && !chatInput.trim() && (
@@ -1660,22 +1663,22 @@ export default function JournalEditorPage() {
                           setChatMessages([]);
                           setPendingContent(null);
                         }}
-                        className="p-1.5 hover:bg-[#0C5E70]/10 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-[#3A2E1E]/10 rounded-lg transition-colors"
                       >
-                        <X className="h-4 w-4 text-[#0C5E70]" />
+                        <X className="h-4 w-4 text-[#3A2E1E]" />
                       </button>
                     )}
                   </>
                 ) : (
                   <>
-                    <div className="w-7 h-7 rounded-lg bg-[#9ED3D9] flex items-center justify-center flex-shrink-0">
-                      <Plus className="h-4 w-4 text-[#0C5E70]" />
+                    <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
+                      <Plus className="h-4 w-4 text-[#3A2E1E]" />
                     </div>
-                    <span className="flex-1 text-[#0C5E70]/70 text-sm transition-opacity duration-500">
+                    <span className="flex-1 text-[#3A2E1E]/70 text-sm transition-opacity duration-500">
                       {placeholderTexts[placeholderIndex]}
                     </span>
-                    <div className="w-7 h-7 rounded-lg bg-[#9ED3D9] flex items-center justify-center flex-shrink-0">
-                      <ArrowUp className="h-4 w-4 text-[#0C5E70]" />
+                    <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
+                      <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
                     </div>
                   </>
                 )}
@@ -1683,15 +1686,15 @@ export default function JournalEditorPage() {
               {/* Chat label below the bar */}
               {!searchExpanded && (
                 <div className="flex items-center justify-center gap-1 mt-1.5">
-                  <span className="text-[#0C5E70]/60 text-xs font-medium">Chat</span>
-                  <ChevronUp className="h-3 w-3 text-[#0C5E70]/60" />
+                  <span className="text-[#3A2E1E]/60 text-xs font-medium">Chat</span>
+                  <ChevronUp className="h-3 w-3 text-[#3A2E1E]/60" />
                 </div>
               )}
             </div>
 
             {/* Chat conversation panel */}
             {searchExpanded && !showSlashMenu && (
-              <div className="absolute top-full left-0 right-0 bg-[#FAF9F6] rounded-b-2xl shadow-xl border border-t-0 border-gray-200/50 overflow-hidden z-[100]">
+              <div className="absolute top-full left-0 right-0 bg-[#F2E8D5] rounded-b-2xl shadow-xl border border-t-0 border-[#CFC0A8]/50 overflow-hidden z-[100]">
                 {/* Chat messages */}
                 <div
                   ref={chatContainerRef}
@@ -1699,43 +1702,43 @@ export default function JournalEditorPage() {
                 >
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-6">
-                      <div className="w-12 h-12 rounded-full bg-[#C1E5E9] flex items-center justify-center mx-auto mb-3">
-                        <Sparkles className="h-5 w-5 text-[#0C5E70]" />
+                      <div className="w-12 h-12 rounded-full bg-[#C2B280] flex items-center justify-center mx-auto mb-3">
+                        <Sparkles className="h-5 w-5 text-[#3A2E1E]" />
                       </div>
-                      <p className="text-sm text-gray-500 mb-1">No messages yet</p>
-                      <p className="text-xs text-gray-400">Ask a question or type "/" for commands</p>
+                      <p className="text-sm text-[#7D6B58] mb-1">No messages yet</p>
+                      <p className="text-xs text-[#9B8B78]">Ask a question or type "/" for commands</p>
                     </div>
                   ) : null}
                   {chatMessages.map((msg, idx) => (
                     <div key={idx}>
                       {msg.role === 'user' ? (
                         <div className="flex justify-end mb-2">
-                          <div className="bg-white text-gray-700 rounded-full px-4 py-1.5 text-sm shadow-sm border border-gray-100">
+                          <div className="bg-[#F7F0E3] text-[#5C4B3A] rounded-full px-4 py-1.5 text-sm shadow-sm border border-[#DFD0B8]">
                             {msg.content}
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-2">
                           <div className="flex gap-2.5">
-                            <div className="w-6 h-6 rounded-full bg-[#C1E5E9] flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <Sparkles className="h-3 w-3 text-[#0C5E70]" />
+                            <div className="w-6 h-6 rounded-full bg-[#C2B280] flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Sparkles className="h-3 w-3 text-[#3A2E1E]" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div
-                                className="text-[13px] text-gray-700 leading-relaxed"
+                                className="text-[13px] text-[#5C4B3A] leading-relaxed"
                                 dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
                               />
                               {/* Action buttons for assistant messages */}
                               <div className="flex items-center gap-2 mt-2">
                                 {msg.written ? (
                                   <>
-                                    <span className="inline-flex items-center gap-1 text-[11px] text-teal-700 font-medium">
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-[#1A6B8A] font-medium">
                                       <Check className="h-3 w-3" />
                                       Written!
                                     </span>
                                     <button
                                       onClick={() => handleReapplyContent(msg.content, idx)}
-                                      className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 font-medium transition-colors"
+                                      className="inline-flex items-center gap-1 text-[11px] text-[#9B8B78] hover:text-[#6B5A48] font-medium transition-colors"
                                     >
                                       <RefreshCw className="h-3 w-3" />
                                       Reapply changes
@@ -1745,14 +1748,14 @@ export default function JournalEditorPage() {
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={handleAcceptContent}
-                                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors font-medium"
+                                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-[#155A73] text-white rounded-md hover:bg-[#0E4A60] transition-colors font-medium"
                                     >
                                       <Check className="h-3 w-3" />
                                       Add to Journal
                                     </button>
                                     <button
                                       onClick={handleDismissContent}
-                                      className="text-[11px] text-gray-400 hover:text-gray-600 font-medium transition-colors"
+                                      className="text-[11px] text-[#9B8B78] hover:text-[#6B5A48] font-medium transition-colors"
                                     >
                                       Dismiss
                                     </button>
@@ -1760,7 +1763,7 @@ export default function JournalEditorPage() {
                                 ) : null}
                                 <button
                                   onClick={() => handleCopyMessage(msg.content)}
-                                  className="inline-flex items-center p-0.5 text-gray-300 hover:text-gray-500 transition-colors ml-auto"
+                                  className="inline-flex items-center p-0.5 text-[#B8A898] hover:text-[#7D6B58] transition-colors ml-auto"
                                   title="Copy to clipboard"
                                 >
                                   <Copy className="h-3 w-3" />
@@ -1774,10 +1777,10 @@ export default function JournalEditorPage() {
                   ))}
                   {isChatting && (
                     <div className="flex gap-2.5">
-                      <div className="w-6 h-6 rounded-full bg-[#C1E5E9] flex items-center justify-center flex-shrink-0">
-                        <Loader2 className="h-3 w-3 text-[#0C5E70] animate-spin" />
+                      <div className="w-6 h-6 rounded-full bg-[#C2B280] flex items-center justify-center flex-shrink-0">
+                        <Loader2 className="h-3 w-3 text-[#3A2E1E] animate-spin" />
                       </div>
-                      <div className="text-[13px] text-gray-400">
+                      <div className="text-[13px] text-[#9B8B78]">
                         Thinking...
                       </div>
                     </div>
@@ -1785,10 +1788,10 @@ export default function JournalEditorPage() {
                 </div>
 
                 {/* Clear chat button at the bottom */}
-                <div className="border-t border-gray-100 px-4 py-2 flex justify-end bg-white/50">
+                <div className="border-t border-[#DFD0B8] px-4 py-2 flex justify-end bg-[#F7F0E3]/50">
                   <button
                     onClick={handleClearChat}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors font-medium"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#BF6B4D] hover:text-[#8E4228] hover:bg-[#F0DCD0] rounded transition-colors font-medium"
                   >
                     <X className="h-3 w-3" />
                     Clear chat
@@ -1799,7 +1802,7 @@ export default function JournalEditorPage() {
 
             {/* Slash Command Menu */}
             {showSlashMenu && searchExpanded && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-white rounded-2xl shadow-2xl border border-gray-200 py-3 max-h-[420px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-[#F7F0E3] rounded-2xl shadow-2xl border border-[#CFC0A8] py-3 max-h-[420px] overflow-y-auto">
                 {slashCommands.map((category, catIndex) => {
                   const filteredItems = category.items.filter(item =>
                     item.label.toLowerCase().includes(slashFilter.toLowerCase())
@@ -1809,7 +1812,7 @@ export default function JournalEditorPage() {
 
                   return (
                     <div key={category.category} className={catIndex > 0 ? 'mt-2' : ''}>
-                      <div className="px-4 py-1.5 text-xs font-medium text-gray-400">
+                      <div className="px-4 py-1.5 text-xs font-medium text-[#9B8B78]">
                         {category.category}
                       </div>
                       {filteredItems.map((item) => {
@@ -1823,19 +1826,19 @@ export default function JournalEditorPage() {
                             onClick={() => executeCommand(item.id)}
                             className={cn(
                               'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
-                              isSelected ? 'bg-[#E0F2F4]' : 'hover:bg-gray-50'
+                              isSelected ? 'bg-[#E8DCC0]' : 'hover:bg-[#F0E4CC]'
                             )}
                           >
                             <Icon className={cn(
                               'h-5 w-5',
-                              isSelected ? 'text-teal-700' :
-                              item.id === 'notes' ? 'text-teal-700' :
-                              item.id === 'flashcards' ? 'text-blue-500' :
-                              'text-gray-400'
+                              isSelected ? 'text-[#1A6B8A]' :
+                              item.id === 'notes' ? 'text-[#1A6B8A]' :
+                              item.id === 'flashcards' ? 'text-[#3A6B9F]' :
+                              'text-[#9B8B78]'
                             )} />
                             <span className={cn(
                               'text-sm',
-                              isSelected ? 'text-teal-700 font-medium' : 'text-gray-700'
+                              isSelected ? 'text-[#1A6B8A] font-medium' : 'text-[#5C4B3A]'
                             )}>
                               {item.label}
                             </span>
@@ -1858,39 +1861,39 @@ export default function JournalEditorPage() {
               className={cn(
                 "p-2.5 rounded-lg transition-colors",
                 proactiveAIEnabled
-                  ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
-                  : "hover:bg-gray-100 text-gray-500"
+                  ? "bg-[#F5E8C8] text-[#A88030] hover:bg-[#EDD8A8]"
+                  : "hover:bg-[#E8DCC0] text-[#7D6B58]"
               )}
               onClick={() => setShowProactiveDropdown(!showProactiveDropdown)}
             >
               <Lightbulb className="h-5 w-5" />
               {isGeneratingSuggestion && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-[#C89B40] rounded-full animate-pulse" />
               )}
             </button>
             {showProactiveDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-[#F7F0E3] rounded-xl shadow-lg border border-[#CFC0A8] p-4 z-50">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-yellow-500" />
-                    <span className="font-medium text-gray-800 text-sm">Proactive AI Mode</span>
+                    <Lightbulb className="h-4 w-4 text-[#C89B40]" />
+                    <span className="font-medium text-[#4A3728] text-sm">Proactive AI Mode</span>
                   </div>
                   <button
                     onClick={() => setProactiveAIEnabled(!proactiveAIEnabled)}
                     className={cn(
                       "relative w-10 h-5 rounded-full transition-colors",
-                      proactiveAIEnabled ? "bg-teal-500" : "bg-gray-300"
+                      proactiveAIEnabled ? "bg-[#1A6B8A]" : "bg-[#B8A898]"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                        "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
                         proactiveAIEnabled ? "translate-x-5" : "translate-x-0.5"
                       )}
                     />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[#7D6B58]">
                   {proactiveAIEnabled
                     ? "AI will suggest helpful additions as you write"
                     : "Enable to get intelligent suggestions while writing"}
@@ -1899,20 +1902,20 @@ export default function JournalEditorPage() {
             )}
           </div>
           <button
-            className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+            className="p-2.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#7D6B58]"
             onClick={() => toast.info('Timer feature coming soon!')}
           >
             <Timer className="h-5 w-5" />
           </button>
           <button
-            className="p-2.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
+            className="p-2.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#7D6B58]"
             onClick={() => toast.info('More options coming soon!')}
           >
             <MoreHorizontal className="h-5 w-5" />
           </button>
           <button
             onClick={() => toast.info('Sharing is coming soon!')}
-            className="ml-2 bg-[#0C5E70] hover:bg-[#0A4D5C] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="ml-2 bg-[#3A2E1E] hover:bg-[#2D2318] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Share
           </button>
@@ -1921,38 +1924,63 @@ export default function JournalEditorPage() {
 
       {/* Main Content Area */}
       <main className="px-8 py-6 max-w-4xl mx-auto">
+        {/* Notes badge */}
+        <div className="mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8DCC0] border border-[#CFC0A8] text-xs font-medium text-[#6B5A48]">
+            <FileText className="h-3 w-3" />
+            Notes
+          </span>
+        </div>
+
+        {/* Large serif title */}
+        <div className="mb-6 flex items-start gap-3">
+          <input
+            type="text"
+            value={title}
+            onChange={handleTitleChange}
+            className="text-4xl font-bold bg-transparent border-none outline-none text-[#3A2E1E] placeholder:text-[#9B8B78] focus:ring-0 w-full"
+            style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
+            placeholder="New Journal"
+          />
+          <button
+            className="mt-2 p-1.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#9B8B78] flex-shrink-0"
+            onClick={() => toast.info('More options coming soon!')}
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        </div>
         {/* Start with section - only show when empty */}
         {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
           <div className="mb-6">
-            <p className="text-sm text-gray-400 mb-3">Start with</p>
+            <p className="text-sm text-[#9B8B78] mb-3">Start with</p>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => handleQuickAction('Agathon Method')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-teal-600" />
+                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-[#155A73]" />
                 </span>
                 Ask Agathon to teach you
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Flashcards')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-blue-500" />
+                <span className="w-6 h-6 rounded-md bg-[#D4E0EC] flex items-center justify-center">
+                  <Layers className="h-4 w-4 text-[#3A6B9F]" />
                 </span>
                 Study with flashcards
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Practice Problems')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-red-500" />
+                <span className="w-6 h-6 rounded-md bg-[#F0DCD0] flex items-center justify-center">
+                  <ClipboardList className="h-4 w-4 text-[#A85535]" />
                 </span>
                 Create practice problems
               </button>
@@ -1968,10 +1996,10 @@ export default function JournalEditorPage() {
               <button
                 onClick={() => handleQuickAction('Agathon Method')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-teal-600" />
+                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-[#155A73]" />
                 </span>
                 Ask Agathon to teach you
               </button>
@@ -1981,15 +2009,15 @@ export default function JournalEditorPage() {
                 className={cn(
                   "inline-flex items-center gap-3 px-5 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50 shadow-sm",
                   activeInlineInput === 'Flashcards'
-                    ? "bg-[#C1E5E9] text-[#0C5E70] border border-[#9ED3D9]"
-                    : "bg-white border border-gray-100 text-gray-700 hover:shadow-md"
+                    ? "bg-[#C2B280] text-[#3A2E1E] border border-[#A09060]"
+                    : "bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] hover:shadow-md"
                 )}
               >
                 <span className={cn(
                   "w-6 h-6 rounded-md flex items-center justify-center",
-                  activeInlineInput === 'Flashcards' ? "bg-[#9ED3D9]" : "bg-blue-50"
+                  activeInlineInput === 'Flashcards' ? "bg-[#A09060]" : "bg-[#D4E0EC]"
                 )}>
-                  <Layers className={cn("h-4 w-4", activeInlineInput === 'Flashcards' ? "text-[#0C5E70]" : "text-blue-500")} />
+                  <Layers className={cn("h-4 w-4", activeInlineInput === 'Flashcards' ? "text-[#3A2E1E]" : "text-[#3A6B9F]")} />
                 </span>
                 Study with flashcards
               </button>
@@ -1999,22 +2027,22 @@ export default function JournalEditorPage() {
                 className={cn(
                   "inline-flex items-center gap-3 px-5 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50 shadow-sm",
                   activeInlineInput === 'Practice Problems'
-                    ? "bg-[#C1E5E9] text-[#0C5E70] border border-[#9ED3D9]"
-                    : "bg-white border border-gray-100 text-gray-700 hover:shadow-md"
+                    ? "bg-[#C2B280] text-[#3A2E1E] border border-[#A09060]"
+                    : "bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] hover:shadow-md"
                 )}
               >
                 <span className={cn(
                   "w-6 h-6 rounded-md flex items-center justify-center",
-                  activeInlineInput === 'Practice Problems' ? "bg-[#9ED3D9]" : "bg-red-50"
+                  activeInlineInput === 'Practice Problems' ? "bg-[#A09060]" : "bg-[#F0DCD0]"
                 )}>
-                  <ClipboardList className={cn("h-4 w-4", activeInlineInput === 'Practice Problems' ? "text-[#0C5E70]" : "text-red-500")} />
+                  <ClipboardList className={cn("h-4 w-4", activeInlineInput === 'Practice Problems' ? "text-[#3A2E1E]" : "text-[#A85535]")} />
                 </span>
                 Create practice problems
               </button>
             </div>
 
             {/* Inline input bubble */}
-            <div className="flex items-center gap-2 bg-[#E0F2F4] rounded-2xl px-4 py-3 border border-[#A8D5DB]">
+            <div className="flex items-center gap-2 bg-[#E8DCC0] rounded-2xl px-4 py-3 border border-[#B0A06A]">
               <input
                 ref={inlineInputRef}
                 type="text"
@@ -2029,12 +2057,12 @@ export default function JournalEditorPage() {
                   }
                 }}
                 placeholder={activeInlineInput === 'Practice Problems' ? 'Generate practice problems...' : 'Study with flashcards...'}
-                className="flex-1 bg-transparent border-none outline-none text-[#0C5E70] text-sm placeholder:text-[#0C5E70]/50 focus:ring-0"
+                className="flex-1 bg-transparent border-none outline-none text-[#3A2E1E] text-sm placeholder:text-[#3A2E1E]/50 focus:ring-0"
                 disabled={isGenerating}
               />
               {/* Count selector for practice problems or flashcards */}
               {(activeInlineInput === 'Practice Problems' || activeInlineInput === 'Flashcards') && (
-                <div className="flex items-center gap-1 bg-white rounded-lg px-2 py-1 border border-gray-200">
+                <div className="flex items-center gap-1 bg-[#F7F0E3] rounded-lg px-2 py-1 border border-[#CFC0A8]">
                   <select
                     value={activeInlineInput === 'Flashcards' ? flashcardCount : practiceCount}
                     onChange={(e) => {
@@ -2044,7 +2072,7 @@ export default function JournalEditorPage() {
                         setPracticeCount(Number(e.target.value));
                       }
                     }}
-                    className="bg-transparent border-none outline-none text-sm text-gray-700 focus:ring-0 pr-1"
+                    className="bg-transparent border-none outline-none text-sm text-[#5C4B3A] focus:ring-0 pr-1"
                   >
                     {[5, 10, 15, 20].map(n => (
                       <option key={n} value={n}>{n}</option>
@@ -2055,9 +2083,9 @@ export default function JournalEditorPage() {
               <button
                 onClick={handleInlineInputSubmit}
                 disabled={!inlineInputValue.trim() || isGenerating}
-                className="w-8 h-8 rounded-lg bg-[#A8D5DB] flex items-center justify-center hover:bg-[#9ED3D9] transition-colors disabled:opacity-50"
+                className="w-8 h-8 rounded-lg bg-[#B0A06A] flex items-center justify-center hover:bg-[#A09060] transition-colors disabled:opacity-50"
               >
-                <ArrowUp className="h-4 w-4 text-[#0C5E70]" />
+                <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
               </button>
             </div>
           </div>
@@ -2070,28 +2098,28 @@ export default function JournalEditorPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-400 text-sm font-medium shadow-sm opacity-50"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#9B8B78] text-sm font-medium shadow-sm opacity-50"
               >
-                <span className="w-6 h-6 rounded-md bg-teal-50/50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-teal-300" />
+                <span className="w-6 h-6 rounded-md bg-[#D4E8F0]/50 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-[#60A0B8]" />
                 </span>
                 Ask Agathon to teach you
               </button>
               <button
                 disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C1E5E9] text-[#0C5E70] border border-[#9ED3D9] text-sm font-medium shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C2B280] text-[#3A2E1E] border border-[#A09060] text-sm font-medium shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-[#9ED3D9] flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-[#0C5E70]" />
+                <span className="w-6 h-6 rounded-md bg-[#A09060] flex items-center justify-center">
+                  <Layers className="h-4 w-4 text-[#3A2E1E]" />
                 </span>
                 Study with flashcards
               </button>
               <button
                 disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-400 text-sm font-medium shadow-sm opacity-50"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#9B8B78] text-sm font-medium shadow-sm opacity-50"
               >
-                <span className="w-6 h-6 rounded-md bg-red-50/50 flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-red-300" />
+                <span className="w-6 h-6 rounded-md bg-[#F0DCD0]/50 flex items-center justify-center">
+                  <ClipboardList className="h-4 w-4 text-[#D08868]" />
                 </span>
                 Create practice problems
               </button>
@@ -2099,13 +2127,13 @@ export default function JournalEditorPage() {
 
             {/* Loading state bubble */}
             <div className="space-y-3">
-              <div className="bg-[#E0F2F4] rounded-3xl border border-[#A8D5DB] overflow-hidden">
+              <div className="bg-[#E8DCC0] rounded-3xl border border-[#B0A06A] overflow-hidden">
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-6 w-6 text-teal-700 animate-spin mr-3" />
-                  <span className="text-teal-800 font-medium">Creating {flashcardCount} flashcards...</span>
+                  <Loader2 className="h-6 w-6 text-[#1A6B8A] animate-spin mr-3" />
+                  <span className="text-[#155A73] font-medium">Creating {flashcardCount} flashcards...</span>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">&quot;{flashcardTopic}&quot;</p>
+              <p className="text-sm text-[#7D6B58]">&quot;{flashcardTopic}&quot;</p>
             </div>
           </div>
         )}
@@ -2120,18 +2148,18 @@ export default function JournalEditorPage() {
                   setFlashcards([]);
                   handleQuickAction('Agathon Method');
                 }}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-teal-50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-teal-600" />
+                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-[#155A73]" />
                 </span>
                 Ask Agathon to teach you
               </button>
               <button
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C1E5E9] text-[#0C5E70] border border-[#9ED3D9] text-sm font-medium shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C2B280] text-[#3A2E1E] border border-[#A09060] text-sm font-medium shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-[#9ED3D9] flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-[#0C5E70]" />
+                <span className="w-6 h-6 rounded-md bg-[#A09060] flex items-center justify-center">
+                  <Layers className="h-4 w-4 text-[#3A2E1E]" />
                 </span>
                 Study with flashcards
               </button>
@@ -2140,10 +2168,10 @@ export default function JournalEditorPage() {
                   setFlashcards([]);
                   handleOpenInlineInput('Practice Problems');
                 }}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-white border border-gray-100 text-gray-700 text-sm font-medium hover:shadow-md transition-all shadow-sm"
+                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all shadow-sm"
               >
-                <span className="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-red-500" />
+                <span className="w-6 h-6 rounded-md bg-[#F0DCD0] flex items-center justify-center">
+                  <ClipboardList className="h-4 w-4 text-[#A85535]" />
                 </span>
                 Create practice problems
               </button>
@@ -2152,10 +2180,10 @@ export default function JournalEditorPage() {
             {/* Flashcard */}
             <div
               onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)}
-              className="bg-[#F5F3EE] rounded-3xl border border-gray-100 min-h-[350px] flex items-center justify-center cursor-pointer hover:shadow-lg transition-all shadow-sm"
+              className="bg-[#F0E4CC] rounded-3xl border border-[#DFD0B8] min-h-[350px] flex items-center justify-center cursor-pointer hover:shadow-lg transition-all shadow-sm"
             >
               <div className="px-12 py-16 text-center max-w-2xl">
-                <p className="text-xl font-medium text-gray-800 leading-relaxed">
+                <p className="text-xl font-medium text-[#4A3728] leading-relaxed">
                   {isFlashcardFlipped
                     ? flashcards[currentFlashcardIndex]?.answer
                     : flashcards[currentFlashcardIndex]?.question}
@@ -2165,27 +2193,27 @@ export default function JournalEditorPage() {
 
             {/* Flashcard Controls */}
             <div className="flex items-center justify-center gap-2">
-              <div className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="flex items-center bg-[#F7F0E3] rounded-xl border border-[#CFC0A8] shadow-sm">
                 <button
                   onClick={handleShuffleFlashcards}
-                  className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-l-xl transition-colors border-r border-gray-200"
+                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] rounded-l-xl transition-colors border-r border-[#CFC0A8]"
                   title="Shuffle"
                 >
                   <Shuffle className="h-4 w-4" />
                 </button>
                 <button
                   onClick={handlePrevFlashcard}
-                  className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] transition-colors border-r border-[#CFC0A8]"
                   title="Previous"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <span className="px-4 py-2 text-sm text-gray-600 font-medium min-w-[80px] text-center">
+                <span className="px-4 py-2 text-sm text-[#6B5A48] font-medium min-w-[80px] text-center">
                   {currentFlashcardIndex + 1} of {flashcards.length}
                 </span>
                 <button
                   onClick={handleNextFlashcard}
-                  className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border-l border-gray-200"
+                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] transition-colors border-l border-[#CFC0A8]"
                   title="Next"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -2193,7 +2221,7 @@ export default function JournalEditorPage() {
               </div>
               <button
                 onClick={handleDeleteFlashcards}
-                className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl border border-gray-200 shadow-sm transition-colors"
+                className="p-2.5 text-[#BF6B4D] hover:text-[#8E4228] hover:bg-[#F0DCD0] rounded-xl border border-[#CFC0A8] shadow-sm transition-colors"
                 title="Delete flashcards"
               >
                 <Trash2 className="h-4 w-4" />
@@ -2206,10 +2234,10 @@ export default function JournalEditorPage() {
         {pendingBlocks.length > 0 && (
           <div className="mb-6 space-y-3">
             {/* Header with Accept All / Deny All */}
-            <div className="flex items-center justify-between bg-[#E0F2F4] rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between bg-[#E8DCC0] rounded-xl px-4 py-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-teal-700" />
-                <span className="text-sm font-medium text-teal-900">
+                <Sparkles className="h-4 w-4 text-[#1A6B8A]" />
+                <span className="text-sm font-medium text-[#0E4A60]">
                   {pendingBlocks.filter(b => b.status === 'pending').length} section{pendingBlocks.filter(b => b.status === 'pending').length !== 1 ? 's' : ''} to review
                 </span>
               </div>
@@ -2217,7 +2245,7 @@ export default function JournalEditorPage() {
                 <button
                   onClick={handleAcceptAllBlocks}
                   disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#155A73] text-white rounded-lg hover:bg-[#0E4A60] transition-colors disabled:opacity-50"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Accept All
@@ -2225,14 +2253,14 @@ export default function JournalEditorPage() {
                 <button
                   onClick={handleDenyAllBlocks}
                   disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#A85535] text-white rounded-lg hover:bg-[#8E4228] transition-colors disabled:opacity-50"
                 >
                   <X className="h-3.5 w-3.5" />
                   Deny All
                 </button>
                 <button
                   onClick={handleClearPendingBlocks}
-                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#E8DCC0] rounded-lg transition-colors"
                   title="Dismiss all"
                 >
                   <X className="h-4 w-4" />
@@ -2247,10 +2275,10 @@ export default function JournalEditorPage() {
                 className={cn(
                   'relative rounded-xl border overflow-hidden transition-all duration-300',
                   block.status === 'pending'
-                    ? 'bg-[#E0F2F4]/50 border-teal-200'
+                    ? 'bg-[#E8DCC0]/50 border-[#A8C8D8]'
                     : block.status === 'accepted'
-                    ? 'bg-teal-50/30 border-teal-100 opacity-60'
-                    : 'bg-red-50/30 border-red-100 opacity-40 line-through'
+                    ? 'bg-[#D4E8F0]/30 border-[#C0D8E8] opacity-60'
+                    : 'bg-[#F0DCD0]/30 border-[#E8C8B8] opacity-40 line-through'
                 )}
               >
                 {/* Left accent bar */}
@@ -2258,10 +2286,10 @@ export default function JournalEditorPage() {
                   className={cn(
                     'absolute left-0 top-0 bottom-0 w-1',
                     block.status === 'pending'
-                      ? 'bg-teal-500'
+                      ? 'bg-[#1A6B8A]'
                       : block.status === 'accepted'
-                      ? 'bg-teal-400'
-                      : 'bg-red-400'
+                      ? 'bg-[#2D8BAB]'
+                      : 'bg-[#BF6B4D]'
                   )}
                 />
 
@@ -2269,17 +2297,17 @@ export default function JournalEditorPage() {
                   <div className="flex items-start gap-3">
                     {/* Plus icon on left */}
                     {block.status === 'pending' && (
-                      <div className="w-5 h-5 rounded bg-teal-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded bg-[#1A6B8A] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Plus className="h-3 w-3 text-white" />
                       </div>
                     )}
                     {block.status === 'accepted' && (
-                      <div className="w-5 h-5 rounded bg-teal-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded bg-[#2D8BAB] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
                     {block.status === 'denied' && (
-                      <div className="w-5 h-5 rounded bg-red-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded bg-[#BF6B4D] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <X className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -2289,7 +2317,7 @@ export default function JournalEditorPage() {
                       <div
                         className={cn(
                           'text-sm leading-relaxed',
-                          block.status === 'denied' ? 'text-gray-400' : 'text-gray-700'
+                          block.status === 'denied' ? 'text-[#9B8B78]' : 'text-[#5C4B3A]'
                         )}
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content.slice(0, 300) + (block.content.length > 300 ? '...' : '')) }}
                       />
@@ -2300,14 +2328,14 @@ export default function JournalEditorPage() {
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                           onClick={() => handleAcceptBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-[#155A73] text-white rounded-lg hover:bg-[#0E4A60] transition-colors"
                         >
                           <Check className="h-3 w-3" />
                           Accept
                         </button>
                         <button
                           onClick={() => handleDenyBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-[#A85535] text-white rounded-lg hover:bg-[#8E4228] transition-colors"
                         >
                           <X className="h-3 w-3" />
                           Deny
@@ -2317,10 +2345,10 @@ export default function JournalEditorPage() {
 
                     {/* Status indicator for processed blocks */}
                     {block.status === 'accepted' && (
-                      <span className="text-xs text-teal-700 font-medium flex-shrink-0">Added</span>
+                      <span className="text-xs text-[#1A6B8A] font-medium flex-shrink-0">Added</span>
                     )}
                     {block.status === 'denied' && (
-                      <span className="text-xs text-red-400 font-medium flex-shrink-0">Removed</span>
+                      <span className="text-xs text-[#BF6B4D] font-medium flex-shrink-0">Removed</span>
                     )}
                   </div>
                 </div>
@@ -2360,26 +2388,26 @@ export default function JournalEditorPage() {
           {/* Proactive AI Suggestion Display */}
           {proactiveSuggestion && proactiveAIEnabled && (
             <div className="mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl border border-yellow-200 p-4 shadow-sm">
+              <div className="bg-gradient-to-r from-[#F5E8C8] to-[#F0E0B8] rounded-2xl border border-[#D8C888] p-4 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="h-4 w-4 text-yellow-600" />
+                  <div className="w-8 h-8 rounded-full bg-[#EDD8A8] flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="h-4 w-4 text-[#A88030]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm text-[#5C4B3A] leading-relaxed whitespace-pre-wrap">
                       {proactiveSuggestion}
                     </p>
                     <div className="flex items-center gap-2 mt-3">
                       <button
                         onClick={handleApplySuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-medium rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#C89B40] hover:bg-[#A88030] text-white text-xs font-medium rounded-lg transition-colors"
                       >
                         <Check className="h-3 w-3" />
                         Add to notes
                       </button>
                       <button
                         onClick={handleDismissSuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-600 text-xs font-medium rounded-lg border border-gray-200 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F7F0E3] hover:bg-[#F0E4CC] text-[#6B5A48] text-xs font-medium rounded-lg border border-[#CFC0A8] transition-colors"
                       >
                         <X className="h-3 w-3" />
                         Dismiss
@@ -2394,9 +2422,9 @@ export default function JournalEditorPage() {
           {/* Proactive AI Generating Indicator */}
           {isGeneratingSuggestion && proactiveAIEnabled && !proactiveSuggestion && (
             <div className="mt-4 animate-in fade-in duration-200">
-              <div className="bg-yellow-50/50 rounded-xl border border-yellow-100 px-4 py-3 flex items-center gap-3">
-                <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />
-                <span className="text-sm text-yellow-700">Thinking of suggestions...</span>
+              <div className="bg-[#F5E8C8]/50 rounded-xl border border-[#E8D8A8] px-4 py-3 flex items-center gap-3">
+                <Loader2 className="h-4 w-4 text-[#C89B40] animate-spin" />
+                <span className="text-sm text-[#8A6820]">Thinking of suggestions...</span>
               </div>
             </div>
           )}
@@ -2405,7 +2433,7 @@ export default function JournalEditorPage() {
 
       {/* Footer */}
       <footer className="fixed bottom-0 right-0 px-6 py-4">
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[#9B8B78]">
           {isSaving ? (
             'Saving...'
           ) : lastSaved ? (
@@ -2420,23 +2448,23 @@ export default function JournalEditorPage() {
       {showYoutubeModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Youtube className="h-5 w-5 text-red-500" />
+                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
+                  <Youtube className="h-5 w-5 text-[#A85535]" />
                   Embed YouTube Video
                 </h3>
                 <button
                   onClick={() => setShowYoutubeModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-[#7D6B58]" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-[#7D6B58] mb-4">
                 Paste a YouTube video URL to embed it in your journal.
               </p>
               <input
@@ -2452,20 +2480,20 @@ export default function JournalEditorPage() {
                   }
                 }}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all"
+                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#A85535]/30 focus:border-[#BF6B4D] transition-all"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
               <button
                 onClick={() => setShowYoutubeModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleYoutubeEmbed}
                 disabled={!youtubeUrl.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#A85535] text-white font-medium hover:bg-[#8E4228] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Embed
               </button>
@@ -2478,24 +2506,24 @@ export default function JournalEditorPage() {
       {showJournalLinkModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Link className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
+                  <Link className="h-5 w-5 text-[#3A6B9F]" />
                   Link to Journal
                 </h3>
                 <button
                   onClick={() => setShowJournalLinkModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-[#7D6B58]" />
                 </button>
               </div>
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B8B78]" />
                 <input
                   type="text"
                   autoFocus
@@ -2510,36 +2538,36 @@ export default function JournalEditorPage() {
                     }
                   }}
                   placeholder="Search journals..."
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#3A6B9F]/30 focus:border-[#5A8BBF] transition-all"
                 />
               </div>
               <div className="max-h-64 overflow-y-auto space-y-2">
                 {searchedJournals.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">No journals found</p>
+                  <p className="text-sm text-[#7D6B58] text-center py-4">No journals found</p>
                 ) : (
                   searchedJournals.map((j) => (
                     <button
                       key={j.id}
                       onClick={() => handleJournalLink(j)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#F0E4CC] transition-colors text-left"
                     >
-                      <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <FileText className="h-5 w-5 text-[#9B8B78] flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{j.title}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-[#3A2E1E] truncate">{j.title}</p>
+                        <p className="text-xs text-[#7D6B58]">
                           {formatDistance(new Date(j.updated_at), new Date(), { addSuffix: true })}
                         </p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
+                      <ExternalLink className="h-4 w-4 text-[#9B8B78]" />
                     </button>
                   ))
                 )}
               </div>
             </div>
-            <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
               <button
                 onClick={() => setShowJournalLinkModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
               >
                 Cancel
               </button>
@@ -2552,23 +2580,23 @@ export default function JournalEditorPage() {
       {showDesmosModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <LineChart className="h-5 w-5 text-teal-600" />
+                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
+                  <LineChart className="h-5 w-5 text-[#155A73]" />
                   Add Desmos Graph
                 </h3>
                 <button
                   onClick={() => setShowDesmosModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-[#7D6B58]" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-[#7D6B58] mb-4">
                 Enter a math expression to graph (e.g., y=x^2, sin(x), etc.)
               </p>
               <input
@@ -2584,20 +2612,20 @@ export default function JournalEditorPage() {
                   }
                 }}
                 placeholder="y = x^2"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-400 transition-all font-mono"
+                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#1A6B8A]/30 focus:border-[#2D8BAB] transition-all font-mono"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
               <button
                 onClick={() => setShowDesmosModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDesmosEmbed}
                 disabled={!desmosExpression.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 text-white font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#155A73] text-white font-medium hover:bg-[#0E4A60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add Graph
               </button>
@@ -2610,25 +2638,25 @@ export default function JournalEditorPage() {
       {showChartModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-purple-500" />
                   Create Chart
                 </h3>
                 <button
                   onClick={() => setShowChartModal(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-[#7D6B58]" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Chart Type</label>
+                  <label className="text-sm font-medium text-[#5C4B3A] mb-2 block">Chart Type</label>
                   <div className="flex gap-2">
                     {(['bar', 'line', 'pie'] as const).map((type) => (
                       <button
@@ -2638,7 +2666,7 @@ export default function JournalEditorPage() {
                           'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                           chartType === type
                             ? 'bg-purple-100 text-purple-700'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-[#E8DCC0] text-[#6B5A48] hover:bg-[#DDD0B0]'
                         )}
                       >
                         {type === 'bar' ? '📊 Bar' : type === 'line' ? '📈 Line' : '🥧 Pie'}
@@ -2647,7 +2675,7 @@ export default function JournalEditorPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Data</label>
+                  <label className="text-sm font-medium text-[#5C4B3A] mb-2 block">Data</label>
                   <textarea
                     value={chartData}
                     onChange={(e) => setChartData(e.target.value)}
@@ -2658,16 +2686,16 @@ export default function JournalEditorPage() {
                     }}
                     placeholder="Label1,10;Label2,20;Label3,30"
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all font-mono text-sm"
+                    className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all font-mono text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Format: Label,Value separated by semicolons</p>
+                  <p className="text-xs text-[#7D6B58] mt-1">Format: Label,Value separated by semicolons</p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
               <button
                 onClick={() => setShowChartModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-gray-600 font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
               >
                 Cancel
               </button>
@@ -2712,6 +2740,7 @@ export default function JournalEditorPage() {
         className="hidden"
         onChange={(e) => handleFileUpload(e, 'pdf')}
       />
+      </div>
     </div>
   );
 }

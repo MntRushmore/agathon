@@ -12,24 +12,24 @@ interface QuickActionPillProps {
 
 const variantStyles = {
   green: {
-    bg: 'bg-[#ECFDF5]',
-    text: 'text-[#065F46]',
-    hover: 'hover:bg-[#D1FAE5]',
+    bg: 'bg-[#D4DFC8]',
+    text: 'text-[#3A5530]',
+    hover: 'hover:bg-[#C4D0B4]',
   },
   pink: {
-    bg: 'bg-[#FDF2F8]',
-    text: 'text-[#9D174D]',
-    hover: 'hover:bg-[#FCE7F3]',
+    bg: 'bg-[#F0DCD0]',
+    text: 'text-[#7A3520]',
+    hover: 'hover:bg-[#E4CCC0]',
   },
   blue: {
-    bg: 'bg-[#EFF6FF]',
-    text: 'text-[#1D4ED8]',
-    hover: 'hover:bg-[#DBEAFE]',
+    bg: 'bg-[#C8D8E8]',
+    text: 'text-[#1A4A7A]',
+    hover: 'hover:bg-[#B8C8D8]',
   },
   orange: {
-    bg: 'bg-[#FFF7ED]',
-    text: 'text-[#9A3412]',
-    hover: 'hover:bg-[#FFEDD5]',
+    bg: 'bg-[#F5E8C8]',
+    text: 'text-[#7A5A15]',
+    hover: 'hover:bg-[#E8D8B0]',
   },
 };
 

@@ -1,9 +1,12 @@
 'use client';
 
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
+import { BubbleMenuPlugin } from '@tiptap/extension-bubble-menu';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
+import Underline from '@tiptap/extension-underline';
+import LinkExtension from '@tiptap/extension-link';
 import MathExtension from '@aarkue/tiptap-math-extension';
 import { Table as TiptapTable } from '@tiptap/extension-table';
 import { TableRow as TiptapTableRow } from '@tiptap/extension-table-row';
@@ -12,7 +15,7 @@ import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header
 import { Extension } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
-import { useEffect, useState, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
@@ -20,7 +23,9 @@ import {
   Heading1, Heading2, Heading3, List, ListOrdered, Code, Quote,
   Sparkles, Layers, ClipboardList, ImagePlus, Type, Minus,
   Table, ChevronDown, Sigma, PenTool, LineChart, BarChart3,
-  FileText, Link, Image, AudioLines, Video, Youtube, FileType
+  FileText, Link as LinkIcon, Image, AudioLines, Video, Youtube, FileType,
+  Bold, Italic, UnderlineIcon, Strikethrough, Link2, Palette,
+  MessageSquare, Wand2, ArrowUpCircle, Volume2, Square as StopIcon, Loader2,
 } from 'lucide-react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
@@ -61,7 +66,7 @@ const slashCommandItems: SlashCommandItem[] = [
   { id: 'chart', label: 'Chart', icon: BarChart3, category: 'Interactive editing', description: 'Data visualization' },
   // Journals
   { id: 'subjournal', label: 'Subjournal', icon: FileText, category: 'Journals', description: 'Create sub-journal' },
-  { id: 'link-journal', label: 'Link to journal', icon: Link, category: 'Journals', description: 'Link existing journal' },
+  { id: 'link-journal', label: 'Link to journal', icon: LinkIcon, category: 'Journals', description: 'Link existing journal' },
   // Media
   { id: 'image', label: 'Image', icon: Image, category: 'Media', description: 'Upload image' },
   { id: 'audio', label: 'Audio', icon: AudioLines, category: 'Media', description: 'Upload audio' },
@@ -134,10 +139,10 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
     let globalIndex = 0;
 
     return (
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
+      <div className="bg-[#F7F0E3] rounded-xl shadow-2xl border border-[#CFC0A8] py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
         {Object.entries(groupedItems).map(([category, categoryItems]) => (
           <div key={category}>
-            <div className="px-3 py-1.5 text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <div className="px-3 py-1.5 text-xs font-medium text-[#9B8B78] uppercase tracking-wider">
               {category}
             </div>
             {categoryItems.map((item) => {
@@ -149,22 +154,22 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
                   onClick={() => selectItem(currentIndex)}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-                    currentIndex === localSelectedIndex ? 'bg-green-50' : 'hover:bg-gray-50'
+                    currentIndex === localSelectedIndex ? 'bg-[#E8DCC0]' : 'hover:bg-[#F0E4CC]'
                   )}
                 >
                   <Icon className={cn(
                     'h-5 w-5 flex-shrink-0',
-                    currentIndex === localSelectedIndex ? 'text-green-600' : 'text-gray-400'
+                    currentIndex === localSelectedIndex ? 'text-[#1A6B8A]' : 'text-[#9B8B78]'
                   )} />
                   <div className="flex-1 min-w-0">
                     <div className={cn(
                       'text-sm font-medium',
-                      currentIndex === localSelectedIndex ? 'text-green-600' : 'text-gray-700'
+                      currentIndex === localSelectedIndex ? 'text-[#1A6B8A]' : 'text-[#5C4B3A]'
                     )}>
                       {item.label}
                     </div>
                     {item.description && (
-                      <div className="text-xs text-gray-400 truncate">
+                      <div className="text-xs text-[#9B8B78] truncate">
                         {item.description}
                       </div>
                     )}
@@ -175,7 +180,7 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
           </div>
         ))}
         {items.length === 0 && (
-          <div className="px-3 py-4 text-sm text-gray-400 text-center">
+          <div className="px-3 py-4 text-sm text-[#9B8B78] text-center">
             No commands found
           </div>
         )}
@@ -320,12 +325,12 @@ export function RichTextEditor({
         },
         codeBlock: {
           HTMLAttributes: {
-            class: 'bg-[#F5F2EB] rounded-lg p-4 my-4 font-mono text-sm overflow-x-auto',
+            class: 'bg-[#EDE3CC] rounded-lg p-4 my-4 font-mono text-sm overflow-x-auto',
           },
         },
         code: {
           HTMLAttributes: {
-            class: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm',
+            class: 'bg-[#E8DCC0] rounded px-1.5 py-0.5 font-mono text-sm',
           },
         },
         bulletList: {
@@ -340,7 +345,7 @@ export function RichTextEditor({
         },
         blockquote: {
           HTMLAttributes: {
-            class: 'border-l-4 border-green-300 pl-4 my-4 italic text-gray-600',
+            class: 'border-l-4 border-[#8DA878] pl-4 my-4 italic text-[#6B5A48]',
           },
         },
       }),
@@ -349,6 +354,13 @@ export function RichTextEditor({
         emptyEditorClass: 'is-editor-empty',
       }),
       Typography,
+      Underline,
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-[#1A6B8A] underline decoration-[#1A6B8A]/40 hover:decoration-[#1A6B8A]',
+        },
+      }),
       MathExtension.configure({
         evaluation: false,
         katexOptions: {
@@ -368,12 +380,12 @@ export function RichTextEditor({
       }),
       TiptapTableHeader.configure({
         HTMLAttributes: {
-          class: 'border border-gray-300 bg-gray-100 px-4 py-2 text-left font-semibold',
+          class: 'border border-[#CFC0A8] bg-[#E8DCC0] px-4 py-2 text-left font-semibold',
         },
       }),
       TiptapTableCell.configure({
         HTMLAttributes: {
-          class: 'border border-gray-300 px-4 py-2',
+          class: 'border border-[#CFC0A8] px-4 py-2',
         },
       }),
       SlashCommands,
@@ -382,14 +394,14 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-gray max-w-none focus:outline-none min-h-[60vh]',
-          'prose-headings:font-bold prose-headings:text-gray-900',
+          'prose max-w-none focus:outline-none min-h-[60vh]',
+          'prose-headings:font-bold prose-headings:text-[#3A2E1E]',
           'prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4',
           'prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3',
           'prose-h3:text-xl prose-h3:mt-4 prose-h3:mb-2',
-          'prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3',
-          'prose-li:text-gray-700',
-          'prose-strong:font-semibold prose-strong:text-gray-900',
+          'prose-p:text-[#5C4B3A] prose-p:leading-relaxed prose-p:my-3',
+          'prose-li:text-[#5C4B3A]',
+          'prose-strong:font-semibold prose-strong:text-[#3A2E1E]',
         ),
       },
       handleClick: (view, pos, event) => {
@@ -484,6 +496,108 @@ export function RichTextEditor({
   });
 
 
+  // Bubble menu ref and plugin setup
+  const bubbleMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!editor || !bubbleMenuRef.current) return;
+
+    const element = bubbleMenuRef.current;
+
+    const plugin = BubbleMenuPlugin({
+      pluginKey: 'bubbleMenu',
+      editor,
+      element,
+      updateDelay: 100,
+      shouldShow: ({ editor: ed, state }) => {
+        const { selection } = state;
+        const { empty } = selection;
+        // Don't show for empty selections or code blocks
+        if (empty || ed.isActive('codeBlock')) return false;
+        return true;
+      },
+    });
+
+    editor.registerPlugin(plugin);
+
+    return () => {
+      editor.unregisterPlugin('bubbleMenu');
+    };
+  }, [editor]);
+
+  // TTS (ElevenLabs) state
+  const [ttsLoading, setTtsLoading] = useState(false);
+  const [ttsPlaying, setTtsPlaying] = useState(false);
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleReadAloud = useCallback(async () => {
+    if (!editor) return;
+
+    // If already playing, stop
+    if (ttsPlaying && ttsAudioRef.current) {
+      ttsAudioRef.current.pause();
+      ttsAudioRef.current.currentTime = 0;
+      setTtsPlaying(false);
+      return;
+    }
+
+    // Get selected text
+    const { from, to } = editor.state.selection;
+    const selectedText = editor.state.doc.textBetween(from, to, ' ');
+    if (!selectedText.trim()) return;
+
+    setTtsLoading(true);
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: selectedText }),
+      });
+
+      if (!res.ok) {
+        throw new Error('TTS request failed');
+      }
+
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Clean up previous audio
+      if (ttsAudioRef.current) {
+        ttsAudioRef.current.pause();
+        URL.revokeObjectURL(ttsAudioRef.current.src);
+      }
+
+      const audio = new Audio(audioUrl);
+      ttsAudioRef.current = audio;
+
+      audio.onended = () => {
+        setTtsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audio.onerror = () => {
+        setTtsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      setTtsPlaying(true);
+    } catch (err) {
+      console.error('TTS error:', err);
+    } finally {
+      setTtsLoading(false);
+    }
+  }, [editor, ttsPlaying]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (ttsAudioRef.current) {
+        ttsAudioRef.current.pause();
+        URL.revokeObjectURL(ttsAudioRef.current.src);
+      }
+    };
+  }, []);
+
   // Update editor content when prop changes externally
   useEffect(() => {
     if (editor && content) {
@@ -501,15 +615,15 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={cn('relative', className)}>
-      {/* Fixed Left Sidebar Toolbar */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-40">
-        <div className="flex flex-col items-center gap-1 bg-white rounded-xl shadow-lg border border-gray-200 p-1.5">
+    <div className={cn('relative flex gap-4', className)}>
+      {/* Left Sidebar Toolbar - sticky within editor */}
+      <div className="sticky top-24 self-start z-40 flex-shrink-0">
+        <div className="flex flex-col items-center gap-1 bg-[#F7F0E3] rounded-xl shadow-lg border border-[#CFC0A8] p-1.5">
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('heading', { level: 1 }) && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('heading', { level: 1 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Heading 1"
           >
@@ -518,8 +632,8 @@ export function RichTextEditor({
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('heading', { level: 2 }) && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('heading', { level: 2 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Heading 2"
           >
@@ -528,19 +642,19 @@ export function RichTextEditor({
           <button
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('heading', { level: 3 }) && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('heading', { level: 3 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Heading 3"
           >
             <Heading3 className="h-4 w-4" />
           </button>
-          <div className="w-5 h-px bg-gray-200 my-1" />
+          <div className="w-5 h-px bg-[#CFC0A8] my-1" />
           <button
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('bulletList') && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('bulletList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Bullet List"
           >
@@ -549,8 +663,8 @@ export function RichTextEditor({
           <button
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('orderedList') && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('orderedList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Numbered List"
           >
@@ -559,8 +673,8 @@ export function RichTextEditor({
           <button
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('blockquote') && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('blockquote') && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Quote"
           >
@@ -569,8 +683,8 @@ export function RichTextEditor({
           <button
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             className={cn(
-              'p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900',
-              editor.isActive('codeBlock') && 'bg-green-50 text-green-600'
+              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
+              editor.isActive('codeBlock') && 'bg-[#D4E8F0] text-[#1A6B8A]'
             )}
             title="Code Block"
           >
@@ -579,12 +693,189 @@ export function RichTextEditor({
         </div>
       </div>
 
+      {/* Editor area */}
+      <div className="flex-1 min-w-0 relative">
+      {/* Bubble Menu - floating toolbar on text selection */}
+      <div
+        ref={bubbleMenuRef}
+        className="flex items-center gap-0.5 bg-[#F7F0E3] rounded-xl shadow-xl border border-[#CFC0A8] px-1.5 py-1 z-50"
+        style={{ visibility: 'hidden', opacity: 0, transition: 'opacity 0.15s ease', position: 'absolute' }}
+      >
+        {/* Comment */}
+        <button
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors"
+          title="Comment"
+        >
+          <MessageSquare className="h-4 w-4" />
+          <span className="text-xs font-medium">Comment</span>
+        </button>
+
+        {/* Generate */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSlashCommand?.('notes');
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-[#3A5530] hover:bg-[#D4DFC8] transition-colors"
+          title="Generate with AI"
+        >
+          <Wand2 className="h-4 w-4" />
+          <span className="text-xs font-medium">Generate</span>
+        </button>
+
+        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
+
+        {/* Font size display */}
+        <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors font-medium">
+          16px
+          <ChevronDown className="h-3 w-3 text-[#9B8B78]" />
+        </button>
+
+        {/* Text type */}
+        <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors font-medium">
+          <Type className="h-3.5 w-3.5" />
+          Text
+          <ChevronDown className="h-3 w-3 text-[#9B8B78]" />
+        </button>
+
+        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
+
+        {/* Bold */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            editor.chain().focus().toggleBold().run();
+          }}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors',
+            editor.isActive('bold')
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title="Bold"
+        >
+          <Bold className="h-4 w-4" strokeWidth={2.5} />
+        </button>
+
+        {/* Italic */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            editor.chain().focus().toggleItalic().run();
+          }}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors',
+            editor.isActive('italic')
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title="Italic"
+        >
+          <Italic className="h-4 w-4" />
+        </button>
+
+        {/* Underline */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            editor.chain().focus().toggleUnderline().run();
+          }}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors',
+            editor.isActive('underline')
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title="Underline"
+        >
+          <UnderlineIcon className="h-4 w-4" />
+        </button>
+
+        {/* Strikethrough */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            editor.chain().focus().toggleStrike().run();
+          }}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors',
+            editor.isActive('strike')
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title="Strikethrough"
+        >
+          <Strikethrough className="h-4 w-4" />
+        </button>
+
+        {/* Link */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            if (editor.isActive('link')) {
+              editor.chain().focus().unsetLink().run();
+            } else {
+              const url = window.prompt('Enter URL:');
+              if (url) {
+                editor.chain().focus().setLink({ href: url }).run();
+              }
+            }
+          }}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors',
+            editor.isActive('link')
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title="Link"
+        >
+          <Link2 className="h-4 w-4" />
+        </button>
+
+        {/* Color */}
+        <button
+          className="p-1.5 rounded-lg text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors"
+          title="Text color"
+        >
+          <Palette className="h-4 w-4" />
+        </button>
+
+        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
+
+        {/* Read Aloud (ElevenLabs TTS) */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handleReadAloud();
+          }}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+            ttsPlaying
+              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
+              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+          )}
+          title={ttsPlaying ? 'Stop reading' : 'Read aloud'}
+          disabled={ttsLoading}
+        >
+          {ttsLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : ttsPlaying ? (
+            <StopIcon className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+          <span className="text-xs font-medium">
+            {ttsLoading ? 'Loading...' : ttsPlaying ? 'Stop' : 'Read'}
+          </span>
+        </button>
+      </div>
+
       {/* Editor Content */}
       <EditorContent editor={editor} />
 
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
-          color: #9ca3af;
+          color: #9B8B78;
           content: attr(data-placeholder);
           float: left;
           height: 0;
@@ -598,7 +889,7 @@ export function RichTextEditor({
         }
         /* TipTap Math Extension styling */
         .Tiptap-mathematics-editor {
-          background: #f5f5f5;
+          background: #EDE3CC;
           border-radius: 4px;
           padding: 2px 6px;
           font-family: 'KaTeX_Math', 'Times New Roman', serif;
@@ -607,7 +898,7 @@ export function RichTextEditor({
           padding: 0 2px;
         }
         .Tiptap-mathematics-editor:focus {
-          outline: 2px solid #22c55e;
+          outline: 2px solid #1A6B8A;
           outline-offset: 1px;
         }
         /* Math nodes - clickable and hoverable */
@@ -618,12 +909,12 @@ export function RichTextEditor({
           transition: background-color 0.15s ease, box-shadow 0.15s ease;
         }
         .tiptap-math.latex:hover {
-          background-color: #e0f2f4;
-          box-shadow: 0 0 0 2px #a8d5db;
+          background-color: #E8DCC0;
+          box-shadow: 0 0 0 2px #B0A06A;
         }
         .ProseMirror .tiptap-math.latex.ProseMirror-selectednode {
-          background-color: #cce8eb;
-          box-shadow: 0 0 0 2px #0d9488;
+          background-color: #D4C8A0;
+          box-shadow: 0 0 0 2px #1A6B8A;
         }
         /* Rendered KaTeX math styling */
         .katex-rendered {
@@ -672,7 +963,7 @@ export function RichTextEditor({
         .ProseMirror table td,
         .ProseMirror table th {
           min-width: 1em;
-          border: 1px solid #d1d5db;
+          border: 1px solid #CFC0A8;
           padding: 8px 12px;
           vertical-align: top;
           box-sizing: border-box;
@@ -681,7 +972,7 @@ export function RichTextEditor({
         .ProseMirror table th {
           font-weight: 600;
           text-align: left;
-          background-color: #f3f4f6;
+          background-color: #E8DCC0;
         }
         .ProseMirror table .selectedCell:after {
           z-index: 2;
@@ -691,7 +982,7 @@ export function RichTextEditor({
           right: 0;
           top: 0;
           bottom: 0;
-          background: rgba(34, 197, 94, 0.2);
+          background: rgba(26, 107, 138, 0.2);
           pointer-events: none;
         }
         .ProseMirror table .column-resize-handle {
@@ -700,13 +991,14 @@ export function RichTextEditor({
           top: 0;
           bottom: -2px;
           width: 4px;
-          background-color: #22c55e;
+          background-color: #1A6B8A;
           pointer-events: none;
         }
         .tableWrapper {
           overflow-x: auto;
         }
       `}</style>
+      </div>
     </div>
   );
 }
