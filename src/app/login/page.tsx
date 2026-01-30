@@ -230,11 +230,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Waitlist notice */}
+          {/* Sign up link */}
           <p className="text-center text-sm text-[#666] mt-6">
             Don&apos;t have an account?{' '}
-            <Link href="/?waitlist=true" className="text-[#1a1a1a] font-medium hover:underline">
-              Join our waitlist!
+            <Link href="/signup" className="text-[#1a1a1a] font-medium hover:underline">
+              Sign up
             </Link>
           </p>
 
