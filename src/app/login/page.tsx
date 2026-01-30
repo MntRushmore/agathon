@@ -256,8 +256,15 @@ export default function LoginPage() {
             </Link>
           </p>
 
+          {/* Beta notice */}
+          <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-800 text-center">
+              Agathon is currently in beta. Security is not guaranteed.
+            </p>
+          </div>
+
           {/* Footer links */}
-          <div className="mt-12 pt-6 border-t border-[#E8E4DC]">
+          <div className="mt-8 pt-6 border-t border-[#E8E4DC]">
             <p className="text-xs text-[#999] text-center">
               By continuing, you agree to our{' '}
               <Link href="/terms" className="text-[#666] hover:underline">
