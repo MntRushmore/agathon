@@ -4,8 +4,6 @@ import { NextRequest } from 'next/server';
 // Credit pack product IDs - check if product is a credit pack
 const creditPackProducts = new Set([
   process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID,
-  process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID,
-  process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID,
 ].filter(Boolean));
 
 const baseCheckout = Checkout({
