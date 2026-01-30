@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { image, originalAnswer, mode = 'both' } = await req.json();
+    const { image, originalAnswer, mode = 'both', conversationHistory, goDeepContext } = await req.json();
 
     if (!image) {
       return NextResponse.json(
@@ -42,6 +42,77 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Follow-up conversation mode — stream responses
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      if (conversationHistory.length > 20) {
+        return NextResponse.json(
+          { error: 'Conversation limit reached. Please start a new Go Deeper session.' },
+          { status: 400 }
+        );
+      }
+
+      const imageData = image.startsWith('data:')
+        ? image.split(',')[1]
+        : image;
+
+      const systemPrompt = `You are a thoughtful, encouraging math tutor continuing a conversation with a student about a problem they're working on.
+
+Here is the analysis you already provided for this problem:
+${goDeepContext || 'No prior analysis available.'}
+
+The student's original answer: ${originalAnswer || 'see the image'}
+
+Guidelines:
+- Be conversational, warm, and encouraging
+- Use LaTeX ($...$) for any math expressions
+- Keep responses focused and concise (2-4 paragraphs max)
+- If the student asks for an example, give a concrete one
+- If they want to try again, guide them without giving the answer directly
+- Ask a follow-up question at the end to keep the learning going
+- Never be condescending or overly verbose`;
+
+      const messages = [
+        {
+          role: 'system' as const,
+          content: systemPrompt,
+        },
+        {
+          role: 'user' as const,
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/png;base64,${imageData}` },
+            },
+            {
+              type: 'text',
+              text: 'This is the problem image for context.',
+            },
+          ],
+        },
+        ...conversationHistory.map((m: { role: string; content: string }) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      ];
+
+      const response = await callHackClubAI({
+        model: 'google/gemini-2.5-flash',
+        messages,
+        stream: true,
+        max_tokens: 1500,
+      });
+
+      // Forward the streaming response
+      return new Response(response.body, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
+    // Initial analysis mode — structured JSON response (existing behavior)
     const prompt = `You are a thoughtful math tutor having a real conversation with a student. Help them understand this problem more deeply.
 
 The student solved this: ${originalAnswer || 'see the image'}

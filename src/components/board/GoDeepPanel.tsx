@@ -1,9 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, Loader2, GripVertical, ChevronDown, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Loader2, GripVertical, ChevronDown, MessageCircle, Send, Lightbulb, BookOpen, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
+
+interface ConversationMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface Step {
   number: number;
@@ -39,9 +45,15 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
   const [isDragging, setIsDragging] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<number>>(new Set());
   const [revealedHints, setRevealedHints] = useState<Set<number>>(new Set());
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [inputValue, setInputValue] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch deeper explanation when panel opens with a new problem
   useEffect(() => {
@@ -58,6 +70,12 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
         setError(null);
         setExpandedQuestions(new Set());
         setRevealedHints(new Set());
+        setConversation([]);
+        setInputValue('');
+        setIsStreaming(false);
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
       }, 5000);
       return () => clearTimeout(timer);
     }
@@ -108,6 +126,142 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
 
   const revealHint = (index: number) => {
     setRevealedHints(prev => new Set(prev).add(index));
+  };
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (conversationEndRef.current) {
+      conversationEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [conversation]);
+
+  // Build context string from initial analysis for the LLM
+  const buildGoDeepContext = useCallback(() => {
+    if (!data) return '';
+    const parts: string[] = [];
+    if (data.steps.length > 0) {
+      parts.push('Steps:\n' + data.steps.map(s => `${s.number}. ${s.explanation}${s.latex ? ` (${s.latex})` : ''}`).join('\n'));
+    }
+    if (data.socraticQuestions.length > 0) {
+      parts.push('Socratic Questions:\n' + data.socraticQuestions.map(q => `- ${typeof q === 'string' ? q : q.question}`).join('\n'));
+    }
+    if (data.conceptsInvolved.length > 0) {
+      parts.push('Concepts: ' + data.conceptsInvolved.join(', '));
+    }
+    return parts.join('\n\n');
+  }, [data]);
+
+  const sendFollowUp = useCallback(async (content: string) => {
+    if (!content.trim() || isStreaming || !problemImage) return;
+
+    const userMsg: ConversationMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: content.trim(),
+    };
+
+    const assistantMsgId = `assistant-${Date.now()}`;
+    const assistantMsg: ConversationMessage = {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+    };
+
+    setConversation(prev => [...prev, userMsg, assistantMsg]);
+    setInputValue('');
+    setIsStreaming(true);
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const history = [...conversation, userMsg].map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const response = await fetch('/api/go-deeper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: problemImage,
+          originalAnswer: originalAnswer || '',
+          conversationHistory: history,
+          goDeepContext: buildGoDeepContext(),
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const d = line.slice(6);
+            if (d === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(d);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullContent += delta;
+                setConversation(prev =>
+                  prev.map(m =>
+                    m.id === assistantMsgId ? { ...m, content: fullContent } : m
+                  )
+                );
+              }
+            } catch {
+              // skip invalid JSON chunks
+            }
+          }
+        }
+      }
+
+      if (!fullContent) {
+        setConversation(prev =>
+          prev.map(m =>
+            m.id === assistantMsgId
+              ? { ...m, content: "I couldn't generate a response. Please try again." }
+              : m
+          )
+        );
+      }
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        setConversation(prev => prev.filter(m => m.id !== assistantMsgId));
+        return;
+      }
+      setConversation(prev =>
+        prev.map(m =>
+          m.id === assistantMsgId
+            ? { ...m, content: 'Sorry, something went wrong. Please try again.' }
+            : m
+        )
+      );
+    } finally {
+      setIsStreaming(false);
+    }
+  }, [isStreaming, problemImage, originalAnswer, conversation, buildGoDeepContext]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendFollowUp(inputValue);
   };
 
   const fetchDeepExplanation = async () => {
@@ -315,6 +469,71 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
             </div>
           )}
 
+          {/* Quick action buttons — shown after initial analysis loads */}
+          {data && conversation.length === 0 && (
+            <div className="pt-3 border-t border-gray-100 space-y-2">
+              <p className="text-xs text-gray-400 font-medium">Keep exploring</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => sendFollowUp('Can you explain this in more detail with an example?')}
+                  disabled={isStreaming}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-full transition-colors disabled:opacity-50"
+                >
+                  <BookOpen className="w-3 h-3" />
+                  Give me an example
+                </button>
+                <button
+                  onClick={() => sendFollowUp('Can you explain the key concept here more simply?')}
+                  disabled={isStreaming}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-full transition-colors disabled:opacity-50"
+                >
+                  <Lightbulb className="w-3 h-3" />
+                  Explain further
+                </button>
+                <button
+                  onClick={() => sendFollowUp('I want to try solving this again. Can you guide me through it step by step without giving the answer?')}
+                  disabled={isStreaming}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-full transition-colors disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Let me try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Conversation messages */}
+          {conversation.length > 0 && (
+            <div className="pt-3 border-t border-gray-100 space-y-3">
+              <p className="text-xs text-gray-400 font-medium">Conversation</p>
+              {conversation.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    "rounded-lg p-3 text-sm",
+                    msg.role === 'user'
+                      ? "bg-violet-50 text-violet-900 ml-6"
+                      : "bg-gray-50 text-gray-700 mr-2"
+                  )}
+                >
+                  <p className="text-[10px] font-medium mb-1 opacity-50">
+                    {msg.role === 'user' ? 'You' : 'Tutor'}
+                  </p>
+                  {msg.content ? (
+                    <LatexRenderer content={msg.content} />
+                  ) : isStreaming && msg.role === 'assistant' ? (
+                    <div className="flex items-center gap-1 py-1">
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+              <div ref={conversationEndRef} />
+            </div>
+          )}
+
           {/* Empty state */}
           {!isLoading && !error && !data && (
             <div className="flex flex-col items-center justify-center py-16 text-center text-gray-300">
@@ -325,6 +544,36 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
           )}
         </div>
       </div>
+
+      {/* Input area — fixed at bottom, shown after initial analysis */}
+      {data && (
+        <div className="border-t border-gray-100 p-3">
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder="Ask a follow-up question..."
+              disabled={isStreaming}
+              rows={1}
+              className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-300 focus:border-violet-300 disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!inputValue.trim() || isStreaming}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-end"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
