@@ -104,7 +104,7 @@ Format EXACTLY like this (use **Front:** and **Back:** on separate lines):
 **Front:** How do you convert $1\\frac{3}{4}$ to an improper fraction?
 **Back:** Multiply whole number by denominator ($1 \\times 4 = 4$), add numerator ($4 + 3 = 7$), result is $\\frac{7}{4}$
 
-[Continue for 8-10 cards covering key concepts]
+[Continue for {count} cards covering key concepts]
 
 RULES:
 - Each card MUST have **Front:** and **Back:** labels
@@ -237,13 +237,18 @@ If the content is too short or unclear to make a meaningful suggestion, respond 
 
 export async function POST(req: NextRequest) {
   try {
-    const { type, content, topic } = await req.json();
+    const { type, content, topic, count } = await req.json();
 
     if (!type || !PROMPTS[type as keyof typeof PROMPTS]) {
       return NextResponse.json({ error: 'Invalid generation type' }, { status: 400 });
     }
 
-    const systemPrompt = PROMPTS[type as keyof typeof PROMPTS];
+    let systemPrompt = PROMPTS[type as keyof typeof PROMPTS];
+
+    // Inject the requested flashcard count into the prompt
+    if (type === 'flashcards' && count) {
+      systemPrompt = systemPrompt.replace('{count}', String(count));
+    }
     const userContent = content || topic || 'General study topic';
 
     // Build the user message based on type
