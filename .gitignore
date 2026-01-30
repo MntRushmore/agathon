@@ -44,3 +44,4 @@ next-env.d.ts
 # Remotion
 remotion-video/node_modules/
 remotion-video/out/
+.env*.local

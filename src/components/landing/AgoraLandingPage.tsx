@@ -89,8 +89,8 @@ export function AgoraLandingPage() {
             {/* Image */}
             <div className="relative w-full h-full overflow-hidden">
               <img
-                src="/landing/garden.jpg"
-                alt="Classical garden scene"
+                src="/landing/AgathonBackground.jpeg"
+                alt="Agathon background"
                 className="w-full h-full object-cover"
               />
               {/* Dark overlay */}

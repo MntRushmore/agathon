@@ -169,17 +169,40 @@ export interface TeacherFeedback {
 }
 
 // Admin types
+export interface InviteCode {
+  id: string;
+  code: string;
+  label: string | null;
+  created_by: string;
+  max_uses: number;
+  current_uses: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InviteCodeUsage {
+  id: string;
+  invite_code_id: string;
+  user_id: string;
+  redeemed_at: string;
+}
+
 export type AdminActionType =
   | 'user_role_change'
   | 'user_delete'
   | 'user_impersonate'
+  | 'invite_code_create'
+  | 'invite_code_deactivate'
+  | 'invite_code_activate'
   | 'content_delete'
   | 'content_modify'
   | 'class_delete'
   | 'assignment_delete'
   | 'board_delete';
 
-export type AdminTargetType = 'user' | 'class' | 'assignment' | 'board' | 'submission';
+export type AdminTargetType = 'user' | 'class' | 'assignment' | 'board' | 'submission' | 'invite_code';
 
 export interface AdminAuditLog {
   id: string;

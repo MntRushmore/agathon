@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -18,11 +19,89 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [loading, setLoading] = useState(false);
+
+  // Invite code state
+  const [inviteCode, setInviteCode] = useState('');
+  const [codeStatus, setCodeStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [codeError, setCodeError] = useState('');
+
   const router = useRouter();
   const supabase = createClient();
 
+  const validateCode = useCallback(async (code: string) => {
+    const cleaned = code.replace(/[-\s]/g, '').toUpperCase();
+    if (cleaned.length < 8) {
+      setCodeStatus('idle');
+      setCodeError('');
+      return;
+    }
+
+    setCodeStatus('validating');
+    setCodeError('');
+
+    try {
+      const res = await fetch('/api/auth/validate-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cleaned }),
+      });
+
+      const data = await res.json();
+      if (data.valid) {
+        setCodeStatus('valid');
+        setCodeError('');
+      } else {
+        setCodeStatus('invalid');
+        setCodeError(data.error || 'Invalid code');
+      }
+    } catch {
+      setCodeStatus('invalid');
+      setCodeError('Failed to validate code');
+    }
+  }, []);
+
+  const handleCodeChange = (value: string) => {
+    // Auto-format with dash
+    const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    let formatted = cleaned;
+    if (cleaned.length > 4) {
+      formatted = `${cleaned.slice(0, 4)}-${cleaned.slice(4, 8)}`;
+    }
+    setInviteCode(formatted);
+    setCodeStatus('idle');
+    setCodeError('');
+
+    // Auto-validate when 8 chars entered
+    if (cleaned.length === 8) {
+      validateCode(cleaned);
+    }
+  };
+
+  const redeemCode = async () => {
+    const cleaned = inviteCode.replace(/[-\s]/g, '').toUpperCase();
+    try {
+      const res = await fetch('/api/auth/redeem-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cleaned }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.error('Failed to redeem invite code:', data.error);
+      }
+    } catch (error) {
+      console.error('Failed to redeem invite code:', error);
+    }
+  };
+
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (codeStatus !== 'valid') {
+      toast.error('Please enter a valid invite code');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,8 +119,9 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
       if (error) throw error;
 
-      // Since email confirmation is disabled, user is automatically signed in
+      // Redeem the invite code after successful signup
       if (data.user && data.session) {
+        await redeemCode();
         toast.success('Account created successfully!');
         onSuccess?.();
         router.push('/');
@@ -58,15 +138,23 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
   };
 
   const handleGoogleSignUp = async () => {
+    if (codeStatus !== 'valid') {
+      toast.error('Please enter a valid invite code first');
+      return;
+    }
+
     setLoading(true);
+
+    // Store code in localStorage for the OAuth callback to redeem
+    const cleaned = inviteCode.replace(/[-\s]/g, '').toUpperCase();
+    localStorage.setItem('agathon_pending_invite_code', cleaned);
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/auth/complete-signup`,
           queryParams: {
-            // Store role preference in state to be used after OAuth callback
             access_type: 'offline',
             prompt: 'consent',
           },
@@ -75,6 +163,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
       if (error) throw error;
     } catch (error) {
+      localStorage.removeItem('agathon_pending_invite_code');
       const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
       toast.error(message);
       setLoading(false);
@@ -84,6 +173,47 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
   return (
     <div className="space-y-4 pt-4">
       <form onSubmit={handleEmailSignUp} className="space-y-4">
+        {/* Invite Code Field */}
+        <div className="space-y-2">
+          <Label htmlFor="inviteCode">Invite Code</Label>
+          <div className="relative">
+            <Input
+              id="inviteCode"
+              type="text"
+              placeholder="XXXX-XXXX"
+              value={inviteCode}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              maxLength={9}
+              required
+              disabled={loading}
+              className={`font-mono text-base tracking-wider pr-10 ${
+                codeStatus === 'valid'
+                  ? 'border-green-500 focus-visible:ring-green-500'
+                  : codeStatus === 'invalid'
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+              }`}
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {codeStatus === 'validating' && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+              {codeStatus === 'valid' && (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              )}
+              {codeStatus === 'invalid' && (
+                <XCircle className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+          </div>
+          {codeError && (
+            <p className="text-xs text-red-500">{codeError}</p>
+          )}
+          {codeStatus === 'valid' && (
+            <p className="text-xs text-green-600">Code verified!</p>
+          )}
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="fullName">Full Name</Label>
           <Input
@@ -93,7 +223,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            disabled={loading}
+            disabled={loading || codeStatus !== 'valid'}
           />
         </div>
         <div className="space-y-2">
@@ -105,7 +235,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={loading}
+            disabled={loading || codeStatus !== 'valid'}
           />
         </div>
         <div className="space-y-2">
@@ -117,7 +247,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={loading}
+            disabled={loading || codeStatus !== 'valid'}
             minLength={6}
           />
           <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
@@ -132,7 +262,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
                 value="student"
                 checked={role === 'student'}
                 onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
-                disabled={loading}
+                disabled={loading || codeStatus !== 'valid'}
                 className="h-4 w-4"
               />
               <span className="text-sm">Student</span>
@@ -144,14 +274,18 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
                 value="teacher"
                 checked={role === 'teacher'}
                 onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
-                disabled={loading}
+                disabled={loading || codeStatus !== 'valid'}
                 className="h-4 w-4"
               />
               <span className="text-sm">Teacher</span>
             </label>
           </div>
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={loading || codeStatus !== 'valid'}
+        >
           {loading ? 'Creating account...' : 'Sign Up'}
         </Button>
       </form>
@@ -170,7 +304,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
         variant="outline"
         className="w-full"
         onClick={handleGoogleSignUp}
-        disabled={loading}
+        disabled={loading || codeStatus !== 'valid'}
       >
         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
           <path

@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { toast } from 'sonner';
-import { Shield, Users, FileText, BarChart3, ChevronLeft } from 'lucide-react';
+import { Shield, Users, FileText, BarChart3, ChevronLeft, Ticket } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ const adminNavItems = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/content', label: 'Content', icon: FileText },
+  { href: '/admin/invite-codes', label: 'Invite Codes', icon: Ticket },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
