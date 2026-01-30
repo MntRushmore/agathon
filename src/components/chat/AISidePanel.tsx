@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 interface AISidePanelProps {
   getCanvasContext: () => CanvasContext | Promise<CanvasContext>;
   className?: string;
-  currentMode?: 'off' | 'quick' | 'feedback' | 'suggest' | 'answer';
+  currentMode?: 'off' | 'feedback' | 'suggest' | 'answer';
 }
 
 export function AISidePanel({ getCanvasContext, className }: AISidePanelProps) {
