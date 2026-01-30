@@ -218,10 +218,15 @@ export default function TeacherDashboardPage() {
         aiAssistsToday = count || 0;
       }
 
-      const { data: strugglingData } = await supabase
-        .from('submissions')
-        .select('id')
-        .eq('is_struggling', true);
+      let strugglingData: { id: string }[] | null = null;
+      if (allAssignments.length > 0) {
+        const { data } = await supabase
+          .from('submissions')
+          .select('id')
+          .in('assignment_id', allAssignments.map(a => a.id))
+          .eq('is_struggling', true);
+        strugglingData = data;
+      }
 
       const activity: RecentActivity[] = [];
 

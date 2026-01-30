@@ -101,9 +101,19 @@ export async function PATCH(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'teacher') {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
     const { indicatorId, resolved } = await req.json();
@@ -114,9 +124,9 @@ export async function PATCH(req: NextRequest) {
 
     const { error } = await supabase
       .from('struggle_indicators')
-      .update({ 
-        resolved, 
-        resolved_at: resolved ? new Date().toISOString() : null 
+      .update({
+        resolved,
+        resolved_at: resolved ? new Date().toISOString() : null
       })
       .eq('id', indicatorId);
 

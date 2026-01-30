@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Users,
   BookOpen,
@@ -17,17 +16,15 @@ import {
   AlertCircle,
   Download,
   RefreshCw,
-  ToggleLeft,
-  ToggleRight,
-  Activity,
-  Clock,
-  Zap,
   Coins,
   Crown,
   Plus,
-  Check,
+  Clock,
+  ArrowRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 
 interface Stats {
   totalUsers: number;
@@ -45,155 +42,103 @@ interface Stats {
   newUsersMonth: number;
 }
 
+interface AuditLogEntry {
+  id: string;
+  admin_id: string;
+  action_type: string;
+  target_type: string;
+  target_id: string;
+  target_details: Record<string, any> | null;
+  created_at: string;
+  admin?: { full_name: string | null; email: string } | null;
+}
+
 export default function AdminDashboardPage() {
   const supabase = createClient();
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [recentActivity, setRecentActivity] = useState<AuditLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingAccount, setUpdatingAccount] = useState(false);
 
-  // Feature flags (mock - would come from database)
-  const [featureFlags, setFeatureFlags] = useState({
-    aiEnabled: true,
-    collaborationEnabled: true,
-    newOnboarding: false,
-    betaFeatures: false,
-  });
+  const loadDashboard = useCallback(async () => {
+    setError(null);
+    try {
+      // Use the stats API endpoint and fetch audit logs in parallel
+      const [statsRes, logsRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/audit-logs?limit=8'),
+      ]);
+
+      if (!statsRes.ok) throw new Error('Failed to load stats');
+
+      const statsData = await statsRes.json();
+
+      setStats({
+        totalUsers: statsData.users.total,
+        totalStudents: statsData.users.students,
+        totalTeachers: statsData.users.teachers,
+        totalAdmins: statsData.users.admins,
+        totalClasses: statsData.content.classes,
+        totalAssignments: statsData.content.assignments,
+        totalBoards: statsData.content.boards,
+        totalSubmissions: statsData.content.submissions,
+        totalAIUsage: statsData.ai.totalInteractions,
+        totalAICost: statsData.ai.estimatedCost,
+        aiByMode: statsData.ai.byMode,
+        newUsersWeek: statsData.growth.newUsersWeek,
+        newUsersMonth: statsData.growth.newUsersMonth,
+      });
+
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        setRecentActivity(logsData.logs || []);
+      }
+    } catch (err) {
+      console.error('Error loading admin dashboard:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (profile && profile.role !== 'admin') {
       router.push('/');
       return;
     }
-
     if (profile?.role === 'admin') {
       loadDashboard();
     }
-  }, [profile, router]);
-
-  const loadDashboard = async () => {
-    setError(null);
-    try {
-      const results = await Promise.allSettled([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'admin'),
-        supabase.from('classes').select('*', { count: 'exact', head: true }),
-        supabase.from('assignments').select('*', { count: 'exact', head: true }),
-        supabase.from('whiteboards').select('*', { count: 'exact', head: true }),
-        supabase.from('submissions').select('*', { count: 'exact', head: true }),
-        supabase.from('ai_usage').select('*', { count: 'exact', head: true }),
-        supabase.from('ai_usage').select('mode'),
-        supabase.from('ai_usage').select('total_cost'),
-      ]);
-
-      const failedQueries = results.filter((r) => r.status === 'rejected');
-      if (failedQueries.length > 0) {
-        console.error('Some queries failed:', failedQueries);
-        setError('Some data could not be loaded. Check database permissions.');
-      }
-
-      const [
-        totalUsersResult,
-        totalStudentsResult,
-        totalTeachersResult,
-        totalAdminsResult,
-        totalClassesResult,
-        totalAssignmentsResult,
-        totalBoardsResult,
-        totalSubmissionsResult,
-        totalAIUsageResult,
-        aiUsageByModeResult,
-        aiCostResult,
-      ] = results;
-
-      const totalUsers = totalUsersResult.status === 'fulfilled' ? totalUsersResult.value.count : 0;
-      const totalStudents = totalStudentsResult.status === 'fulfilled' ? totalStudentsResult.value.count : 0;
-      const totalTeachers = totalTeachersResult.status === 'fulfilled' ? totalTeachersResult.value.count : 0;
-      const totalAdmins = totalAdminsResult.status === 'fulfilled' ? totalAdminsResult.value.count : 0;
-      const totalClasses = totalClassesResult.status === 'fulfilled' ? totalClassesResult.value.count : 0;
-      const totalAssignments = totalAssignmentsResult.status === 'fulfilled' ? totalAssignmentsResult.value.count : 0;
-      const totalBoards = totalBoardsResult.status === 'fulfilled' ? totalBoardsResult.value.count : 0;
-      const totalSubmissions = totalSubmissionsResult.status === 'fulfilled' ? totalSubmissionsResult.value.count : 0;
-      const totalAIUsage = totalAIUsageResult.status === 'fulfilled' ? totalAIUsageResult.value.count : 0;
-      const aiUsageByMode = aiUsageByModeResult.status === 'fulfilled' ? aiUsageByModeResult.value.data : [];
-      const aiCostData = aiCostResult.status === 'fulfilled' ? aiCostResult.value.data : [];
-
-      const totalAICost = (aiCostData || []).reduce((sum, record) => sum + (Number(record.total_cost) || 0), 0);
-
-      const aiByMode = (aiUsageByMode || []).reduce((acc, u) => {
-        acc[u.mode] = (acc[u.mode] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-
-      const growthResults = await Promise.allSettled([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', monthAgo),
-      ]);
-
-      const newUsersWeek = growthResults[0].status === 'fulfilled' ? growthResults[0].value.count : 0;
-      const newUsersMonth = growthResults[1].status === 'fulfilled' ? growthResults[1].value.count : 0;
-
-      setStats({
-        totalUsers: totalUsers ?? 0,
-        totalStudents: totalStudents ?? 0,
-        totalTeachers: totalTeachers ?? 0,
-        totalAdmins: totalAdmins ?? 0,
-        totalClasses: totalClasses ?? 0,
-        totalAssignments: totalAssignments ?? 0,
-        totalBoards: totalBoards ?? 0,
-        totalSubmissions: totalSubmissions ?? 0,
-        totalAIUsage: totalAIUsage ?? 0,
-        totalAICost,
-        aiByMode,
-        newUsersWeek: newUsersWeek ?? 0,
-        newUsersMonth: newUsersMonth ?? 0,
-      });
-    } catch (error) {
-      console.error('Error loading admin dashboard:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [profile, router, loadDashboard]);
 
   if (!profile || loading) {
     return (
       <div className="space-y-6">
-        <div className="h-7 bg-muted rounded w-1/4 animate-pulse" />
+        <div className="h-6 bg-muted w-48 animate-pulse" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
+            <div key={i} className="h-24 bg-muted animate-pulse" />
           ))}
         </div>
       </div>
     );
   }
 
-  if (profile.role !== 'admin') {
-    return null;
-  }
+  if (profile.role !== 'admin') return null;
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadDashboard();
     setRefreshing(false);
-  };
-
-  const toggleFeatureFlag = (flag: keyof typeof featureFlags) => {
-    setFeatureFlags(prev => ({ ...prev, [flag]: !prev[flag] }));
+    toast.success('Dashboard refreshed');
   };
 
   const exportToCSV = () => {
     if (!stats) return;
-
     const csvContent = `Metric,Value
 Total Users,${stats.totalUsers}
 Students,${stats.totalStudents}
@@ -214,9 +159,9 @@ New Users (Month),${stats.newUsersMonth}`;
     a.href = url;
     a.download = `agathon-stats-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
   };
 
-  // Add credits to own account
   const addCredits = async (amount: number) => {
     if (!profile?.id) return;
     setUpdatingAccount(true);
@@ -224,24 +169,18 @@ New Users (Month),${stats.newUsersMonth}`;
       const currentCredits = profile.credits || 0;
       const { error } = await supabase
         .from('profiles')
-        .update({
-          credits: currentCredits + amount,
-          credits_updated_at: new Date().toISOString()
-        })
+        .update({ credits: currentCredits + amount, credits_updated_at: new Date().toISOString() })
         .eq('id', profile.id);
-
       if (error) throw error;
       await refreshProfile();
-      toast.success(`Added ${amount} credits to your account`);
-    } catch (err) {
-      console.error('Error adding credits:', err);
+      toast.success(`Added ${amount} credits`);
+    } catch {
       toast.error('Failed to add credits');
     } finally {
       setUpdatingAccount(false);
     }
   };
 
-  // Set plan tier
   const setPlanTier = async (tier: 'free' | 'premium') => {
     if (!profile?.id) return;
     setUpdatingAccount(true);
@@ -252,16 +191,14 @@ New Users (Month),${stats.newUsersMonth}`;
           plan_tier: tier,
           plan_status: tier === 'premium' ? 'active' : null,
           plan_expires_at: tier === 'premium'
-            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year
-            : null
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+            : null,
         })
         .eq('id', profile.id);
-
       if (error) throw error;
       await refreshProfile();
-      toast.success(tier === 'premium' ? 'Upgraded to Premium!' : 'Switched to Free plan');
-    } catch (err) {
-      console.error('Error updating plan:', err);
+      toast.success(tier === 'premium' ? 'Upgraded to Premium' : 'Switched to Free');
+    } catch {
       toast.error('Failed to update plan');
     } finally {
       setUpdatingAccount(false);
@@ -270,356 +207,223 @@ New Users (Month),${stats.newUsersMonth}`;
 
   const isPremium = profile?.plan_tier === 'premium' && profile?.plan_status === 'active';
 
+  const formatActionType = (type: string) => {
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  const getActionColor = (type: string): string => {
+    if (type.includes('delete')) return 'text-red-600 dark:text-red-400';
+    if (type.includes('create') || type.includes('activate')) return 'text-green-600 dark:text-green-400';
+    if (type.includes('change') || type.includes('modify')) return 'text-blue-600 dark:text-blue-400';
+    if (type.includes('impersonate')) return 'text-amber-600 dark:text-amber-400';
+    return 'text-muted-foreground';
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Overview</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Platform statistics and insights
-          </p>
+          <h1 className="text-xl font-semibold text-foreground">Overview</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">Platform statistics and recent activity</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={2} />
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={exportToCSV}>
-            <Download className="w-4 h-4 mr-2" strokeWidth={2} />
-            Export CSV
+          <Button variant="outline" size="sm" onClick={exportToCSV} className="rounded-none h-8 text-xs">
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            Export
           </Button>
         </div>
       </div>
 
-      {/* My Account Quick Actions */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-          <Crown className="h-4 w-4 text-amber-500" strokeWidth={2} />
-          My Account (Admin Tools)
+      {/* Admin Account Tools */}
+      <div className="bg-card border border-border p-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Account Tools
         </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Current Status */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-lg">
-            <Coins className="w-4 h-4 text-amber-500" strokeWidth={2} />
-            <span className="text-sm font-medium">{profile?.credits || 0} credits</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted text-sm">
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <span className="font-medium">{profile?.credits || 0} credits</span>
           </div>
-          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${isPremium ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted/50'}`}>
-            <Crown className={`w-4 h-4 ${isPremium ? 'text-amber-600' : 'text-muted-foreground'}`} strokeWidth={2} />
-            <span className={`text-sm font-medium ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground'}`}>
-              {isPremium ? 'Premium' : 'Free'}
-            </span>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm ${isPremium ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted'}`}>
+            <Crown className={`w-3.5 h-3.5 ${isPremium ? 'text-amber-600' : 'text-muted-foreground'}`} />
+            <span className="font-medium">{isPremium ? 'Premium' : 'Free'}</span>
           </div>
-
-          <div className="h-6 w-px bg-border mx-1" />
-
-          {/* Add Credits */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => addCredits(100)}
-            disabled={updatingAccount}
-          >
-            <Plus className="w-4 h-4 mr-1.5" strokeWidth={2} />
-            +100 Credits
+          <div className="h-5 w-px bg-border mx-1" />
+          <Button variant="outline" size="sm" onClick={() => addCredits(100)} disabled={updatingAccount} className="rounded-none h-7 text-xs">
+            <Plus className="w-3 h-3 mr-1" />+100
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => addCredits(1000)}
-            disabled={updatingAccount}
-          >
-            <Plus className="w-4 h-4 mr-1.5" strokeWidth={2} />
-            +1000 Credits
+          <Button variant="outline" size="sm" onClick={() => addCredits(1000)} disabled={updatingAccount} className="rounded-none h-7 text-xs">
+            <Plus className="w-3 h-3 mr-1" />+1000
           </Button>
-
-          <div className="h-6 w-px bg-border mx-1" />
-
-          {/* Toggle Plan */}
+          <div className="h-5 w-px bg-border mx-1" />
           {isPremium ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPlanTier('free')}
-              disabled={updatingAccount}
-            >
+            <Button variant="outline" size="sm" onClick={() => setPlanTier('free')} disabled={updatingAccount} className="rounded-none h-7 text-xs">
               Switch to Free
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => setPlanTier('premium')}
-              disabled={updatingAccount}
-              className="bg-amber-600 hover:bg-amber-700 text-white border-0"
-            >
-              <Crown className="w-4 h-4 mr-1.5" strokeWidth={2} />
+            <Button size="sm" onClick={() => setPlanTier('premium')} disabled={updatingAccount} className="rounded-none h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white border-0">
+              <Crown className="w-3 h-3 mr-1" />
               Make Premium
             </Button>
           )}
         </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Error */}
       {error && (
-        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+        <div className="bg-destructive/5 border border-destructive/20 p-4 flex items-start gap-3">
+          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-destructive">Database Error</p>
-            <p className="text-sm text-muted-foreground mt-1">{error}</p>
+            <p className="text-sm font-medium text-destructive">Error</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{error}</p>
           </div>
         </div>
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Users</p>
-              <p className="text-2xl font-semibold mt-1">{stats?.totalUsers}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+        {[
+          { label: 'Total Users', value: stats?.totalUsers, sub: `${stats?.totalStudents} students, ${stats?.totalTeachers} teachers`, icon: Users },
+          { label: 'Classes', value: stats?.totalClasses, sub: `${stats?.totalAssignments} assignments`, icon: BookOpen },
+          { label: 'AI Requests', value: stats?.totalAIUsage, sub: `$${(stats?.totalAICost || 0).toFixed(2)} est. cost`, icon: Sparkles },
+          { label: 'New This Week', value: `+${stats?.newUsersWeek}`, sub: `${stats?.newUsersMonth} this month`, icon: TrendingUp },
+        ].map((metric) => (
+          <div key={metric.label} className="bg-card p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{metric.label}</p>
+                <p className="text-2xl font-semibold mt-1.5 tabular-nums">{metric.value ?? '—'}</p>
+              </div>
+              <metric.icon className="h-4 w-4 text-muted-foreground/50" />
             </div>
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <Users className="h-5 w-5 text-muted-foreground" />
-            </div>
+            <p className="text-xs text-muted-foreground mt-2">{metric.sub}</p>
           </div>
-          <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-            <span>{stats?.totalStudents} students</span>
-            <span>{stats?.totalTeachers} teachers</span>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Classes</p>
-              <p className="text-2xl font-semibold mt-1">{stats?.totalClasses}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            {stats?.totalAssignments} assignments
-          </p>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">AI Requests</p>
-              <p className="text-2xl font-semibold mt-1">{stats?.totalAIUsage}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            ${(stats?.totalAICost || 0).toFixed(2)} total cost
-          </p>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">New This Week</p>
-              <p className="text-2xl font-semibold mt-1">+{stats?.newUsersWeek}</p>
-            </div>
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-3">
-            {stats?.newUsersMonth} this month
-          </p>
-        </div>
+        ))}
       </div>
 
-      {/* Secondary Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* AI Usage Breakdown */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
-            AI Usage by Mode
-          </h2>
+        <div className="bg-card border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">AI Usage by Mode</h2>
+            <Link href="/admin/analytics" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Details <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
           <div className="space-y-3">
             {Object.entries(stats?.aiByMode || {}).length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">No AI usage data yet</p>
-              </div>
+              <p className="text-sm text-muted-foreground py-6 text-center">No AI usage data yet</p>
             ) : (
-              Object.entries(stats?.aiByMode || {}).map(([mode, count]) => (
-                <div key={mode} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="capitalize text-foreground">{mode}</span>
-                    <span className="text-muted-foreground">{count}</span>
+              Object.entries(stats?.aiByMode || {})
+                .sort(([, a], [, b]) => b - a)
+                .map(([mode, count]) => (
+                  <div key={mode} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="capitalize font-medium">{mode}</span>
+                      <span className="text-muted-foreground tabular-nums">{count}</span>
+                    </div>
+                    <div className="h-1 bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-foreground/70"
+                        style={{ width: `${Math.min(100, (count / (stats?.totalAIUsage || 1)) * 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{ width: `${Math.min(100, (count / (stats?.totalAIUsage || 1)) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))
+                ))
             )}
           </div>
         </div>
 
-        {/* Content Stats */}
-        <div className="bg-card border border-border rounded-xl p-5">
-          <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
-            <Layout className="h-4 w-4 text-muted-foreground" />
-            Content Overview
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                  <Layout className="h-4 w-4 text-muted-foreground" />
+        {/* Content Overview */}
+        <div className="bg-card border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Content</h2>
+            <Link href="/admin/content" className="text-xs text-primary hover:underline flex items-center gap-1">
+              Manage <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-border">
+            {[
+              { label: 'Whiteboards', value: stats?.totalBoards, icon: Layout },
+              { label: 'Submissions', value: stats?.totalSubmissions, icon: FileText },
+              { label: 'Assignments', value: stats?.totalAssignments, icon: BookOpen },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{item.label}</span>
                 </div>
-                <span className="text-sm text-foreground">Whiteboards</span>
+                <span className="text-sm font-medium tabular-nums">{item.value ?? '—'}</span>
               </div>
-              <span className="text-sm font-medium">{stats?.totalBoards}</span>
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className="text-sm text-foreground">Submissions</span>
-              </div>
-              <span className="text-sm font-medium">{stats?.totalSubmissions}</span>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className="text-sm text-foreground">Assignments</span>
-              </div>
-              <span className="text-sm font-medium">{stats?.totalAssignments}</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Feature Flags */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-          <Zap className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-          Feature Flags
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(featureFlags).map(([key, enabled]) => (
-            <div key={key} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+      {/* Recent Activity (Real data from audit logs) */}
+      <div className="bg-card border border-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Activity</h2>
+          <Link href="/admin/logs" className="text-xs text-primary hover:underline flex items-center gap-1">
+            All Logs <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+        {recentActivity.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">No recorded activity yet</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {recentActivity.map((log) => (
+              <div key={log.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${getActionColor(log.action_type)}`}>
+                      {formatActionType(log.action_type)}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] rounded-none h-5 px-1.5">
+                      {log.target_type}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                    {log.admin?.full_name || log.admin?.email || 'System'} &middot;{' '}
+                    {log.target_details?.email || log.target_details?.name || log.target_details?.code || log.target_id.slice(0, 8)}
+                  </p>
+                </div>
+                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Navigation */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border border border-border">
+        {[
+          { href: '/admin/users', label: 'User Management', desc: 'Manage users and roles', icon: Users },
+          { href: '/admin/content', label: 'Content', desc: 'Review and moderate', icon: FileText },
+          { href: '/admin/analytics', label: 'Analytics', desc: 'Trends and engagement', icon: TrendingUp },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="bg-card p-5 hover:bg-accent transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               <div>
-                <p className="text-sm font-medium text-foreground capitalize">
-                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {enabled ? 'Enabled' : 'Disabled'}
-                </p>
+                <p className="text-sm font-medium">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
               </div>
-              <button
-                onClick={() => toggleFeatureFlag(key as keyof typeof featureFlags)}
-                className="text-primary hover:opacity-80 transition-opacity"
-              >
-                {enabled ? (
-                  <ToggleRight className="w-8 h-8" strokeWidth={1.5} />
-                ) : (
-                  <ToggleLeft className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
-                )}
-              </button>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={() => router.push('/admin/users')}
-          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-              <Users className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">User Management</p>
-              <p className="text-xs text-muted-foreground">View and manage users</p>
-            </div>
-          </div>
-        </button>
-        <button
-          onClick={() => router.push('/admin/content')}
-          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-              <FileText className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Content Moderation</p>
-              <p className="text-xs text-muted-foreground">Review flagged content</p>
-            </div>
-          </div>
-        </button>
-        <button
-          onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
-          className="p-5 bg-card border border-border rounded-xl hover:border-primary/30 transition-colors text-left group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-              <Activity className="h-5 w-5 text-muted-foreground group-hover:text-primary" strokeWidth={2} />
-            </div>
-            <div>
-              <p className="font-semibold text-foreground">Database Console</p>
-              <p className="text-xs text-muted-foreground">Open Supabase dashboard</p>
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Activity Feed - Placeholder */}
-      <div className="bg-card border border-border rounded-xl p-5">
-        <h2 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-          Recent Activity
-        </h2>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <Users className="w-4 h-4 text-green-600 dark:text-green-400" strokeWidth={2} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-foreground">New user signup</p>
-              <p className="text-xs text-muted-foreground">2 minutes ago</p>
-            </div>
-            <Badge variant="secondary" className="text-xs">User</Badge>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" strokeWidth={2} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-foreground">AI usage spike detected</p>
-              <p className="text-xs text-muted-foreground">15 minutes ago</p>
-            </div>
-            <Badge variant="secondary" className="text-xs">AI</Badge>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" strokeWidth={2} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-foreground">New class created</p>
-              <p className="text-xs text-muted-foreground">1 hour ago</p>
-            </div>
-            <Badge variant="secondary" className="text-xs">Class</Badge>
-          </div>
-        </div>
+          </Link>
+        ))}
       </div>
     </div>
   );

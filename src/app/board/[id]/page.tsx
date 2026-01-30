@@ -13,7 +13,7 @@ import {
   Box,
 } from "tldraw";
 import { toRichText } from "@tldraw/tlschema";
-import React, { useCallback, useState, useRef, useEffect, type ReactElement } from "react";
+import React, { useCallback, useState, useRef, useEffect, useMemo, type ReactElement } from "react";
 import "tldraw/tldraw.css";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -700,7 +700,7 @@ function VoiceAgentControls({
   );
 }
 
-function TeacherAIIndicator({ editor }: { editor: any }) {
+function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShapeCount?: (count: number) => void }) {
   const [aiShapes, setAiShapes] = useState<any[]>([]);
   const [showLegend, setShowLegend] = useState(true);
 
@@ -711,21 +711,13 @@ function TeacherAIIndicator({ editor }: { editor: any }) {
       const shapes = editor.getCurrentPageShapes();
       const aiGenerated = shapes.filter((s: any) => s.meta?.aiGenerated);
       setAiShapes(aiGenerated);
-
-      aiGenerated.forEach((shape: any) => {
-        if (shape.opacity === 1) {
-          editor.updateShape({
-            id: shape.id,
-            opacity: 0.85,
-          });
-        }
-      });
+      onAIShapeCount?.(aiGenerated.length);
     };
 
     updateAIShapes();
     const dispose = editor.store.listen(updateAIShapes, { source: 'all', scope: 'document' });
     return () => dispose();
-  }, [editor]);
+  }, [editor, onAIShapeCount]);
 
   const aiStats = {
     total: aiShapes.length,
@@ -734,10 +726,61 @@ function TeacherAIIndicator({ editor }: { editor: any }) {
     answer: aiShapes.filter((s: any) => s.meta?.aiMode === 'answer').length,
   };
 
+  // Generate CSS rules to highlight AI shapes with purple outlines
+  const cssRules = useMemo(() => {
+    if (aiShapes.length === 0) return '';
+
+    const rules: string[] = [];
+
+    rules.push(`
+      @keyframes ai-pulse-glow {
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(147, 51, 234, 0.5); }
+        50% { box-shadow: 0 0 16px 4px rgba(147, 51, 234, 0.7); }
+      }
+    `);
+
+    aiShapes.forEach((shape: any) => {
+      const mode = shape.meta?.aiMode || 'feedback';
+      const selector = `.tl-shape[data-shape-id="${shape.id}"]`;
+
+      switch (mode) {
+        case 'suggest':
+          rules.push(`${selector} {
+            outline: 2px solid rgba(147, 51, 234, 0.7) !important;
+            outline-offset: 3px;
+            box-shadow: 0 0 8px 1px rgba(147, 51, 234, 0.3);
+            border-radius: 4px;
+          }`);
+          break;
+        case 'answer':
+          rules.push(`${selector} {
+            outline: 3px solid rgba(126, 34, 206, 0.85) !important;
+            outline-offset: 3px;
+            animation: ai-pulse-glow 2s ease-in-out infinite;
+            border-radius: 4px;
+          }`);
+          break;
+        default:
+          // feedback and other modes get subtle dashed outline
+          rules.push(`${selector} {
+            outline: 2px dashed rgba(168, 85, 247, 0.6) !important;
+            outline-offset: 3px;
+            border-radius: 4px;
+          }`);
+      }
+    });
+
+    return rules.join('\n');
+  }, [aiShapes]);
+
   if (aiShapes.length === 0 && !showLegend) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-[11000]">
+      {cssRules && (
+        <style dangerouslySetInnerHTML={{ __html: cssRules }} />
+      )}
+
       {showLegend && (
         <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 mb-2 max-w-xs">
           <div className="flex items-center justify-between mb-3">
@@ -749,7 +792,7 @@ function TeacherAIIndicator({ editor }: { editor: any }) {
               <Cancel01Icon size={16} />
             </button>
           </div>
-          
+
           {aiShapes.length === 0 ? (
             <p className="text-sm text-muted-foreground">No AI assistance was used on this submission.</p>
           ) : (
@@ -757,34 +800,43 @@ function TeacherAIIndicator({ editor }: { editor: any }) {
               <p className="text-sm text-muted-foreground">
                 Student used AI assistance <span className="font-semibold text-foreground">{aiStats.total}</span> time{aiStats.total !== 1 ? 's' : ''}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-1.5">
                 {aiStats.feedback > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    {aiStats.feedback} Light Hint{aiStats.feedback !== 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-5 border-t-2 border-dashed border-purple-400" />
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      {aiStats.feedback} Light Hint{aiStats.feedback !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-muted-foreground">Dashed outline</span>
+                  </div>
                 )}
                 {aiStats.suggest > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    {aiStats.suggest} Guided Hint{aiStats.suggest !== 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-5 border-t-2 border-solid border-purple-500" />
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      {aiStats.suggest} Guided Hint{aiStats.suggest !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-muted-foreground">Solid outline + glow</span>
+                  </div>
                 )}
                 {aiStats.answer > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-red-100 text-red-700">
-                    <span className="w-2 h-2 rounded-full bg-red-500" />
-                    {aiStats.answer} Solution{aiStats.answer !== 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="w-5 border-t-[3px] border-solid border-purple-700" />
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                      {aiStats.answer} Solution{aiStats.answer !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-muted-foreground">Thick outline + pulse</span>
+                  </div>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                AI-generated content appears slightly faded on the canvas.
+                AI-generated content is outlined in purple on the canvas.
               </p>
             </div>
           )}
         </div>
       )}
-      
+
       {!showLegend && aiShapes.length > 0 && (
         <button
           onClick={() => setShowLegend(true)}
@@ -2093,35 +2145,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     };
   }, [editor, id]);
 
-  // Count AI-generated shapes for teacher view
+  // AI shape count for teacher view (set via TeacherAIIndicator callback)
   const [aiShapeCount, setAiShapeCount] = useState(0);
-
-  // Track AI-generated shapes when teacher is viewing
-  useEffect(() => {
-    if (!editor || !isTeacherViewing) return;
-
-    const countAiShapes = () => {
-      const shapes = editor.getCurrentPageShapes();
-      const aiShapes = shapes.filter((shape: any) => shape.meta?.aiGenerated === true);
-      setAiShapeCount(aiShapes.length);
-
-      // Highlight AI-generated shapes with a purple border effect
-      aiShapes.forEach((shape: any) => {
-        // We can't directly modify the shape's visual appearance,
-        // but we can use a custom CSS approach or just count them
-      });
-    };
-
-    countAiShapes();
-
-    // Listen for store changes to update count
-    const dispose = editor.store.listen(countAiShapes, {
-      source: 'all',
-      scope: 'document'
-    });
-
-    return () => dispose();
-  }, [editor, isTeacherViewing]);
 
   return (
     <>
@@ -2155,12 +2180,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       {/* AI Content Stats for Teachers */}
       {isTeacherViewing && aiShapeCount > 0 && (
         <div className="fixed bottom-4 left-4 z-[1000] ios-safe-bottom ios-safe-left">
-          <div className="bg-purple-100 border border-purple-300 rounded-lg shadow-sm px-4 py-3">
+          <div className="bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-lg shadow-sm px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-3 h-3 rounded-full bg-purple-500" />
-              <span className="text-sm font-semibold text-purple-800">AI Usage Detected</span>
+              <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">AI Usage Detected</span>
             </div>
-            <p className="text-xs text-purple-700">
+            <p className="text-xs text-purple-700 dark:text-purple-400">
               {aiShapeCount} AI-generated {aiShapeCount === 1 ? 'element' : 'elements'} on this canvas
             </p>
           </div>
@@ -2345,7 +2370,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
           {/* AI Content Indicator for Teacher View */}
           {isTeacherViewing && editor && (
-            <TeacherAIIndicator editor={editor} />
+            <TeacherAIIndicator editor={editor} onAIShapeCount={setAiShapeCount} />
           )}
 
           {/* Onboarding overlay - shows on first visit, dismisses when drawing starts */}

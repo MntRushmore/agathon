@@ -4,7 +4,16 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { toast } from 'sonner';
-import { Shield, Users, FileText, BarChart3, ChevronLeft, Ticket } from 'lucide-react';
+import {
+  Shield,
+  Users,
+  FileText,
+  BarChart3,
+  ChevronLeft,
+  Ticket,
+  Activity,
+  ScrollText,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,7 +22,9 @@ const adminNavItems = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/content', label: 'Content', icon: FileText },
+  { href: '/admin/analytics', label: 'Analytics', icon: Activity },
   { href: '/admin/invite-codes', label: 'Invite Codes', icon: Ticket },
+  { href: '/admin/logs', label: 'System Logs', icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -49,8 +60,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Verifying access...</p>
+          <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin" />
+          <p className="mt-4 text-sm text-muted-foreground">Verifying access...</p>
         </div>
       </div>
     );
@@ -62,15 +73,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Impersonation Banner */}
       {isImpersonating && (
-        <div className="bg-amber-100 border-b border-amber-200 text-amber-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-4">
-          <span>You are viewing as another user</span>
+        <div className="bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-4">
+          <span>Impersonating another user</span>
           <Button
             variant="outline"
             size="sm"
             onClick={stopImpersonation}
-            className="border-amber-300 hover:bg-amber-50"
+            className="border-white/40 text-white hover:bg-white/10 rounded-none h-7 text-xs"
           >
             Exit
           </Button>
@@ -79,21 +89,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-56 border-r border-border min-h-screen bg-card fixed left-0 top-0 flex flex-col">
-          {/* Header */}
-          <div className="p-4 border-b border-border">
+        <aside className="w-52 border-r border-border min-h-screen bg-card fixed left-0 top-0 flex flex-col">
+          <div className="px-4 py-5 border-b border-border">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
-                <Shield className="h-4 w-4 text-background" />
+              <div className="w-7 h-7 bg-foreground flex items-center justify-center">
+                <Shield className="h-3.5 w-3.5 text-background" />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Admin</p>
-              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground">Admin Panel</span>
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-3 space-y-1">
+          <nav className="flex-1 py-2">
             {adminNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -101,10 +107,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium transition-colors border-r-2',
                     isActive
-                      ? 'bg-accent text-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      ? 'bg-accent text-foreground border-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground border-transparent'
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -114,11 +120,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          {/* Back to App */}
-          <div className="p-3 border-t border-border">
+          <div className="border-t border-border">
             <Link
               href="/"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Back to App
@@ -127,8 +132,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 ml-56">
-          <div className="max-w-6xl mx-auto p-8">{children}</div>
+        <main className="flex-1 ml-52">
+          <div className="max-w-[1100px] mx-auto px-8 py-8">{children}</div>
         </main>
       </div>
     </div>

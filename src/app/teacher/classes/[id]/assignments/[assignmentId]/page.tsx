@@ -338,30 +338,30 @@ export default function AssignmentDetailPage() {
                 <div className="text-xs text-muted-foreground">Total Students</div>
               </CardContent>
             </Card>
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-green-500/10 border-green-500/20">
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-green-600">{stats.submitted}</div>
-                <div className="text-xs text-green-600">Submitted</div>
+                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.submitted}</div>
+                <div className="text-xs text-green-600 dark:text-green-400">Submitted</div>
               </CardContent>
             </Card>
-            <Card className="bg-yellow-50 border-yellow-200">
+            <Card className="bg-yellow-500/10 border-yellow-500/20">
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-yellow-600">{stats.inProgress}</div>
-                <div className="text-xs text-yellow-600">In Progress</div>
+                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.inProgress}</div>
+                <div className="text-xs text-yellow-600 dark:text-yellow-400">In Progress</div>
               </CardContent>
             </Card>
-            <Card className="bg-gray-50 border-gray-200">
+            <Card className="bg-muted/50 border-muted">
               <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-gray-600">{stats.notStarted}</div>
-                <div className="text-xs text-gray-600">Not Started</div>
+                <div className="text-3xl font-bold text-muted-foreground">{stats.notStarted}</div>
+                <div className="text-xs text-muted-foreground">Not Started</div>
               </CardContent>
             </Card>
-            <Card className={stats.struggling > 0 ? 'bg-red-50 border-red-200' : 'bg-muted/50 border-0'}>
+            <Card className={stats.struggling > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-muted/50 border-0'}>
               <CardContent className="p-4 text-center">
-                <div className={`text-3xl font-bold ${stats.struggling > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <div className={`text-3xl font-bold ${stats.struggling > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                   {stats.struggling}
                 </div>
-                <div className={`text-xs ${stats.struggling > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                <div className={`text-xs ${stats.struggling > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                   Need Help
                 </div>
               </CardContent>
