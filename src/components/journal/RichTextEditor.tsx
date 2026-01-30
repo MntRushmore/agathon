@@ -24,8 +24,8 @@ import {
   Sparkles, Layers, ClipboardList, ImagePlus, Type, Minus,
   Table, ChevronDown, Sigma, PenTool, LineChart, BarChart3,
   FileText, Link as LinkIcon, Image, AudioLines, Video, Youtube, FileType,
-  Bold, Italic, UnderlineIcon, Strikethrough, Link2, Palette,
-  MessageSquare, Wand2, ArrowUpCircle, Volume2, Square as StopIcon, Loader2,
+  Bold, Italic, UnderlineIcon, Strikethrough, Link2,
+  Volume2, Square as StopIcon, Loader2,
 } from 'lucide-react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
@@ -620,7 +620,7 @@ export function RichTextEditor({
       <div className="sticky top-24 self-start z-40 flex-shrink-0">
         <div className="flex flex-col items-center gap-1 bg-[#F7F0E3] rounded-xl shadow-lg border border-[#CFC0A8] p-1.5">
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('heading', { level: 1 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -630,7 +630,7 @@ export function RichTextEditor({
             <Heading1 className="h-4 w-4" />
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('heading', { level: 2 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -640,7 +640,7 @@ export function RichTextEditor({
             <Heading2 className="h-4 w-4" />
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('heading', { level: 3 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -651,7 +651,7 @@ export function RichTextEditor({
           </button>
           <div className="w-5 h-px bg-[#CFC0A8] my-1" />
           <button
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('bulletList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -661,7 +661,7 @@ export function RichTextEditor({
             <List className="h-4 w-4" />
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('orderedList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -671,7 +671,7 @@ export function RichTextEditor({
             <ListOrdered className="h-4 w-4" />
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('blockquote') && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -681,7 +681,7 @@ export function RichTextEditor({
             <Quote className="h-4 w-4" />
           </button>
           <button
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run(); }}
             className={cn(
               'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
               editor.isActive('codeBlock') && 'bg-[#D4E8F0] text-[#1A6B8A]'
@@ -701,45 +701,6 @@ export function RichTextEditor({
         className="flex items-center gap-0.5 bg-[#F7F0E3] rounded-xl shadow-xl border border-[#CFC0A8] px-1.5 py-1 z-50"
         style={{ visibility: 'hidden', opacity: 0, transition: 'opacity 0.15s ease', position: 'absolute' }}
       >
-        {/* Comment */}
-        <button
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors"
-          title="Comment"
-        >
-          <MessageSquare className="h-4 w-4" />
-          <span className="text-xs font-medium">Comment</span>
-        </button>
-
-        {/* Generate */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onSlashCommand?.('notes');
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-[#3A5530] hover:bg-[#D4DFC8] transition-colors"
-          title="Generate with AI"
-        >
-          <Wand2 className="h-4 w-4" />
-          <span className="text-xs font-medium">Generate</span>
-        </button>
-
-        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
-
-        {/* Font size display */}
-        <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors font-medium">
-          16px
-          <ChevronDown className="h-3 w-3 text-[#9B8B78]" />
-        </button>
-
-        {/* Text type */}
-        <button className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors font-medium">
-          <Type className="h-3.5 w-3.5" />
-          Text
-          <ChevronDown className="h-3 w-3 text-[#9B8B78]" />
-        </button>
-
-        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
-
         {/* Bold */}
         <button
           onMouseDown={(e) => {
@@ -830,14 +791,6 @@ export function RichTextEditor({
           title="Link"
         >
           <Link2 className="h-4 w-4" />
-        </button>
-
-        {/* Color */}
-        <button
-          className="p-1.5 rounded-lg text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors"
-          title="Text color"
-        >
-          <Palette className="h-4 w-4" />
         </button>
 
         <div className="w-px h-5 bg-[#CFC0A8] mx-1" />

@@ -1581,9 +1581,10 @@ export default function JournalEditorPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/journal')}
-            className="p-1 hover:bg-[#E8DCC0]/50 rounded transition-colors"
+            className="p-2 hover:bg-[#E8DCC0] rounded-lg transition-colors border border-transparent hover:border-[#CFC0A8]"
+            title="Back to journals"
           >
-            <Square className="h-5 w-5 text-[#4A3728] fill-[#4A3728]" strokeWidth={2} />
+            <ChevronLeft className="h-5 w-5 text-[#4A3728]" strokeWidth={2} />
           </button>
         </div>
 
@@ -1932,13 +1933,6 @@ export default function JournalEditorPage() {
 
       {/* Main Content Area */}
       <main className="px-8 py-6 max-w-4xl mx-auto">
-        {/* Notes badge */}
-        <div className="mb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E8DCC0] border border-[#CFC0A8] text-xs font-medium text-[#6B5A48]">
-            <FileText className="h-3 w-3" />
-            Notes
-          </span>
-        </div>
 
         {/* Large serif title */}
         <div className="mb-6 flex items-start gap-3">
