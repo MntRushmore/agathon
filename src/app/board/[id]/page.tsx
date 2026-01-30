@@ -67,6 +67,7 @@ import { MyScriptMathOverlay } from "@/components/board/MyScriptMathOverlay";
 import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board/tools/LassoSolveTool";
 import { GoDeepPanel } from "@/components/board/GoDeepPanel";
 import { GoDeepButton } from "@/components/board/GoDeepButton";
+import { HintButton } from "@/components/board/HintButton";
 import { FeedbackCard } from "@/components/board/FeedbackCard";
 import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
 
@@ -849,6 +850,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const [goDeepOpen, setGoDeepOpen] = useState(false);
     const [goDeepImage, setGoDeepImage] = useState<string | null>(null);
     const [goDeepAnswer, setGoDeepAnswer] = useState<string>("");
+    const [isHintLoading, setIsHintLoading] = useState(false);
     const [feedbackCard, setFeedbackCard] = useState<{
       summary: string;
       annotations: { type: string; content: string }[];
@@ -2368,9 +2370,26 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
           )}
 
-          {/* Go Deeper Button - fixed position, toggles the panel */}
+          {/* Hint + Go Deeper Buttons - fixed position */}
           {!isTeacherViewing && editor && (
-            <div className="fixed bottom-20 right-4 z-[1000] ios-safe-bottom ios-safe-right">
+            <div className="fixed bottom-20 right-4 z-[1000] ios-safe-bottom ios-safe-right flex items-center gap-2">
+              <HintButton
+                isLoading={isHintLoading}
+                onClick={async () => {
+                  if (isHintLoading) return;
+                  const shapeIds = editor.getCurrentPageShapeIds();
+                  if (shapeIds.size === 0) {
+                    toast.info('Draw something first to get a hint!');
+                    return;
+                  }
+                  setIsHintLoading(true);
+                  try {
+                    await generateSolution({ modeOverride: 'suggest', force: true });
+                  } finally {
+                    setIsHintLoading(false);
+                  }
+                }}
+              />
               <GoDeepButton
                 isOpen={goDeepOpen}
                 onClick={async () => {
