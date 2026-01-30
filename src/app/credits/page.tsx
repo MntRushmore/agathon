@@ -32,7 +32,7 @@ const creditPacks: CreditPack[] = [
     id: 'pack-50',
     credits: 50,
     price: 5,
-    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID,
+    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID?.trim(),
   },
 ];
 

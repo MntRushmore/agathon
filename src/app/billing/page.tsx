@@ -53,7 +53,7 @@ const plans: Plan[] = [
     interval: 'forever',
     description: 'Perfect for getting started',
     monthlyInteractions: 50,
-    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID,
+    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID?.trim(),
     features: [
       '50 AI assists per month',
       'Unlimited boards',
@@ -69,7 +69,7 @@ const plans: Plan[] = [
     description: 'For serious learners',
     popular: true,
     monthlyInteractions: 500,
-    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID,
+    productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID?.trim(),
     features: [
       '500 AI assists per month',
       'Priority processing',

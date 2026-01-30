@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server';
 
 // Credit pack product IDs - check if product is a credit pack
 const creditPackProducts = new Set([
-  process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID,
+  process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID?.trim(),
 ].filter(Boolean));
 
 const baseCheckout = Checkout({
@@ -19,7 +19,21 @@ const creditsCheckout = Checkout({
 });
 
 export async function GET(request: NextRequest) {
-  const productId = request.nextUrl.searchParams.get('products');
+  // Clean the product ID - trim whitespace/newlines that may come from env vars
+  const rawProductId = request.nextUrl.searchParams.get('products');
+  const productId = rawProductId?.trim();
+
+  // Rewrite the URL with the cleaned product ID to pass to the SDK
+  if (productId && productId !== rawProductId) {
+    const cleanUrl = new URL(request.url);
+    cleanUrl.searchParams.set('products', productId);
+    const cleanRequest = new NextRequest(cleanUrl, request);
+
+    if (creditPackProducts.has(productId)) {
+      return creditsCheckout(cleanRequest);
+    }
+    return baseCheckout(cleanRequest);
+  }
 
   // Use credits checkout for credit pack purchases
   if (productId && creditPackProducts.has(productId)) {
