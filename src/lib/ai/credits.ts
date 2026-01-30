@@ -26,9 +26,9 @@ export const CREDIT_COSTS = {
 export type AIRouteKey = keyof typeof CREDIT_COSTS;
 
 /**
- * Check if user has credits for a premium AI call
+ * Check if user has enough credits for a specific AI operation
  */
-export async function checkUserCredits(userId: string): Promise<CreditCheckResult> {
+export async function checkUserCredits(userId: string, route?: AIRouteKey): Promise<CreditCheckResult> {
   const supabase = await createServerSupabaseClient();
 
   const { data: profile, error } = await supabase
@@ -42,11 +42,12 @@ export async function checkUserCredits(userId: string): Promise<CreditCheckResul
   }
 
   const credits = profile.credits ?? 0;
+  const requiredCredits = route ? CREDIT_COSTS[route] : 1;
 
   return {
-    hasCredits: credits > 0,
+    hasCredits: credits >= requiredCredits,
     currentBalance: credits,
-    shouldUsePremium: credits > 0,
+    shouldUsePremium: credits >= requiredCredits,
   };
 }
 
@@ -161,7 +162,7 @@ export async function checkAndDeductCredits(
   creditBalance: number;
   deductionResult?: CreditDeductionResult;
 }> {
-  const creditCheck = await checkUserCredits(userId);
+  const creditCheck = await checkUserCredits(userId, route);
 
   if (!creditCheck.hasCredits) {
     return {

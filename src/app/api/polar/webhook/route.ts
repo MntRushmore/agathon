@@ -33,9 +33,11 @@ type WebhookOrderPayload = {
   };
 };
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServiceRoleClient } from '@/lib/supabase/server';
 
 const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
+
+const PREMIUM_MONTHLY_CREDITS = 500;
 
 const productPlanMap: Record<string, string> = {};
 if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID) {
@@ -62,63 +64,49 @@ async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
   }
 
   // Determine credits to grant - from metadata or product mapping
-  let creditsToGrant = order.metadata?.credits || creditPackMap[order.productId];
+  const creditsToGrant = order.metadata?.credits || creditPackMap[order.productId];
 
   if (!creditsToGrant) {
     console.warn('Polar webhook: unknown credit pack product', order.productId);
     return;
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createServiceRoleClient();
 
-  // Get current user credits
-  const { data: profile, error: fetchError } = await supabase
-    .from('profiles')
-    .select('credits')
-    .eq('id', externalId)
-    .single();
+  // Idempotency check: ensure this order hasn't already been processed
+  const { data: existingTx } = await supabase
+    .from('credit_transactions')
+    .select('id')
+    .eq('user_id', externalId)
+    .eq('transaction_type', 'purchase')
+    .contains('metadata', { polar_order_id: order.id })
+    .limit(1)
+    .maybeSingle();
 
-  if (fetchError) {
-    console.error('Polar webhook: failed to fetch profile for credit grant', fetchError);
+  if (existingTx) {
+    console.log(`Polar webhook: order ${order.id} already processed, skipping duplicate.`);
     return;
   }
 
-  const currentCredits = profile?.credits || 0;
-  const newCredits = currentCredits + creditsToGrant;
-
-  // Update credits
-  const { error: updateError } = await supabase
-    .from('profiles')
-    .update({
-      credits: newCredits,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', externalId);
-
-  if (updateError) {
-    console.error('Polar webhook: failed to update credits', updateError);
-    return;
-  }
-
-  // Log the transaction
-  const { error: txError } = await supabase.from('credit_transactions').insert({
-    user_id: externalId,
-    amount: creditsToGrant,
-    balance_after: newCredits,
-    transaction_type: 'purchase',
-    description: `Purchased ${creditsToGrant} credits`,
-    metadata: {
+  // Use the atomic add_credits RPC to prevent race conditions
+  const { data, error } = await supabase.rpc('add_credits', {
+    p_user_id: externalId,
+    p_amount: creditsToGrant,
+    p_transaction_type: 'purchase',
+    p_description: `Purchased ${creditsToGrant} credits`,
+    p_metadata: {
       polar_order_id: order.id,
       polar_product_id: order.productId,
       amount_paid: order.amount,
     },
   });
 
-  if (txError) {
-    console.error('Polar webhook: failed to log credit transaction', txError);
+  if (error) {
+    console.error('Polar webhook: failed to grant credits', error);
+    return;
   }
 
-  console.log(`Polar webhook: granted ${creditsToGrant} credits to user ${externalId}`);
+  console.log(`Polar webhook: granted ${creditsToGrant} credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);
 }
 
 async function syncProfileFromSubscription(
@@ -135,7 +123,7 @@ async function syncProfileFromSubscription(
   }
 
   const planTier = productPlanMap[subscription.productId] || 'starter';
-  const supabase = await createServerSupabaseClient();
+  const supabase = createServiceRoleClient();
 
   const updatePayload: Record<string, any> = {
     plan_tier: planTier,
@@ -158,13 +146,70 @@ async function syncProfileFromSubscription(
   }
 }
 
+async function grantSubscriptionCredits(
+  payload: WebhookSubscriptionPayload,
+) {
+  const subscription = payload.data;
+  const externalId = subscription.customer?.externalId;
+
+  if (!externalId) return;
+
+  const planTier = productPlanMap[subscription.productId];
+  if (planTier !== 'premium') return;
+
+  const supabase = createServiceRoleClient();
+
+  // Idempotency: check if credits were already granted for this subscription period
+  const periodEnd = subscription.currentPeriodEnd || subscription.endsAt;
+  const { data: existingGrant } = await supabase
+    .from('credit_transactions')
+    .select('id')
+    .eq('user_id', externalId)
+    .eq('transaction_type', 'subscription_grant')
+    .contains('metadata', { polar_subscription_id: subscription.id, period_end: periodEnd })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingGrant) {
+    console.log(`Polar webhook: subscription credits already granted for period ${periodEnd}, skipping.`);
+    return;
+  }
+
+  const { data, error } = await supabase.rpc('add_credits', {
+    p_user_id: externalId,
+    p_amount: PREMIUM_MONTHLY_CREDITS,
+    p_transaction_type: 'subscription_grant',
+    p_description: `Premium plan monthly credits (${PREMIUM_MONTHLY_CREDITS})`,
+    p_metadata: {
+      polar_subscription_id: subscription.id,
+      period_end: periodEnd,
+    },
+  });
+
+  if (error) {
+    console.error('Polar webhook: failed to grant subscription credits', error);
+    return;
+  }
+
+  console.log(`Polar webhook: granted ${PREMIUM_MONTHLY_CREDITS} subscription credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);
+}
+
 const webhookHandler = webhookSecret
   ? Webhooks({
       webhookSecret,
       // Subscription events
-      onSubscriptionCreated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
-      onSubscriptionUpdated: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status),
-      onSubscriptionActive: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status ?? 'active'),
+      onSubscriptionCreated: async (payload: unknown) => {
+        await syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status);
+      },
+      onSubscriptionUpdated: async (payload: unknown) => {
+        await syncProfileFromSubscription(payload as WebhookSubscriptionPayload, (payload as WebhookSubscriptionPayload).data.status);
+      },
+      onSubscriptionActive: async (payload: unknown) => {
+        const sub = payload as WebhookSubscriptionPayload;
+        await syncProfileFromSubscription(sub, sub.data.status ?? 'active');
+        // Grant monthly credits when subscription becomes active
+        await grantSubscriptionCredits(sub);
+      },
       onSubscriptionCanceled: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'canceled'),
       onSubscriptionRevoked: (payload: unknown) => syncProfileFromSubscription(payload as WebhookSubscriptionPayload, 'revoked'),
       // One-time order events (for credit packs)
