@@ -54,6 +54,25 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Public paths that don't require invite verification
+  const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/terms', '/privacy', '/demo', '/pitch'];
+  const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
+
+  // For authenticated users on protected routes, check invite_redeemed
+  if (user && !isPublicPath) {
+    const { data: inviteCheck } = await supabase
+      .from('profiles')
+      .select('invite_redeemed, role')
+      .eq('id', user.id)
+      .single();
+
+    if (inviteCheck && !inviteCheck.invite_redeemed) {
+      const redirectUrl = new URL('/login', request.url);
+      redirectUrl.searchParams.set('error', 'invite_required');
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // Protect board routes - require authentication
   if (request.nextUrl.pathname.startsWith('/board/') && !user) {
     const redirectUrl = new URL('/', request.url);
@@ -69,7 +88,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Check if user has teacher role
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -91,7 +109,6 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
 
-    // Check if user has admin role
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')

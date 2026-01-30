@@ -20,9 +20,10 @@ CREATE TABLE IF NOT EXISTS invite_codes (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_invite_codes_code ON invite_codes(code);
-CREATE INDEX idx_invite_codes_active ON invite_codes(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_invite_codes_code ON invite_codes(code);
+CREATE INDEX IF NOT EXISTS idx_invite_codes_active ON invite_codes(is_active) WHERE is_active = true;
 
+DROP TRIGGER IF EXISTS update_invite_codes_updated_at ON invite_codes;
 CREATE TRIGGER update_invite_codes_updated_at BEFORE UPDATE ON invite_codes
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -37,8 +38,8 @@ CREATE TABLE IF NOT EXISTS invite_code_usages (
   redeemed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_invite_code_usages_code ON invite_code_usages(invite_code_id);
-CREATE UNIQUE INDEX idx_invite_code_usages_unique ON invite_code_usages(invite_code_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_invite_code_usages_code ON invite_code_usages(invite_code_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invite_code_usages_unique ON invite_code_usages(invite_code_id, user_id);
 
 -- ============================================
 -- 3. CODE GENERATION FUNCTION
@@ -160,25 +161,45 @@ GRANT EXECUTE ON FUNCTION redeem_invite_code TO authenticated;
 ALTER TABLE invite_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invite_code_usages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Admins can view all invite codes" ON invite_codes
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can view all invite codes') THEN
+    CREATE POLICY "Admins can view all invite codes" ON invite_codes
+      FOR SELECT USING (
+        EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+      );
+  END IF;
+END $$;
 
-CREATE POLICY "Admins can create invite codes" ON invite_codes
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can create invite codes') THEN
+    CREATE POLICY "Admins can create invite codes" ON invite_codes
+      FOR INSERT WITH CHECK (
+        EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+      );
+  END IF;
+END $$;
 
-CREATE POLICY "Admins can update invite codes" ON invite_codes
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can update invite codes') THEN
+    CREATE POLICY "Admins can update invite codes" ON invite_codes
+      FOR UPDATE USING (
+        EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+      );
+  END IF;
+END $$;
 
-CREATE POLICY "Admins can view invite code usages" ON invite_code_usages
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
-  );
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can view invite code usages') THEN
+    CREATE POLICY "Admins can view invite code usages" ON invite_code_usages
+      FOR SELECT USING (
+        EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+      );
+  END IF;
+END $$;
 
-CREATE POLICY "System can record invite code usage" ON invite_code_usages
-  FOR INSERT WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'System can record invite code usage') THEN
+    CREATE POLICY "System can record invite code usage" ON invite_code_usages
+      FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
