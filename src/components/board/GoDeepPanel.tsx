@@ -378,7 +378,9 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
                         {step.number}.
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-700 leading-relaxed">{step.explanation}</p>
+                        <div className="text-sm text-gray-700 leading-relaxed">
+                          <LatexRenderer content={step.explanation} />
+                        </div>
                         {step.latex && (
                           <div className="mt-2 text-base text-gray-800">
                             <LatexRenderer content={step.latex} />
@@ -415,7 +417,7 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
                         className="w-full p-3 flex items-start gap-2 text-left hover:bg-gray-50 transition-colors"
                       >
                         <MessageCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 flex-1">{question}</span>
+                        <span className="text-sm text-gray-700 flex-1"><LatexRenderer content={question} /></span>
                         <ChevronDown className={cn(
                           "w-4 h-4 text-gray-400 transition-transform flex-shrink-0",
                           isExpanded && "rotate-180"
@@ -435,14 +437,14 @@ export function GoDeepPanel({ isOpen, onClose, problemImage, originalAnswer, onW
 
                           {hint && hintRevealed && (
                             <div className="mt-2 p-2 bg-amber-50 rounded text-xs text-amber-800">
-                              {hint}
+                              <LatexRenderer content={hint} />
                             </div>
                           )}
 
                           {followUp && (
-                            <p className="mt-2 text-xs text-gray-500 italic">
-                              {followUp}
-                            </p>
+                            <div className="mt-2 text-xs text-gray-500 italic">
+                              <LatexRenderer content={followUp} />
+                            </div>
                           )}
                         </div>
                       )}
