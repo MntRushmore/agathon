@@ -257,8 +257,8 @@ export default function LoginPage() {
           </p>
 
           {/* Beta notice */}
-          <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-xs text-amber-800 text-center">
+          <div className="mt-6 p-3 bg-white border border-[#E8E4DC] rounded-xl">
+            <p className="text-xs text-[#666] text-center">
               Agathon is currently in beta. Security is not guaranteed.
             </p>
           </div>
