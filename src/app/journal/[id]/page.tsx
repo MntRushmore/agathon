@@ -679,21 +679,27 @@ export default function JournalEditorPage() {
   // Parse flashcards from AI response
   const parseFlashcardsFromResponse = (responseContent: string): Array<{ question: string; answer: string }> => {
     const parsedCards: Array<{ question: string; answer: string }> = [];
-    let match;
 
-    // Format 1: ### Card X Front: ... Back: ... (common AI format)
-    const cardFrontBackPattern = /(?:###?\s*)?Card\s*\d+\s*(?:Front)?[:\s]*(.+?)\s*Back[:\s]*(.+?)(?=(?:###?\s*)?Card\s*\d+|$)/gi;
-    while ((match = cardFrontBackPattern.exec(responseContent)) !== null) {
-      const question = cleanMarkdown(match[1]);
-      const answer = cleanMarkdown(match[2]);
-      if (question && answer) {
-        parsedCards.push({ question, answer });
+    // Primary approach: Split by card headers (### Card N) and extract Front/Back from each
+    const cardSections = responseContent.split(/###?\s*Card\s*\d+\s*/i).filter(s => s.trim());
+    if (cardSections.length > 0) {
+      for (const section of cardSections) {
+        const frontMatch = section.match(/\*\*Front[:\s]*\*\*\s*(.+)/i);
+        const backMatch = section.match(/\*\*Back[:\s]*\*\*\s*(.+)/i);
+        if (frontMatch && backMatch) {
+          const question = cleanMarkdown(frontMatch[1]);
+          const answer = cleanMarkdown(backMatch[1]);
+          if (question && answer) {
+            parsedCards.push({ question, answer });
+          }
+        }
       }
     }
 
     // Format 2: **Q:** ... **A:** ...
     if (parsedCards.length === 0) {
-      const qaPattern = /\*\*Q(?:uestion)?[:\s]*\*\*\s*(.+?)\s*\*\*A(?:nswer)?[:\s]*\*\*\s*(.+?)(?=\*\*Q|\n\n\*\*|\n\n##|$)/gi;
+      let match;
+      const qaPattern = /\*\*Q(?:uestion)?[:\s]*\*\*\s*([\s\S]+?)\s*\*\*A(?:nswer)?[:\s]*\*\*\s*([\s\S]+?)(?=\*\*Q|\n\n\*\*|\n\n##|$)/gi;
       while ((match = qaPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
         const answer = cleanMarkdown(match[2]);
@@ -703,9 +709,10 @@ export default function JournalEditorPage() {
       }
     }
 
-    // Format 3: **Front:** ... **Back:** ...
+    // Format 3: **Front:** ... **Back:** ... (without card headers)
     if (parsedCards.length === 0) {
-      const frontBackPattern = /\*\*Front[:\s]*\*\*\s*(.+?)\s*\*\*Back[:\s]*\*\*\s*(.+?)(?=\*\*Front|$)/gi;
+      let match;
+      const frontBackPattern = /\*\*Front[:\s]*\*\*\s*([\s\S]+?)\s*\*\*Back[:\s]*\*\*\s*([\s\S]+?)(?=\*\*Front|$)/gi;
       while ((match = frontBackPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
         const answer = cleanMarkdown(match[2]);
@@ -717,6 +724,7 @@ export default function JournalEditorPage() {
 
     // Format 4: Numbered questions with answers on next line
     if (parsedCards.length === 0) {
+      let match;
       const numberedPattern = /\d+\.\s*\*?\*?(.+?\?)\*?\*?\s*\n+\s*[-•]?\s*(.+?)(?=\n\d+\.|$)/g;
       while ((match = numberedPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
