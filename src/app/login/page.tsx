@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -12,12 +12,15 @@ import Image from 'next/image';
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const inviteError = searchParams.get('error') === 'invite_required';
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -115,6 +118,21 @@ export default function LoginPage() {
             />
             <span className="font-semibold text-[#1a1a1a]">Agathon</span>
           </Link>
+
+          {/* Invite error banner */}
+          {inviteError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-800 font-medium">
+                A valid invite code is required to use Agathon.
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                <Link href="/signup" className="font-medium hover:underline">Sign up with an invite code</Link>
+                {' '}or{' '}
+                <Link href="/?waitlist=true" className="font-medium hover:underline">join the waitlist</Link>
+                {' '}to get one.
+              </p>
+            </div>
+          )}
 
           {/* Title */}
           <div className="mb-8">

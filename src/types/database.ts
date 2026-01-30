@@ -31,6 +31,7 @@ export interface Profile {
   onboarding_completed_at?: string | null;
   has_completed_board_tutorial?: boolean;
   milestones_achieved?: string[];
+  invite_redeemed?: boolean;
 }
 
 export interface Whiteboard {

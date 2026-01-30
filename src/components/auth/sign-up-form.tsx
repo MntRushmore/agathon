@@ -209,6 +209,15 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
           {codeError && (
             <p className="text-xs text-red-500">{codeError}</p>
           )}
+          {codeStatus === 'invalid' && (
+            <p className="text-xs text-[#666] mt-1">
+              Don&apos;t have a code?{' '}
+              <a href="/?waitlist=true" className="text-[#1a1a1a] font-medium hover:underline">
+                Join the waitlist
+              </a>{' '}
+              to get one.
+            </p>
+          )}
           {codeStatus === 'valid' && (
             <p className="text-xs text-green-600">Code verified!</p>
           )}

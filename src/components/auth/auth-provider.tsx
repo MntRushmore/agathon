@@ -60,6 +60,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Error fetching profile:', error);
         setProfile(null);
+      } else if (data && data.invite_redeemed === false) {
+        // User hasn't redeemed an invite code — sign them out
+        console.warn('User has not redeemed an invite code, signing out');
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        window.location.href = '/login?error=invite_required';
+        return;
       } else {
         setProfile(data);
       }
