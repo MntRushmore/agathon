@@ -273,6 +273,8 @@ export default function Dashboard() {
     }
   }
 
+  const isAdmin = profile?.role === 'admin';
+
   const createWhiteboard = useCallback(async () => {
     if (creating) return;
 
@@ -280,6 +282,11 @@ export default function Dashboard() {
       toast.info('Creating temporary board');
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
+      return;
+    }
+
+    if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
       return;
     }
 
@@ -735,9 +742,9 @@ export default function Dashboard() {
                     <Pencil className="w-3 h-3" />
                     Boards
                   </span>
-                  <span>{whiteboards.length} / {FREE_BOARD_LIMIT}</span>
+                  <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
                 </div>
-                <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />
+                {!isAdmin && <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />}
               </div>
               <div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
@@ -745,9 +752,9 @@ export default function Dashboard() {
                     <BookOpen className="w-3 h-3" />
                     Journals
                   </span>
-                  <span>{journalCount} / {FREE_JOURNAL_LIMIT}</span>
+                  <span>{journalCount} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
                 </div>
-                <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />
+                {!isAdmin && <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />}
               </div>
             </div>
           )}
@@ -1064,7 +1071,7 @@ export default function Dashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm text-foreground truncate">{board.title}</h3>
+                          <h3 className="font-semibold text-sm text-foreground truncate" title={board.title}>{board.title}</h3>
                           {board.is_favorite && (
                             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" strokeWidth={2} />
                           )}
