@@ -45,16 +45,10 @@ if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID) {
   productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID] = 'premium';
 }
 
-// Credit pack product mapping (product ID -> total credits including bonus)
+// Credit pack product mapping (product ID -> total credits)
 const creditPackMap: Record<string, number> = {};
 if (process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID) {
   creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID] = 50;
-}
-if (process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID) {
-  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID] = 175; // 150 + 25 bonus
-}
-if (process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID) {
-  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID] = 600; // 500 + 100 bonus
 }
 
 async function grantCreditsFromOrder(payload: WebhookOrderPayload) {

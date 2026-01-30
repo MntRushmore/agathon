@@ -6,7 +6,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Coins,
@@ -25,8 +24,6 @@ type CreditPack = {
   id: string;
   credits: number;
   price: number;
-  bonus?: number;
-  popular?: boolean;
   productId?: string;
 };
 
@@ -36,21 +33,6 @@ const creditPacks: CreditPack[] = [
     credits: 50,
     price: 5,
     productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID,
-  },
-  {
-    id: 'pack-150',
-    credits: 150,
-    price: 12,
-    bonus: 25,
-    popular: true,
-    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_150_ID,
-  },
-  {
-    id: 'pack-500',
-    credits: 500,
-    price: 35,
-    bonus: 100,
-    productId: process.env.NEXT_PUBLIC_POLAR_CREDITS_500_ID,
   },
 ];
 
@@ -110,7 +92,7 @@ export default function CreditsPage() {
     if (user.email) params.set('customerEmail', user.email);
     if (profile?.full_name) params.set('customerName', profile.full_name);
     // Include metadata to identify this as a credit purchase
-    params.set('metadata', JSON.stringify({ type: 'credit_pack', credits: pack.credits + (pack.bonus || 0) }));
+    params.set('metadata', JSON.stringify({ type: 'credit_pack', credits: pack.credits }));
 
     setCheckoutLoading(pack.id);
     window.location.href = `/api/polar/checkout?${params.toString()}`;
@@ -227,52 +209,45 @@ export default function CreditsPage() {
         </Card>
 
         {/* Purchase Credits */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5" />
-            Purchase Credits
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Purchase Credits
+            </CardTitle>
+            <CardDescription>Top up your AI credit balance</CardDescription>
+          </CardHeader>
+          <CardContent>
             {creditPacks.map((pack) => (
-              <Card
+              <div
                 key={pack.id}
-                className={`relative ${pack.popular ? 'border-primary shadow-lg' : ''}`}
+                className="flex items-center justify-between p-4 bg-muted rounded-lg"
               >
-                {pack.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary">Most Popular</Badge>
-                  </div>
-                )}
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-2xl">{pack.credits} Credits</CardTitle>
-                  {pack.bonus && (
-                    <CardDescription className="text-green-600 font-medium">
-                      +{pack.bonus} bonus credits!
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">${pack.price}</p>
+                <div>
+                  <p className="text-2xl font-bold">{pack.credits} Credits</p>
                   <p className="text-sm text-muted-foreground">
-                    ${(pack.price / (pack.credits + (pack.bonus || 0))).toFixed(2)} per credit
+                    ${pack.price} &middot; ${(pack.price / pack.credits).toFixed(2)} per credit
                   </p>
-                  <Button
-                    className="w-full mt-4"
-                    variant={pack.popular ? 'default' : 'outline'}
-                    onClick={() => purchaseCredits(pack)}
-                    disabled={checkoutLoading === pack.id || !pack.productId}
-                  >
-                    {checkoutLoading === pack.id
-                      ? 'Redirecting...'
-                      : pack.productId
-                        ? 'Purchase'
-                        : 'Coming Soon'}
-                  </Button>
-                </CardContent>
-              </Card>
+                </div>
+                <Button
+                  onClick={() => purchaseCredits(pack)}
+                  disabled={checkoutLoading === pack.id || !pack.productId}
+                >
+                  {checkoutLoading === pack.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                  ) : pack.productId ? (
+                    'Purchase'
+                  ) : (
+                    'Coming Soon'
+                  )}
+                </Button>
+              </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Transaction History */}
         <Card>

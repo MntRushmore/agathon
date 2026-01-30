@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
@@ -12,6 +14,8 @@ import {
   Sparkles,
   Zap,
   Crown,
+  Loader2,
+  Coins,
 } from 'lucide-react';
 
 type UsageSummary = {
@@ -147,46 +151,47 @@ export default function BillingPage() {
     return Math.max(0, activePlan.monthlyInteractions - usage.totalInteractions);
   }, [usage, activePlan.monthlyInteractions]);
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#FAFAF8]">
-      {/* Header */}
-      <div className="border-b border-[#E8E4DC] bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <button
+    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.01_210)] via-background to-background">
+      <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm text-[#666] hover:text-[#333] transition-colors"
+            className="rounded-full"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        {/* Title */}
-        <div className="mb-12">
-          <h1 className="text-2xl font-semibold text-[#1a1a1a] mb-2">
-            Plans & Billing
-          </h1>
-          <p className="text-[#666]">
-            Manage your subscription and track your usage
-          </p>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-semibold">Plans & Billing</h1>
+            <p className="text-muted-foreground">
+              Manage your subscription and track your usage
+            </p>
+          </div>
         </div>
 
         {/* Current Usage Card */}
-        {user && (
-          <div className="mb-12 p-6 rounded-2xl bg-white border border-[#E8E4DC]">
-            <div className="flex items-start justify-between mb-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-[#1a1a1a]">
-                    {activePlan.name} Plan
-                  </span>
+                <CardTitle className="flex items-center gap-2">
+                  {activePlan.name} Plan
                   {activePlan.id === 'premium' && (
                     <Crown className="h-4 w-4 text-amber-500" />
                   )}
-                </div>
-                <p className="text-sm text-[#666]">
+                </CardTitle>
+                <CardDescription>
                   {loadingUsage ? (
                     'Loading usage...'
                   ) : usage ? (
@@ -194,161 +199,168 @@ export default function BillingPage() {
                   ) : (
                     'Sign in to see your usage'
                   )}
-                </p>
+                </CardDescription>
               </div>
               {usage && activePlan.monthlyInteractions && (
                 <div className="text-right">
-                  <span className="text-2xl font-semibold text-[#1a1a1a]">
+                  <span className="text-3xl font-bold">
                     {usage.totalInteractions}
                   </span>
-                  <span className="text-sm text-[#666]">
+                  <span className="text-sm text-muted-foreground">
                     {' '}/ {activePlan.monthlyInteractions}
                   </span>
                 </div>
               )}
             </div>
-
+          </CardHeader>
+          <CardContent>
             {!loadingUsage && usage && activePlan.monthlyInteractions && (
               <div className="space-y-2">
-                <Progress
-                  value={usageProgress}
-                  className="h-2 bg-[#F0EDE6]"
-                />
-                <p className="text-xs text-[#888]">
+                <Progress value={usageProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground">
                   Resets in {usage.windowStart ? formatDistanceToNow(new Date(new Date(usage.windowStart).getTime() + 30 * 24 * 60 * 60 * 1000)) : '30 days'}
                 </p>
               </div>
             )}
-
             {loadingUsage && (
-              <div className="h-2 bg-[#F0EDE6] rounded-full animate-pulse" />
+              <div className="h-2 bg-muted rounded-full animate-pulse" />
             )}
-          </div>
-        )}
+          </CardContent>
+        </Card>
 
         {/* Plans */}
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-[#1a1a1a] mb-6">
-            Choose your plan
-          </h2>
-
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Choose your plan</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {plans.map((plan) => {
               const isCurrentPlan = activePlan.id === plan.id;
 
               return (
-                <div
+                <Card
                   key={plan.id}
-                  className={`
-                    relative p-6 rounded-2xl border-2 transition-all
-                    ${plan.popular
-                      ? 'border-[#1a1a1a] bg-white'
-                      : 'border-[#E8E4DC] bg-white hover:border-[#D0CCC4]'
-                    }
-                  `}
+                  className={`relative ${plan.popular ? 'border-primary shadow-md' : ''}`}
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-6">
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#1a1a1a] text-white text-xs font-medium">
+                      <Badge className="gap-1">
                         <Sparkles className="h-3 w-3" />
                         Popular
-                      </span>
+                      </Badge>
                     </div>
                   )}
 
-                  <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-[#1a1a1a]">
-                      {plan.name}
-                    </h3>
-                    <p className="text-sm text-[#666] mt-1">
-                      {plan.description}
-                    </p>
-                  </div>
+                  <CardHeader>
+                    <CardTitle>{plan.name}</CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
 
-                  <div className="mb-6">
-                    <span className="text-3xl font-semibold text-[#1a1a1a]">
-                      {plan.price}
-                    </span>
-                    <span className="text-[#666] text-sm">
-                      /{plan.interval}
-                    </span>
-                  </div>
+                  <CardContent className="space-y-6">
+                    <div>
+                      <span className="text-3xl font-bold">{plan.price}</span>
+                      <span className="text-muted-foreground text-sm">
+                        /{plan.interval}
+                      </span>
+                    </div>
 
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-3">
-                        <Check className="h-4 w-4 text-[#22c55e] mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-[#444]">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="space-y-2.5">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2.5">
+                          <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
 
-                  <Button
-                    onClick={() => startCheckout(plan)}
-                    disabled={checkoutLoading === plan.id || !plan.productId || isCurrentPlan}
-                    className={`
-                      w-full h-11 rounded-xl font-medium transition-all
-                      ${plan.popular
-                        ? 'bg-[#1a1a1a] hover:bg-[#333] text-white'
-                        : 'bg-[#F5F3EE] hover:bg-[#EBE8E0] text-[#1a1a1a] border border-[#E8E4DC]'
-                      }
-                      ${isCurrentPlan ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    {checkoutLoading === plan.id ? (
-                      'Redirecting...'
-                    ) : isCurrentPlan ? (
-                      'Current plan'
-                    ) : plan.productId ? (
-                      plan.popular ? 'Upgrade now' : 'Get started'
-                    ) : (
-                      'Coming soon'
-                    )}
-                  </Button>
-                </div>
+                    <Button
+                      onClick={() => startCheckout(plan)}
+                      disabled={checkoutLoading === plan.id || !plan.productId || isCurrentPlan}
+                      variant={plan.popular ? 'default' : 'outline'}
+                      className="w-full"
+                    >
+                      {checkoutLoading === plan.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Redirecting...
+                        </>
+                      ) : isCurrentPlan ? (
+                        'Current plan'
+                      ) : plan.productId ? (
+                        plan.popular ? 'Upgrade now' : 'Get started'
+                      ) : (
+                        'Coming soon'
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         </div>
 
-        {/* Recent Activity */}
-        {user && usage && usage.recent.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-lg font-medium text-[#1a1a1a] mb-4">
-              Recent activity
-            </h2>
-            <div className="bg-white rounded-2xl border border-[#E8E4DC] divide-y divide-[#E8E4DC]">
-              {usage.recent.slice(0, 5).map((row, idx) => (
-                <div
-                  key={`${row.createdAt}-${idx}`}
-                  className="flex items-center justify-between px-5 py-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-[#F0EDE6] flex items-center justify-center">
-                      <Zap className="h-4 w-4 text-[#666]" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#1a1a1a] capitalize">
-                        {row.mode || 'AI Assist'}
-                      </p>
-                      <p className="text-xs text-[#888]">
-                        {row.createdAt
-                          ? formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })
-                          : 'Recently'}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-sm text-[#666]">
-                    {row.tokens.toLocaleString()} tokens
-                  </span>
-                </div>
-              ))}
+        {/* Credits CTA */}
+        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Coins className="h-5 w-5 text-purple-600" />
+                  Need more AI credits?
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Purchase credit packs for premium AI features like image understanding
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => router.push('/credits')}>
+                Buy Credits
+              </Button>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        {usage && usage.recent.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+              <CardDescription>Your latest AI interactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="divide-y">
+                {usage.recent.slice(0, 5).map((row, idx) => (
+                  <div
+                    key={`${row.createdAt}-${idx}`}
+                    className="flex items-center justify-between py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium capitalize">
+                          {row.mode || 'AI Assist'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {row.createdAt
+                            ? formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })
+                            : 'Recently'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {row.tokens.toLocaleString()} tokens
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Footer note */}
-        <p className="text-center text-xs text-[#888] mt-12">
+        {/* Footer */}
+        <p className="text-center text-xs text-muted-foreground">
           Payments are securely processed by Polar. Cancel anytime.
         </p>
       </div>
