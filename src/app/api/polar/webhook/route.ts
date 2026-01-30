@@ -39,16 +39,16 @@ const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 
 const productPlanMap: Record<string, string> = {};
 if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID) {
-  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID] = 'free';
+  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID.trim()] = 'free';
 }
 if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID) {
-  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID] = 'premium';
+  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID.trim()] = 'premium';
 }
 
 // Credit pack product mapping (product ID -> total credits)
 const creditPackMap: Record<string, number> = {};
 if (process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID) {
-  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID] = 50;
+  creditPackMap[process.env.NEXT_PUBLIC_POLAR_CREDITS_50_ID.trim()] = 50;
 }
 
 async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
