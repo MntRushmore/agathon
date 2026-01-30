@@ -32,9 +32,17 @@ export function setupNativeAppBridge() {
   window.addEventListener('message', (event) => {
     try {
       // Handle both string and object messages
-      const message = typeof event.data === 'string'
-        ? JSON.parse(event.data)
-        : event.data;
+      let message: any;
+      if (typeof event.data === 'string') {
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          // Not a JSON string (e.g. browser extension messages) — ignore
+          return;
+        }
+      } else {
+        message = event.data;
+      }
 
       if (!message || typeof message !== 'object') return;
 
