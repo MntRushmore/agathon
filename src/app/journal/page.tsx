@@ -20,7 +20,7 @@ interface Journal {
 
 export default function JournalsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const supabase = createClient();
 
   const [journals, setJournals] = useState<Journal[]>([]);
@@ -49,8 +49,15 @@ export default function JournalsPage() {
     loadJournals();
   }, [user, supabase]);
 
+  const FREE_JOURNAL_LIMIT = 3;
+
   const createJournal = async () => {
     if (!user) return;
+
+    if (profile?.role !== 'admin' && journals.length >= FREE_JOURNAL_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('journals')
@@ -140,7 +147,7 @@ export default function JournalsPage() {
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <BookOpen className="h-4 w-4 text-primary" />
                   </div>
-                  <h3 className="font-medium text-foreground truncate flex-1">{journal.title}</h3>
+                  <h3 className="font-medium text-foreground truncate flex-1" title={journal.title}>{journal.title}</h3>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                   {getPreview(journal.content)}

@@ -7,7 +7,6 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/logo';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +23,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronDown,
-  ChevronUp,
   Home,
   FolderOpen,
   BookOpen,
@@ -68,8 +66,8 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
 
   const [journals, setJournals] = useState<SidebarJournal[]>([]);
   const [whiteboards, setWhiteboards] = useState<SidebarWhiteboard[]>([]);
-  const [journalsOpen, setJournalsOpen] = useState(true);
-  const [boardsOpen, setBoardsOpen] = useState(true);
+  const [journalsOpen, setJournalsOpen] = useState(false);
+  const [boardsOpen, setBoardsOpen] = useState(false);
 
   // Persist and notify collapse state
   const toggleCollapse = useCallback(() => {
@@ -120,9 +118,16 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     fetchWhiteboards();
   }, [user, supabase]);
 
+  const isAdmin = profile?.role === 'admin';
+
   // Create new journal
   const createJournal = async () => {
     if (!user) return;
+
+    if (!isAdmin && journals.length >= FREE_JOURNAL_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      return;
+    }
 
     const { data, error } = await supabase
       .from('journals')
@@ -143,6 +148,11 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     if (!user) {
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
+      return;
+    }
+
+    if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
       return;
     }
 
@@ -170,7 +180,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     <aside
       className={cn(
         'fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-40',
-        collapsed ? 'w-16 bg-transparent' : 'w-56 bg-card/90 backdrop-blur-sm border-r border-border',
+        collapsed ? 'w-16 bg-transparent' : 'w-56 bg-card border-r border-border',
       )}
     >
       {/* Header */}
@@ -229,7 +239,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
       </div>
 
       {/* Primary Navigation */}
-      <nav className="flex-1 px-3 py-2 overflow-hidden flex flex-col">
+      <nav className="flex-1 px-3 py-2 overflow-y-auto flex flex-col">
         <div className="space-y-1">
           <button
             onClick={() => router.push('/')}
@@ -266,58 +276,76 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
         {/* Your Journals */}
         {!collapsed && (
           <Collapsible open={journalsOpen} onOpenChange={setJournalsOpen} className="mt-4">
-            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Your Journals
-              {journalsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
+              <div className="flex items-center gap-2">
+                Journals
+                {journals.length > 0 && (
+                  <span className="text-[10px] font-normal normal-case tracking-normal text-muted-foreground/60">
+                    {journals.length}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={cn(
+                "h-3 w-3 transition-transform duration-200",
+                journalsOpen && "rotate-180"
+              )} />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ScrollArea className="max-h-[240px]">
-                <div className="space-y-0.5 mt-1">
-                  {journals.map((j) => (
-                    <button
-                      key={j.id}
-                      onClick={() => router.push(`/journal/${j.id}`)}
-                      className={cn(
-                        'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 text-left',
-                        j.id === activeJournalId
-                          ? 'bg-accent text-foreground font-medium'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                      )}
-                    >
-                      <BookOpen className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-                      <span className="text-sm truncate">{j.title || 'Untitled'}</span>
-                    </button>
-                  ))}
-                  {journals.length === 0 && (
-                    <p className="px-3 py-2 text-xs text-muted-foreground">No journals yet</p>
-                  )}
-                </div>
-              </ScrollArea>
+              <div className="max-h-[128px] overflow-y-auto mt-0.5 space-y-px">
+                {journals.map((j) => (
+                  <button
+                    key={j.id}
+                    onClick={() => router.push(`/journal/${j.id}`)}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150 text-left',
+                      j.id === activeJournalId
+                        ? 'bg-accent text-foreground font-medium'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <BookOpen className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                    <span className="text-[13px] truncate" title={j.title || 'Untitled'}>{j.title || 'Untitled'}</span>
+                  </button>
+                ))}
+                {journals.length === 0 && (
+                  <p className="px-3 py-1.5 text-xs text-muted-foreground">No journals yet</p>
+                )}
+              </div>
             </CollapsibleContent>
           </Collapsible>
         )}
 
         {/* Recent Boards */}
         {!collapsed && (
-          <Collapsible open={boardsOpen} onOpenChange={setBoardsOpen} className="mt-2">
-            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Recent Boards
-              {boardsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          <Collapsible open={boardsOpen} onOpenChange={setBoardsOpen} className="mt-1">
+            <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
+              <div className="flex items-center gap-2">
+                Boards
+                {whiteboards.length > 0 && (
+                  <span className="text-[10px] font-normal normal-case tracking-normal text-muted-foreground/60">
+                    {whiteboards.length}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={cn(
+                "h-3 w-3 transition-transform duration-200",
+                boardsOpen && "rotate-180"
+              )} />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="space-y-0.5 mt-1">
+              <div className="max-h-[128px] overflow-y-auto mt-0.5 space-y-px">
                 {whiteboards.map((wb) => (
                   <button
                     key={wb.id}
                     onClick={() => router.push(`/board/${wb.id}`)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
-                    <Pencil className="h-4 w-4 flex-shrink-0" strokeWidth={1.5} />
-                    <span className="text-sm truncate">{wb.title || 'Untitled Board'}</span>
+                    <Pencil className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                    <span className="text-[13px] truncate" title={wb.title || 'Untitled Board'}>{wb.title || 'Untitled Board'}</span>
                   </button>
                 ))}
                 {whiteboards.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-muted-foreground">No boards yet</p>
+                  <p className="px-3 py-1.5 text-xs text-muted-foreground">No boards yet</p>
                 )}
               </div>
             </CollapsibleContent>
@@ -339,9 +367,9 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                   <Pencil className="w-3 h-3" />
                   Boards
                 </span>
-                <span>{whiteboards.length} / {FREE_BOARD_LIMIT}</span>
+                <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
               </div>
-              <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />
+              {!isAdmin && <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />}
             </div>
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
@@ -349,9 +377,9 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                   <BookOpen className="w-3 h-3" />
                   Journals
                 </span>
-                <span>{journals.length} / {FREE_JOURNAL_LIMIT}</span>
+                <span>{journals.length} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
               </div>
-              <Progress value={(journals.length / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />
+              {!isAdmin && <Progress value={(journals.length / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />}
             </div>
           </div>
         )}
