@@ -19,6 +19,26 @@ export async function POST(req: NextRequest) {
 
     const { expression, image, variables, quick } = await req.json();
 
+    // Input validation
+    if (!expression && !image) {
+      return NextResponse.json(
+        { error: 'Either expression or image is required' },
+        { status: 400 }
+      );
+    }
+    if (expression && (typeof expression !== 'string' || expression.length > 10000)) {
+      return NextResponse.json(
+        { error: 'Expression must be a string under 10000 characters' },
+        { status: 400 }
+      );
+    }
+    if (image && (typeof image !== 'string' || image.length > 10_000_000)) {
+      return NextResponse.json(
+        { error: 'Image data too large (max ~7.5MB base64)' },
+        { status: 400 }
+      );
+    }
+
     // Check credits to determine which AI to use
     const { usePremium, creditBalance } = await checkAndDeductCredits(
       user.id,

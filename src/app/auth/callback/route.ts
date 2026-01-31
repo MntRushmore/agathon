@@ -2,11 +2,24 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+// Allowed internal redirect paths after OAuth callback
+const ALLOWED_REDIRECTS = ['/', '/auth/complete-signup', '/teacher', '/admin', '/board', '/journal', '/math', '/profile', '/settings', '/credits', '/billing', '/student/join'];
+
+function getSafeRedirect(next: string): string {
+  // Only allow relative paths that start with /
+  if (!next.startsWith('/') || next.startsWith('//')) {
+    return '/';
+  }
+  // Check if the path matches an allowed prefix
+  const isAllowed = ALLOWED_REDIRECTS.some(prefix => next === prefix || next.startsWith(prefix + '/'));
+  return isAllowed ? next : '/';
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const origin = requestUrl.origin;
-  const next = requestUrl.searchParams.get('next') ?? '/';
+  const next = getSafeRedirect(requestUrl.searchParams.get('next') ?? '/');
 
   if (code) {
     const cookieStore = await cookies();
