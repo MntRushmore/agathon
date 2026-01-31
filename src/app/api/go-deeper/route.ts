@@ -89,10 +89,16 @@ Guidelines:
             },
           ],
         },
-        ...conversationHistory.map((m: { role: string; content: string }) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
+        ...conversationHistory
+          .filter((m: { role: string; content: string }) =>
+            (m.role === 'user' || m.role === 'assistant') &&
+            typeof m.content === 'string' &&
+            m.content.length <= 50000
+          )
+          .map((m: { role: string; content: string }) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          })),
       ];
 
       const response = await callHackClubAI({

@@ -38,11 +38,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { messages, canvasContext, isSocratic } = (await req.json()) as {
+    const body = await req.json();
+    const { messages, canvasContext, isSocratic } = body as {
       messages: ChatMessage[];
       canvasContext: CanvasContext;
       isSocratic?: boolean;
     };
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Messages array is required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (messages.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Too many messages (max 50)' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    for (const msg of messages) {
+      if (!msg.role || !msg.content || typeof msg.content !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Each message must have a role and content string' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      if (msg.content.length > 50000) {
+        return new Response(
+          JSON.stringify({ error: 'Message content too long (max 50000 chars)' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Build the base system prompt
     let systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.

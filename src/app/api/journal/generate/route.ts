@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-
-export const runtime = 'edge';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const PROMPTS = {
   video: `You are an educational content creator. Based on the user's notes/topic, create a detailed video script that explains the concept using the Feynman technique (explain it simply as if teaching a child).
@@ -237,6 +236,17 @@ If the content is too short or unclear to make a meaningful suggestion, respond 
 
 export async function POST(req: NextRequest) {
   try {
+    // Auth check
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { type, content, topic, count } = await req.json();
 
     if (!type || !PROMPTS[type as keyof typeof PROMPTS]) {

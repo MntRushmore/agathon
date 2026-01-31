@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { helpCheckLogger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -8,12 +9,37 @@ export async function POST(req: NextRequest) {
   helpCheckLogger.info({ requestId }, 'Help check request started');
 
   try {
+    // Auth check
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { text, image } = await req.json();
 
     if (!text && !image) {
       helpCheckLogger.warn({ requestId }, 'No text or image provided in request');
       return NextResponse.json(
         { error: 'No text or image provided' },
+        { status: 400 }
+      );
+    }
+
+    // Input size validation
+    if (text && (typeof text !== 'string' || text.length > 50000)) {
+      return NextResponse.json(
+        { error: 'Text too long (max 50000 characters)' },
+        { status: 400 }
+      );
+    }
+    if (image && (typeof image !== 'string' || image.length > 10_000_000)) {
+      return NextResponse.json(
+        { error: 'Image data too large' },
         { status: 400 }
       );
     }
@@ -93,8 +119,14 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     const responseText = data.choices?.[0]?.message?.content || '{}';
 
-    // Parse the JSON response
-    const decision = JSON.parse(responseText);
+    // Parse the JSON response safely
+    let decision;
+    try {
+      decision = JSON.parse(responseText);
+    } catch {
+      helpCheckLogger.warn({ requestId, responseText: responseText.slice(0, 200) }, 'Failed to parse JSON response');
+      decision = { needsHelp: false, confidence: 0, reason: 'Failed to parse response' };
+    }
 
     const duration = Date.now() - startTime;
     helpCheckLogger.info({

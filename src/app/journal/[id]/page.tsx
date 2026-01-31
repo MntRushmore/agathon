@@ -59,8 +59,9 @@ import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import dynamic from 'next/dynamic';
+import DOMPurify from 'dompurify';
 
-// Simple markdown renderer for chat messages
+// Simple markdown renderer for chat messages with DOMPurify sanitization
 function renderMarkdown(text: string): string {
   let html = text
     // Escape HTML
@@ -95,7 +96,11 @@ function renderMarkdown(text: string): string {
   // Clean up empty paragraphs
   html = html.replace(/<p><\/p>/g, '');
 
-  return html;
+  // Sanitize output to prevent XSS
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'li', 'ul', 'ol'],
+    ALLOWED_ATTR: ['class'],
+  });
 }
 
 // Dynamically import tldraw to avoid SSR issues

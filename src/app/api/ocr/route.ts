@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ocrLogger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -8,6 +9,17 @@ export async function POST(req: NextRequest) {
   ocrLogger.info({ requestId }, 'OCR request started');
 
   try {
+    // Auth check
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const { image } = await req.json();
 
     if (!image) {

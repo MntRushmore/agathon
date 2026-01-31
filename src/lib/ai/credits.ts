@@ -150,8 +150,9 @@ export async function getCreditHistory(
 }
 
 /**
- * Check credits and deduct if available - combined operation for API routes
- * Returns whether to use premium AI and the result of deduction if attempted
+ * Check credits and deduct if available - single atomic operation for API routes.
+ * Uses deductCredits directly which performs FOR UPDATE row locking to prevent
+ * race conditions. No separate check step needed — the DB function handles both.
  */
 export async function checkAndDeductCredits(
   userId: string,
@@ -162,19 +163,18 @@ export async function checkAndDeductCredits(
   creditBalance: number;
   deductionResult?: CreditDeductionResult;
 }> {
-  const creditCheck = await checkUserCredits(userId, route);
+  // Single atomic call — deduct_credits checks balance AND deducts under row lock
+  const deductionResult = await deductCredits(userId, route, description);
 
-  if (!creditCheck.hasCredits) {
+  if (!deductionResult.success) {
     return {
       usePremium: false,
-      creditBalance: creditCheck.currentBalance,
+      creditBalance: deductionResult.newBalance,
     };
   }
 
-  const deductionResult = await deductCredits(userId, route, description);
-
   return {
-    usePremium: deductionResult.success,
+    usePremium: true,
     creditBalance: deductionResult.newBalance,
     deductionResult,
   };

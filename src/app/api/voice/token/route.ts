@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
  * Creates an ephemeral Realtime session with OpenAI and returns the client secret
  * that the browser can use to establish a WebRTC connection.
  */
 export async function POST(_req: NextRequest) {
+  // Auth check
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 },
+    );
+  }
+
   if (!process.env.OPENAI_API_KEY) {
     voiceLogger.error('OPENAI_API_KEY not configured for Realtime voice token route');
     return NextResponse.json(
