@@ -39,14 +39,18 @@ export async function POST(req: NextRequest) {
     if (!result) {
       return NextResponse.json(
         { success: false, error: 'Invalid invite code' },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      success: result.success,
-      error: result.error_message || undefined,
-    });
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error_message || 'Failed to redeem invite code' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Redeem invite error:', error);
     return NextResponse.json(

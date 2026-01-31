@@ -103,7 +103,7 @@ async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
 
   if (error) {
     console.error('Polar webhook: failed to grant credits', error);
-    return;
+    throw new Error(`Failed to grant credits for order ${order.id}: ${error.message}`);
   }
 
   console.log(`Polar webhook: granted ${creditsToGrant} credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);
@@ -122,7 +122,7 @@ async function syncProfileFromSubscription(
     return;
   }
 
-  const planTier = productPlanMap[subscription.productId] || 'starter';
+  const planTier = productPlanMap[subscription.productId] || 'free';
   const supabase = createServiceRoleClient();
 
   const updatePayload: Record<string, any> = {
@@ -143,6 +143,7 @@ async function syncProfileFromSubscription(
 
   if (error) {
     console.error('Polar webhook: failed to sync profile', error);
+    throw new Error(`Failed to sync profile for user ${externalId}: ${error.message}`);
   }
 }
 
@@ -161,19 +162,32 @@ async function grantSubscriptionCredits(
 
   // Idempotency: check if credits were already granted for this subscription period
   const periodEnd = subscription.currentPeriodEnd || subscription.endsAt;
+
+  // Build idempotency metadata — only include period_end if it's a real value
+  // (null values in JSONB contains checks can match unintended rows)
+  const idempotencyMeta: Record<string, string> = {
+    polar_subscription_id: subscription.id,
+  };
+  if (periodEnd) {
+    idempotencyMeta.period_end = periodEnd;
+  }
+
   const { data: existingGrant } = await supabase
     .from('credit_transactions')
     .select('id')
     .eq('user_id', externalId)
     .eq('transaction_type', 'subscription_grant')
-    .contains('metadata', { polar_subscription_id: subscription.id, period_end: periodEnd })
+    .contains('metadata', idempotencyMeta)
     .limit(1)
     .maybeSingle();
 
   if (existingGrant) {
-    console.log(`Polar webhook: subscription credits already granted for period ${periodEnd}, skipping.`);
+    console.log(`Polar webhook: subscription credits already granted for period ${periodEnd ?? 'unknown'}, skipping.`);
     return;
   }
+
+  // Use a deterministic period key for idempotency even when periodEnd is null
+  const periodKey = periodEnd || new Date().toISOString().slice(0, 7); // fallback to YYYY-MM
 
   const { data, error } = await supabase.rpc('add_credits', {
     p_user_id: externalId,
@@ -182,13 +196,13 @@ async function grantSubscriptionCredits(
     p_description: `Premium plan monthly credits (${PREMIUM_MONTHLY_CREDITS})`,
     p_metadata: {
       polar_subscription_id: subscription.id,
-      period_end: periodEnd,
+      period_end: periodKey,
     },
   });
 
   if (error) {
     console.error('Polar webhook: failed to grant subscription credits', error);
-    return;
+    throw new Error(`Failed to grant subscription credits for user ${externalId}: ${error.message}`);
   }
 
   console.log(`Polar webhook: granted ${PREMIUM_MONTHLY_CREDITS} subscription credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);

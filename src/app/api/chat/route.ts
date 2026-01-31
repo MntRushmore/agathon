@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 
 interface CanvasContext {
@@ -105,12 +105,9 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
     }
 
-    // Check credits to determine which AI to use
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'chat',
-      'AI chat assistance'
-    );
+    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
+    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'chat');
+    let creditBalance = currentBalance;
 
     // Common response headers
     const baseHeaders = {
@@ -134,7 +131,7 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       return { role: m.role, content: m.content };
     });
 
-    if (usePremium) {
+    if (shouldUsePremium) {
       // Premium: Use OpenRouter with Nano Banana Pro
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
@@ -172,16 +169,21 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
         );
       }
 
+      // Deduct credits only after successful API response (before streaming to client)
+      const deductResult = await deductCredits(user.id, 'chat', 'AI chat assistance');
+      creditBalance = deductResult.newBalance;
+
       return new Response(response.body, {
         headers: {
           ...baseHeaders,
+          'X-Credits-Remaining': String(creditBalance),
           'X-AI-Provider': 'openrouter',
           'X-Image-Supported': 'true',
           'X-Is-Premium': 'true',
         },
       });
     } else {
-      // Free tier: Use Hack Club AI
+      // Free tier: Use Hack Club AI (no credits deducted for free tier)
       const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
 
       try {

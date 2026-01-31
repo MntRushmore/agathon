@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
@@ -84,17 +84,14 @@ Please write constructive feedback for this student. Focus on effort and learnin
     const hasImage = boardImage || submission.student_board?.preview;
     const imageUrl = boardImage || submission.student_board?.preview;
 
-    // Check credits to determine which AI to use
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'teacher-feedback',
-      'Teacher feedback generation'
-    );
+    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
+    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'teacher-feedback');
+    let creditBalance = currentBalance;
 
     let aiDraft = '';
     let provider = 'hackclub';
 
-    if (usePremium) {
+    if (shouldUsePremium) {
       // Premium: Use OpenRouter with Nano Banana Pro
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
@@ -197,6 +194,12 @@ Please write constructive feedback for this student. Focus on effort and learnin
         });
     }
 
+    // Deduct credits only after successful AI response
+    if (shouldUsePremium) {
+      const deductResult = await deductCredits(user.id, 'teacher-feedback', 'Teacher feedback generation');
+      creditBalance = deductResult.newBalance;
+    }
+
     return NextResponse.json({
       feedback: aiDraft,
       studentName,
@@ -206,7 +209,7 @@ Please write constructive feedback for this student. Focus on effort and learnin
       provider,
       imageAnalyzed: hasImage,
       creditsRemaining: creditBalance,
-      isPremium: usePremium,
+      isPremium: shouldUsePremium,
     });
   } catch (error) {
     console.error('Generate feedback error:', error);

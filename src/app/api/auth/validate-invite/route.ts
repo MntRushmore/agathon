@@ -29,14 +29,18 @@ export async function POST(req: NextRequest) {
     if (!result) {
       return NextResponse.json(
         { valid: false, error: 'Invalid invite code' },
-        { status: 200 }
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({
-      valid: result.valid,
-      error: result.error_message || undefined,
-    });
+    if (!result.valid) {
+      return NextResponse.json(
+        { valid: false, error: result.error_message || 'Invalid invite code' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ valid: true });
   } catch (error) {
     console.error('Validate invite error:', error);
     return NextResponse.json(

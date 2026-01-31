@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 /**
@@ -70,17 +70,14 @@ export async function POST(req: NextRequest) {
       ? `Here is a snapshot of the user canvas. Focus on: ${focus}`
       : 'Here is a snapshot of the user canvas. Describe what they are working on and how you could help.';
 
-    // Check credits to determine which AI to use
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'voice-analyze',
-      'Voice workspace analysis'
-    );
+    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
+    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'voice-analyze');
+    let creditBalance = currentBalance;
 
     let analysis = '';
     let provider = 'hackclub';
 
-    if (usePremium) {
+    if (shouldUsePremium) {
       // Premium: Use OpenRouter with Nano Banana Pro
       voiceLogger.info('Using OpenRouter (Premium) for workspace analysis');
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
@@ -184,12 +181,18 @@ export async function POST(req: NextRequest) {
       'Workspace analysis completed successfully',
     );
 
+    // Deduct credits only after successful AI response
+    if (shouldUsePremium) {
+      const deductResult = await deductCredits(user.id, 'voice-analyze', 'Voice workspace analysis');
+      creditBalance = deductResult.newBalance;
+    }
+
     return NextResponse.json({
       success: true,
       analysis,
       provider,
       creditsRemaining: creditBalance,
-      isPremium: usePremium,
+      isPremium: shouldUsePremium,
     });
   } catch (error) {
     const duration = Date.now() - startTime;

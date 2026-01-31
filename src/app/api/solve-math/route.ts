@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
@@ -39,12 +39,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check credits to determine which AI to use
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'solve-math',
-      'Math solving'
-    );
+    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
+    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'solve-math');
+    let creditBalance = currentBalance;
 
     // If image is provided, use vision AI to recognize and solve
     if (image && typeof image === 'string' && image.startsWith('data:image/')) {
@@ -73,7 +70,7 @@ Examples:
       let content = '';
       let provider = 'hackclub';
 
-      if (usePremium) {
+      if (shouldUsePremium) {
         // Premium: Use OpenRouter
         const openrouterApiKey = process.env.OPENROUTER_API_KEY;
         const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
@@ -166,6 +163,12 @@ Examples:
         });
       }
 
+      // Deduct credits only after successful AI response
+      if (shouldUsePremium) {
+        const deductResult = await deductCredits(user.id, 'solve-math', 'Math solving (vision)');
+        creditBalance = deductResult.newBalance;
+      }
+
       return NextResponse.json({
         success: true,
         answer,
@@ -173,7 +176,7 @@ Examples:
         source: 'gemini-vision',
         creditsRemaining: creditBalance,
         provider,
-        isPremium: usePremium,
+        isPremium: shouldUsePremium,
       });
     }
 
@@ -230,7 +233,7 @@ Examples:
     let answer = '';
     let provider = 'hackclub';
 
-    if (usePremium) {
+    if (shouldUsePremium) {
       // Premium: Use OpenRouter
       const openrouterApiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
@@ -289,13 +292,19 @@ Examples:
     answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
     answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
 
+    // Deduct credits only after successful AI response
+    if (shouldUsePremium) {
+      const deductResult = await deductCredits(user.id, 'solve-math', 'Math solving');
+      creditBalance = deductResult.newBalance;
+    }
+
     return NextResponse.json({
       success: true,
       answer: answer || '?',
       source: 'llm',
       creditsRemaining: creditBalance,
       provider,
-      isPremium: usePremium,
+      isPremium: shouldUsePremium,
     });
   } catch (error) {
     console.error('Error solving math:', error);

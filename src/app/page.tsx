@@ -321,8 +321,10 @@ export default function Dashboard() {
     }
   }, [creating, user, router, supabase]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (only when authenticated — don't hijack browser defaults on landing page)
   useEffect(() => {
+    if (!user) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
         switch (e.key.toLowerCase()) {
@@ -348,7 +350,7 @@ export default function Dashboard() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [router, createWhiteboard]);
+  }, [user, router, createWhiteboard]);
 
   async function deleteWhiteboard(id: string) {
     try {
