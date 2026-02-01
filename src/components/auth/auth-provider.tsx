@@ -33,9 +33,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
 
-  // Impersonation state
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [impersonatedProfile, setImpersonatedProfile] = useState<Profile | null>(null);
+  // Impersonation state — restore from sessionStorage on mount
+  const [isImpersonating, setIsImpersonating] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('agathon_impersonating') === 'true';
+  });
+  const [impersonatedProfile, setImpersonatedProfile] = useState<Profile | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = sessionStorage.getItem('agathon_impersonated_profile');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [originalProfile, setOriginalProfile] = useState<Profile | null>(null);
 
   const isAdmin = profile?.role === 'admin';
@@ -142,6 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsImpersonating(false);
     setImpersonatedProfile(null);
     setOriginalProfile(null);
+    sessionStorage.removeItem('agathon_impersonating');
+    sessionStorage.removeItem('agathon_impersonated_profile');
     // Full reload to landing page to clear all client state
     window.location.href = '/';
   };
@@ -174,6 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setImpersonatedProfile(targetProfile);
         setIsImpersonating(true);
+        sessionStorage.setItem('agathon_impersonating', 'true');
+        sessionStorage.setItem('agathon_impersonated_profile', JSON.stringify(targetProfile));
       }
     } catch (error) {
       console.error('Failed to start impersonation:', error);
@@ -185,6 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setImpersonatedProfile(null);
     setIsImpersonating(false);
+    sessionStorage.removeItem('agathon_impersonating');
+    sessionStorage.removeItem('agathon_impersonated_profile');
     if (originalProfile) {
       setProfile(originalProfile);
     }

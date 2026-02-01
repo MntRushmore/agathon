@@ -182,7 +182,7 @@ export default function AdminInviteCodesPage() {
                       ))}
                     </div>
                     {usageType === 'multi' && (
-                      <Input type="number" min={2} value={maxUses} onChange={(e) => setMaxUses(parseInt(e.target.value) || 2)} placeholder="Number of uses" className="mt-2 rounded-none" />
+                      <Input type="number" min={2} max={10000} value={maxUses} onChange={(e) => setMaxUses(Math.min(10000, Math.max(2, parseInt(e.target.value) || 2)))} placeholder="Number of uses" className="mt-2 rounded-none" />
                     )}
                   </div>
                   <div className="space-y-2">

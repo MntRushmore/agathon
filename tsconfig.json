@@ -40,6 +40,5 @@
     "node_modules",
     "expo-app",
     "remotion-video"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

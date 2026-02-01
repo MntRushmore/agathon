@@ -7,8 +7,6 @@ const footerLinks = {
     { label: 'Use cases', href: '#use-cases' },
   ],
   company: [
-    { label: 'About', href: '#' },
-    { label: 'Blog', href: '#' },
     { label: 'Contact', href: 'mailto:hello@agathon.app' },
   ],
   legal: [
