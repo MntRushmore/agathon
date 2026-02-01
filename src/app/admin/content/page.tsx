@@ -18,6 +18,11 @@ import {
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
 
+export const metadata = {
+  title: 'Admin Content | Agathon',
+  description: 'Review and manage platform content',
+};
+
 type ContentTab = 'classes' | 'assignments' | 'boards' | 'documents';
 
 const TABS: { key: ContentTab; label: string; icon: typeof BookOpen }[] = [

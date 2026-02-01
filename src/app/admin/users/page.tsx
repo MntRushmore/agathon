@@ -29,6 +29,11 @@ import {
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
 
+export const metadata = {
+  title: 'Admin Users | Agathon',
+  description: 'Manage users, roles, and admin actions for Agathon',
+};
+
 const PAGE_SIZE = 25;
 
 export default function AdminUsersPage() {

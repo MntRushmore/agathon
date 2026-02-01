@@ -18,6 +18,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+export const metadata = {
+  title: 'Admin | Agathon',
+  description: 'Administration panel for Agathon',
+};
+
 const adminNavItems = [
   { href: '/admin', label: 'Overview', icon: BarChart3 },
   { href: '/admin/users', label: 'Users', icon: Users },

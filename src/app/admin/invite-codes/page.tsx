@@ -19,6 +19,11 @@ import {
 } from 'lucide-react';
 import type { InviteCode } from '@/types/database';
 
+export const metadata = {
+  title: 'Admin Invite Codes | Agathon',
+  description: 'Generate and manage signup invite codes',
+};
+
 function formatCode(code: string): string {
   return `${code.slice(0, 4)}-${code.slice(4)}`;
 }

@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 import type { CreditTransaction } from '@/types/database';
 
+export const metadata = {
+  title: 'Credits | Agathon',
+  description: 'Manage and purchase AI credits for Agathon',
+};
+
 type CreditPack = {
   id: string;
   credits: number;

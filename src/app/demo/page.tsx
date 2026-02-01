@@ -3,6 +3,11 @@
 import { useEffect, useRef } from 'react';
 import { Logo } from '@/components/ui/logo';
 
+export const metadata = {
+  title: 'Demo | Agathon',
+  description: 'Try Agathon interactive learning demo',
+};
+
 export default function DemoPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
 

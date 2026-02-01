@@ -9,6 +9,11 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+export const metadata = {
+  title: 'Admin Analytics | Agathon',
+  description: 'User growth, engagement, and platform analytics',
+};
+
 interface AnalyticsData {
   growth: {
     dailySignups: Record<string, number>;
