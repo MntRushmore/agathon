@@ -226,6 +226,16 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'teacher') {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
     const { submissionId, feedback, sendToStudent } = await req.json();
 
     if (!submissionId || !feedback) {

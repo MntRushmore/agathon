@@ -23,13 +23,20 @@ export function InlineDesmos({ expression, height = 400 }: InlineDesmosProps) {
 
   useEffect(() => {
     // Load Desmos API script
+    let cancelled = false;
     const win = window as Window & { Desmos?: DesmosAPI };
     if (!win.Desmos) {
       const script = document.createElement('script');
       script.src = 'https://www.desmos.com/api/v1.9/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6';
       script.async = true;
-      script.onload = () => setLoaded(true);
+      script.onload = () => {
+        if (!cancelled) setLoaded(true);
+      };
       document.head.appendChild(script);
+      return () => {
+        cancelled = true;
+        script.remove();
+      };
     } else {
       setLoaded(true);
     }

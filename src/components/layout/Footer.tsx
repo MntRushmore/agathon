@@ -30,7 +30,7 @@ export function Footer() {
               Terms
             </Link>
             <a
-              href="mailto:support@agathon.app"
+              href="mailto:hello@agathon.app"
               className="text-[#666] hover:text-[#1a1a1a] transition-colors"
             >
               Contact

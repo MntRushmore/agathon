@@ -122,6 +122,29 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Missing indicator ID' }, { status: 400 });
     }
 
+    // Verify the teacher owns the class this indicator belongs to
+    const { data: indicator } = await supabase
+      .from('struggle_indicators')
+      .select(`
+        id,
+        submission:submissions!submission_id(
+          assignment:assignments!assignment_id(
+            class:classes!class_id(teacher_id)
+          )
+        )
+      `)
+      .eq('id', indicatorId)
+      .single();
+
+    if (!indicator) {
+      return NextResponse.json({ error: 'Indicator not found' }, { status: 404 });
+    }
+
+    const teacherId = (indicator as any).submission?.assignment?.class?.teacher_id;
+    if (teacherId !== user.id) {
+      return NextResponse.json({ error: 'Not authorized to modify this indicator' }, { status: 403 });
+    }
+
     const { error } = await supabase
       .from('struggle_indicators')
       .update({

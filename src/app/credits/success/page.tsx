@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
@@ -12,19 +12,29 @@ export default function CreditsSuccessPage() {
   const router = useRouter();
   const { refreshCredits, credits } = useAuth();
   const [refreshing, setRefreshing] = useState(true);
+  const initialCredits = useRef(credits);
 
   const checkoutId = searchParams.get('checkout_id') || searchParams.get('id');
 
   useEffect(() => {
-    // Refresh credits after purchase - webhook may take a moment
-    const refresh = async () => {
+    // Poll for credit update — webhook may take a moment to process
+    let cancelled = false;
+    const maxAttempts = 5;
+    let attempt = 0;
+
+    const poll = async () => {
       setRefreshing(true);
-      // Give webhook time to process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await refreshCredits();
-      setRefreshing(false);
+      while (!cancelled && attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (cancelled) break;
+        await refreshCredits();
+        attempt++;
+      }
+      if (!cancelled) setRefreshing(false);
     };
-    refresh();
+    poll();
+
+    return () => { cancelled = true; };
   }, [refreshCredits]);
 
   return (

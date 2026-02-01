@@ -317,6 +317,7 @@ export default function CreateAssignmentPage() {
                   type="datetime-local"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
                 />
               </div>
 
