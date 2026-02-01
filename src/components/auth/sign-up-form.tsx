@@ -77,23 +77,6 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     }
   };
 
-  const redeemCode = async () => {
-    const cleaned = inviteCode.replace(/[-\s]/g, '').toUpperCase();
-    try {
-      const res = await fetch('/api/auth/redeem-invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: cleaned }),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        console.error('Failed to redeem invite code:', data.error);
-      }
-    } catch (error) {
-      console.error('Failed to redeem invite code:', error);
-    }
-  };
-
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -104,6 +87,10 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
     setLoading(true);
 
+    // Store code in localStorage for the complete-signup page to redeem
+    const cleaned = inviteCode.replace(/[-\s]/g, '').toUpperCase();
+    localStorage.setItem('agathon_pending_invite_code', cleaned);
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -113,23 +100,23 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             full_name: fullName,
             role,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/complete-signup`,
         },
       });
 
       if (error) throw error;
 
-      // Redeem the invite code after successful signup
       if (data.user && data.session) {
-        await redeemCode();
-        toast.success('Account created successfully!');
+        // Session returned immediately (no email confirmation required)
+        // Redirect to complete-signup to redeem the code
         onSuccess?.();
-        router.push('/');
+        router.push('/auth/complete-signup');
       } else {
         toast.success('Account created! Please check your email to verify your account.');
         onSuccess?.();
       }
     } catch (error) {
+      localStorage.removeItem('agathon_pending_invite_code');
       const message = error instanceof Error ? error.message : 'Failed to sign up';
       toast.error(message);
     } finally {
