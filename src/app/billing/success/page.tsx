@@ -21,7 +21,7 @@ export default function BillingSuccessPage() {
           </div>
           <CardTitle className="text-2xl">Checkout complete</CardTitle>
           <CardDescription>
-            Thanks for upgrading. We&apos;re syncing your plan now—usage tracking stays continuous.
+            Thanks for upgrading. We&apos;re syncing your plan now — usage tracking stays continuous.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
