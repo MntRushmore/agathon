@@ -13,11 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
-
-export const metadata = {
-  title: 'Admin Logs | Agathon',
-  description: 'System audit logs for Agathon administrative review',
-};
+import { formatDistanceToNow, format } from 'date-fns';
 
 interface AuditLog {
   id: string;

@@ -18,11 +18,6 @@ import {
   Coins,
 } from 'lucide-react';
 
-export const metadata = {
-  title: 'Billing | Agathon',
-  description: 'Manage your subscription and billing for Agathon',
-};
-
 type UsageSummary = {
   totalInteractions: number;
   tokensUsed: number;

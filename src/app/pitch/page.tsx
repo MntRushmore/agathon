@@ -1,15 +1,12 @@
-'use client';
-
 import { Logo } from '@/components/ui/logo';
-
-export default function PitchPage() {
-  // Convert Canva view URL to embed URL
-  const canvaEmbedUrl = 'https://www.canva.com/design/DAG_dLdTLgM/UHCwyamon0eeD3P2nXuhmw/view?embed';
-
 export const metadata = {
   title: 'Pitch | Agathon',
   description: 'Agathon pitch deck and investor materials',
 };
+
+export default function PitchPage() {
+  // Convert Canva view URL to embed URL
+  const canvaEmbedUrl = 'https://www.canva.com/design/DAG_dLdTLgM/UHCwyamon0eeD3P2nXuhmw/view?embed';
 
   return (
     <div className="min-h-screen bg-black flex flex-col">

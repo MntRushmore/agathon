@@ -19,11 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import type { CreditTransaction } from '@/types/database';
-
-export const metadata = {
-  title: 'Credits | Agathon',
-  description: 'Manage and purchase AI credits for Agathon',
-};
+import type { CreditTransaction } from '@/types/database';
 
 type CreditPack = {
   id: string;

@@ -17,11 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
-
-export const metadata = {
-  title: 'Admin Content | Agathon',
-  description: 'Review and manage platform content',
-};
+import { formatDistance } from 'date-fns';
 
 type ContentTab = 'classes' | 'assignments' | 'boards' | 'documents';
 

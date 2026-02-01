@@ -8,11 +8,7 @@ import {
   TrendingUp, RefreshCw, ArrowUp, ArrowDown, Minus,
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-export const metadata = {
-  title: 'Admin Analytics | Agathon',
-  description: 'User growth, engagement, and platform analytics',
-};
+import { toast } from 'sonner';
 
 interface AnalyticsData {
   growth: {

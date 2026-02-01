@@ -28,11 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
-
-export const metadata = {
-  title: 'Admin Users | Agathon',
-  description: 'Manage users, roles, and admin actions for Agathon',
-};
+import { formatDistance } from 'date-fns';
 
 const PAGE_SIZE = 25;
 

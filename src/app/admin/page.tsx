@@ -25,11 +25,7 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-
-export const metadata = {
-  title: 'Admin Overview | Agathon',
-  description: 'Platform statistics and admin tools for Agathon',
-};
+import Link from 'next/link';
 
 interface Stats {
   totalUsers: number;
