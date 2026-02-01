@@ -61,6 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error fetching profile:', error);
         setProfile(null);
       } else if (data && data.invite_redeemed === false) {
+        // Allow users on /auth/complete-signup to stay logged in — they're about to redeem
+        if (window.location.pathname === '/auth/complete-signup') {
+          setProfile(data);
+          return;
+        }
         // User hasn't redeemed an invite code — sign them out
         console.warn('User has not redeemed an invite code, signing out');
         await supabase.auth.signOut();
