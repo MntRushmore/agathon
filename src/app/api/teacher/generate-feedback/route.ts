@@ -242,6 +242,17 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Verify that the teacher actually owns the class/assignment for this submission
+    const { data: submissionInfo } = await supabase
+      .from('submissions')
+      .select(`assignment:assignments!assignment_id(class:classes!class_id(teacher_id))`)
+      .eq('id', submissionId)
+      .single();
+
+    if (!submissionInfo || !submissionInfo.assignment || !submissionInfo.assignment.class || submissionInfo.assignment.class.teacher_id !== user.id) {
+      return NextResponse.json({ error: 'Not authorized to modify feedback for this submission' }, { status: 403 });
+    }
+
     const { data: existingFeedback } = await supabase
       .from('teacher_feedback')
       .select('id')

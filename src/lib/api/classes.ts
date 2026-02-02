@@ -7,10 +7,14 @@ const supabase = createClient();
  * Get all classes for the current teacher
  */
 export async function getTeacherClasses() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('classes')
     .select('*')
     .eq('is_active', true)
+    .eq('teacher_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -80,6 +84,21 @@ export async function createClass(classData: Database['public']['Tables']['class
  * Update an existing class
  */
 export async function updateClass(classId: string, updates: Database['public']['Tables']['classes']['Update']) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Verify ownership before updating
+  const { data: existing, error: fetchErr } = await supabase
+    .from('classes')
+    .select('teacher_id')
+    .eq('id', classId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing || existing.teacher_id !== user.id) {
+    throw new Error('Not authorized to update this class');
+  }
+
   const { data, error } = await supabase
     .from('classes')
     .update(updates)

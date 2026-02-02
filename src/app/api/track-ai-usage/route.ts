@@ -13,6 +13,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Simple rate limiting: limit number of reporting events per user per minute
+    const WINDOW_MS = 60 * 1000;
+    const MAX_PER_WINDOW = 60; // allow up to 60 events per minute
+    const sinceIso = new Date(Date.now() - WINDOW_MS).toISOString();
+    try {
+      const { count, error: countError } = await supabase
+        .from('ai_usage')
+        .select('id', { count: 'exact', head: true })
+        .eq('student_id', user.id)
+        .gte('created_at', sinceIso);
+
+      if (countError) {
+        console.error('Rate limit check failed:', countError);
+      } else if (typeof count === 'number' && count >= MAX_PER_WINDOW) {
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      }
+    } catch (e) {
+      console.error('Rate limit check exception:', e);
+    }
+
     const body = await req.json();
       const {
         submissionId,
@@ -63,6 +83,22 @@ export async function POST(req: NextRequest) {
       // Only add submission and assignment IDs if provided
       if (submissionId) usageData.submission_id = submissionId;
       if (assignmentId) usageData.assignment_id = assignmentId;
+      // If a submissionId was provided, ensure the acting user actually owns that submission
+      if (submissionId) {
+        const { data: submissionInfo } = await supabase
+          .from('submissions')
+          .select('student_id')
+          .eq('id', submissionId)
+          .single();
+
+        if (!submissionInfo) {
+          return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+        }
+
+        if (submissionInfo.student_id !== user.id) {
+          return NextResponse.json({ error: 'Not authorized to report usage for this submission' }, { status: 403 });
+        }
+      }
 
       const { error: usageError } = await supabase
         .from('ai_usage')
