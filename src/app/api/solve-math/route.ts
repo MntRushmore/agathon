@@ -56,6 +56,7 @@ IMPORTANT RULES:
    - 1 vs 7 vs l
    - 6 vs 0 vs 9
    - 8 vs 0
+   - 4 vs 9
    - + vs × vs ÷
 4. If the math is incomplete (e.g., "3 +" with nothing after), respond: INCOMPLETE
 5. If you can't read it clearly, respond: UNCLEAR
