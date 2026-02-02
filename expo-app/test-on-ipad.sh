@@ -3,7 +3,7 @@
 # Helper script to test the app on iPad
 # Makes it easy to get your local IP and update the WebView URL
 
-echo "🎨 AI Whiteboard - iPad Testing Helper"
+echo "🎨 Agathon - iPad Testing Helper"
 echo "======================================"
 echo ""
 
