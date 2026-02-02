@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
 import { toast } from 'sonner';
+import { mapSupabaseError } from '@/lib/error-utils';
+import { logger } from '@/lib/logger';
 import { Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 
@@ -39,7 +41,8 @@ export default function LoginPage() {
       });
       if (error) throw error;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      logger.error({ error }, 'Google sign-in failed');
+      const message = mapSupabaseError(error);
       toast.error(message);
       setLoading(false);
     }
@@ -60,7 +63,8 @@ export default function LoginPage() {
       toast.success('Signed in successfully!');
       router.push('/');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to sign in';
+      logger.error({ error }, 'Email sign-in failed');
+      const message = mapSupabaseError(error);
       toast.error(message);
     } finally {
       setLoading(false);
@@ -83,7 +87,8 @@ export default function LoginPage() {
 
       toast.success('Password reset link sent to your email!');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to send reset email';
+      logger.error({ error }, 'Password reset failed');
+      const message = mapSupabaseError(error);
       toast.error(message);
     } finally {
       setLoading(false);

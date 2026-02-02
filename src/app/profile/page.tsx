@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { mapSupabaseError } from '@/lib/error-utils';
+import { logger } from '@/lib/logger';
 import {
   ChevronLeft,
   LogOut,
@@ -57,7 +59,9 @@ export default function ProfilePage() {
       await refreshProfile();
       toast.success('Profile updated successfully!');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
+      logger.error({ error }, 'Failed to update profile');
+      const message = mapSupabaseError(error);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
