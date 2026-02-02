@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { logger } from '@/lib/logger';
+import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +113,8 @@ export default function BillingPage() {
           setUsage(data);
         }
       } catch (err) {
-        console.error('Failed to load usage', err);
+        logger.error({ err }, 'Failed to load usage');
+        try { toast.error('Failed to load usage. Please try again.'); } catch (e) {}
       } finally {
         setLoadingUsage(false);
       }

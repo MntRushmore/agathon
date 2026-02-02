@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { Profile } from '@/types/database';
+import { logger } from '@/lib/logger';
+import { toast } from 'sonner';
+import { mapSupabaseError } from '@/lib/error-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -58,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        logger.error({ error }, 'Error fetching profile');
         setProfile(null);
       } else if (data && data.invite_redeemed === false) {
         // User hasn't redeemed an invite code — sign them out
@@ -72,8 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error({ error }, 'Error fetching profile');
       setProfile(null);
+      try {
+        toast.error('Failed to load profile');
+      } catch (e) {}
     }
   };
 
@@ -98,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchProfile(session.user.id);
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        logger.error({ error }, 'Error getting session');
       } finally {
         if (mounted) {
           setLoading(false);
@@ -158,8 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (targetProfile) {
-        // Log impersonation to audit log
-        await supabase.from('admin_audit_logs').insert({
+        // Log impersonation to audit log — ensure it succeeds before continuing
+        const { error: auditError } = await supabase.from('admin_audit_logs').insert({
           admin_id: user.id,
           action_type: 'user_impersonate',
           target_type: 'user',
@@ -167,11 +173,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           target_details: { email: targetProfile.email },
         });
 
+        if (auditError) {
+          // Prevent impersonation if audit logging fails
+          throw auditError;
+        }
+
         setImpersonatedProfile(targetProfile);
         setIsImpersonating(true);
       }
     } catch (error) {
-      console.error('Failed to start impersonation:', error);
+      logger.error({ error }, 'Failed to start impersonation');
+      const message = mapSupabaseError(error);
+      try {
+        toast.error(message);
+      } catch (e) {}
     }
   };
 
