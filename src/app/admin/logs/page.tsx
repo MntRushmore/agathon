@@ -14,6 +14,13 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 
+// Simple sanitizer: strip any HTML tags from untrusted strings
+function stripHtml(input: any): string {
+  if (input == null) return '';
+  const s = String(input);
+  return s.replace(/<[^>]*>/g, '').trim();
+}
+
 interface AuditLog {
   id: string;
   admin_id: string;
@@ -109,17 +116,17 @@ export default function AdminLogsPage() {
 
   const getDetailsSummary = (log: AuditLog): string => {
     const d = log.target_details;
-    if (!d) return log.target_id.slice(0, 12);
+    if (!d) return stripHtml(log.target_id).slice(0, 12);
 
     const parts: string[] = [];
-    if (d.email) parts.push(d.email);
-    if (d.name) parts.push(d.name);
-    if (d.code) parts.push(`Code: ${d.code}`);
-    if (d.previous_role && d.new_role) parts.push(`${d.previous_role} → ${d.new_role}`);
-    if (d.amount !== undefined) parts.push(`${d.amount > 0 ? '+' : ''}${d.amount} credits`);
+    if (d.email) parts.push(stripHtml(d.email));
+    if (d.name) parts.push(stripHtml(d.name));
+    if (d.code) parts.push(`Code: ${stripHtml(d.code)}`);
+    if (d.previous_role && d.new_role) parts.push(`${stripHtml(d.previous_role)} → ${stripHtml(d.new_role)}`);
+    if (d.amount !== undefined) parts.push(`${d.amount > 0 ? '+' : ''}${Number(d.amount)} credits`);
     if (d.is_active !== undefined) parts.push(d.is_active ? 'Activated' : 'Deactivated');
 
-    return parts.length > 0 ? parts.join(' · ') : log.target_id.slice(0, 12);
+    return parts.length > 0 ? parts.join(' · ') : stripHtml(log.target_id).slice(0, 12);
   };
 
   if (loading) {
