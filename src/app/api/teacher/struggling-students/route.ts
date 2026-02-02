@@ -122,7 +122,6 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Missing indicator ID' }, { status: 400 });
     }
 
-<<<<<<< Updated upstream
     // Verify the teacher owns the class this indicator belongs to
     const { data: indicator } = await supabase
       .from('struggle_indicators')
@@ -143,26 +142,6 @@ export async function PATCH(req: NextRequest) {
 
     const teacherId = (indicator as any).submission?.assignment?.class?.teacher_id;
     if (teacherId !== user.id) {
-=======
-    // Verify that the struggle indicator is for a submission in a class owned by this teacher
-    const { data: indicator } = await supabase
-      .from('struggle_indicators')
-      .select('submission_id')
-      .eq('id', indicatorId)
-      .single();
-
-    if (!indicator || !indicator.submission_id) {
-      return NextResponse.json({ error: 'Indicator not found' }, { status: 404 });
-    }
-
-    const { data: submissionInfo } = await supabase
-      .from('submissions')
-      .select('assignment:assignments!assignment_id(class:classes!class_id(teacher_id))')
-      .eq('id', indicator.submission_id)
-      .single();
-
-    if (!submissionInfo || !submissionInfo.assignment || !submissionInfo.assignment.class || submissionInfo.assignment.class.teacher_id !== user.id) {
->>>>>>> Stashed changes
       return NextResponse.json({ error: 'Not authorized to modify this indicator' }, { status: 403 });
     }
 
