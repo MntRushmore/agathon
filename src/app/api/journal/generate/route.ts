@@ -277,7 +277,7 @@ export async function POST(req: NextRequest) {
         { role: 'user', content: userMessage },
       ],
       stream: false,
-      model: 'google/gemini-2.5-flash',
+      temperature: 0.4,
     });
 
     const data = await response.json();

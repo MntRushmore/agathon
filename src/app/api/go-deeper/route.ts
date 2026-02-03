@@ -102,10 +102,10 @@ Guidelines:
       ];
 
       const response = await callHackClubAI({
-        model: 'google/gemini-2.5-flash',
         messages,
         stream: true,
         max_tokens: 1500,
+        temperature: 0.5,
       });
 
       // Forward the streaming response
@@ -177,7 +177,7 @@ Only output JSON.`;
       : image;
 
     const response = await callHackClubAI({
-      model: 'google/gemini-2.5-flash',
+      temperature: 0.3,
       messages: [
         {
           role: 'user',

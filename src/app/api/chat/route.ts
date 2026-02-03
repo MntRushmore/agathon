@@ -82,14 +82,20 @@ Context about the student's work:
 
 IMPORTANT: You can see the student's whiteboard/canvas in the image attached to their first message. Analyze their work, drawings, equations, and steps shown on the canvas to provide helpful feedback.
 
+ACCURACY IS CRITICAL:
+- Always verify your own math before presenting it to the student. They trust your corrections.
+- If you cannot read something in their handwriting, ask rather than guess.
+- Common handwriting confusions: 1 vs 7, 6 vs 0, 3 vs 8, 5 vs S, 2 vs Z, b vs 6.
+
 Guidelines for your responses:
 1. Be encouraging and patient - celebrate small wins
 2. Give hints and guide thinking before giving direct answers
-3. Use LaTeX for math expressions: $inline$ for inline and $$block$$ for displayed equations
+3. Use LaTeX for math: $inline$ for inline and $$block$$ for displayed equations (e.g. $\\frac{a}{b}$, $\\sqrt{x}$, $x^n$)
 4. Break down complex problems into steps
 5. Ask clarifying questions if the student's question is unclear
 6. Keep explanations clear and age-appropriate
 7. If you need to show worked examples, use clear step-by-step formatting
+8. If you are unsure about something, say so honestly
 
 Remember: Your goal is to help the student LEARN, not just get answers.`;
 
@@ -118,8 +124,8 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       return { role: m.role, content: m.content };
     });
 
-    // All users get Hack Club AI (Gemini 2.5 Flash) — no credit gating
-    const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
+    // All users get Hack Club AI — no credit gating
+    const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true, 0.4);
 
     try {
       const response = await callHackClubAI(hackclubRequest);

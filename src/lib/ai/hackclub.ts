@@ -13,6 +13,7 @@ export interface HackClubCompletionOptions {
   stream?: boolean;
   max_tokens?: number;
   model?: string;
+  temperature?: number;
 }
 
 // Use the proxy endpoint for model selection and vision support
@@ -41,6 +42,7 @@ export async function callHackClubAI(options: HackClubCompletionOptions): Promis
       messages: options.messages,
       stream: options.stream ?? true,
       ...(options.max_tokens && { max_tokens: options.max_tokens }),
+      ...(options.temperature !== undefined && { temperature: options.temperature }),
     }),
   });
 
@@ -119,7 +121,8 @@ export function buildHackClubRequest(
     role: string;
     content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
   }>,
-  stream = true
+  stream = true,
+  temperature?: number
 ): HackClubCompletionOptions {
   // Pass through messages with images intact for vision models
   const messages: HackClubMessage[] = userMessages.map((msg) => ({
@@ -133,6 +136,7 @@ export function buildHackClubRequest(
       ...messages,
     ],
     stream,
+    ...(temperature !== undefined && { temperature }),
   };
 }
 
