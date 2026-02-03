@@ -44,7 +44,7 @@ if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID) {
   productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID.trim()] = 'free';
 }
 if (process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID) {
-  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID.trim()] = 'premium';
+  productPlanMap[process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID.trim()] = 'enterprise';
 }
 
 // Credit pack product mapping (product ID -> total credits)
@@ -156,7 +156,7 @@ async function grantSubscriptionCredits(
   if (!externalId) return;
 
   const planTier = productPlanMap[subscription.productId];
-  if (planTier !== 'premium') return;
+  if (planTier !== 'premium' && planTier !== 'enterprise') return;
 
   const supabase = createServiceRoleClient();
 
@@ -193,7 +193,7 @@ async function grantSubscriptionCredits(
     p_user_id: externalId,
     p_amount: PREMIUM_MONTHLY_CREDITS,
     p_transaction_type: 'subscription_grant',
-    p_description: `Premium plan monthly credits (${PREMIUM_MONTHLY_CREDITS})`,
+    p_description: `Enterprise plan monthly credits (${PREMIUM_MONTHLY_CREDITS})`,
     p_metadata: {
       polar_subscription_id: subscription.id,
       period_end: periodKey,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
@@ -39,10 +38,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
-    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'solve-math');
-    let creditBalance = currentBalance;
-
     // If image is provided, use vision AI to recognize and solve
     if (image && typeof image === 'string' && image.startsWith('data:image/')) {
       const visionPrompt = `Look at this handwritten content. If it contains a math expression or equation, recognize it and solve it.
@@ -69,68 +64,28 @@ Examples:
 - "2x + 5 = 15" → EXPRESSION: 2x + 5 = 15, ANSWER: x = 5`;
 
       let content = '';
-      let provider = 'hackclub';
 
-      if (shouldUsePremium) {
-        // Premium: Use OpenRouter
-        const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-        const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+      try {
+        const hackclubResponse = await callHackClubAI({
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: image } },
+              { type: 'text', text: visionPrompt },
+            ],
+          }],
+          stream: false,
+          max_tokens: 150,
+        });
 
-        if (openrouterApiKey) {
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${openrouterApiKey}`,
-              'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-              'X-Title': 'Whiteboard AI Tutor',
-            },
-            body: JSON.stringify({
-              model,
-              messages: [{
-                role: 'user',
-                content: [
-                  { type: 'image_url', image_url: { url: image } },
-                  { type: 'text', text: visionPrompt },
-                ],
-              }],
-              max_tokens: 150,
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            content = data.choices?.[0]?.message?.content?.trim() || '';
-            provider = 'openrouter';
-          }
-        }
-      }
-
-      // Fallback to Hack Club AI if premium failed or not available
-      if (!content) {
-        try {
-          const hackclubResponse = await callHackClubAI({
-            messages: [{
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: visionPrompt },
-              ],
-            }],
-            stream: false,
-            max_tokens: 150,
-          });
-
-          const data = await hackclubResponse.json();
-          content = data.choices?.[0]?.message?.content?.trim() || '';
-          provider = 'hackclub';
-        } catch (hackclubError) {
-          console.error('Hack Club AI vision error:', hackclubError);
-          return NextResponse.json(
-            { error: 'Vision API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
-            { status: 500 }
-          );
-        }
+        const data = await hackclubResponse.json();
+        content = data.choices?.[0]?.message?.content?.trim() || '';
+      } catch (hackclubError) {
+        console.error('Hack Club AI vision error:', hackclubError);
+        return NextResponse.json(
+          { error: 'Vision API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { status: 500 }
+        );
       }
 
       // Parse the response
@@ -140,8 +95,7 @@ Examples:
           answer: null,
           recognized: null,
           reason: content.toLowerCase(),
-          creditsRemaining: creditBalance,
-          provider,
+          provider: 'hackclub',
         });
       }
 
@@ -159,15 +113,8 @@ Examples:
           answer: null,
           recognized,
           reason: 'could_not_solve',
-          creditsRemaining: creditBalance,
-          provider,
+          provider: 'hackclub',
         });
-      }
-
-      // Deduct credits only after successful AI response
-      if (shouldUsePremium) {
-        const deductResult = await deductCredits(user.id, 'solve-math', 'Math solving (vision)');
-        creditBalance = deductResult.newBalance;
       }
 
       return NextResponse.json({
@@ -175,9 +122,7 @@ Examples:
         answer,
         recognized,
         source: 'gemini-vision',
-        creditsRemaining: creditBalance,
-        provider,
-        isPremium: shouldUsePremium,
+        provider: 'hackclub',
       });
     }
 
@@ -232,80 +177,35 @@ Examples:
 - Input: "\\sqrt{144}" → Output: "12"`;
 
     let answer = '';
-    let provider = 'hackclub';
 
-    if (shouldUsePremium) {
-      // Premium: Use OpenRouter
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+    try {
+      const hackclubResponse = await callHackClubAI({
+        messages: [
+          { role: 'system', content: mathPrompt },
+          { role: 'user', content: `Solve: ${expression}${variableContext}` },
+        ],
+        stream: false,
+        max_tokens: 100,
+      });
 
-      if (openrouterApiKey) {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Whiteboard AI Tutor',
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: mathPrompt },
-              { role: 'user', content: `Solve: ${expression}${variableContext}` },
-            ],
-            max_tokens: 100,
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          answer = data.choices?.[0]?.message?.content || '';
-          provider = 'openrouter';
-        }
-      }
-    }
-
-    // Fallback to Hack Club AI
-    if (!answer) {
-      try {
-        const hackclubResponse = await callHackClubAI({
-          messages: [
-            { role: 'system', content: mathPrompt },
-            { role: 'user', content: `Solve: ${expression}${variableContext}` },
-          ],
-          stream: false,
-          max_tokens: 100,
-        });
-
-        const hackclubData = await hackclubResponse.json();
-        answer = hackclubData.choices?.[0]?.message?.content || '';
-        provider = 'hackclub';
-      } catch (hackclubError) {
-        console.error('Hack Club AI error:', hackclubError);
-        return NextResponse.json(
-          { error: 'Failed to solve', details: 'AI service unavailable' },
-          { status: 500 }
-        );
-      }
+      const hackclubData = await hackclubResponse.json();
+      answer = hackclubData.choices?.[0]?.message?.content || '';
+    } catch (hackclubError) {
+      console.error('Hack Club AI error:', hackclubError);
+      return NextResponse.json(
+        { error: 'Failed to solve', details: 'AI service unavailable' },
+        { status: 500 }
+      );
     }
 
     answer = answer.trim().replace(/\*\*/g, '').replace(/`/g, '');
     answer = answer.replace(/^(Answer|Result|Solution):\s*/i, '');
 
-    // Deduct credits only after successful AI response
-    if (shouldUsePremium) {
-      const deductResult = await deductCredits(user.id, 'solve-math', 'Math solving');
-      creditBalance = deductResult.newBalance;
-    }
-
     return NextResponse.json({
       success: true,
       answer: answer || '?',
       source: 'llm',
-      creditsRemaining: creditBalance,
-      provider,
-      isPremium: shouldUsePremium,
+      provider: 'hackclub',
     });
   } catch (error) {
     console.error('Error solving math:', error);

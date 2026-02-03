@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 /**
- * Uses tiered AI system for workspace analysis:
- * - Premium (with credits): OpenRouter with Nano Banana Pro
- * - Free: Hack Club AI with vision support
+ * Uses Hack Club AI for workspace analysis (vision-capable).
  */
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -70,105 +67,59 @@ export async function POST(req: NextRequest) {
       ? `Here is a snapshot of the user canvas. Focus on: ${focus}`
       : 'Here is a snapshot of the user canvas. Describe what they are working on and how you could help.';
 
-    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
-    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'voice-analyze');
-    let creditBalance = currentBalance;
-
     let analysis = '';
-    let provider = 'hackclub';
 
-    if (shouldUsePremium) {
-      // Premium: Use OpenRouter with Nano Banana Pro
-      voiceLogger.info('Using OpenRouter (Premium) for workspace analysis');
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+    // All users get Hack Club AI — no credit gating
+    voiceLogger.info('Using Hack Club AI for workspace analysis');
 
-      if (openrouterApiKey) {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Whiteboard AI Tutor',
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              {
-                role: 'user',
-                content: [
-                  { type: 'image_url', image_url: { url: image } },
-                  { type: 'text', text: userPrompt },
-                ],
-              },
+    try {
+      const hackclubResponse = await callHackClubAI({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: image } },
+              { type: 'text', text: userPrompt },
             ],
-          }),
-        });
+          },
+        ],
+        stream: false,
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          analysis = data.choices?.[0]?.message?.content ?? '';
-          provider = 'openrouter';
-        }
-      }
-    }
+      const data = await hackclubResponse.json();
+      analysis = data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.text ?? '';
 
-    // Fallback to Hack Club AI if premium failed or not available
-    if (!analysis) {
-      voiceLogger.info('Using Hack Club AI (Free) for workspace analysis');
-
+      // Track AI usage for monitoring
       try {
-        const hackclubResponse = await callHackClubAI({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            {
-              role: 'user',
-              content: [
-                { type: 'image_url', image_url: { url: image } },
-                { type: 'text', text: userPrompt },
-              ],
-            },
-          ],
-          stream: false,
-        });
+        if (data.usage) {
+          const inputTokens = data.usage.prompt_tokens || 0;
+          const outputTokens = data.usage.completion_tokens || 0;
+          const hackclubModel = process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash';
 
-        const data = await hackclubResponse.json();
-        analysis = data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.text ?? '';
-        provider = 'hackclub';
-
-        // Track AI usage for monitoring
-        try {
-          if (data.usage) {
-            const inputTokens = data.usage.prompt_tokens || 0;
-            const outputTokens = data.usage.completion_tokens || 0;
-            const hackclubModel = process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash';
-
-            await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                mode: 'voice_analysis',
-                prompt: focus || 'Voice workspace analysis',
-                responseSummary: typeof analysis === 'string' ? analysis.slice(0, 500) : '',
-                inputTokens,
-                outputTokens,
-                totalCost: 0,
-                modelUsed: hackclubModel,
-              }),
-            });
-          }
-        } catch (trackError) {
-          voiceLogger.warn({ error: trackError }, 'Failed to track voice analysis usage');
+          await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'voice_analysis',
+              prompt: focus || 'Voice workspace analysis',
+              responseSummary: typeof analysis === 'string' ? analysis.slice(0, 500) : '',
+              inputTokens,
+              outputTokens,
+              totalCost: 0,
+              modelUsed: hackclubModel,
+            }),
+          });
         }
-      } catch (hackclubError) {
-        voiceLogger.error({ error: hackclubError }, 'Hack Club AI error');
-        return NextResponse.json(
-          { error: 'Workspace analysis failed' },
-          { status: 500 },
-        );
+      } catch (trackError) {
+        voiceLogger.warn({ error: trackError }, 'Failed to track voice analysis usage');
       }
+    } catch (hackclubError) {
+      voiceLogger.error({ error: hackclubError }, 'Hack Club AI error');
+      return NextResponse.json(
+        { error: 'Workspace analysis failed' },
+        { status: 500 },
+      );
     }
 
     const duration = Date.now() - startTime;
@@ -176,23 +127,15 @@ export async function POST(req: NextRequest) {
       {
         duration,
         textLength: typeof analysis === 'string' ? analysis.length : 0,
-        provider,
+        provider: 'hackclub',
       },
       'Workspace analysis completed successfully',
     );
 
-    // Deduct credits only after successful AI response
-    if (shouldUsePremium) {
-      const deductResult = await deductCredits(user.id, 'voice-analyze', 'Voice workspace analysis');
-      creditBalance = deductResult.newBalance;
-    }
-
     return NextResponse.json({
       success: true,
       analysis,
-      provider,
-      creditsRemaining: creditBalance,
-      isPremium: shouldUsePremium,
+      provider: 'hackclub',
     });
   } catch (error) {
     const duration = Date.now() - startTime;

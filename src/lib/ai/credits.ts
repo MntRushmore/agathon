@@ -13,14 +13,9 @@ export interface CreditDeductionResult {
   error?: string;
 }
 
-// Cost per AI operation (in credits)
+// Cost per AI operation (in credits) — only enterprise features remain credit-gated
 export const CREDIT_COSTS = {
-  chat: 1,
-  ocr: 1,
-  'solve-math': 1,
   'generate-solution': 2,
-  'voice-analyze': 1,
-  'teacher-feedback': 1,
 } as const;
 
 export type AIRouteKey = keyof typeof CREDIT_COSTS;

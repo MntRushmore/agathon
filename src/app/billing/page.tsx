@@ -53,30 +53,29 @@ const plans: Plan[] = [
     name: 'Free',
     price: '$0',
     interval: 'forever',
-    description: 'Perfect for getting started',
-    monthlyInteractions: 50,
+    description: 'Everything you need to learn',
+    monthlyInteractions: 500,
     productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_FREE_ID?.trim(),
     features: [
-      '50 AI assists per month',
+      '500 AI assists per month',
+      'Full vision AI (sees your canvas)',
+      'Socratic tutoring mode',
       'Unlimited boards',
       'Export your work',
-      'Email support',
     ],
   },
   {
-    id: 'premium',
-    name: 'Premium',
+    id: 'enterprise',
+    name: 'Enterprise',
     price: '$12',
     interval: 'month',
-    description: 'For serious learners',
-    popular: true,
+    description: 'For schools and organizations',
     monthlyInteractions: 500,
     productId: process.env.NEXT_PUBLIC_POLAR_PRODUCT_PREMIUM_ID?.trim(),
     features: [
-      '500 AI assists per month',
-      'Priority processing',
-      'Advanced analytics',
-      'Live chat support',
+      'Everything in Free',
+      'Handwritten visual feedback on canvas',
+      'Priority support',
     ],
   },
 ];
@@ -90,7 +89,9 @@ export default function BillingPage() {
 
   const activePlan = useMemo(() => {
     const planTier = profile?.plan_tier || 'free';
-    return plans.find((plan) => plan.id === planTier) || plans[0];
+    // Backwards compat: existing 'premium' subscribers map to 'enterprise'
+    const mappedTier = planTier === 'premium' ? 'enterprise' : planTier;
+    return plans.find((plan) => plan.id === mappedTier) || plans[0];
   }, [profile]);
 
   useEffect(() => {
@@ -190,7 +191,7 @@ export default function BillingPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   {activePlan.name} Plan
-                  {activePlan.id === 'premium' && (
+                  {(activePlan.id === 'premium' || activePlan.id === 'enterprise') && (
                     <Crown className="h-4 w-4 text-amber-500" />
                   )}
                 </CardTitle>
@@ -277,7 +278,7 @@ export default function BillingPage() {
                     <Button
                       onClick={() => startCheckout(plan)}
                       disabled={checkoutLoading === plan.id || !plan.productId || isCurrentPlan}
-                      variant={plan.popular ? 'default' : 'outline'}
+                      variant={plan.id === 'enterprise' ? 'default' : 'outline'}
                       className="w-full"
                     >
                       {checkoutLoading === plan.id ? (
@@ -288,7 +289,7 @@ export default function BillingPage() {
                       ) : isCurrentPlan ? (
                         'Current plan'
                       ) : plan.productId ? (
-                        plan.popular ? 'Upgrade now' : 'Get started'
+                        plan.id === 'enterprise' ? 'Get Enterprise' : 'Get started'
                       ) : (
                         'Coming soon'
                       )}
@@ -310,7 +311,7 @@ export default function BillingPage() {
                   Need more AI credits?
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Purchase credit packs for premium AI features like image understanding
+                  Purchase credit packs for enterprise features like handwritten canvas feedback
                 </p>
               </div>
               <Button variant="outline" onClick={() => router.push('/credits')}>

@@ -146,7 +146,7 @@ export default function CreditsPage() {
             </div>
             <h1 className="text-3xl font-semibold mt-2">Your Credits</h1>
             <p className="text-muted-foreground">
-              Credits power premium AI features with image understanding
+              Credits power enterprise features like handwritten canvas feedback
             </p>
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function CreditsPage() {
             {creditBalance < 10 && (
               <div className="mt-4 flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
                 <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">Running low! Purchase more credits to continue using premium AI.</span>
+                <span className="text-sm">Running low! Purchase more credits to continue using enterprise AI features.</span>
               </div>
             )}
           </CardContent>
@@ -184,26 +184,24 @@ export default function CreditsPage() {
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="font-medium text-green-800">With Credits</p>
+                <p className="font-medium text-green-800">With Credits (Enterprise)</p>
                 <ul className="text-sm text-green-700 mt-1 space-y-1">
-                  <li>• AI can see your whiteboard</li>
-                  <li>• Handwriting recognition (OCR)</li>
-                  <li>• Visual feedback on your work</li>
-                  <li>• Canvas analysis for voice</li>
+                  <li>• Handwritten visual feedback on canvas</li>
+                  <li>• AI-drawn annotations on your work</li>
                 </ul>
               </div>
               <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="font-medium text-gray-800">Without Credits</p>
+                <p className="font-medium text-gray-800">Free for Everyone</p>
                 <ul className="text-sm text-gray-600 mt-1 space-y-1">
-                  <li>• Text-only AI chat (still free!)</li>
-                  <li>• Describe problems in text</li>
-                  <li>• Basic math solving</li>
-                  <li>• No image features</li>
+                  <li>• Full AI tutor with vision (sees your canvas)</li>
+                  <li>• Socratic tutoring mode</li>
+                  <li>• Math solving and step-by-step analysis</li>
+                  <li>• 500 AI assists per month</li>
                 </ul>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              Most features use 1 credit per use. Solution generation uses 2 credits.
+              Handwritten visual feedback uses 2 credits per use. All other AI features are free.
             </p>
           </CardContent>
         </Card>
@@ -311,7 +309,7 @@ export default function CreditsPage() {
                   Want more credits each month?
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Pro subscribers get 500 credits/month plus priority AI and faster responses
+                  Enterprise subscribers get 500 credits/month for handwritten canvas feedback
                 </p>
               </div>
               <Button onClick={() => router.push('/billing')}>

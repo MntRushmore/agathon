@@ -116,13 +116,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check and deduct credits
-    const { usePremium, creditBalance } = await checkAndDeductCredits(
-      user.id,
-      'generate-solution'
-    );
+    // Check plan tier — only enterprise users get handwritten visual feedback
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan_tier, plan_status')
+      .eq('id', user.id)
+      .single();
 
-    const shouldShowPremiumHandwriting = usePremium;
+    const isEnterprisePlan = (profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise')
+      && profile?.plan_status === 'active';
+
+    // Only attempt credit deduction for enterprise users
+    let shouldShowPremiumHandwriting = false;
+    let creditBalance = 0;
+    if (isEnterprisePlan) {
+      const result = await checkAndDeductCredits(user.id, 'generate-solution');
+      shouldShowPremiumHandwriting = result.usePremium;
+      creditBalance = result.creditBalance;
+    }
 
     // Generate mode-specific prompt
     const getModePrompt = (

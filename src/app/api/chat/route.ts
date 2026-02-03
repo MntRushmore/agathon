@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 
 interface CanvasContext {
@@ -105,18 +104,6 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
     }
 
-    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
-    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'chat');
-    let creditBalance = currentBalance;
-
-    // Common response headers
-    const baseHeaders = {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'X-Credits-Remaining': String(creditBalance),
-    };
-
     // Build messages with image content for vision model
     const userMessages: APIMessage[] = messages.map((m, index) => {
       if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
@@ -131,79 +118,25 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
       return { role: m.role, content: m.content };
     });
 
-    if (shouldUsePremium) {
-      // Premium: Use OpenRouter with Nano Banana Pro
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+    // All users get Hack Club AI (Gemini 2.5 Flash) — no credit gating
+    const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
 
-      if (!openrouterApiKey) {
-        return new Response(
-          JSON.stringify({ error: 'OPENROUTER_API_KEY not configured' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const apiMessages: APIMessage[] = [{ role: 'system', content: systemPrompt }, ...userMessages];
-
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${openrouterApiKey}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-          'X-Title': 'Whiteboard AI Tutor',
-        },
-        body: JSON.stringify({
-          model,
-          messages: apiMessages,
-          stream: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenRouter API error:', errorText);
-        return new Response(
-          JSON.stringify({ error: 'Failed to get response from AI' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Deduct credits only after successful API response (before streaming to client)
-      const deductResult = await deductCredits(user.id, 'chat', 'AI chat assistance');
-      creditBalance = deductResult.newBalance;
+    try {
+      const response = await callHackClubAI(hackclubRequest);
 
       return new Response(response.body, {
         headers: {
-          ...baseHeaders,
-          'X-Credits-Remaining': String(creditBalance),
-          'X-AI-Provider': 'openrouter',
-          'X-Image-Supported': 'true',
-          'X-Is-Premium': 'true',
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
         },
       });
-    } else {
-      // Free tier: Use Hack Club AI (no credits deducted for free tier)
-      const hackclubRequest = buildHackClubRequest(systemPrompt, userMessages, true);
-
-      try {
-        const response = await callHackClubAI(hackclubRequest);
-
-        return new Response(response.body, {
-          headers: {
-            ...baseHeaders,
-            'X-AI-Provider': 'hackclub',
-            'X-Image-Supported': 'true',
-            'X-Is-Premium': 'false',
-          },
-        });
-      } catch (hackclubError) {
-        console.error('Hack Club AI error:', hackclubError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to get response from AI' }),
-          { status: 500, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
+    } catch (hackclubError) {
+      console.error('Hack Club AI error:', hackclubError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to get response from AI' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   } catch (error) {
     console.error('Chat API error:', error);

@@ -136,7 +136,7 @@ export default function SettingsPage() {
               AI Credits
             </CardTitle>
             <CardDescription>
-              Your credit balance for premium AI features
+              Your credit balance for enterprise AI features
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -151,8 +151,8 @@ export default function SettingsPage() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-3">
-              Credits are used for premium AI features like image understanding and canvas analysis.
-              When you run out, you&apos;ll still have access to text-only AI assistance.
+              Credits are used for enterprise features like handwritten visual feedback on your canvas.
+              All other AI features are free for everyone.
             </p>
           </CardContent>
         </Card>
@@ -168,8 +168,8 @@ export default function SettingsPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <Badge variant={profile.plan_tier === 'premium' ? 'default' : 'secondary'}>
-                  {profile.plan_tier === 'premium' ? 'Premium' : profile.plan_tier === 'free' ? 'Free' : profile.plan_tier || 'Free'}
+                <Badge variant={profile.plan_tier === 'premium' || profile.plan_tier === 'enterprise' ? 'default' : 'secondary'}>
+                  {profile.plan_tier === 'premium' || profile.plan_tier === 'enterprise' ? 'Enterprise' : profile.plan_tier === 'free' ? 'Free' : profile.plan_tier || 'Free'}
                 </Badge>
                 {profile.plan_status && (
                   <p className="text-sm text-muted-foreground mt-1">
