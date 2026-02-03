@@ -43,7 +43,7 @@ import {
   MicOff02Icon,
   Loading03Icon,
 } from "hugeicons-react";
-import { useDebounceActivity } from "@/hooks/useDebounceActivity";
+// useDebounceActivity no longer used — auto-solve disabled
 import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
@@ -55,7 +55,6 @@ import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assign
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Check, Clock } from "lucide-react";
 import { formatDistance } from "date-fns";
-import { AISidePanel } from "@/components/chat/AISidePanel";
 import { CustomToolbar } from "@/components/board/CustomToolbar";
 import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
 import type { CanvasContext } from "@/hooks/useChat";
@@ -65,8 +64,11 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { MyScriptMathOverlay } from "@/components/board/MyScriptMathOverlay";
 import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board/tools/LassoSolveTool";
-import { GoDeepPanel } from "@/components/board/GoDeepPanel";
-import { GoDeepButton } from "@/components/board/GoDeepButton";
+import { LassoActionPrompt } from "@/components/board/LassoActionPrompt";
+import { AdminPlanToggle } from "@/components/board/AdminPlanToggle";
+import { AITutorPanel } from "@/components/board/AITutorPanel";
+import { AITutorButton } from "@/components/board/AITutorButton";
+import { useAITutor } from "@/hooks/useAITutor";
 import { HintButton } from "@/components/board/HintButton";
 import { FeedbackCard } from "@/components/board/FeedbackCard";
 import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
@@ -899,9 +901,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
-    const [goDeepOpen, setGoDeepOpen] = useState(false);
-    const [goDeepImage, setGoDeepImage] = useState<string | null>(null);
-    const [goDeepAnswer, setGoDeepAnswer] = useState<string>("");
+    const [aiTutorOpen, setAiTutorOpen] = useState(false);
+    const [aiTutorImage, setAiTutorImage] = useState<string | null>(null);
+    const [aiTutorAnswer, setAiTutorAnswer] = useState<string>("");
     const [isHintLoading, setIsHintLoading] = useState(false);
     const [feedbackCard, setFeedbackCard] = useState<{
       summary: string;
@@ -910,11 +912,63 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       solution?: string;
       position: { x: number; y: number };
     } | null>(null);
+    const [lassoPrompt, setLassoPrompt] = useState<{
+      shapeIds: TLShapeId[];
+      bounds: { x: number; y: number; width: number; height: number };
+      screenPos: { x: number; y: number };
+    } | null>(null);
     const [userId, setUserId] = useState<string>("");
     const [showOnboarding, setShowOnboarding] = useState(true);
     const [hintLimit, setHintLimit] = useState<number | null>(assignmentRestrictions?.hintLimit ?? null);
     const [currentHintCount, setCurrentHintCount] = useState<number>(initialHintCount);
     const isProcessingRef = useRef(false);
+
+  // Unified AI Tutor hook
+  const getCanvasContextForTutor = useCallback(async (): Promise<CanvasContext> => {
+    const shapes = editor?.getCurrentPageShapes() || [];
+    let imageBase64: string | undefined;
+    if (editor && shapes.length > 0) {
+      try {
+        const shapeIds = editor.getCurrentPageShapeIds();
+        const result = await editor.toImage([...shapeIds], {
+          format: 'png',
+          background: true,
+          scale: 0.5,
+        });
+        if (result?.blob) {
+          const reader = new FileReader();
+          imageBase64 = await new Promise((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(result.blob);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to capture canvas:', err);
+      }
+    }
+    return {
+      subject: assignmentMeta?.subject,
+      gradeLevel: assignmentMeta?.gradeLevel,
+      instructions: assignmentMeta?.instructions,
+      description: shapes.length > 0
+        ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
+        : 'Canvas is empty',
+      imageBase64,
+    } as CanvasContext;
+  }, [editor, assignmentMeta]);
+
+  const aiTutor = useAITutor({ getCanvasContext: getCanvasContextForTutor });
+
+  // Auto-trigger analysis when a problem image is captured (from generate-solution or lasso-solve)
+  useEffect(() => {
+    if (aiTutorImage) {
+      aiTutor.fetchAnalysis(aiTutorImage, aiTutorAnswer);
+      setAiTutorOpen(true);
+      // Reset so future captures re-trigger
+      setAiTutorImage(null);
+      setAiTutorAnswer('');
+    }
+  }, [aiTutorImage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
@@ -1435,9 +1489,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             position: { x: screenPoint.x, y: screenPoint.y },
           });
 
-          // Also store the image for "Go Deeper" feature
-          setGoDeepImage(base64);
-          setGoDeepAnswer(feedback.summary || textContent);
+          // Also store for AI Tutor analysis
+          setAiTutorImage(base64);
+          setAiTutorAnswer(feedback.summary || textContent);
         }
 
         // Only add to pending list if not in feedback mode
@@ -1580,28 +1634,15 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       [editor, pendingImageIds, isVoiceSessionActive, assistanceMode, getStatusMessage, trackAIUsage],
     );
 
-  const handleAutoGeneration = useCallback(() => {
-    void generateSolution({ source: "auto" });
-  }, [generateSolution]);
-
-  // Listen for user activity and trigger auto-generation after 2 seconds of inactivity.
-  // In Quick mode we skip remote generation because answers come from the on-canvas solver.
-  useDebounceActivity(
-    handleAutoGeneration,
-    2000,
-    editor,
-    isUpdatingImageRef,
-    isProcessingRef,
-    false
-  );
+  // Auto-solve disabled — users now trigger AI via the lasso tool action prompt
 
   // Generate solution for specific lassoed shapes
   const generateSolutionForShapes = useCallback(
-    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }) => {
+    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }, modeOverride?: 'feedback' | 'suggest' | 'answer') => {
       if (!editor || shapeIds.length === 0 || isProcessingRef.current) return;
 
-      // Determine which mode to use - prefer the current assistanceMode, default to 'answer'
-      let mode = assistanceMode === 'off' ? 'answer' : assistanceMode;
+      // Use explicit modeOverride from lasso prompt, fall back to current assistanceMode
+      let mode = modeOverride ?? (assistanceMode === 'off' ? 'answer' : assistanceMode);
 
       // Enforce AI restrictions
       if (!aiAllowed) {
@@ -1756,9 +1797,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             position: { x: screenPoint.x, y: screenPoint.y },
           });
 
-          // Store for "Go Deeper" feature
-          setGoDeepImage(base64);
-          setGoDeepAnswer(feedback.summary || '');
+          // Store for AI Tutor analysis
+          setAiTutorImage(base64);
+          setAiTutorAnswer(feedback.summary || '');
         }
 
         // Track AI usage
@@ -1785,17 +1826,77 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     [editor, assistanceMode, aiAllowed, isModeAllowed, assignmentRestrictions, trackAIUsage],
   );
 
-  // Listen for lasso solve events
+  // Listen for lasso solve events — show action prompt instead of auto-solving
   useEffect(() => {
     const handleLassoSolve = (event: Event) => {
       const customEvent = event as CustomEvent<LassoSolveCompleteEvent>;
       const { shapeIds, bounds } = customEvent.detail;
-      void generateSolutionForShapes(shapeIds, bounds);
+      if (!editor) return;
+
+      try {
+        // Convert the center-bottom of the bounds to screen coordinates
+        const screenPoint = editor.pageToScreen({ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height });
+        setLassoPrompt({
+          shapeIds,
+          bounds,
+          screenPos: { x: screenPoint.x, y: screenPoint.y },
+        });
+      } catch (err) {
+        // Fallback: center of viewport
+        logger.error({ err }, 'pageToScreen failed for lasso prompt');
+        setLassoPrompt({
+          shapeIds,
+          bounds,
+          screenPos: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        });
+      }
     };
 
     window.addEventListener('lasso-solve-complete', handleLassoSolve);
     return () => window.removeEventListener('lasso-solve-complete', handleLassoSolve);
-  }, [generateSolutionForShapes]);
+  }, [editor]);
+
+  // Handle lasso action prompt selection
+  const handleLassoAction = useCallback(
+    async (action: 'feedback' | 'suggest' | 'answer' | 'chat') => {
+      if (!lassoPrompt || !editor) return;
+      const { shapeIds, bounds } = lassoPrompt;
+      setLassoPrompt(null);
+
+      if (action === 'chat') {
+        // Capture lassoed shapes as image and open AI Tutor
+        try {
+          const captureBounds = new Box(
+            bounds.x - 20,
+            bounds.y - 20,
+            bounds.width + 40,
+            bounds.height + 40,
+          );
+          const result = await editor.toImage(shapeIds, {
+            format: 'png',
+            bounds: captureBounds,
+            background: true,
+            scale: 1,
+            padding: 0,
+          });
+          if (result.blob) {
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(result.blob);
+            });
+            setAiTutorImage(base64);
+            setAiTutorOpen(true);
+          }
+        } catch (err) {
+          logger.error({ err }, 'Failed to capture lasso shapes for AI Tutor');
+        }
+      } else {
+        void generateSolutionForShapes(shapeIds, bounds, action);
+      }
+    },
+    [lassoPrompt, editor, generateSolutionForShapes],
+  );
 
   // Cancel in-flight requests when user edits the canvas
   useEffect(() => {
@@ -2327,45 +2428,38 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }}
       /> */}
 
-{/* AI Side Panel - hide when teacher is viewing student board */}
+          {/* Admin Plan Toggle */}
+          <AdminPlanToggle />
+
+{/* AI Tutor Panel + Button - hide when teacher is viewing student board */}
           {!isTeacherViewing && (
-            <AISidePanel
-              currentMode={assistanceMode}
-              getCanvasContext={async () => {
-                const shapes = editor?.getCurrentPageShapes() || [];
-                let imageBase64: string | undefined;
-
-                if (editor && shapes.length > 0) {
-                  try {
-                    const shapeIds = editor.getCurrentPageShapeIds();
-                    const result = await editor.toImage([...shapeIds], {
-                      format: 'png',
-                      background: true,
-                      scale: 0.5,
-                    });
-                    if (result?.blob) {
-                      const reader = new FileReader();
-                      imageBase64 = await new Promise((resolve) => {
-                        reader.onloadend = () => resolve(reader.result as string);
-                        reader.readAsDataURL(result.blob);
-                      });
-                    }
-                  } catch (err) {
-                    console.error('Failed to capture canvas:', err);
-                  }
-                }
-
-                return {
-                  subject: assignmentMeta?.subject,
-                  gradeLevel: assignmentMeta?.gradeLevel,
-                  instructions: assignmentMeta?.instructions,
-                  description: shapes.length > 0
-                    ? `Canvas has ${shapes.length} elements (drawings, text, shapes, etc.)`
-                    : 'Canvas is empty',
-                  imageBase64,
-                } as CanvasContext;
-              }}
-            />
+            <>
+              <AITutorButton
+                onClick={() => setAiTutorOpen(true)}
+                isOpen={aiTutorOpen}
+                messageCount={aiTutor.messages.length}
+              />
+              <AITutorPanel
+                isOpen={aiTutorOpen}
+                onClose={() => setAiTutorOpen(false)}
+                activeTab={aiTutor.activeTab}
+                setActiveTab={aiTutor.setActiveTab}
+                messages={aiTutor.messages}
+                isChatLoading={aiTutor.isChatLoading}
+                isSocratic={aiTutor.isSocratic}
+                setIsSocratic={aiTutor.setIsSocratic}
+                sendMessage={aiTutor.sendMessage}
+                checkWork={aiTutor.checkWork}
+                clearChat={aiTutor.clearChat}
+                stopChatGeneration={aiTutor.stopChatGeneration}
+                analysisData={aiTutor.analysisData}
+                isAnalysisLoading={aiTutor.isAnalysisLoading}
+                analysisError={aiTutor.analysisError}
+                analysisConversation={aiTutor.analysisConversation}
+                isAnalysisStreaming={aiTutor.isAnalysisStreaming}
+                sendAnalysisFollowUp={aiTutor.sendAnalysisFollowUp}
+              />
+            </>
           )}
 
           {/* AI Content Indicator for Teacher View */}
@@ -2378,7 +2472,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
           )}
 
-          {/* Hint + Go Deeper Buttons - fixed position */}
+          {/* Hint Button - fixed position */}
           {!isTeacherViewing && editor && (
             <div className="fixed bottom-20 right-4 z-[1000] ios-safe-bottom ios-safe-right flex items-center gap-2">
               <HintButton
@@ -2398,52 +2492,17 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   }
                 }}
               />
-              <GoDeepButton
-                isOpen={goDeepOpen}
-                onClick={async () => {
-                  if (goDeepOpen) {
-                    setGoDeepOpen(false);
-                    return;
-                  }
-                  if (!editor) return;
-                  // Capture current canvas state
-                  const shapeIds = editor.getCurrentPageShapeIds();
-                  if (shapeIds.size === 0) {
-                    toast.info('Draw something first to explore it deeper!');
-                    return;
-                  }
-                  try {
-                    const viewportBounds = editor.getViewportPageBounds();
-                    const { blob } = await editor.toImage([...shapeIds], {
-                      format: 'png',
-                      bounds: viewportBounds,
-                      background: true,
-                      scale: 0.75,
-                    });
-                    if (blob) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setGoDeepImage(reader.result as string);
-                        setGoDeepOpen(true);
-                      };
-                      reader.readAsDataURL(blob);
-                    }
-                  } catch (err) {
-                    console.error('Failed to capture canvas:', err);
-                    toast.error('Failed to capture canvas');
-                  }
-                }}
-              />
             </div>
           )}
 
-          {/* Go Deeper Panel */}
-          <GoDeepPanel
-            isOpen={goDeepOpen}
-            onClose={() => setGoDeepOpen(false)}
-            problemImage={goDeepImage}
-            originalAnswer={goDeepAnswer}
-          />
+          {/* Lasso Action Prompt */}
+          {lassoPrompt && (
+            <LassoActionPrompt
+              position={lassoPrompt.screenPos}
+              onAction={handleLassoAction}
+              onDismiss={() => setLassoPrompt(null)}
+            />
+          )}
 
           {/* Feedback Card (Free tier) */}
           {feedbackCard && (

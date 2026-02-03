@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkUserCredits, deductCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 export async function POST(req: NextRequest) {
@@ -84,86 +83,35 @@ Please write constructive feedback for this student. Focus on effort and learnin
     const hasImage = boardImage || submission.student_board?.preview;
     const imageUrl = boardImage || submission.student_board?.preview;
 
-    // Check credits to determine which AI to use (don't deduct yet — deduct after success)
-    const { shouldUsePremium, currentBalance } = await checkUserCredits(user.id, 'teacher-feedback');
-    let creditBalance = currentBalance;
-
     let aiDraft = '';
-    let provider = 'hackclub';
 
-    if (shouldUsePremium) {
-      // Premium: Use OpenRouter with Nano Banana Pro
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const model = process.env.OPENROUTER_MODEL || 'google/gemini-3-pro-image-preview';
+    // All users get Hack Club AI — no credit gating
+    try {
+      const messages: any[] = [{ role: 'system', content: systemPrompt }];
 
-      if (openrouterApiKey) {
-        const messages: any[] = [{ role: 'system', content: systemPrompt }];
-
-        if (hasImage) {
-          messages.push({
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: userPrompt },
-            ],
-          });
-        } else {
-          messages.push({ role: 'user', content: userPrompt });
-        }
-
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Whiteboard AI Tutor',
-          },
-          body: JSON.stringify({
-            model,
-            messages,
-            max_tokens: 500,
-          }),
+      if (hasImage) {
+        messages.push({
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl } },
+            { type: 'text', text: userPrompt },
+          ],
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          aiDraft = data.choices?.[0]?.message?.content || '';
-          provider = 'openrouter';
-        }
+      } else {
+        messages.push({ role: 'user', content: userPrompt });
       }
-    }
 
-    // Fallback to Hack Club AI if premium failed or not available
-    if (!aiDraft) {
-      try {
-        const messages: any[] = [{ role: 'system', content: systemPrompt }];
+      const hackclubResponse = await callHackClubAI({
+        messages,
+        stream: false,
+        max_tokens: 500,
+      });
 
-        if (hasImage) {
-          messages.push({
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: imageUrl } },
-              { type: 'text', text: userPrompt },
-            ],
-          });
-        } else {
-          messages.push({ role: 'user', content: userPrompt });
-        }
-
-        const hackclubResponse = await callHackClubAI({
-          messages,
-          stream: false,
-          max_tokens: 500,
-        });
-
-        const hackclubData = await hackclubResponse.json();
-        aiDraft = hackclubData.choices?.[0]?.message?.content || '';
-        provider = 'hackclub';
-      } catch (hackclubError) {
-        console.error('Hack Club AI error:', hackclubError);
-        return NextResponse.json({ error: 'Failed to generate feedback' }, { status: 500 });
-      }
+      const hackclubData = await hackclubResponse.json();
+      aiDraft = hackclubData.choices?.[0]?.message?.content || '';
+    } catch (hackclubError) {
+      console.error('Hack Club AI error:', hackclubError);
+      return NextResponse.json({ error: 'Failed to generate feedback' }, { status: 500 });
     }
 
     // Save to database
@@ -194,22 +142,14 @@ Please write constructive feedback for this student. Focus on effort and learnin
         });
     }
 
-    // Deduct credits only after successful AI response
-    if (shouldUsePremium) {
-      const deductResult = await deductCredits(user.id, 'teacher-feedback', 'Teacher feedback generation');
-      creditBalance = deductResult.newBalance;
-    }
-
     return NextResponse.json({
       feedback: aiDraft,
       studentName,
       aiHelpCount,
       solveCount,
       timeMinutes,
-      provider,
+      provider: 'hackclub',
       imageAnalyzed: hasImage,
-      creditsRemaining: creditBalance,
-      isPremium: shouldUsePremium,
     });
   } catch (error) {
     console.error('Generate feedback error:', error);

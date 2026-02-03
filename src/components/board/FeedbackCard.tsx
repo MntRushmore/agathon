@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, CheckCircle, XCircle, Lightbulb, ArrowRight, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
@@ -29,33 +29,54 @@ export function FeedbackCard({
   position,
   onDragEnd,
 }: FeedbackCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const offset = useRef({ x: 0, y: 0 });
+  const pos = useRef(position);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [currentPos, setCurrentPos] = useState(position);
   const [showSolution, setShowSolution] = useState(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
-    setIsDragging(true);
-    setDragOffset({
-      x: e.clientX - currentPos.x,
-      y: e.clientY - currentPos.y,
-    });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    setCurrentPos({ x: newX, y: newY });
-  };
-
-  const handleMouseUp = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      onDragEnd?.(currentPos.x, currentPos.y);
+  // Apply initial position
+  useEffect(() => {
+    if (cardRef.current) {
+      cardRef.current.style.transform = `translate(${position.x}px, ${position.y}px)`;
     }
-  };
+    pos.current = position;
+  }, [position]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    dragging.current = true;
+    setIsDragging(true);
+    offset.current = {
+      x: e.clientX - pos.current.x,
+      y: e.clientY - pos.current.y,
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging.current || !cardRef.current) return;
+      const newX = e.clientX - offset.current.x;
+      const newY = e.clientY - offset.current.y;
+      pos.current = { x: newX, y: newY };
+      cardRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+    };
+
+    const handleMouseUp = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      setIsDragging(false);
+      onDragEnd?.(pos.current.x, pos.current.y);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onDragEnd]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -93,19 +114,16 @@ export function FeedbackCard({
 
   return (
     <div
+      ref={cardRef}
       className={cn(
-        "fixed z-[1100] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
-        "select-none",
+        "fixed top-0 left-0 z-[1100] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
+        "select-none will-change-transform",
         isDragging && "cursor-grabbing shadow-xl"
       )}
       style={{
-        left: currentPos.x,
-        top: currentPos.y,
+        transform: `translate(${position.x}px, ${position.y}px)`,
       }}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 cursor-grab">
