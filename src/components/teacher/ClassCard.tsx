@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -133,7 +134,7 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
     }
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast({
@@ -278,7 +279,7 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
                 <Input
                   id="edit-name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                   maxLength={100}
                   placeholder="e.g., Math 101"
                 />
@@ -308,7 +309,7 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
                 <Input
                   id="edit-grade"
                   value={formData.grade_level}
-                  onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, grade_level: e.target.value })}
                   placeholder="e.g., Grade 8, Algebra I"
                 />
               </div>
@@ -318,7 +319,7 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
                 <Textarea
                   id="edit-description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   placeholder="Brief description of the class (optional)"
                 />

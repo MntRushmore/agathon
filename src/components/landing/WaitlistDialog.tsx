@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -57,7 +58,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
     }
   }, [open, defaultRole]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || loading) return;
 
@@ -152,7 +153,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
                   type="text"
                   placeholder="Your name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                   className="h-11"
                 />
               </div>
@@ -167,7 +168,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   className="h-11"
                   required
                 />

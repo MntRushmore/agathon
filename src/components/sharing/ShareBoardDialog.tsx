@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
 import {
@@ -207,7 +208,7 @@ export function ShareBoardDialog({
                 id="search"
                 placeholder="Enter email or name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -244,7 +245,7 @@ export function ShareBoardDialog({
                         <div className="flex items-center gap-2">
                           <select
                             value={selectedPermission}
-                            onChange={(e) => setSelectedPermission(e.target.value as 'view' | 'edit')}
+                            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedPermission(e.target.value as 'view' | 'edit')}
                             className="text-xs border rounded px-2 py-1"
                             disabled={loading}
                           >

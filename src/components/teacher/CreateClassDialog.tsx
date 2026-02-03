@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -54,7 +55,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
   });
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -142,7 +143,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
                 id="name"
                 placeholder="e.g., Math 101"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                 maxLength={100}
                 required
               />
@@ -173,7 +174,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
                 id="grade_level"
                 placeholder="e.g., Grade 8, Algebra I"
                 value={formData.grade_level}
-                onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, grade_level: e.target.value })}
               />
             </div>
 
@@ -183,7 +184,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
                 id="description"
                 placeholder="Brief description of the class (optional)"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
               />
             </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     }
   };
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: FormEvent) => {
     e.preventDefault();
 
     if (codeStatus !== 'valid') {
@@ -169,7 +170,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
               type="text"
               placeholder="XXXX-XXXX"
               value={inviteCode}
-              onChange={(e) => handleCodeChange(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => handleCodeChange(e.target.value)}
               maxLength={9}
               required
               disabled={loading}
@@ -217,7 +218,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             type="text"
             placeholder="John Doe"
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
             required
             disabled={loading || codeStatus !== 'valid'}
           />
@@ -229,7 +230,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             type="email"
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
             required
             disabled={loading || codeStatus !== 'valid'}
           />
@@ -241,7 +242,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             type="password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
             required
             disabled={loading || codeStatus !== 'valid'}
             minLength={6}
@@ -252,24 +253,24 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
           <Label>I am a:</Label>
           <div className="flex gap-4">
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input
+                <input
                 type="radio"
                 name="role"
                 value="student"
                 checked={role === 'student'}
-                onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setRole(e.target.value as 'student' | 'teacher')}
                 disabled={loading || codeStatus !== 'valid'}
                 className="h-4 w-4"
               />
               <span className="text-sm">Student</span>
             </label>
             <label className="flex items-center space-x-2 cursor-pointer">
-              <input
+                <input
                 type="radio"
                 name="role"
                 value="teacher"
                 checked={role === 'teacher'}
-                onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setRole(e.target.value as 'student' | 'teacher')}
                 disabled={loading || codeStatus !== 'valid'}
                 className="h-4 w-4"
               />

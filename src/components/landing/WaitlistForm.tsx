@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight, Check, Loader2 } from 'lucide-react';
@@ -24,7 +25,7 @@ export function WaitlistForm({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!email || loading) return;
 
@@ -73,7 +74,7 @@ export function WaitlistForm({
           type="email"
           placeholder="Enter your email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
           className={`h-12 text-[15px] ${
             dark
               ? 'bg-white/10 border-white/20 text-white placeholder:text-white/50'
@@ -106,11 +107,11 @@ export function WaitlistForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 w-full max-w-md">
-      <Input
+        <Input
         type="email"
         placeholder="Enter your email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
         className={`flex-1 h-11 text-[14px] ${
           dark
             ? 'bg-white/10 border-white/20 text-white placeholder:text-white/50'

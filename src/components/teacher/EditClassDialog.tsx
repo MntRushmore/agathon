@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -72,7 +73,7 @@ export function EditClassDialog({
     });
   }, [classData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
@@ -136,7 +137,7 @@ export function EditClassDialog({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                 maxLength={100}
                 placeholder="e.g., Algebra II Honors"
               />
@@ -166,7 +167,7 @@ export function EditClassDialog({
               <Input
                 id="grade_level"
                 value={formData.grade_level || ''}
-                onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, grade_level: e.target.value })}
                 placeholder="e.g., Grade 9, AP, IB"
               />
             </div>
@@ -176,7 +177,7 @@ export function EditClassDialog({
               <Textarea
                 id="description"
                 value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Share how you run this class or what students can expect."
               />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -200,7 +201,7 @@ export function AIFeedbackPanel({
                 </div>
                 <Textarea
                   value={editedFeedback}
-                  onChange={(e) => setEditedFeedback(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditedFeedback(e.target.value)}
                   rows={6}
                   placeholder="Edit the feedback before sending..."
                 />
