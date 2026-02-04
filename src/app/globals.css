@@ -242,9 +242,10 @@
   }
 }
 
-/* Force tldraw canvas to be completely white */
+/* Force tldraw canvas to be completely white and disable smooth scrolling */
 .tldraw__editor {
   background-color: #ffffff !important;
+  scroll-behavior: auto !important;
 }
 
 .tl-background {
@@ -253,6 +254,12 @@
 
 .tl-canvas {
   background-color: #ffffff !important;
+  will-change: auto !important;
+}
+
+/* Disable momentum scrolling */
+* {
+  -webkit-overflow-scrolling: auto !important;
 }
 
 /* ============================================
@@ -702,18 +709,4 @@ kbd {
    Whiteboard Template Backgrounds
    ============================================ */
 
-/* Lined paper background - composition notebook style */
-.tldraw-lined-background {
-  background-image: linear-gradient(to bottom, transparent 31px, #e8e4dc 31px, #e8e4dc 32px);
-  background-size: 100% 32px;
-  background-position: 0 0;
-}
-
-/* Graph paper background - math notebook style */
-.tldraw-grid-background {
-  background-image:
-    linear-gradient(to right, #e8e4dc 1px, transparent 1px),
-    linear-gradient(to bottom, #e8e4dc 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-position: -1px -1px;
-}
+/* Background patterns are now created as canvas shapes instead of CSS */

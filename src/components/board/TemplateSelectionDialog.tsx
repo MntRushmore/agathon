@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Pencil, FileText, Grid3x3, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -95,8 +95,8 @@ export function TemplateSelectionDialog({
     // Dynamic import to avoid loading pdfjs unless needed
     const pdfjsLib = await import('pdfjs-dist');
 
-    // Configure worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Configure worker - use local worker file
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
     const pdf = await pdfjsLib.getDocument(pdfDataUrl).promise;
     const images: string[] = [];
@@ -139,13 +139,16 @@ export function TemplateSelectionDialog({
 
         if (file.type === 'application/pdf') {
           try {
+            console.log('Converting PDF...');
             // Convert all PDF pages to images
             const images = await convertPdfToImages(dataUrl);
+            console.log(`PDF converted to ${images.length} images`);
             if (images.length === 0) {
               toast.error('PDF appears to be empty');
               setUploading(false);
               return;
             }
+            console.log('Calling onTemplateSelect with images');
             onTemplateSelect('file-upload', images);
           } catch (error) {
             console.error('Error converting PDF:', error);
@@ -154,6 +157,7 @@ export function TemplateSelectionDialog({
           }
         } else {
           // Single image
+          console.log('Processing single image');
           onTemplateSelect('file-upload', dataUrl);
         }
       };

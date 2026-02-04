@@ -219,12 +219,10 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
 
       toast.success('Board created');
 
-      // Navigate with file data if present
+      // Store file data in sessionStorage if present (too large for URL)
       if (fileData) {
-        const encodedData = Array.isArray(fileData)
-          ? encodeURIComponent(JSON.stringify(fileData))
-          : encodeURIComponent(fileData);
-        router.push(`/board/${data.id}?uploadedFile=${encodedData}`);
+        sessionStorage.setItem('uploadedFile', JSON.stringify(fileData));
+        router.push(`/board/${data.id}?hasUpload=true`);
       } else {
         router.push(`/board/${data.id}`);
       }

@@ -2632,47 +2632,191 @@ export default function BoardPage() {
     }
   }, [canEdit]);
 
-  // Apply background styles based on template metadata
+  // Apply background styles based on template metadata by creating background shapes
   useEffect(() => {
     const backgroundStyle = assignmentMeta?.backgroundStyle || initialData?.metadata?.backgroundStyle;
 
     if (!backgroundStyle) return;
 
-    const tldrawContainer = document.querySelector('.tl-container');
-    if (tldrawContainer) {
-      if (backgroundStyle === 'lined') {
-        tldrawContainer.classList.add('tldraw-lined-background');
-      } else if (backgroundStyle === 'grid') {
-        tldrawContainer.classList.add('tldraw-grid-background');
+    let attempts = 0;
+    const maxAttempts = 20;
+    let hasCreated = false;
+
+    const intervalId = setInterval(() => {
+      const editor = (window as any).__tldrawEditor;
+      attempts++;
+
+      if (editor && !loading && !hasCreated) {
+        hasCreated = true;
+        clearInterval(intervalId);
+        createBackgroundShape(editor, backgroundStyle);
+      } else if (attempts >= maxAttempts) {
+        clearInterval(intervalId);
       }
-    }
+    }, 100);
+
+    const createBackgroundShape = (editor: any, style: string) => {
+      // Create multiple smaller tiles instead of one huge image for better performance
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+
+      // Much smaller tile size - will create multiple
+      const tileSize = 1000;
+      canvas.width = tileSize;
+      canvas.height = tileSize;
+
+      // Fill with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, tileSize, tileSize);
+
+      if (style === 'lined') {
+        // Draw horizontal lines
+        ctx.strokeStyle = '#e8e4dc';
+        ctx.lineWidth = 1;
+        const lineSpacing = 32;
+
+        for (let y = 0; y < tileSize; y += lineSpacing) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(tileSize, y);
+          ctx.stroke();
+        }
+      } else if (style === 'grid') {
+        // Draw grid
+        ctx.strokeStyle = '#e8e4dc';
+        ctx.lineWidth = 1;
+        const gridSize = 20;
+
+        // Vertical lines
+        for (let x = 0; x < tileSize; x += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, tileSize);
+          ctx.stroke();
+        }
+
+        // Horizontal lines
+        for (let y = 0; y < tileSize; y += gridSize) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(tileSize, y);
+          ctx.stroke();
+        }
+      }
+
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // Create the background as a single centered tile
+      const assetId = AssetRecordType.createId();
+      const shapeId = createShapeId();
+
+      editor.createAssets([{
+        id: assetId,
+        type: 'image',
+        typeName: 'asset',
+        props: {
+          name: `background-${style}.png`,
+          src: dataUrl,
+          w: tileSize,
+          h: tileSize,
+          mimeType: 'image/png',
+          isAnimated: false,
+        },
+        meta: {}
+      }]);
+
+      editor.createShape({
+        id: shapeId,
+        type: 'image',
+        x: -tileSize / 2,
+        y: -tileSize / 2,
+        props: {
+          assetId,
+          w: tileSize,
+          h: tileSize,
+        },
+        isLocked: true,
+      });
+
+      // Send to back
+      editor.sendToBack([shapeId]);
+    };
 
     return () => {
-      const container = document.querySelector('.tl-container');
-      container?.classList.remove('tldraw-lined-background', 'tldraw-grid-background');
+      clearInterval(intervalId);
     };
-  }, [assignmentMeta, initialData]);
+  }, [assignmentMeta, initialData, loading]);
 
   // Handle uploaded files from template selection
   useEffect(() => {
-    const uploadedFileParam = searchParams.get('uploadedFile');
-    if (!uploadedFileParam) return;
+    console.log('[Upload Effect] Effect triggered, searchParams:', searchParams.toString());
 
-    const editor = (window as any).__tldrawEditor;
-    if (!editor || loading) return;
+    const hasUpload = searchParams.get('hasUpload');
+    console.log('[Upload Effect] hasUpload param:', hasUpload);
 
-    const loadUploadedFiles = async () => {
+    if (!hasUpload) {
+      console.log('[Upload Effect] No hasUpload param, exiting');
+      return;
+    }
+
+    // Check if data is in sessionStorage (if not, we already processed it)
+    const storedData = sessionStorage.getItem('uploadedFile');
+    if (!storedData) {
+      console.log('[Upload Effect] No data in sessionStorage, already processed');
+      return;
+    }
+
+    console.log('[Upload Effect] Starting upload process...');
+
+    // Clear URL param immediately to prevent re-triggering
+    router.replace(`/board/${id}`);
+    console.log('[Upload Effect] Cleared URL param');
+
+    let attempts = 0;
+    const maxAttempts = 20;
+    let hasLoaded = false;
+
+    const intervalId = setInterval(() => {
+      const editor = (window as any).__tldrawEditor;
+      attempts++;
+
+      console.log(`[Upload Effect] Attempt ${attempts}: editor=${!!editor}, loading=${loading}, hasLoaded=${hasLoaded}`);
+
+      if (editor && !loading && !hasLoaded) {
+        console.log('[Upload Effect] Editor ready, calling loadUploadedFiles');
+        hasLoaded = true;
+        clearInterval(intervalId);
+        loadUploadedFiles(editor);
+      } else if (attempts >= maxAttempts) {
+        console.log('[Upload Effect] Max attempts reached, giving up');
+        clearInterval(intervalId);
+        if (!hasLoaded) {
+          toast.error('Failed to initialize editor');
+        }
+      }
+    }, 100);
+
+    const loadUploadedFiles = async (editor: any) => {
       try {
-        const decodedData = decodeURIComponent(uploadedFileParam);
+        // Retrieve from sessionStorage
+        const storedData = sessionStorage.getItem('uploadedFile');
+        if (!storedData) {
+          console.log('No stored file data');
+          return;
+        }
+
+        console.log('Found stored file data, length:', storedData.length);
+
+        // Clear from sessionStorage
+        sessionStorage.removeItem('uploadedFile');
+
+        // Parse the data
+        const parsed = JSON.parse(storedData);
         let imageUrls: string[];
 
         // Check if it's an array (multi-page PDF) or single image
-        try {
-          const parsed = JSON.parse(decodedData);
-          imageUrls = Array.isArray(parsed) ? parsed : [decodedData];
-        } catch {
-          imageUrls = [decodedData];
-        }
+        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
+        console.log(`Loading ${imageUrls.length} image(s)`);
 
         const viewportBounds = editor.getViewportPageBounds();
         const viewportCenter = viewportBounds.center;
@@ -2705,7 +2849,8 @@ export default function BoardPage() {
                   h: img.height,
                   mimeType: 'image/png',
                   isAnimated: false,
-                }
+                },
+                meta: {}
               }]);
 
               // Create image shape
@@ -2728,7 +2873,6 @@ export default function BoardPage() {
             };
 
             img.onerror = () => {
-              console.error('Failed to load image:', imageUrl.substring(0, 50));
               toast.error('Failed to load uploaded image');
               resolve();
             };
@@ -2739,16 +2883,15 @@ export default function BoardPage() {
 
         // Zoom to fit all uploaded images
         editor.zoomToFit();
-
-        // Clear URL param after processing
-        router.replace(`/board/${id}`);
       } catch (error) {
         console.error('Error loading uploaded files:', error);
         toast.error('Failed to load uploaded files');
       }
     };
 
-    loadUploadedFiles();
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [searchParams, loading, id, router]);
 
   const handleSubmit = async () => {
@@ -2888,6 +3031,31 @@ export default function BoardPage() {
           onMount={(editor) => {
             // Store editor ref for later use
             (window as any).__tldrawEditor = editor;
+
+            // Completely disable all animations for immediate, responsive controls
+            editor.user.updateUserPreferences({
+              animationSpeed: 0,
+              isWrapMode: false,
+            });
+
+            // Disable camera inertia by setting it to stop immediately
+            (editor as any).cameraOptions = {
+              ...((editor as any).cameraOptions || {}),
+              friction: 1,
+              isLocked: false,
+              panSpeed: 1,
+              zoomSpeed: 1,
+              zoomSteps: [0.1, 0.25, 0.5, 1, 2, 4, 8],
+              wheelBehavior: 'zoom',
+              constraints: {
+                initialZoom: 'default',
+                baseZoom: 'default',
+                bounds: 'default',
+                behavior: 'free',
+                origin: { x: 0.5, y: 0.5 },
+                padding: { x: 0, y: 0 },
+              },
+            };
 
             if (initialData) {
               try {

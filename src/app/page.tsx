@@ -350,12 +350,12 @@ export default function Dashboard() {
 
       toast.success('Board created');
 
-      // Navigate with file data if present
+      // Store file data in sessionStorage if present (too large for URL)
       if (fileData) {
-        const encodedData = Array.isArray(fileData)
-          ? encodeURIComponent(JSON.stringify(fileData))
-          : encodeURIComponent(fileData);
-        router.push(`/board/${data.id}?uploadedFile=${encodedData}`);
+        const dataToStore = JSON.stringify(fileData);
+        console.log('Storing file data, isArray:', Array.isArray(fileData), 'length:', dataToStore.length);
+        sessionStorage.setItem('uploadedFile', dataToStore);
+        router.push(`/board/${data.id}?hasUpload=true`);
       } else {
         router.push(`/board/${data.id}`);
       }
@@ -369,6 +369,7 @@ export default function Dashboard() {
   }, [creating, user, router, supabase, isAdmin, whiteboards.length]);
 
   const createWhiteboard = useCallback(() => {
+    console.log('createWhiteboard called', { creating, user: !!user, isAdmin, whiteboardsLength: whiteboards.length });
     if (creating) return;
 
     if (!user) {
@@ -384,6 +385,7 @@ export default function Dashboard() {
     }
 
     // Open template selection dialog
+    console.log('Opening template dialog');
     setTemplateDialogOpen(true);
   }, [creating, user, router, isAdmin, whiteboards.length]);
 
