@@ -47,7 +47,7 @@ import { useDebounceActivity } from "@/hooks/useDebounceActivity";
 import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
@@ -2466,6 +2466,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
 export default function BoardPage() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const [loading, setLoading] = useState(true);
   const [initialData, setInitialData] = useState<any>(null);
@@ -2629,6 +2631,125 @@ export default function BoardPage() {
       editor.updateInstanceState({ isReadonly: !canEdit });
     }
   }, [canEdit]);
+
+  // Apply background styles based on template metadata
+  useEffect(() => {
+    const backgroundStyle = assignmentMeta?.backgroundStyle || initialData?.metadata?.backgroundStyle;
+
+    if (!backgroundStyle) return;
+
+    const tldrawContainer = document.querySelector('.tl-container');
+    if (tldrawContainer) {
+      if (backgroundStyle === 'lined') {
+        tldrawContainer.classList.add('tldraw-lined-background');
+      } else if (backgroundStyle === 'grid') {
+        tldrawContainer.classList.add('tldraw-grid-background');
+      }
+    }
+
+    return () => {
+      const container = document.querySelector('.tl-container');
+      container?.classList.remove('tldraw-lined-background', 'tldraw-grid-background');
+    };
+  }, [assignmentMeta, initialData]);
+
+  // Handle uploaded files from template selection
+  useEffect(() => {
+    const uploadedFileParam = searchParams.get('uploadedFile');
+    if (!uploadedFileParam) return;
+
+    const editor = (window as any).__tldrawEditor;
+    if (!editor || loading) return;
+
+    const loadUploadedFiles = async () => {
+      try {
+        const decodedData = decodeURIComponent(uploadedFileParam);
+        let imageUrls: string[];
+
+        // Check if it's an array (multi-page PDF) or single image
+        try {
+          const parsed = JSON.parse(decodedData);
+          imageUrls = Array.isArray(parsed) ? parsed : [decodedData];
+        } catch {
+          imageUrls = [decodedData];
+        }
+
+        const viewportBounds = editor.getViewportPageBounds();
+        const viewportCenter = viewportBounds.center;
+        const maxDimension = 600;
+        let currentY = viewportCenter.y;
+
+        for (let i = 0; i < imageUrls.length; i++) {
+          const imageUrl = imageUrls[i];
+
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+
+            img.onload = () => {
+              const scale = Math.min(maxDimension / img.width, maxDimension / img.height, 1);
+              const scaledWidth = img.width * scale;
+              const scaledHeight = img.height * scale;
+
+              const assetId = AssetRecordType.createId();
+              const shapeId = createShapeId();
+
+              // Create asset
+              editor.createAssets([{
+                id: assetId,
+                type: 'image',
+                typeName: 'asset',
+                props: {
+                  name: `uploaded-file-${i + 1}.png`,
+                  src: imageUrl,
+                  w: img.width,
+                  h: img.height,
+                  mimeType: 'image/png',
+                  isAnimated: false,
+                }
+              }]);
+
+              // Create image shape
+              editor.createShape({
+                id: shapeId,
+                type: 'image',
+                x: viewportCenter.x - scaledWidth / 2,
+                y: currentY - scaledHeight / 2,
+                props: {
+                  assetId,
+                  w: scaledWidth,
+                  h: scaledHeight,
+                }
+              });
+
+              // Update Y position for next image (with spacing)
+              currentY += scaledHeight + 20;
+
+              resolve();
+            };
+
+            img.onerror = () => {
+              console.error('Failed to load image:', imageUrl.substring(0, 50));
+              toast.error('Failed to load uploaded image');
+              resolve();
+            };
+
+            img.src = imageUrl;
+          });
+        }
+
+        // Zoom to fit all uploaded images
+        editor.zoomToFit();
+
+        // Clear URL param after processing
+        router.replace(`/board/${id}`);
+      } catch (error) {
+        console.error('Error loading uploaded files:', error);
+        toast.error('Failed to load uploaded files');
+      }
+    };
+
+    loadUploadedFiles();
+  }, [searchParams, loading, id, router]);
 
   const handleSubmit = async () => {
     if (!submissionData) return;

@@ -75,6 +75,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { AgoraLandingPage } from "@/components/landing/AgoraLandingPage";
+import { TemplateSelectionDialog } from "@/components/board/TemplateSelectionDialog";
 
 type Whiteboard = {
   id: string;
@@ -144,6 +145,7 @@ export default function Dashboard() {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMyFiles, setShowMyFiles] = useState(false);
 
@@ -275,7 +277,98 @@ export default function Dashboard() {
 
   const isAdmin = profile?.role === 'admin';
 
-  const createWhiteboard = useCallback(async () => {
+  // Helper to get template metadata
+  const getTemplateMetadata = (templateId: string) => {
+    const templates: Record<string, any> = {
+      blank: {
+        title: 'Untitled Board',
+        templateId: 'blank',
+        defaultMode: 'feedback',
+        boardType: 'general',
+      },
+      lined: {
+        title: 'Lined Notebook',
+        templateId: 'lined',
+        defaultMode: 'feedback',
+        boardType: 'notes',
+        backgroundStyle: 'lined',
+      },
+      graph: {
+        title: 'Graph Paper',
+        templateId: 'graph',
+        defaultMode: 'feedback',
+        boardType: 'math',
+        backgroundStyle: 'grid',
+      },
+      'file-upload': {
+        title: 'Uploaded File',
+        templateId: 'file-upload',
+        defaultMode: 'feedback',
+        boardType: 'general',
+      },
+    };
+    return templates[templateId] || templates.blank;
+  };
+
+  // Handle template selection and create board
+  const handleTemplateSelect = useCallback(async (templateId: string, fileData?: string | string[]) => {
+    if (creating) return;
+
+    if (!user) {
+      toast.info('Creating temporary board');
+      const tempId = `temp-${Date.now()}`;
+      router.push(`/board/${tempId}`);
+      setTemplateDialogOpen(false);
+      return;
+    }
+
+    if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      setTemplateDialogOpen(false);
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const metadata = getTemplateMetadata(templateId);
+
+      const { data, error } = await supabase
+        .from('whiteboards')
+        .insert([
+          {
+            name: metadata.title,
+            title: metadata.title,
+            user_id: user.id,
+            data: {},
+            metadata: metadata,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Board created');
+
+      // Navigate with file data if present
+      if (fileData) {
+        const encodedData = Array.isArray(fileData)
+          ? encodeURIComponent(JSON.stringify(fileData))
+          : encodeURIComponent(fileData);
+        router.push(`/board/${data.id}?uploadedFile=${encodedData}`);
+      } else {
+        router.push(`/board/${data.id}`);
+      }
+    } catch (error: unknown) {
+      console.error('Error creating whiteboard:', error);
+      toast.error('Failed to create whiteboard');
+    } finally {
+      setCreating(false);
+      setTemplateDialogOpen(false);
+    }
+  }, [creating, user, router, supabase, isAdmin, whiteboards.length]);
+
+  const createWhiteboard = useCallback(() => {
     if (creating) return;
 
     if (!user) {
@@ -290,36 +383,9 @@ export default function Dashboard() {
       return;
     }
 
-    setCreating(true);
-    try {
-      const { data, error } = await supabase
-        .from('whiteboards')
-        .insert([
-          {
-            name: 'Untitled Board',
-            title: 'Untitled Board',
-            user_id: user.id,
-            data: {},
-            metadata: {
-              templateId: 'blank',
-              defaultMode: 'feedback',
-            }
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Board created');
-      router.push(`/board/${data.id}`);
-    } catch (error: unknown) {
-      console.error('Error creating whiteboard:', error);
-      toast.error('Failed to create whiteboard');
-    } finally {
-      setCreating(false);
-    }
-  }, [creating, user, router, supabase]);
+    // Open template selection dialog
+    setTemplateDialogOpen(true);
+  }, [creating, user, router, isAdmin, whiteboards.length]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1422,6 +1488,14 @@ export default function Dashboard() {
           boardTitle={shareBoardTitle}
         />
       )}
+
+      {/* Template Selection Dialog */}
+      <TemplateSelectionDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onTemplateSelect={handleTemplateSelect}
+        creating={creating}
+      />
     </div>
   );
 }
