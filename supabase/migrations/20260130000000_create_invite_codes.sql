@@ -1,7 +1,7 @@
 -- ============================================
 -- Invite Codes Migration
 -- ============================================
--- Gated signup: admins generate codes, users must present one during registration
+-- Gated signup: admins generate codes, users must present one during registration (temporary)
 
 -- ============================================
 -- 1. INVITE_CODES TABLE
