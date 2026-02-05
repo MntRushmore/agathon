@@ -353,7 +353,6 @@ export default function Dashboard() {
       // Store file data in sessionStorage if present (too large for URL)
       if (fileData) {
         const dataToStore = JSON.stringify(fileData);
-        console.log('Storing file data, isArray:', Array.isArray(fileData), 'length:', dataToStore.length);
         sessionStorage.setItem('uploadedFile', dataToStore);
         router.push(`/board/${data.id}?hasUpload=true`);
       } else {
