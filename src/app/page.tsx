@@ -277,9 +277,18 @@ export default function Dashboard() {
 
   const isAdmin = profile?.role === 'admin';
 
+  // Template metadata interface for type safety
+  interface TemplateMetadata {
+    title: string;
+    templateId: string;
+    defaultMode: string;
+    boardType: string;
+    backgroundStyle?: string;
+  }
+
   // Helper to get template metadata
-  const getTemplateMetadata = (templateId: string) => {
-    const templates: Record<string, any> = {
+  const getTemplateMetadata = (templateId: string): TemplateMetadata => {
+    const templates: Record<string, TemplateMetadata> = {
       blank: {
         title: 'Untitled Board',
         templateId: 'blank',
