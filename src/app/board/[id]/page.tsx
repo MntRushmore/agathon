@@ -2811,7 +2811,14 @@ export default function BoardPage() {
         sessionStorage.removeItem('uploadedFile');
 
         // Parse the data
-        const parsed = JSON.parse(storedData);
+        let parsed;
+        try {
+          parsed = JSON.parse(storedData);
+        } catch (parseError) {
+          console.error('Failed to parse stored file data:', parseError);
+          toast.error('Failed to load uploaded files: Invalid data format');
+          return;
+        }
         let imageUrls: string[];
 
         // Check if it's an array (multi-page PDF) or single image
