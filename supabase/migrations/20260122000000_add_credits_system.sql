@@ -1,4 +1,3 @@
--- Add credits system to profiles and create transaction audit table
 -- Migration: 20260122000000_add_credits_system.sql
 
 -- Add credits column to profiles (new users start with 10 trial credits)
