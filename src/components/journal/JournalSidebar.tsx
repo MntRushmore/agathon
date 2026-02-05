@@ -30,6 +30,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TemplateSelectionDialog } from '@/components/board/TemplateSelectionDialog';
 
 interface SidebarJournal {
   id: string;
@@ -68,6 +69,8 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
   const [whiteboards, setWhiteboards] = useState<SidebarWhiteboard[]>([]);
   const [journalsOpen, setJournalsOpen] = useState(false);
   const [boardsOpen, setBoardsOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   // Persist and notify collapse state
   const toggleCollapse = useCallback(() => {
@@ -143,9 +146,101 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     router.push(`/journal/${data.id}`);
   };
 
-  // Create new whiteboard
-  const createWhiteboard = async () => {
+  // Helper to get template metadata
+  const getTemplateMetadata = (templateId: string) => {
+    const templates: Record<string, any> = {
+      blank: {
+        title: 'Untitled Board',
+        templateId: 'blank',
+        defaultMode: 'feedback',
+        boardType: 'general',
+      },
+      lined: {
+        title: 'Lined Notebook',
+        templateId: 'lined',
+        defaultMode: 'feedback',
+        boardType: 'notes',
+        backgroundStyle: 'lined',
+      },
+      graph: {
+        title: 'Graph Paper',
+        templateId: 'graph',
+        defaultMode: 'feedback',
+        boardType: 'math',
+        backgroundStyle: 'grid',
+      },
+      'file-upload': {
+        title: 'Uploaded File',
+        templateId: 'file-upload',
+        defaultMode: 'feedback',
+        boardType: 'general',
+      },
+    };
+    return templates[templateId] || templates.blank;
+  };
+
+  // Handle template selection and create board
+  const handleTemplateSelect = useCallback(async (templateId: string, fileData?: string | string[]) => {
+    if (creating) return;
+
     if (!user) {
+      toast.info('Creating temporary board');
+      const tempId = `temp-${Date.now()}`;
+      router.push(`/board/${tempId}`);
+      setTemplateDialogOpen(false);
+      return;
+    }
+
+    if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      setTemplateDialogOpen(false);
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const metadata = getTemplateMetadata(templateId);
+
+      const { data, error } = await supabase
+        .from('whiteboards')
+        .insert([
+          {
+            name: metadata.title,
+            title: metadata.title,
+            user_id: user.id,
+            data: {},
+            metadata: metadata,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Board created');
+
+      // Store file data in sessionStorage if present (too large for URL)
+      if (fileData) {
+        sessionStorage.setItem('uploadedFile', JSON.stringify(fileData));
+        router.push(`/board/${data.id}?hasUpload=true`);
+      } else {
+        router.push(`/board/${data.id}`);
+      }
+    } catch (error: unknown) {
+      console.error('Error creating whiteboard:', error);
+      toast.error('Failed to create whiteboard');
+    } finally {
+      setCreating(false);
+      setTemplateDialogOpen(false);
+    }
+  }, [creating, user, router, supabase, isAdmin, whiteboards.length]);
+
+  // Create new whiteboard
+  const createWhiteboard = useCallback(() => {
+    if (creating) return;
+
+    if (!user) {
+      toast.info('Creating temporary board');
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
       return;
@@ -156,25 +251,9 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
       return;
     }
 
-    const { data, error } = await supabase
-      .from('whiteboards')
-      .insert([{
-        name: 'Untitled Board',
-        title: 'Untitled Board',
-        user_id: user.id,
-        data: {},
-        metadata: { templateId: 'blank', defaultMode: 'feedback' },
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      toast.error('Failed to create board');
-      return;
-    }
-
-    router.push(`/board/${data.id}`);
-  };
+    // Open template selection dialog
+    setTemplateDialogOpen(true);
+  }, [creating, user, router, isAdmin, whiteboards.length]);
 
   return (
     <aside
@@ -415,6 +494,14 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
           </div>
         )}
       </div>
+
+      {/* Template Selection Dialog */}
+      <TemplateSelectionDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onTemplateSelect={handleTemplateSelect}
+        creating={creating}
+      />
     </aside>
   );
 }

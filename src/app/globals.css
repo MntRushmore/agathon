@@ -242,9 +242,10 @@
   }
 }
 
-/* Force tldraw canvas to be completely white */
+/* Force tldraw canvas to be completely white and disable smooth scrolling */
 .tldraw__editor {
   background-color: #ffffff !important;
+  scroll-behavior: auto !important;
 }
 
 .tl-background {
@@ -253,6 +254,12 @@
 
 .tl-canvas {
   background-color: #ffffff !important;
+  will-change: auto !important;
+}
+
+/* Disable momentum scrolling */
+* {
+  -webkit-overflow-scrolling: auto !important;
 }
 
 /* ============================================
@@ -697,3 +704,9 @@ kbd {
   font-weight: 500;
   letter-spacing: 0.01em;
 }
+
+/* ============================================
+   Whiteboard Template Backgrounds
+   ============================================ */
+
+/* Background patterns are now created as canvas shapes instead of CSS */
