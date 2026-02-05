@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 
-// Production Agathon URL - update this to your actual production URL
+// Production Agathon URL
 const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://agathon.app';
 
 // URL patterns that should open in external browser (OAuth flows)
