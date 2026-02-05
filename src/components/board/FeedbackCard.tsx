@@ -157,9 +157,9 @@ export function FeedbackCard({
       <div className="p-3 space-y-2 max-h-[400px] overflow-y-auto">
         {/* Summary */}
         {summary && summary !== 'AI Feedback' && (
-          <p className="text-sm text-gray-600 pb-2 border-b border-gray-50">
+          <div className="text-sm text-gray-600 pb-2 border-b border-gray-50">
             <LatexRenderer content={summary} />
-          </p>
+          </div>
         )}
 
         {/* Annotations */}
