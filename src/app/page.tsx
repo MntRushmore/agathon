@@ -128,6 +128,15 @@ const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; h
   },
 };
 
+// Template metadata interface for type safety
+interface TemplateMetadata {
+  title: string;
+  templateId: string;
+  defaultMode: string;
+  boardType: string;
+  backgroundStyle?: string;
+}
+
 // Board type icons
 const boardTypeIcons: Record<string, React.ReactNode> = {
   math: <Calculator className="w-3.5 h-3.5" strokeWidth={2} />,
@@ -276,15 +285,6 @@ export default function Dashboard() {
   }
 
   const isAdmin = profile?.role === 'admin';
-
-  // Template metadata interface for type safety
-  interface TemplateMetadata {
-    title: string;
-    templateId: string;
-    defaultMode: string;
-    boardType: string;
-    backgroundStyle?: string;
-  }
 
   // Helper to get template metadata
   const getTemplateMetadata = (templateId: string): TemplateMetadata => {
