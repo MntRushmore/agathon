@@ -861,6 +861,7 @@ type AssignmentMeta = {
   allowAI?: boolean;
   allowedModes?: string[];
   hintLimit?: number | null;
+  backgroundStyle?: string;
 };
 
 type HelpCheckDecision = {
