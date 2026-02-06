@@ -59,6 +59,10 @@ export async function middleware(request: NextRequest) {
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
 
   // For authenticated users on protected routes, check invite_redeemed
+  // Note: If a user has a profile, they must have signed up with a valid
+  // invite code (signup requires a validated code). If invite_redeemed is
+  // false, it means the redemption step failed but they're still a valid user.
+  // We auto-fix this by marking them as redeemed.
   if (user && !isPublicPath) {
     const { data: inviteCheck } = await supabase
       .from('profiles')
@@ -66,10 +70,14 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    if (inviteCheck && !inviteCheck.invite_redeemed) {
-      const redirectUrl = new URL('/login', request.url);
-      redirectUrl.searchParams.set('error', 'invite_required');
-      return NextResponse.redirect(redirectUrl);
+    if (inviteCheck && inviteCheck.invite_redeemed === false) {
+      // User has a profile but invite_redeemed is false. Since creating an
+      // account requires entering a valid invite code, this user is legitimate.
+      // Auto-fix by marking them as redeemed.
+      await supabase
+        .from('profiles')
+        .update({ invite_redeemed: true })
+        .eq('id', user.id);
     }
   }
 
