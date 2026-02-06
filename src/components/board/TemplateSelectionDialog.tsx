@@ -109,7 +109,7 @@ export function TemplateSelectionDialog({
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      await page.render({ canvasContext: context, viewport }).promise;
+      await page.render({ canvasContext: context, canvas, viewport }).promise;
       images.push(canvas.toDataURL('image/png'));
     }
 
