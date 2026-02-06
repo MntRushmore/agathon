@@ -19,7 +19,8 @@ interface Template {
   icon: React.ElementType;
   title: string;
   description: string;
-  colorClass: string;
+  iconBg: string;
+  iconColor: string;
 }
 
 const templates: Template[] = [
@@ -28,28 +29,32 @@ const templates: Template[] = [
     icon: Pencil,
     title: 'Blank Canvas',
     description: 'Start with a clean slate',
-    colorClass: 'text-blue-600',
+    iconBg: 'bg-[var(--accent-blue-muted)]',
+    iconColor: 'text-[var(--accent-blue)]',
   },
   {
     id: 'lined',
     icon: FileText,
     title: 'Lined Paper',
     description: 'Ruled notebook lines',
-    colorClass: 'text-purple-600',
+    iconBg: 'bg-[var(--accent-purple-muted)]',
+    iconColor: 'text-[var(--accent-purple)]',
   },
   {
     id: 'graph',
     icon: Grid3x3,
     title: 'Graph Paper',
     description: 'Grid for math and diagrams',
-    colorClass: 'text-green-600',
+    iconBg: 'bg-[var(--accent-green-muted)]',
+    iconColor: 'text-[var(--accent-green)]',
   },
   {
     id: 'file-upload',
     icon: Upload,
     title: 'Upload File',
     description: 'Import PDF or image',
-    colorClass: 'text-amber-600',
+    iconBg: 'bg-[var(--accent-amber-muted)]',
+    iconColor: 'text-[var(--accent-amber)]',
   },
 ];
 
@@ -181,15 +186,15 @@ export function TemplateSelectionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[520px]">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Choose a template</DialogTitle>
+            <DialogTitle className="text-xl font-serif">Choose a template</DialogTitle>
             <DialogDescription>
               Start with a blank canvas or import a file
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-2 gap-3 mt-3">
             {templates.map((template) => {
               const Icon = template.icon;
               const isSelected = selectedTemplate === template.id;
@@ -201,29 +206,28 @@ export function TemplateSelectionDialog({
                   onClick={() => handleTemplateClick(template.id)}
                   disabled={creating || uploading}
                   className={`
-                    group relative flex flex-col items-center justify-center
-                    h-40 p-4 bg-white border rounded-xl
-                    transition-all duration-200
+                    feature-card group relative flex flex-col items-center justify-center
+                    h-36 p-4 rounded-xl
                     disabled:opacity-50 disabled:cursor-not-allowed
                     ${isSelected && !isLoading
-                      ? 'border-[#1a1a1a] ring-2 ring-[#1a1a1a]/20'
-                      : 'border-[#E8E4DC] hover:border-[#1a1a1a] hover:shadow-md'
+                      ? 'ring-2 ring-primary/20 border-primary/30'
+                      : ''
                     }
                   `}
                 >
-                  <div className={`mb-3 ${template.colorClass}`}>
-                    <Icon className="w-10 h-10" strokeWidth={1.5} />
+                  <div className={`mb-3 flex items-center justify-center w-12 h-12 rounded-xl ${template.iconBg} ${template.iconColor}`}>
+                    <Icon className="w-5 h-5" strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-base font-semibold text-[#1a1a1a] mb-1">
+                  <h3 className="text-sm font-medium text-foreground mb-0.5">
                     {template.title}
                   </h3>
-                  <p className="text-sm text-[#666] text-center">
+                  <p className="text-xs text-muted-foreground text-center">
                     {template.description}
                   </p>
 
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-xl">
-                      <div className="h-6 w-6 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-card/80 rounded-xl">
+                      <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
                 </button>
