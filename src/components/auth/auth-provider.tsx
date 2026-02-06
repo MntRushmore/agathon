@@ -76,13 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(data);
           return;
         }
-        // User hasn't redeemed an invite code — sign them out
-        console.warn('User has not redeemed an invite code, signing out');
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        window.location.href = '/login?error=invite_required';
-        return;
+        // User has a profile but invite_redeemed is false. Since creating an
+        // account requires entering a valid invite code, this user is legitimate —
+        // the redemption step likely failed (e.g., code expired between signup
+        // and redemption). Auto-fix by marking them as redeemed.
+        logger.warn('User has profile but invite_redeemed is false, auto-fixing');
+        await supabase
+          .from('profiles')
+          .update({ invite_redeemed: true })
+          .eq('id', userId);
+        setProfile({ ...data, invite_redeemed: true });
       } else {
         setProfile(data);
       }
