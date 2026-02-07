@@ -25,7 +25,7 @@ const HACKCLUB_API_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
  */
 export async function callHackClubAI(options: HackClubCompletionOptions): Promise<Response> {
   const apiKey = process.env.HACKCLUB_AI_API_KEY;
-  const model = options.model || process.env.HACKCLUB_AI_MODEL || 'google/gemini-3-flash-preview';
+  const model = options.model || process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash';
 
   if (!apiKey) {
     throw new Error('HACKCLUB_AI_API_KEY not configured');
