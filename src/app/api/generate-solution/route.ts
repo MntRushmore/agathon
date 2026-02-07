@@ -237,7 +237,19 @@ export async function POST(req: NextRequest) {
 
         const data = await response.json();
         const message = data.choices?.[0]?.message;
-        textContent = message?.content || '';
+
+        // Extract text content — handle both string and array (multimodal) responses
+        const rawContent = message?.content;
+        if (typeof rawContent === 'string') {
+          textContent = rawContent;
+        } else if (Array.isArray(rawContent)) {
+          textContent = rawContent
+            .filter((part: any) => part?.type === 'text' && part.text)
+            .map((part: any) => part.text)
+            .join('\n');
+        } else {
+          textContent = '';
+        }
 
         // Extract image from response (flexible extraction logic from snippet)
         let aiImageUrl: string | null = null;
@@ -371,7 +383,7 @@ No text before or after the JSON object.`;
         });
 
         const data = await hackclubResponse.json();
-        const textContent = data.choices?.[0]?.message?.content || '';
+        textContent = data.choices?.[0]?.message?.content || '';
 
         // Robust JSON extraction helper
         const extractJSON = (text: string): any => {
