@@ -1,0 +1,9 @@
+{
+  "name": "template-skill",
+  "description": "",
+  "source": "anthropics/skills",
+  "sourceType": "github",
+  "subpath": "template-skill",
+  "installedAt": "2026-02-07T22:09:54.505Z",
+  "enabled": true
+}
