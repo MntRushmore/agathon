@@ -1,0 +1,9 @@
+{
+  "name": "slack-gif-creator",
+  "description": "",
+  "source": "anthropics/skills",
+  "sourceType": "github",
+  "subpath": "slack-gif-creator",
+  "installedAt": "2026-02-07T22:09:54.442Z",
+  "enabled": true
+}

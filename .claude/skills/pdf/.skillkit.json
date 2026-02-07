@@ -1,0 +1,9 @@
+{
+  "name": "pdf",
+  "description": "",
+  "source": "anthropics/skills",
+  "sourceType": "github",
+  "subpath": "pdf",
+  "installedAt": "2026-02-07T22:09:54.407Z",
+  "enabled": true
+}
