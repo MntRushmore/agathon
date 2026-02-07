@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useEditor } from 'tldraw';
 import { cn } from '@/lib/utils';
+import { animate, stagger } from 'animejs';
 
 interface WhiteboardOnboardingProps {
   onDismiss: () => void;
@@ -70,6 +71,7 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
   const editor = useEditor();
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   // Check on mount if canvas already has shapes
   useEffect(() => {
@@ -111,6 +113,20 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
     return () => unsubscribe();
   }, [editor, isVisible, onDismiss]);
 
+  // Stagger hints in with anime.js
+  useEffect(() => {
+    if (!isVisible || !overlayRef.current) return;
+    const hints = overlayRef.current.querySelectorAll('[data-hint]');
+    if (hints.length === 0) return;
+    animate(hints, {
+      opacity: [0, 1],
+      translateY: [16, 0],
+      delay: stagger(120, { start: 300 }),
+      duration: 500,
+      ease: 'outQuint',
+    });
+  }, [isVisible]);
+
   const handleDismiss = useCallback(() => {
     setIsVisible(false);
     setTimeout(() => {
@@ -123,38 +139,15 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
 
   return (
     <div
+      ref={overlayRef}
       className={cn(
         'fixed inset-0 z-[400] transition-opacity duration-400',
         isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}
       onClick={handleDismiss}
     >
-      {/* Toolbar hint - pointing down to bottom toolbar */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-        <p className="text-gray-400 text-sm italic text-center whitespace-nowrap mb-1">
-          Pick a tool &<br />Start drawing!
-        </p>
-        <CurvedArrowDown className="text-gray-400/70" />
-      </div>
-
-      {/* Back button hint - top left, closer to the actual button */}
-      <div className="absolute top-8 left-16 flex items-end gap-1 pointer-events-none">
-        <CurvedArrowTopLeft className="text-gray-400/70" />
-        <p className="text-gray-400 text-sm italic whitespace-nowrap mb-1">
-          Back to<br />dashboard
-        </p>
-      </div>
-
-      {/* AI Chat hint - bottom right pointing to chat button */}
-      <div className="absolute bottom-24 right-6 flex flex-col items-center pointer-events-none">
-        <p className="text-gray-400 text-sm italic text-center mb-1">
-          Ask AI<br />for help
-        </p>
-        <CurvedArrowDown className="text-gray-400/70" />
-      </div>
-
       {/* Center welcome message */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+      <div data-hint className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none opacity-0">
         <h1 className="text-4xl font-semibold text-gray-700 mb-3 tracking-tight">
           Welcome to your whiteboard
         </h1>
@@ -164,6 +157,30 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
         <p className="text-gray-400/60 text-sm italic">
           Click anywhere or start drawing to begin
         </p>
+      </div>
+
+      {/* Toolbar hint - pointing down to bottom toolbar */}
+      <div data-hint className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
+        <p className="text-gray-400 text-sm italic text-center whitespace-nowrap mb-1">
+          Pick a tool &<br />Start drawing!
+        </p>
+        <CurvedArrowDown className="text-gray-400/70" />
+      </div>
+
+      {/* Back button hint - top left, closer to the actual button */}
+      <div data-hint className="absolute top-8 left-16 flex items-end gap-1 pointer-events-none opacity-0">
+        <CurvedArrowTopLeft className="text-gray-400/70" />
+        <p className="text-gray-400 text-sm italic whitespace-nowrap mb-1">
+          Back to<br />dashboard
+        </p>
+      </div>
+
+      {/* AI Chat hint - bottom right pointing to chat button */}
+      <div data-hint className="absolute bottom-24 right-6 flex flex-col items-center pointer-events-none opacity-0">
+        <p className="text-gray-400 text-sm italic text-center mb-1">
+          Ask AI<br />for help
+        </p>
+        <CurvedArrowDown className="text-gray-400/70" />
       </div>
     </div>
   );

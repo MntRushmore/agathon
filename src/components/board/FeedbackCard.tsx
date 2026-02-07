@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { X, CheckCircle, XCircle, Lightbulb, ArrowRight, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
+import { animate, stagger } from 'animejs';
 
 interface FeedbackAnnotation {
   type: 'correction' | 'hint' | 'encouragement' | 'step' | 'answer';
@@ -18,6 +19,7 @@ interface FeedbackCardProps {
   onClose: () => void;
   position: { x: number; y: number };
   onDragEnd?: (x: number, y: number) => void;
+  isClosing?: boolean;
 }
 
 export function FeedbackCard({
@@ -28,8 +30,11 @@ export function FeedbackCard({
   onClose,
   position,
   onDragEnd,
+  isClosing,
 }: FeedbackCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const annotationsRef = useRef<HTMLDivElement>(null);
+  const solutionRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const pos = useRef(position);
@@ -43,6 +48,34 @@ export function FeedbackCard({
     }
     pos.current = position;
   }, [position]);
+
+  // Stagger annotations in with anime.js
+  useEffect(() => {
+    if (!annotationsRef.current || isClosing) return;
+    const items = annotationsRef.current.querySelectorAll('[data-annotation]');
+    if (items.length === 0) return;
+    animate(items, {
+      opacity: [0, 1],
+      translateY: [12, 0],
+      delay: stagger(80, { start: 150 }),
+      duration: 350,
+      ease: 'outQuint',
+    });
+  }, [annotations.length, isClosing]);
+
+  // Smooth solution reveal with anime.js
+  useEffect(() => {
+    if (!showSolution || !solutionRef.current) return;
+    const el = solutionRef.current;
+    el.style.overflow = 'hidden';
+    animate(el, {
+      maxHeight: [0, el.scrollHeight + 20],
+      opacity: [0, 1],
+      duration: 400,
+      ease: 'outQuint',
+      onComplete: () => { el.style.overflow = ''; el.style.maxHeight = ''; },
+    });
+  }, [showSolution]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
@@ -116,8 +149,11 @@ export function FeedbackCard({
     <div
       ref={cardRef}
       className={cn(
-        "fixed top-0 left-0 z-[1100] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
+        "fixed top-0 left-0 z-[var(--z-overlay)] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
         "select-none will-change-transform",
+        isClosing
+          ? "animate-out fade-out zoom-out-95 duration-200"
+          : "animate-in zoom-in-95 fade-in duration-200",
         isDragging && "cursor-grabbing shadow-xl"
       )}
       style={{
@@ -163,11 +199,13 @@ export function FeedbackCard({
         )}
 
         {/* Annotations */}
+        <div ref={annotationsRef}>
         {annotations.map((annotation, index) => (
           <div
             key={index}
+            data-annotation
             className={cn(
-              "p-2.5 rounded-lg border",
+              "p-2.5 rounded-lg border mb-2 opacity-0",
               getTypeBg(annotation.type)
             )}
           >
@@ -181,6 +219,7 @@ export function FeedbackCard({
             </div>
           </div>
         ))}
+        </div>
 
         {/* Solution (expandable) */}
         {solution && (
@@ -193,7 +232,7 @@ export function FeedbackCard({
                 Show full solution
               </button>
             ) : (
-              <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
+              <div ref={solutionRef} className="p-3 bg-violet-50 rounded-lg border border-violet-100 opacity-0">
                 <p className="text-xs text-violet-600 font-medium mb-2">Solution</p>
                 <div className="text-sm text-gray-700 overflow-x-auto">
                   <LatexRenderer content={solution} />

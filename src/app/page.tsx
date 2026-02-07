@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -128,6 +128,8 @@ const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; h
   },
 };
 
+import { animate, stagger } from 'animejs';
+
 // Board type icons
 const boardTypeIcons: Record<string, React.ReactNode> = {
   math: <Calculator className="w-3.5 h-3.5" strokeWidth={2} />,
@@ -160,6 +162,8 @@ export default function Dashboard() {
   // Sidebar section states
   const [toolsOpen, setToolsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const featureCardsRef = useRef<HTMLDivElement>(null);
+  const boardGridRef = useRef<HTMLDivElement>(null);
 
   // Pomodoro timer state
   const [pomodoroActive, setPomodoroActive] = useState(false);
@@ -276,6 +280,35 @@ export default function Dashboard() {
   }
 
   const isAdmin = profile?.role === 'admin';
+
+  // Stagger feature cards and board grid on load
+  useEffect(() => {
+    if (loading) return;
+    if (featureCardsRef.current) {
+      const cards = featureCardsRef.current.querySelectorAll('[data-feature-card]');
+      if (cards.length > 0) {
+        animate(cards, {
+          opacity: [0, 1],
+          translateY: [20, 0],
+          delay: stagger(100, { start: 200 }),
+          duration: 500,
+          ease: 'outQuint',
+        });
+      }
+    }
+    if (boardGridRef.current) {
+      const items = boardGridRef.current.querySelectorAll('[data-board-item]');
+      if (items.length > 0) {
+        animate(items, {
+          opacity: [0, 1],
+          scale: [0.95, 1],
+          delay: stagger(60, { start: 400 }),
+          duration: 400,
+          ease: 'outQuint',
+        });
+      }
+    }
+  }, [loading]);
 
   // Helper to get template metadata
   const getTemplateMetadata = (templateId: string) => {
@@ -1272,16 +1305,17 @@ export default function Dashboard() {
 
 
               {/* Feature Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div ref={featureCardsRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {featureCards.map((card) => {
                   const colors = colorVariants[card.color];
                   return (
                     <button
                       key={card.id}
+                      data-feature-card
                       onClick={card.onClick}
                       disabled={creating && card.id === 'whiteboard'}
                       className={cn(
-                        "group feature-card rounded-xl p-5 text-left transition-all duration-200 relative overflow-hidden",
+                        "group feature-card rounded-xl p-5 text-left transition-all duration-200 relative overflow-hidden opacity-0",
                         "hover:shadow-md active:scale-[0.99]",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
                         colors.hoverBorder,
@@ -1340,12 +1374,13 @@ export default function Dashboard() {
                       View all →
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  <div ref={boardGridRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {whiteboards.slice(0, 3).map((board) => (
                       <button
                         key={board.id}
+                        data-board-item
                         onClick={() => router.push(`/board/${board.id}`)}
-                        className="feature-card rounded-lg p-3.5 text-left"
+                        className="feature-card rounded-lg p-3.5 text-left opacity-0"
                       >
                         <div className="flex items-center gap-3">
                           <div className="icon-container-sm bg-muted">
