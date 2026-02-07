@@ -44,6 +44,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (!result.success) {
+      // The code exists but may have expired or hit its usage limit between
+      // validation (at signup) and redemption (now). If the code is real
+      // (admin-issued), the user legitimately signed up — mark them redeemed.
+      const cleanedCode = code.replace(/[-\s]/g, '').toUpperCase();
+      const { data: codeRow } = await supabase
+        .from('invite_codes')
+        .select('id')
+        .eq('code', cleanedCode)
+        .single();
+
+      if (codeRow) {
+        // Real code — forgive expiration/usage limits
+        await supabase
+          .from('profiles')
+          .update({ invite_redeemed: true })
+          .eq('id', user.id);
+        return NextResponse.json({ success: true });
+      }
+
       return NextResponse.json(
         { success: false, error: result.error_message || 'Failed to redeem invite code' },
         { status: 400 }
