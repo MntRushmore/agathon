@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
 import { Agentation } from "agentation";
+import { Analytics } from "@vercel/analytics/next";
 
 // Force dynamic rendering for all pages
 export const dynamic = 'force-dynamic';
@@ -88,6 +89,7 @@ export default function RootLayout({
           {children}
         </AppProviders>
         {process.env.NODE_ENV === "development" && <Agentation />}
+        <Analytics />
       </body>
     </html>
   );
