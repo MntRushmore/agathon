@@ -18,6 +18,8 @@ import {
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/components/chat/ChatMessage';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
+import { useAnimatedUnmount } from '@/hooks/useAnimatedUnmount';
+import { animate, stagger } from 'animejs';
 import type { AITutorTab, GoDeepData } from '@/hooks/useAITutor';
 import type { Message } from '@/hooks/useChat';
 
@@ -82,6 +84,7 @@ export function AITutorPanel({
   const [revealedHints, setRevealedHints] = useState<Set<number>>(new Set());
 
   const panelRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef(0);
   const dragStartWidth = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -126,6 +129,20 @@ export function AITutorPanel({
     }
   }, [isOpen]);
 
+  // Cascade reveal analysis steps with anime.js
+  useEffect(() => {
+    if (!stepsRef.current || !analysisData?.steps?.length) return;
+    const items = stepsRef.current.querySelectorAll('[data-step]');
+    if (items.length === 0) return;
+    animate(items, {
+      opacity: [0, 1],
+      translateX: [-16, 0],
+      delay: stagger(100, { start: 200 }),
+      duration: 400,
+      ease: 'outQuint',
+    });
+  }, [analysisData]);
+
   // Auto-resize textarea
   useEffect(() => {
     if (inputRef.current) {
@@ -162,15 +179,19 @@ export function AITutorPanel({
   const canSubmit =
     activeTab === 'chat' ? !!inputValue.trim() : !!inputValue.trim() && !!analysisData;
 
-  if (!isOpen) return null;
+  const { shouldRender, animationState } = useAnimatedUnmount({ isOpen, exitDurationMs: 250 });
+
+  if (!shouldRender) return null;
 
   return (
     <div
       ref={panelRef}
       style={{ width: panelWidth }}
       className={cn(
-        'fixed top-0 right-0 h-full bg-white border-l border-gray-200 z-[1050]',
-        'flex flex-col',
+        'fixed top-0 right-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)]',
+        'flex flex-col w-full sm:w-auto',
+        'transition-transform duration-250 ease-out',
+        animationState === 'exiting' ? 'translate-x-full' : 'translate-x-0',
         isDragging && 'select-none'
       )}
     >
@@ -220,17 +241,20 @@ export function AITutorPanel({
         </div>
         <button
           onClick={onClose}
-          className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+          className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
         >
-          <X className="w-3.5 h-3.5 text-gray-400" />
+          <X className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-400" />
         </button>
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        {activeTab === 'chat' ? (
-          /* ─── Chat Tab ─── */
-          messages.length === 0 ? (
+      <div className="flex-1 overflow-y-auto min-h-0 relative">
+        {/* ─── Chat Tab ─── */}
+        <div className={cn(
+          'absolute inset-0 overflow-y-auto transition-opacity duration-200',
+          activeTab === 'chat' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+        )}>
+          {messages.length === 0 ? (
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
                 <p className="text-sm text-gray-400 text-center">
@@ -273,9 +297,14 @@ export function AITutorPanel({
               ))}
               <div ref={messagesEndRef} />
             </div>
-          )
-        ) : (
-          /* ─── Analysis Tab ─── */
+          )}
+        </div>
+
+        {/* ─── Analysis Tab ─── */}
+        <div className={cn(
+          'absolute inset-0 overflow-y-auto transition-opacity duration-200',
+          activeTab === 'analysis' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+        )}>
           <div className="p-4 space-y-6">
             {/* Loading */}
             {isAnalysisLoading && (
@@ -301,12 +330,13 @@ export function AITutorPanel({
             {analysisData && analysisData.steps.length > 0 && (
               <div className="space-y-3">
                 <p className="text-xs text-gray-400 font-medium">How to solve it</p>
-                <div className="space-y-2">
+                <div ref={stepsRef} className="space-y-2">
                   {analysisData.steps.map((step, idx) => (
                     <div
                       key={step.number}
+                      data-step
                       className={cn(
-                        'p-3 rounded-lg transition-all',
+                        'p-3 rounded-lg transition-all opacity-0',
                         idx === 0 ? 'bg-violet-50' : 'bg-gray-50'
                       )}
                     >
@@ -486,7 +516,7 @@ export function AITutorPanel({
 
             <div ref={messagesEndRef} />
           </div>
-        )}
+        </div>
       </div>
 
       {/* Input Area */}

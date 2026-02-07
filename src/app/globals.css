@@ -51,6 +51,14 @@
 :root {
   --radius: 0.625rem;
 
+  /* Z-index hierarchy */
+  --z-toolbar: 500;
+  --z-controls: 1000;
+  --z-panel: 1050;
+  --z-overlay: 1100;
+  --z-keyboard: 1200;
+  --z-status: 12000;
+
   /* Modern minimalist font sizes */
   --text-xs: 0.75rem;    /* 12px - tiny labels */
   --text-sm: 0.875rem;   /* 14px - body small */
@@ -710,3 +718,12 @@ kbd {
    ============================================ */
 
 /* Background patterns are now created as canvas shapes instead of CSS */
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
