@@ -7,18 +7,16 @@ import { logger } from '@/lib/logger';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+// Card components no longer needed — using plain divs for a lighter, less "AI template" feel
 import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft,
   Check,
-  Sparkles,
-  Zap,
-  Crown,
-  Loader2,
+  Lightning,
+  CircleNotch,
   Coins,
-} from 'lucide-react';
+  CaretRight,
+} from '@phosphor-icons/react';
 
 type UsageSummary = {
   totalInteractions: number;
@@ -158,214 +156,160 @@ export default function BillingPage() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CircleNotch className="h-8 w-8 animate-spin text-muted-foreground" weight="duotone" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.01_210)] via-background to-background">
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-2.5 mb-8">
+          <button
             onClick={() => router.back()}
-            className="rounded-full"
+            className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold">Plans & Billing</h1>
-            <p className="text-muted-foreground">
-              Manage your subscription and track your usage
-            </p>
-          </div>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
+            Billing
+          </h1>
         </div>
 
-        {/* Current Usage Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  {activePlan.name} Plan
-                  {(activePlan.id === 'premium' || activePlan.id === 'enterprise') && (
-                    <Crown className="h-4 w-4 text-amber-500" />
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  {loadingUsage ? (
-                    'Loading usage...'
-                  ) : usage ? (
-                    `${remainingAssists} assists remaining this month`
-                  ) : (
-                    'Sign in to see your usage'
-                  )}
-                </CardDescription>
-              </div>
-              {usage && activePlan.monthlyInteractions && (
-                <div className="text-right">
-                  <span className="text-3xl font-bold">
-                    {usage.totalInteractions}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {' '}/ {activePlan.monthlyInteractions}
-                  </span>
-                </div>
-              )}
+        {/* Usage */}
+        <section className="mb-8">
+          <div className="flex items-baseline justify-between mb-3">
+            <div>
+              <span className="text-[13px] font-medium text-foreground">{activePlan.name} plan</span>
+              <span className="text-[13px] text-muted-foreground ml-1.5">
+                {loadingUsage
+                  ? ''
+                  : usage
+                    ? `\u00b7 ${remainingAssists} assists left`
+                    : ''}
+              </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            {!loadingUsage && usage && activePlan.monthlyInteractions && (
-              <div className="space-y-2">
-                <Progress value={usageProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  Resets in {usage.windowStart ? formatDistanceToNow(new Date(new Date(usage.windowStart).getTime() + 30 * 24 * 60 * 60 * 1000)) : '30 days'}
-                </p>
-              </div>
+            {usage && activePlan.monthlyInteractions && (
+              <span className="text-[13px] tabular-nums text-muted-foreground">
+                {usage.totalInteractions}<span className="text-muted-foreground/50"> / {activePlan.monthlyInteractions}</span>
+              </span>
             )}
-            {loadingUsage && (
-              <div className="h-2 bg-muted rounded-full animate-pulse" />
-            )}
-          </CardContent>
-        </Card>
+          </div>
+          {!loadingUsage && usage && activePlan.monthlyInteractions ? (
+            <div>
+              <Progress value={usageProgress} className="h-1.5" />
+              <p className="text-[11px] text-muted-foreground/60 mt-1.5">
+                Resets {usage.windowStart ? formatDistanceToNow(new Date(new Date(usage.windowStart).getTime() + 30 * 24 * 60 * 60 * 1000), { addSuffix: true }) : 'in 30 days'}
+              </p>
+            </div>
+          ) : loadingUsage ? (
+            <div className="h-1.5 bg-muted rounded-full animate-pulse" />
+          ) : null}
+        </section>
 
         {/* Plans */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Choose your plan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section className="mb-8">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Plans</h2>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {plans.map((plan) => {
               const isCurrentPlan = activePlan.id === plan.id;
-
               return (
-                <Card
-                  key={plan.id}
-                  className={`relative ${plan.popular ? 'border-primary shadow-md' : ''}`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-6">
-                      <Badge className="gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        Popular
-                      </Badge>
-                    </div>
-                  )}
-
-                  <CardHeader>
-                    <CardTitle>{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="space-y-6">
+                <div key={plan.id} className="p-4">
+                  <div className="flex items-start justify-between mb-3">
                     <div>
-                      <span className="text-3xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm">
-                        /{plan.interval}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold text-foreground">{plan.name}</span>
+                        {isCurrentPlan && (
+                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Current</span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">{plan.description}</p>
                     </div>
-
-                    <ul className="space-y-2.5">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2.5">
-                          <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <span className="text-lg font-semibold text-foreground">{plan.price}</span>
+                      <span className="text-[12px] text-muted-foreground">/{plan.interval}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+                    {plan.features.map((feature) => (
+                      <span key={feature} className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+                        <Check className="h-3 w-3 text-muted-foreground/60 flex-shrink-0" weight="duotone" />
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                  {!isCurrentPlan && (
                     <Button
                       onClick={() => startCheckout(plan)}
-                      disabled={checkoutLoading === plan.id || !plan.productId || isCurrentPlan}
+                      disabled={checkoutLoading === plan.id || !plan.productId}
                       variant={plan.id === 'enterprise' ? 'default' : 'outline'}
-                      className="w-full"
+                      size="sm"
+                      className="h-8 text-[12px]"
                     >
                       {checkoutLoading === plan.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Redirecting...
-                        </>
-                      ) : isCurrentPlan ? (
-                        'Current plan'
+                        <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
                       ) : plan.productId ? (
-                        plan.id === 'enterprise' ? 'Get Enterprise' : 'Get started'
+                        plan.id === 'enterprise' ? 'Upgrade to Enterprise' : 'Switch to Free'
                       ) : (
                         'Coming soon'
                       )}
                     </Button>
-                  </CardContent>
-                </Card>
+                  )}
+                </div>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Credits CTA */}
-        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Coins className="h-5 w-5 text-purple-600" />
-                  Need more AI credits?
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Purchase credit packs for enterprise features like handwritten canvas feedback
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => router.push('/credits')}>
-                Buy Credits
-              </Button>
+        {/* Credits */}
+        <section className="mb-8">
+          <button
+            onClick={() => router.push('/credits')}
+            className="w-full flex items-center gap-3 p-3.5 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors text-left group"
+          >
+            <Coins className="h-4 w-4 text-muted-foreground flex-shrink-0" weight="duotone" />
+            <div className="flex-1 min-w-0">
+              <span className="text-[13px] font-medium text-foreground block">Buy credit packs</span>
+              <span className="text-[11px] text-muted-foreground">For handwritten canvas feedback and other enterprise features</span>
             </div>
-          </CardContent>
-        </Card>
+            <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" weight="duotone" />
+          </button>
+        </section>
 
         {/* Recent Activity */}
         {usage && usage.recent.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Recent Activity
-              </CardTitle>
-              <CardDescription>Your latest AI interactions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="divide-y">
-                {usage.recent.slice(0, 5).map((row, idx) => (
-                  <div
-                    key={`${row.createdAt}-${idx}`}
-                    className="flex items-center justify-between py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                        <Zap className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium capitalize">
-                          {row.mode || 'AI Assist'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {row.createdAt
-                            ? formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })
-                            : 'Recently'}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {row.tokens.toLocaleString()} tokens
+          <section>
+            <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Recent activity</h2>
+            <div className="border border-border rounded-lg bg-card divide-y divide-border">
+              {usage.recent.slice(0, 5).map((row, idx) => (
+                <div
+                  key={`${row.createdAt}-${idx}`}
+                  className="flex items-center justify-between px-3.5 py-2.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Lightning className="h-3.5 w-3.5 text-muted-foreground/50" weight="duotone" />
+                    <span className="text-[13px] text-foreground capitalize">
+                      {row.mode || 'AI Assist'}
                     </span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground/70">
+                    <span className="tabular-nums">{row.tokens.toLocaleString()} tokens</span>
+                    <span className="tabular-nums">
+                      {row.createdAt
+                        ? formatDistanceToNow(new Date(row.createdAt), { addSuffix: true })
+                        : 'Recently'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          Payments are securely processed by Polar. Cancel anytime.
+        <p className="text-center text-[11px] text-muted-foreground/50 mt-8">
+          Payments processed by Polar. Cancel anytime.
         </p>
       </div>
     </div>

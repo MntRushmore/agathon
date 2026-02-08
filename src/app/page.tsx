@@ -9,43 +9,42 @@ import { ShareBoardDialog } from '@/components/sharing/ShareBoardDialog';
 import { getTimeBasedGreeting, getFriendlyTimestamp } from '@/components/dashboard/study-tips';
 import {
   Plus,
-  Trash2,
-  Search,
-  Edit2,
-  MoreHorizontal,
-  Share2,
-  Users,
-  BookOpen,
+  Trash,
+  MagnifyingGlass,
+  PencilSimple,
+  DotsThree,
+  ShareNetwork,
+  UsersThree,
+  BookOpenText,
   CreditCard,
-  Shield,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
+  ShieldCheck,
+  CaretLeft,
+  CaretRight,
+  CaretDown,
+  CaretUp,
   FolderOpen,
-  Home,
-  Pencil,
+  House,
+  PencilLine,
   GraduationCap,
   Clock,
   Calculator,
-  Sparkles,
+  Sparkle,
   Star,
-  StarOff,
   Copy,
-  Filter,
-  Grid3X3,
-  List,
+  Funnel,
+  GridNine,
+  ListBullets,
   Timer,
   Pause,
   Play,
-  RotateCcw,
+  ArrowCounterClockwise,
   X,
-  Settings,
-  HelpCircle,
-  Zap,
+  GearSix,
+  Question,
+  Lightning,
   FileText,
-  StickyNote,
-} from 'lucide-react';
+  Note,
+} from '@phosphor-icons/react';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from '@/components/ui/button';
@@ -98,6 +97,24 @@ type Whiteboard = {
   sharedPermission?: 'view' | 'edit';
 };
 
+type Journal = {
+  id: string;
+  title: string;
+  content: any[];
+  created_at: string;
+  updated_at: string;
+};
+
+type RecentItem = {
+  id: string;
+  title: string;
+  updated_at: string;
+  type: 'board' | 'journal';
+  preview?: string;        // image src for boards
+  snippet?: string;        // text excerpt for journals
+  boardType?: string;
+};
+
 // Feature card color variants - muted, professional creme palette
 type ColorVariant = 'green' | 'blue' | 'purple' | 'amber';
 
@@ -132,14 +149,14 @@ const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; h
   },
 };
 
-import { animate, stagger } from 'animejs';
+// animejs removed — using CSS transitions instead
 
 // Board type icons
 const boardTypeIcons: Record<string, React.ReactNode> = {
-  math: <Calculator className="w-3.5 h-3.5" strokeWidth={2} />,
-  notes: <FileText className="w-3.5 h-3.5" strokeWidth={2} />,
-  diagram: <Grid3X3 className="w-3.5 h-3.5" strokeWidth={2} />,
-  general: <Pencil className="w-3.5 h-3.5" strokeWidth={2} />,
+  math: <Calculator className="w-3.5 h-3.5" weight="duotone" />,
+  notes: <FileText className="w-3.5 h-3.5" weight="duotone" />,
+  diagram: <GridNine className="w-3.5 h-3.5" weight="duotone" />,
+  general: <PencilLine className="w-3.5 h-3.5" weight="duotone" />,
 };
 
 export default function Dashboard() {
@@ -148,26 +165,26 @@ export default function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
   const supabase = createClient();
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
+  const [journals, setJournals] = useState<Journal[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showMyFiles, setShowMyFiles] = useState(false);
+  const [activeView, setActiveView] = useState<'home' | 'boards' | 'journals'>('home');
 
   // Greeting state
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
 
-  // Search and filter state
-  const [searchQuery, setSearchQuery] = useState('');
+  // MagnifyingGlass and filter state
+  const [searchQuery, setMagnifyingGlassQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'favorites' | 'recent' | 'archived'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Sidebar section states
   const [toolsOpen, setToolsOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const featureCardsRef = useRef<HTMLDivElement>(null);
-  const boardGridRef = useRef<HTMLDivElement>(null);
+  // refs removed — no longer needed without anime.js
 
   // Pomodoro timer state
   const [pomodoroActive, setPomodoroActive] = useState(false);
@@ -231,7 +248,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!authLoading && user) {
       fetchWhiteboards();
-      fetchJournalCount();
+      fetchJournals();
       if (profile?.role === 'student') {
         fetchAssignments();
       }
@@ -240,17 +257,20 @@ export default function Dashboard() {
     }
   }, [user, profile, authLoading]);
 
-  async function fetchJournalCount() {
+  async function fetchJournals() {
     try {
-      const { count, error } = await supabase
+      const { data, count, error } = await supabase
         .from('journals')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id);
+        .select('id, title, content, created_at, updated_at', { count: 'exact' })
+        .eq('user_id', user?.id)
+        .order('updated_at', { ascending: false })
+        .limit(10);
 
       if (error) throw error;
+      setJournals(data || []);
       setJournalCount(count || 0);
     } catch (error) {
-      console.error('Error fetching journal count:', error);
+      console.error('Error fetching journals:', error);
     }
   }
 
@@ -285,62 +305,36 @@ export default function Dashboard() {
 
   const isAdmin = profile?.role === 'admin';
 
-  // Stagger feature cards and board grid on load
-  useEffect(() => {
-    if (loading) return;
-    if (featureCardsRef.current) {
-      const cards = featureCardsRef.current.querySelectorAll('[data-feature-card]');
-      if (cards.length > 0) {
-        animate(cards, {
-          opacity: [0, 1],
-          translateY: [20, 0],
-          delay: stagger(100, { start: 200 }),
-          duration: 500,
-          ease: 'outQuint',
-        });
-      }
-    }
-    if (boardGridRef.current) {
-      const items = boardGridRef.current.querySelectorAll('[data-board-item]');
-      if (items.length > 0) {
-        animate(items, {
-          opacity: [0, 1],
-          scale: [0.95, 1],
-          delay: stagger(60, { start: 400 }),
-          duration: 400,
-          ease: 'outQuint',
-        });
-      }
-    }
-  }, [loading]);
+  // No stagger animations — content renders immediately
 
   // Helper to get template metadata
   const getTemplateMetadata = (templateId: string) => {
+    const preferredMode = localStorage.getItem('agathon_pref_ai_mode') || 'feedback';
     const templates: Record<string, any> = {
       blank: {
         title: 'Untitled Board',
         templateId: 'blank',
-        defaultMode: 'feedback',
+        defaultMode: preferredMode,
         boardType: 'general',
       },
       lined: {
         title: 'Lined Notebook',
         templateId: 'lined',
-        defaultMode: 'feedback',
+        defaultMode: preferredMode,
         boardType: 'notes',
         backgroundStyle: 'lined',
       },
       graph: {
         title: 'Graph Paper',
         templateId: 'graph',
-        defaultMode: 'feedback',
+        defaultMode: preferredMode,
         boardType: 'math',
         backgroundStyle: 'grid',
       },
       'file-upload': {
         title: 'Uploaded File',
         templateId: 'file-upload',
-        defaultMode: 'feedback',
+        defaultMode: preferredMode,
         boardType: 'general',
       },
     };
@@ -420,10 +414,14 @@ export default function Dashboard() {
       return;
     }
 
-    // Open template selection dialog
-    console.log('Opening template dialog');
-    setTemplateDialogOpen(true);
-  }, [creating, user, router, isAdmin, whiteboards.length]);
+    // Use preferred template if set, otherwise open dialog
+    const preferredTemplate = localStorage.getItem('agathon_pref_board_template');
+    if (preferredTemplate && (preferredTemplate === 'blank' || preferredTemplate === 'lined' || preferredTemplate === 'graph')) {
+      handleTemplateSelect(preferredTemplate);
+    } else {
+      setTemplateDialogOpen(true);
+    }
+  }, [creating, user, router, isAdmin, whiteboards.length, handleTemplateSelect]);
 
   // Keyboard shortcuts (only when authenticated — don't hijack browser defaults on landing page)
   useEffect(() => {
@@ -438,7 +436,7 @@ export default function Dashboard() {
             break;
           case 'j':
             e.preventDefault();
-            router.push('/journal');
+            setActiveView('journals');
             break;
           case 'k':
             e.preventDefault();
@@ -455,6 +453,45 @@ export default function Dashboard() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [user, router, createWhiteboard]);
+
+  const createJournal = useCallback(async () => {
+    if (!user) {
+      router.push('/?auth=required');
+      return;
+    }
+    if (!isAdmin && journals.length >= FREE_JOURNAL_LIMIT) {
+      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('journals')
+        .insert([{ user_id: user.id, title: 'New Journal', content: [] }])
+        .select()
+        .single();
+      if (error) throw error;
+      toast.success('Journal created');
+      router.push(`/journal/${data.id}`);
+    } catch (error) {
+      console.error('Error creating journal:', error);
+      toast.error('Failed to create journal');
+    }
+  }, [user, router, supabase, isAdmin, journals.length]);
+
+  async function deleteJournal(id: string) {
+    try {
+      const { error } = await supabase
+        .from('journals')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setJournals(journals.filter(j => j.id !== id));
+      toast.success('Journal deleted');
+    } catch (error) {
+      console.error('Error deleting journal:', error);
+      toast.error('Failed to delete journal');
+    }
+  }
 
   async function deleteWhiteboard(id: string) {
     try {
@@ -568,6 +605,36 @@ export default function Dashboard() {
   // Last active board for "Continue where you left off"
   const lastActiveBoard = whiteboards[0];
 
+  // Unified recents: merge boards + journals, sorted by updated_at
+  const recentItems = useMemo<RecentItem[]>(() => {
+    const boardItems: RecentItem[] = whiteboards.map(b => ({
+      id: b.id,
+      title: b.title,
+      updated_at: b.updated_at,
+      type: 'board' as const,
+      preview: b.preview,
+      boardType: b.metadata?.boardType,
+    }));
+    const journalItems: RecentItem[] = journals.map(j => {
+      let snippet = '';
+      if (j.content && j.content.length > 0) {
+        const first = j.content[0];
+        if (typeof first === 'string') snippet = first.slice(0, 80);
+        else if (first?.content) snippet = first.content.slice(0, 80);
+      }
+      return {
+        id: j.id,
+        title: j.title,
+        updated_at: j.updated_at,
+        type: 'journal' as const,
+        snippet: snippet || undefined,
+      };
+    });
+    return [...boardItems, ...journalItems]
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 8);
+  }, [whiteboards, journals]);
+
   // Feature cards for the main dashboard
   type FeatureCard = {
     id: string;
@@ -587,7 +654,7 @@ export default function Dashboard() {
       title: 'Agathon',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
-      icon: <Pencil className="h-5 w-5" strokeWidth={2} />,
+      icon: <PencilLine className="h-5 w-5" weight="duotone" />,
       color: 'blue',
       onClick: () => { createWhiteboard(); },
       isPrimary: true,
@@ -597,7 +664,7 @@ export default function Dashboard() {
       title: 'Math Document',
       description: 'Type equations with instant solving',
       detail: 'LaTeX support & step-by-step',
-      icon: <Calculator className="h-5 w-5" strokeWidth={2} />,
+      icon: <Calculator className="h-5 w-5" weight="duotone" />,
       color: 'purple',
       onClick: () => { toast.info('Math Document is coming soon!'); },
       comingSoon: true,
@@ -607,9 +674,9 @@ export default function Dashboard() {
       title: 'Journal',
       description: 'Write notes with AI-powered study tools',
       detail: 'Flashcards, Feynman method & more',
-      icon: <BookOpen className="h-5 w-5" strokeWidth={2} />,
+      icon: <BookOpenText className="h-5 w-5" weight="duotone" />,
       color: 'green',
-      onClick: () => { router.push('/journal'); },
+      onClick: () => { createJournal(); },
     },
   ];
 
@@ -620,7 +687,7 @@ export default function Dashboard() {
       title: 'Admin Console',
       description: 'Manage users, content, and platform analytics',
       detail: 'Administrative controls',
-      icon: <Shield className="h-5 w-5" strokeWidth={2} />,
+      icon: <ShieldCheck className="h-5 w-5" weight="duotone" />,
       color: 'amber',
       onClick: () => { router.push('/admin'); },
     });
@@ -633,7 +700,7 @@ export default function Dashboard() {
       title: 'My Classes',
       description: 'Manage your classes and students',
       detail: 'Create assignments & track progress',
-      icon: <Users className="h-5 w-5" strokeWidth={2} />,
+      icon: <UsersThree className="h-5 w-5" weight="duotone" />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/teacher/classes'); },
     });
@@ -643,7 +710,7 @@ export default function Dashboard() {
       title: 'Join a Class',
       description: 'Enter a class code from your teacher',
       detail: 'Access assignments & get help',
-      icon: <GraduationCap className="h-5 w-5" strokeWidth={2} />,
+      icon: <GraduationCap className="h-5 w-5" weight="duotone" />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/student/join'); },
     });
@@ -693,7 +760,7 @@ export default function Dashboard() {
                 onClick={() => setSidebarCollapsed(true)}
                 className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
               >
-                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                <CaretLeft className="h-4 w-4" weight="duotone" />
               </button>
             </>
           )}
@@ -710,22 +777,22 @@ export default function Dashboard() {
                   sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
                 )}
               >
-                <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
+                <Plus className="h-4 w-4 flex-shrink-0" weight="duotone" />
                 {!sidebarCollapsed && <span className="text-sm">New</span>}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuItem onClick={() => createWhiteboard()}>
-                <Pencil className="w-4 h-4 mr-2" strokeWidth={2} />
+                <PencilLine className="w-4 h-4 mr-2" weight="duotone" />
                 New Board
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
-                <Zap className="w-4 h-4 mr-2" strokeWidth={2} />
+                <Lightning className="w-4 h-4 mr-2" weight="duotone" />
                 Quick Board
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/journal')}>
-                <BookOpen className="w-4 h-4 mr-2" strokeWidth={2} />
+              <DropdownMenuItem onClick={() => createJournal()}>
+                <BookOpenText className="w-4 h-4 mr-2" weight="duotone" />
                 New Journal
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -736,28 +803,40 @@ export default function Dashboard() {
         <nav className="flex-1 px-3 py-2 overflow-y-auto">
           <div className="space-y-1">
             <button
-              onClick={() => setShowMyFiles(false)}
+              onClick={() => setActiveView('home')}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-                !showMyFiles
+                activeView === 'home'
                   ? "bg-accent text-foreground font-medium"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Home className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+              <House className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
               {!sidebarCollapsed && <span className="text-sm">Home</span>}
             </button>
             <button
-              onClick={() => setShowMyFiles(true)}
+              onClick={() => setActiveView('boards')}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-                showMyFiles
+                activeView === 'boards'
                   ? "bg-accent text-foreground font-medium"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
               {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
+            </button>
+            <button
+              onClick={() => setActiveView('journals')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                activeView === 'journals'
+                  ? "bg-accent text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <BookOpenText className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+              {!sidebarCollapsed && <span className="text-sm">My Journals</span>}
             </button>
           </div>
 
@@ -766,14 +845,14 @@ export default function Dashboard() {
             <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="mt-4">
               <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Tools
-                {toolsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {toolsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 mt-1">
                 <button
                   onClick={() => setPomodoroActive(!pomodoroActive)}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                 >
-                  <Timer className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <Timer className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
                   <span className="text-sm flex-1">Pomodoro</span>
                   {pomodoroActive && (
                     <span className="text-xs font-mono text-primary">{formatPomodoroTime(pomodoroTime)}</span>
@@ -788,7 +867,7 @@ export default function Dashboard() {
             <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="mt-2">
               <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Settings
-                {settingsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {settingsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 mt-1">
                 {user && (
@@ -796,22 +875,22 @@ export default function Dashboard() {
                     onClick={() => router.push('/billing')}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                   >
-                    <CreditCard className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                    <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
                     <span className="text-sm">Plans & Usage</span>
                   </button>
                 )}
                 <button
-                  onClick={() => toast.info('Settings coming soon!')}
+                  onClick={() => router.push('/settings')}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                 >
-                  <Settings className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <GearSix className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
                   <span className="text-sm">Preferences</span>
                 </button>
                 <button
                   onClick={() => toast.info('Help center coming soon!')}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                 >
-                  <HelpCircle className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+                  <Question className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
                   <span className="text-sm">Help</span>
                 </button>
               </CollapsibleContent>
@@ -834,7 +913,7 @@ export default function Dashboard() {
                 sidebarCollapsed && "justify-center"
               )}
             >
-              <Shield className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
+              <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
               {!sidebarCollapsed && <span className="text-sm">Admin Console</span>}
             </button>
           )}
@@ -845,7 +924,7 @@ export default function Dashboard() {
               <div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <Pencil className="w-3 h-3" />
+                    <PencilLine className="w-3 h-3" />
                     Boards
                   </span>
                   <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
@@ -855,7 +934,7 @@ export default function Dashboard() {
               <div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-3 h-3" />
+                    <BookOpenText className="w-3 h-3" />
                     Journals
                   </span>
                   <span>{journalCount} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
@@ -903,7 +982,7 @@ export default function Dashboard() {
         "flex-1 transition-all duration-300 ease-out",
         sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
-        {showMyFiles ? (
+        {activeView === 'boards' ? (
           /* My Boards View */
           <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
@@ -921,7 +1000,7 @@ export default function Dashboard() {
                       viewMode === 'grid' ? "bg-card shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <Grid3X3 className="w-4 h-4" strokeWidth={2} />
+                    <GridNine className="w-4 h-4" weight="duotone" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
@@ -930,7 +1009,7 @@ export default function Dashboard() {
                       viewMode === 'list' ? "bg-card shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <List className="w-4 h-4" strokeWidth={2} />
+                    <ListBullets className="w-4 h-4" weight="duotone" />
                   </button>
                 </div>
 
@@ -938,7 +1017,7 @@ export default function Dashboard() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2">
-                      <Filter className="w-4 h-4" strokeWidth={2} />
+                      <Funnel className="w-4 h-4" weight="duotone" />
                       {filterType === 'all' ? 'All' : filterType === 'favorites' ? 'Favorites' : filterType === 'recent' ? 'Recent' : 'Archived'}
                     </Button>
                   </DropdownMenuTrigger>
@@ -951,14 +1030,14 @@ export default function Dashboard() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Search */}
+                {/* MagnifyingGlass */}
                 <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" strokeWidth={2} />
+                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" weight="duotone" />
                   <Input
                     type="text"
-                    placeholder="Search boards..."
+                    placeholder="MagnifyingGlass boards..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
                     className="pl-9 bg-card border-border"
                     data-search-input
                   />
@@ -981,14 +1060,14 @@ export default function Dashboard() {
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
                   <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <Pencil className="w-6 h-6" strokeWidth={2} />
+                    <PencilLine className="w-6 h-6" weight="duotone" />
                   </div>
                   <h2 className="text-lg font-bold text-foreground mb-2">Create your first board</h2>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                     Start with a blank whiteboard and draw, write equations, or get AI tutoring help.
                   </p>
                   <Button onClick={() => createWhiteboard()} size="lg" className="px-6">
-                    <Plus className="w-4 h-4" strokeWidth={2.5} />
+                    <Plus className="w-4 h-4" weight="duotone" />
                     New Board
                   </Button>
                 </div>
@@ -996,7 +1075,7 @@ export default function Dashboard() {
             ) : filteredBoards.length === 0 && searchQuery ? (
               <div className="flex flex-col items-center justify-center py-20">
                 <div className="text-center">
-                  <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" strokeWidth={1.5} />
+                  <MagnifyingGlass className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
                   <h2 className="text-lg font-bold text-foreground mb-2">No boards found</h2>
                   <p className="text-sm text-muted-foreground">
                     No boards match "{searchQuery}"
@@ -1016,7 +1095,7 @@ export default function Dashboard() {
                     className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
                   >
                     <div className="icon-container icon-container-green">
-                      <Plus className="w-5 h-5" strokeWidth={2.5} />
+                      <Plus className="w-5 h-5" weight="duotone" />
                     </div>
                     <span className="text-sm font-medium text-muted-foreground">New Board</span>
                   </button>
@@ -1038,7 +1117,7 @@ export default function Dashboard() {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <Pencil className="w-10 h-10 text-muted-foreground/30" strokeWidth={1.5} />
+                            <PencilLine className="w-10 h-10 text-muted-foreground/30" weight="duotone" />
                           </div>
                         )}
                         {/* Board type badge */}
@@ -1051,7 +1130,7 @@ export default function Dashboard() {
                         {/* Favorite indicator */}
                         {board.is_favorite && (
                           <div className="absolute top-2 right-2">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" strokeWidth={2} />
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" weight="duotone" />
                           </div>
                         )}
                         {/* Quick actions on hover */}
@@ -1065,7 +1144,7 @@ export default function Dashboard() {
                               duplicateWhiteboard(board);
                             }}
                           >
-                            <Copy className="w-4 h-4" strokeWidth={2} />
+                            <Copy className="w-4 h-4" weight="duotone" />
                           </Button>
                           <Button
                             size="sm"
@@ -1078,7 +1157,7 @@ export default function Dashboard() {
                               setShareDialogOpen(true);
                             }}
                           >
-                            <Share2 className="w-4 h-4" strokeWidth={2} />
+                            <ShareNetwork className="w-4 h-4" weight="duotone" />
                           </Button>
                         </div>
                       </div>
@@ -1099,7 +1178,7 @@ export default function Dashboard() {
                                 size="icon"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
                               >
-                                <MoreHorizontal className="w-4 h-4" strokeWidth={2} />
+                                <DotsThree className="w-4 h-4" weight="duotone" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -1109,12 +1188,12 @@ export default function Dashboard() {
                               }}>
                                 {board.is_favorite ? (
                                   <>
-                                    <StarOff className="w-4 h-4 mr-2" strokeWidth={2} />
+                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
                                     Remove from favorites
                                   </>
                                 ) : (
                                   <>
-                                    <Star className="w-4 h-4 mr-2" strokeWidth={2} />
+                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
                                     Add to favorites
                                   </>
                                 )}
@@ -1124,14 +1203,14 @@ export default function Dashboard() {
                                 setRenameId(board.id);
                                 setRenameTitle(board.title);
                               }}>
-                                <Edit2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
                                 Rename
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 duplicateWhiteboard(board);
                               }}>
-                                <Copy className="w-4 h-4 mr-2" strokeWidth={2} />
+                                <Copy className="w-4 h-4 mr-2" weight="duotone" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
@@ -1140,7 +1219,7 @@ export default function Dashboard() {
                                 setShareBoardTitle(board.title);
                                 setShareDialogOpen(true);
                               }}>
-                                <Share2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                <ShareNetwork className="w-4 h-4 mr-2" weight="duotone" />
                                 Share
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -1151,7 +1230,7 @@ export default function Dashboard() {
                                   deleteWhiteboard(board.id);
                                 }}
                               >
-                                <Trash2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                                <Trash className="w-4 h-4 mr-2" weight="duotone" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1171,7 +1250,7 @@ export default function Dashboard() {
                           <img src={board.preview} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <Pencil className="w-5 h-5 text-muted-foreground/30" strokeWidth={1.5} />
+                            <PencilLine className="w-5 h-5 text-muted-foreground/30" weight="duotone" />
                           </div>
                         )}
                       </div>
@@ -1179,7 +1258,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-sm text-foreground truncate" title={board.title}>{board.title}</h3>
                           {board.is_favorite && (
-                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" strokeWidth={2} />
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" weight="duotone" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">{getFriendlyTimestamp(new Date(board.updated_at))}</p>
@@ -1191,12 +1270,12 @@ export default function Dashboard() {
                           setShareBoardTitle(board.title);
                           setShareDialogOpen(true);
                         }}>
-                          <Share2 className="w-4 h-4" strokeWidth={2} />
+                          <ShareNetwork className="w-4 h-4" weight="duotone" />
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="w-4 h-4" strokeWidth={2} />
+                              <DotsThree className="w-4 h-4" weight="duotone" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -1205,14 +1284,14 @@ export default function Dashboard() {
                               setRenameId(board.id);
                               setRenameTitle(board.title);
                             }}>
-                              <Edit2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                              <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
                               Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               duplicateWhiteboard(board);
                             }}>
-                              <Copy className="w-4 h-4 mr-2" strokeWidth={2} />
+                              <Copy className="w-4 h-4 mr-2" weight="duotone" />
                               Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -1223,7 +1302,7 @@ export default function Dashboard() {
                                 deleteWhiteboard(board.id);
                               }}
                             >
-                              <Trash2 className="w-4 h-4 mr-2" strokeWidth={2} />
+                              <Trash className="w-4 h-4 mr-2" weight="duotone" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1239,7 +1318,7 @@ export default function Dashboard() {
             {profile?.role === 'student' && assignments.length > 0 && (
               <div className="mt-12">
                 <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" strokeWidth={2} />
+                  <BookOpenText className="h-5 w-5" weight="duotone" />
                   My Assignments
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1258,7 +1337,7 @@ export default function Dashboard() {
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
-                            <BookOpen className="w-12 h-12 text-muted-foreground/50" strokeWidth={1.5} />
+                            <BookOpenText className="w-12 h-12 text-muted-foreground/50" weight="duotone" />
                           </div>
                         )}
                         <div className={cn(
@@ -1282,7 +1361,7 @@ export default function Dashboard() {
                         </p>
                         {submission.assignment.due_date && (
                           <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2">
-                            <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                            <Clock className="w-3.5 h-3.5" weight="duotone" />
                             Due {getFriendlyTimestamp(new Date(submission.assignment.due_date))}
                           </p>
                         )}
@@ -1293,112 +1372,180 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        ) : (
-          /* Dashboard Home View */
-          <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
-            <div className="max-w-3xl w-full">
-              {/* Simple Greeting */}
-              <div className="text-left mb-10">
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
-                  {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : '!'}
-                </h1>
-                <p className="text-muted-foreground mt-3 max-w-xl">
-                  What would you like to work on?
-                </p>
+        ) : activeView === 'journals' ? (
+          /* My Journals View */
+          <div className="max-w-6xl mx-auto px-8 py-10">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Journals</h1>
+                <p className="text-sm text-muted-foreground mt-1">All your journals in one place</p>
               </div>
+              <Button onClick={() => createJournal()} size="sm" className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Journal
+              </Button>
+            </div>
 
-
-              {/* Feature Cards */}
-              <div ref={featureCardsRef} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {featureCards.map((card) => {
-                  const colors = colorVariants[card.color];
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
+                    <div className="h-5 bg-muted rounded w-3/4 mb-3" />
+                    <div className="h-4 bg-muted rounded w-full mb-2" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : journals.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
+                  <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
+                    <BookOpenText className="w-6 h-6" weight="duotone" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground mb-2">No journals yet</h3>
+                  <p className="text-sm text-muted-foreground mb-6">Create your first journal to start writing with AI-powered study tools.</p>
+                  <Button onClick={() => createJournal()} size="lg" className="px-6">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Journal
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {journals.map((journal) => {
+                  let snippet = '';
+                  if (journal.content && journal.content.length > 0) {
+                    const first = journal.content[0];
+                    if (typeof first === 'string') snippet = first.slice(0, 120);
+                    else if (first?.content) snippet = first.content.slice(0, 120);
+                  }
                   return (
-                    <button
-                      key={card.id}
-                      data-feature-card
-                      data-variant={card.color}
-                      onClick={card.onClick}
-                      disabled={creating && card.id === 'whiteboard'}
-                      className={cn(
-                        "group feature-card rounded-xl p-5 text-left transition-all duration-200 relative overflow-hidden opacity-0",
-                        "hover:shadow-md active:scale-[0.99]",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                        colors.hoverBorder,
-                        card.isPrimary && "feature-card--primary ring-2 ring-primary/20",
-                        card.comingSoon && "opacity-50"
-                      )}
+                    <div
+                      key={journal.id}
+                      className="group bg-card border border-border rounded-xl p-4 hover:bg-muted/30 transition-colors cursor-pointer relative"
+                      onClick={() => router.push(`/journal/${journal.id}`)}
                     >
-                      {/* Coming soon overlay - only show when signed in */}
-                      {card.comingSoon && user && (
-                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center z-10">
-                          <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-                            Coming Soon
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex items-start gap-4">
-                        <div className={cn(
-                          "icon-container",
-                          colors.iconBg,
-                          colors.iconColor
-                        )}>
-                          {card.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="text-sm font-semibold text-foreground">
-                              {card.title}
-                            </h3>
-                            {card.isPrimary && (
-                              <span className="text-[10px] font-medium text-primary flex items-center gap-0.5">
-                                <Sparkles className="w-3 h-3" strokeWidth={2} />
-                                AI
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {card.description}
-                          </p>
-                        </div>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-[13px] font-semibold text-foreground truncate pr-8">{journal.title}</h3>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <button className="p-1 rounded-md hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity absolute top-3 right-3">
+                              <DotsThree className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => deleteJournal(journal.id)}
+                            >
+                              <Trash className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </button>
+                      <p className="text-[12px] text-muted-foreground line-clamp-3 mb-3">
+                        {snippet || 'Empty journal'}
+                      </p>
+                      <span className="text-[11px] text-muted-foreground/60">
+                        {getFriendlyTimestamp(new Date(journal.updated_at))}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
+            )}
+          </div>
+        ) : (
+          /* Dashboard Home View */
+          <div className="flex items-start justify-center min-h-screen px-8 lg:px-12 pt-[12vh] pb-12">
+          <div className="w-full max-w-4xl">
+              {/* Greeting */}
+              <div className="mb-6">
+                <p className="text-[13px] text-muted-foreground">
+                  {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : ''}
+                </p>
+                <h1 className="text-xl font-semibold text-foreground tracking-tight mt-0.5" style={{ fontFamily: 'var(--font-sans)' }}>
+                  What would you like to work on?
+                </h1>
+              </div>
 
-              {/* Recent Boards */}
-              {user && whiteboards.length > 0 && (
-                <div className="mt-12">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-foreground">Recent boards</h2>
+              {/* All feature cards in a single grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
+                {featureCards.map((card) => (
+                  <button
+                    key={card.id}
+                    onClick={card.onClick}
+                    disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
+                    className={cn(
+                      "group text-left rounded-lg border border-border bg-card p-3.5 transition-colors duration-100 relative",
+                      "hover:bg-muted/40 active:bg-muted/60",
+                      "disabled:cursor-not-allowed",
+                      card.comingSoon && "opacity-50"
+                    )}
+                  >
+                    {card.comingSoon && (
+                      <span className="absolute top-2.5 right-2.5 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Soon</span>
+                    )}
+                    <div className="flex items-center gap-2.5 text-muted-foreground mb-2">
+                      {card.icon}
+                      {card.isPrimary && (
+                        <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-auto">AI</span>
+                      )}
+                    </div>
+                    <h3 className="text-[13px] font-semibold text-foreground leading-tight" style={{ fontFamily: 'var(--font-sans)' }}>{card.title}</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{card.description}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Recents — boards + journals */}
+              {user && recentItems.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'var(--font-sans)' }}>Recents</span>
                     <button
-                      onClick={() => setShowMyFiles(true)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setActiveView('boards')}
+                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      View all →
+                      View all &rarr;
                     </button>
                   </div>
-                  <div ref={boardGridRef} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {whiteboards.slice(0, 3).map((board) => (
+                  <div className="border border-border rounded-lg bg-card divide-y divide-border">
+                    {recentItems.map((item) => (
                       <button
-                        key={board.id}
-                        data-board-item
-                        onClick={() => router.push(`/board/${board.id}`)}
-                        className="feature-card rounded-lg p-3.5 text-left opacity-0"
+                        key={`${item.type}-${item.id}`}
+                        onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
+                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30 transition-colors first:rounded-t-lg last:rounded-b-lg"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="icon-container-sm bg-muted">
-                            <Pencil className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.75} />
+                        {/* Thumbnail / icon */}
+                        {item.type === 'board' && item.preview ? (
+                          <div className="w-10 h-7 rounded overflow-hidden bg-muted flex-shrink-0">
+                            <img src={item.preview} alt="" className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-foreground truncate text-sm">
-                              {board.title}
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              {getFriendlyTimestamp(new Date(board.updated_at))}
-                            </p>
+                        ) : (
+                          <div className="w-10 h-7 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                            {item.type === 'board'
+                              ? <PencilLine className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
+                              : <BookOpenText className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
+                            }
                           </div>
+                        )}
+                        {/* Title + snippet */}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[13px] text-foreground truncate block">{item.title}</span>
+                          {item.snippet && (
+                            <span className="text-[11px] text-muted-foreground/60 truncate block">{item.snippet}</span>
+                          )}
+                        </div>
+                        {/* Meta */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-[10px] text-muted-foreground/50 uppercase">
+                            {item.type === 'board' ? 'Board' : 'Journal'}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/70 tabular-nums">
+                            {getFriendlyTimestamp(new Date(item.updated_at))}
+                          </span>
                         </div>
                       </button>
                     ))}
@@ -1406,7 +1553,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-            </div>
+          </div>
           </div>
         )}
       </main>
@@ -1418,7 +1565,7 @@ export default function Dashboard() {
             <Timer className={cn(
               "w-5 h-5",
               pomodoroMode === 'work' ? "text-primary" : "text-green-500"
-            )} strokeWidth={2} />
+            )} weight="duotone" />
             <span className="text-2xl font-mono font-bold">{formatPomodoroTime(pomodoroTime)}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -1429,9 +1576,9 @@ export default function Dashboard() {
               title={pomodoroPaused ? "Resume" : "Pause"}
             >
               {pomodoroPaused ? (
-                <Play className="w-4 h-4" strokeWidth={2} />
+                <Play className="w-4 h-4" weight="duotone" />
               ) : (
-                <Pause className="w-4 h-4" strokeWidth={2} />
+                <Pause className="w-4 h-4" weight="duotone" />
               )}
             </Button>
             <Button
@@ -1443,7 +1590,7 @@ export default function Dashboard() {
               }}
               title="Reset"
             >
-              <RotateCcw className="w-4 h-4" strokeWidth={2} />
+              <ArrowCounterClockwise className="w-4 h-4" weight="duotone" />
             </Button>
             <Button
               size="icon"
@@ -1456,7 +1603,7 @@ export default function Dashboard() {
               }}
               title="Stop"
             >
-              <X className="w-4 h-4" strokeWidth={2} />
+              <X className="w-4 h-4" weight="duotone" />
             </Button>
           </div>
           <Badge variant="secondary" className="text-xs">
@@ -1470,7 +1617,7 @@ export default function Dashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <StickyNote className="w-5 h-5" strokeWidth={2} />
+              <Note className="w-5 h-5" weight="duotone" />
               Quick Note
             </DialogTitle>
             <DialogDescription>

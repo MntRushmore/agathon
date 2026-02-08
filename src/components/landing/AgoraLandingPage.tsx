@@ -80,7 +80,7 @@ export function AgoraLandingPage() {
   };
 
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="h-screen overflow-hidden serif-headings">
       {/* Hero Section - Full screen, no scroll */}
       <div className="fixed inset-0 overflow-hidden">
         {/* Navigation */}

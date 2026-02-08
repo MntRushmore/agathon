@@ -12,7 +12,7 @@ import { Table as TiptapTable } from '@tiptap/extension-table';
 import { TableRow as TiptapTableRow } from '@tiptap/extension-table-row';
 import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
 import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
-import { Extension } from '@tiptap/core';
+import { Extension, Node } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { useEffect, useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
@@ -20,15 +20,53 @@ import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
 import {
-  Heading1, Heading2, Heading3, List, ListOrdered, Code, Quote,
-  Sparkles, Layers, ClipboardList, ImagePlus, Type, Minus,
-  Table, ChevronDown, Sigma, PenTool, LineChart, BarChart3,
-  FileText, Link as LinkIcon, Image, AudioLines, Video, Youtube, FileType,
-  Bold, Italic, UnderlineIcon, Strikethrough, Link2,
-  Volume2, Square as StopIcon, Loader2,
-} from 'lucide-react';
+  TextHOne, TextHTwo, TextHThree, ListBullets, ListNumbers, Code, Quotes,
+  Sparkle, Stack, ClipboardText, ImageSquare, TextT, Minus,
+  Table, CaretDown, MathOperations, PenNib, ChartLine, ChartBar,
+  FileText, Link as LinkIcon, Image, Waveform, VideoCamera, YoutubeLogo, FileDoc,
+  TextB, TextItalic, TextUnderline, TextStrikethrough, LinkSimple,
+  SpeakerHigh, Stop as StopIcon, CircleNotch,
+} from '@phosphor-icons/react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
+
+// Custom TipTap node: Details (collapsible section)
+const DetailsNode = Node.create({
+  name: 'details',
+  group: 'block',
+  defining: true,
+  content: 'detailsSummary detailsContent',
+  parseHTML() {
+    return [{ tag: 'details' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['details', { ...HTMLAttributes, open: 'true' }, 0];
+  },
+});
+
+const DetailsSummaryNode = Node.create({
+  name: 'detailsSummary',
+  defining: true,
+  content: 'inline*',
+  parseHTML() {
+    return [{ tag: 'summary' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['summary', HTMLAttributes, 0];
+  },
+});
+
+const DetailsContentNode = Node.create({
+  name: 'detailsContent',
+  defining: true,
+  content: 'block+',
+  parseHTML() {
+    return [{ tag: 'div[data-details-content]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['div', { ...HTMLAttributes, 'data-details-content': '' }, 0];
+  },
+});
 
 // Slash command item type
 interface SlashCommandItem {
@@ -42,37 +80,28 @@ interface SlashCommandItem {
 // All available slash commands
 const slashCommandItems: SlashCommandItem[] = [
   // Build with Feynman
-  { id: 'notes', label: 'Generate notes', icon: Sparkles, category: 'Build with Feynman', description: 'AI-generated study notes' },
-  { id: 'practice', label: 'Generate practice problems', icon: ClipboardList, category: 'Build with Feynman', description: 'AI-generated practice problems' },
-  { id: 'flashcards', label: 'Generate flashcards', icon: Layers, category: 'Build with Feynman', description: 'AI-generated flashcards' },
-  { id: 'generate-image', label: 'Generate image', icon: ImagePlus, category: 'Build with Feynman', description: 'AI-generated diagram' },
-  // Basic editing
-  { id: 'text', label: 'Text', icon: Type, category: 'Basic editing', description: 'Plain text paragraph' },
-  { id: 'h1', label: 'Heading 1', icon: Heading1, category: 'Basic editing', description: 'Large heading' },
-  { id: 'h2', label: 'Heading 2', icon: Heading2, category: 'Basic editing', description: 'Medium heading' },
-  { id: 'h3', label: 'Heading 3', icon: Heading3, category: 'Basic editing', description: 'Small heading' },
-  { id: 'bullet', label: 'Bullet list', icon: List, category: 'Basic editing', description: 'Unordered list' },
-  { id: 'numbered', label: 'Numbered list', icon: ListOrdered, category: 'Basic editing', description: 'Ordered list' },
-  { id: 'quote', label: 'Quote', icon: Quote, category: 'Basic editing', description: 'Block quote' },
-  { id: 'divider', label: 'Divider', icon: Minus, category: 'Basic editing', description: 'Horizontal line' },
+  { id: 'notes', label: 'Generate notes', icon: Sparkle, category: 'Build with Feynman', description: 'AI-generated study notes' },
+  { id: 'practice', label: 'Generate practice problems', icon: ClipboardText, category: 'Build with Feynman', description: 'AI-generated practice problems' },
+  { id: 'flashcards', label: 'Generate flashcards', icon: Stack, category: 'Build with Feynman', description: 'AI-generated flashcards' },
+  { id: 'generate-image', label: 'Generate image', icon: ImageSquare, category: 'Build with Feynman', description: 'AI-generated diagram' },
   // Advanced editing
   { id: 'table', label: 'Table', icon: Table, category: 'Advanced editing', description: 'Data table' },
-  { id: 'details', label: 'Details', icon: ChevronDown, category: 'Advanced editing', description: 'Collapsible section' },
+  { id: 'details', label: 'Details', icon: CaretDown, category: 'Advanced editing', description: 'Collapsible section' },
   { id: 'code', label: 'Code block', icon: Code, category: 'Advanced editing', description: 'Code snippet' },
-  { id: 'latex', label: 'LaTeX block', icon: Sigma, category: 'Advanced editing', description: 'Math equation' },
+  { id: 'latex', label: 'LaTeX block', icon: MathOperations, category: 'Advanced editing', description: 'Math equation' },
   // Interactive editing
-  { id: 'whiteboard', label: 'Whiteboard', icon: PenTool, category: 'Interactive editing', description: 'Drawing canvas' },
-  { id: 'desmos', label: 'Desmos graph', icon: LineChart, category: 'Interactive editing', description: 'Interactive graph' },
-  { id: 'chart', label: 'Chart', icon: BarChart3, category: 'Interactive editing', description: 'Data visualization' },
+  { id: 'whiteboard', label: 'Whiteboard', icon: PenNib, category: 'Interactive editing', description: 'Drawing canvas' },
+  { id: 'desmos', label: 'Desmos graph', icon: ChartLine, category: 'Interactive editing', description: 'Interactive graph' },
+  { id: 'chart', label: 'Chart', icon: ChartBar, category: 'Interactive editing', description: 'Data visualization' },
   // Journals
   { id: 'subjournal', label: 'Subjournal', icon: FileText, category: 'Journals', description: 'Create sub-journal' },
   { id: 'link-journal', label: 'Link to journal', icon: LinkIcon, category: 'Journals', description: 'Link existing journal' },
   // Media
   { id: 'image', label: 'Image', icon: Image, category: 'Media', description: 'Upload image' },
-  { id: 'audio', label: 'Audio', icon: AudioLines, category: 'Media', description: 'Upload audio' },
-  { id: 'video', label: 'Video', icon: Video, category: 'Media', description: 'Upload video' },
-  { id: 'youtube', label: 'YouTube', icon: Youtube, category: 'Media', description: 'Embed YouTube' },
-  { id: 'pdf', label: 'PDF', icon: FileType, category: 'Media', description: 'Upload PDF' },
+  { id: 'audio', label: 'Audio', icon: Waveform, category: 'Media', description: 'Upload audio' },
+  { id: 'video', label: 'Video', icon: VideoCamera, category: 'Media', description: 'Upload video' },
+  { id: 'youtube', label: 'YouTube', icon: YoutubeLogo, category: 'Media', description: 'Embed YouTube' },
+  { id: 'pdf', label: 'PDF', icon: FileDoc, category: 'Media', description: 'Upload PDF' },
 ];
 
 interface RichTextEditorProps {
@@ -206,43 +235,61 @@ export function RichTextEditor({
         suggestion: {
           char: '/',
           command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommandItem }) => {
-            // Delete the slash command text
-            editor.chain().focus().deleteRange(range).run();
-
-            // Handle the command
             const commandId = props.id;
 
-            // Format commands that can be handled directly in the editor
+            // All block-type commands must be chained with deleteRange in a single
+            // transaction to avoid race conditions where the block type command
+            // runs before the deletion has settled.
             switch (commandId) {
+              case 'text':
+                editor.chain().focus().deleteRange(range).clearNodes().run();
+                break;
               case 'h1':
-                editor.chain().focus().toggleHeading({ level: 1 }).run();
+                editor.chain().focus().deleteRange(range).setHeading({ level: 1 }).run();
                 break;
               case 'h2':
-                editor.chain().focus().toggleHeading({ level: 2 }).run();
+                editor.chain().focus().deleteRange(range).setHeading({ level: 2 }).run();
                 break;
               case 'h3':
-                editor.chain().focus().toggleHeading({ level: 3 }).run();
+                editor.chain().focus().deleteRange(range).setHeading({ level: 3 }).run();
                 break;
               case 'bullet':
-                editor.chain().focus().toggleBulletList().run();
+                editor.chain().focus().deleteRange(range).toggleBulletList().run();
                 break;
               case 'numbered':
-                editor.chain().focus().toggleOrderedList().run();
+                editor.chain().focus().deleteRange(range).toggleOrderedList().run();
                 break;
               case 'quote':
-                editor.chain().focus().toggleBlockquote().run();
+                editor.chain().focus().deleteRange(range).setBlockquote().run();
                 break;
               case 'code':
-                editor.chain().focus().toggleCodeBlock().run();
+                editor.chain().focus().deleteRange(range).setCodeBlock().run();
                 break;
               case 'divider':
-                editor.chain().focus().setHorizontalRule().run();
+                editor.chain().focus().deleteRange(range).setHorizontalRule().run();
                 break;
               case 'table':
-                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+                break;
+              case 'details':
+                editor.chain().focus().deleteRange(range).insertContent({
+                  type: 'details',
+                  content: [
+                    { type: 'detailsSummary', content: [{ type: 'text', text: 'Click to expand' }] },
+                    { type: 'detailsContent', content: [{ type: 'paragraph' }] },
+                  ],
+                }).run();
+                break;
+              case 'latex':
+                editor.chain().focus().deleteRange(range).insertContent({
+                  type: 'inlineMath',
+                  attrs: { latex: 'E = mc^2' },
+                }).run();
                 break;
               default:
-                // Pass to parent handler for AI commands and interactive elements
+                // For non-editor commands (AI, media, etc.), just delete the slash text
+                // and pass to parent handler
+                editor.chain().focus().deleteRange(range).run();
                 if (onSlashCommand) {
                   onSlashCommand(commandId);
                 }
@@ -324,9 +371,7 @@ export function RichTextEditor({
           levels: [1, 2, 3],
         },
         codeBlock: {
-          HTMLAttributes: {
-            class: 'bg-[#EDE3CC] rounded-lg p-4 my-4 font-mono text-sm overflow-x-auto',
-          },
+          HTMLAttributes: { class: '' },
         },
         code: {
           HTMLAttributes: {
@@ -344,9 +389,7 @@ export function RichTextEditor({
           },
         },
         blockquote: {
-          HTMLAttributes: {
-            class: 'border-l-4 border-[#8DA878] pl-4 my-4 italic text-[#6B5A48]',
-          },
+          HTMLAttributes: { class: '' },
         },
       }),
       Placeholder.configure({
@@ -388,6 +431,9 @@ export function RichTextEditor({
           class: 'border border-[#CFC0A8] px-4 py-2',
         },
       }),
+      DetailsNode,
+      DetailsSummaryNode,
+      DetailsContentNode,
       SlashCommands,
     ],
     content: parseContentToHTML(content),
@@ -627,7 +673,7 @@ export function RichTextEditor({
             )}
             title="Heading 1"
           >
-            <Heading1 className="h-4 w-4" />
+            <TextHOne className="h-4 w-4" weight="duotone" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
@@ -637,7 +683,7 @@ export function RichTextEditor({
             )}
             title="Heading 2"
           >
-            <Heading2 className="h-4 w-4" />
+            <TextHTwo className="h-4 w-4" weight="duotone" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
@@ -647,7 +693,7 @@ export function RichTextEditor({
             )}
             title="Heading 3"
           >
-            <Heading3 className="h-4 w-4" />
+            <TextHThree className="h-4 w-4" weight="duotone" />
           </button>
           <div className="w-5 h-px bg-[#CFC0A8] my-1" />
           <button
@@ -658,7 +704,7 @@ export function RichTextEditor({
             )}
             title="Bullet List"
           >
-            <List className="h-4 w-4" />
+            <ListBullets className="h-4 w-4" weight="duotone" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
@@ -668,7 +714,7 @@ export function RichTextEditor({
             )}
             title="Numbered List"
           >
-            <ListOrdered className="h-4 w-4" />
+            <ListNumbers className="h-4 w-4" weight="duotone" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
@@ -678,7 +724,7 @@ export function RichTextEditor({
             )}
             title="Quote"
           >
-            <Quote className="h-4 w-4" />
+            <Quotes className="h-4 w-4" weight="duotone" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run(); }}
@@ -688,7 +734,7 @@ export function RichTextEditor({
             )}
             title="Code Block"
           >
-            <Code className="h-4 w-4" />
+            <Code className="h-4 w-4" weight="duotone" />
           </button>
         </div>
       </div>
@@ -715,7 +761,7 @@ export function RichTextEditor({
           )}
           title="Bold"
         >
-          <Bold className="h-4 w-4" strokeWidth={2.5} />
+          <TextB className="h-4 w-4" weight="bold" />
         </button>
 
         {/* Italic */}
@@ -732,7 +778,7 @@ export function RichTextEditor({
           )}
           title="Italic"
         >
-          <Italic className="h-4 w-4" />
+          <TextItalic className="h-4 w-4" weight="duotone" />
         </button>
 
         {/* Underline */}
@@ -749,7 +795,7 @@ export function RichTextEditor({
           )}
           title="Underline"
         >
-          <UnderlineIcon className="h-4 w-4" />
+          <TextUnderline className="h-4 w-4" weight="duotone" />
         </button>
 
         {/* Strikethrough */}
@@ -766,7 +812,7 @@ export function RichTextEditor({
           )}
           title="Strikethrough"
         >
-          <Strikethrough className="h-4 w-4" />
+          <TextStrikethrough className="h-4 w-4" weight="duotone" />
         </button>
 
         {/* Link */}
@@ -790,7 +836,7 @@ export function RichTextEditor({
           )}
           title="Link"
         >
-          <Link2 className="h-4 w-4" />
+          <LinkSimple className="h-4 w-4" weight="duotone" />
         </button>
 
         <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
@@ -811,11 +857,11 @@ export function RichTextEditor({
           disabled={ttsLoading}
         >
           {ttsLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <CircleNotch className="h-4 w-4 animate-spin" />
           ) : ttsPlaying ? (
-            <StopIcon className="h-3.5 w-3.5 fill-current" />
+            <StopIcon className="h-3.5 w-3.5" weight="fill" />
           ) : (
-            <Volume2 className="h-4 w-4" />
+            <SpeakerHigh className="h-4 w-4" weight="duotone" />
           )}
           <span className="text-xs font-medium">
             {ttsLoading ? 'Loading...' : ttsPlaying ? 'Stop' : 'Read'}
@@ -837,14 +883,162 @@ export function RichTextEditor({
         .ProseMirror:focus {
           outline: none;
         }
+
+        /* ==========================================
+           Block cards – every non-text block is a
+           distinct bordered card (OpenNote-style)
+           ========================================== */
+
+        /* Details / collapsible section card */
+        .ProseMirror details {
+          border: 1.5px solid #CFC0A8;
+          border-radius: 10px;
+          margin: 1.25em 0;
+          overflow: hidden;
+          background: #FDFAF3;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .ProseMirror details summary {
+          cursor: pointer;
+          padding: 10px 14px;
+          background: #EDE3CC;
+          font-weight: 600;
+          color: #3A2E1E;
+          user-select: none;
+          border-bottom: 1px solid #CFC0A8;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .ProseMirror details summary:hover {
+          background: #E4D9BD;
+        }
+        .ProseMirror details summary::marker {
+          color: #9B8B78;
+        }
+        .ProseMirror details div[data-details-content] {
+          padding: 12px 14px;
+        }
+
+        /* Code block card */
+        .ProseMirror pre {
+          border: 1.5px solid #CFC0A8;
+          border-radius: 10px;
+          margin: 1.25em 0;
+          padding: 14px 16px;
+          background: #EDE3CC;
+          font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+          font-size: 0.875rem;
+          line-height: 1.6;
+          overflow-x: auto;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          position: relative;
+        }
+        .ProseMirror pre code {
+          background: none;
+          padding: 0;
+          border-radius: 0;
+          font-size: inherit;
+          color: #3A2E1E;
+        }
+        .ProseMirror pre::after {
+          content: 'Shift+Enter to exit';
+          position: absolute;
+          bottom: 6px;
+          right: 10px;
+          font-size: 0.7rem;
+          color: #9B8B78;
+          font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+          pointer-events: none;
+        }
+
+        /* Blockquote card */
+        .ProseMirror blockquote {
+          border: 1.5px solid #8DA878;
+          border-left: 4px solid #8DA878;
+          border-radius: 10px;
+          margin: 1.25em 0;
+          padding: 12px 16px;
+          background: rgba(141, 168, 120, 0.06);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .ProseMirror blockquote p {
+          color: #5C4B3A;
+          font-style: italic;
+        }
+
+        /* Table card */
+        .ProseMirror .tableWrapper {
+          border: 1.5px solid #CFC0A8;
+          border-radius: 10px;
+          margin: 1.25em 0;
+          overflow: hidden;
+          background: #FDFAF3;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .ProseMirror table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          margin: 0;
+        }
+        .ProseMirror table td,
+        .ProseMirror table th {
+          min-width: 1em;
+          border: 1px solid #CFC0A8;
+          padding: 10px 14px;
+          vertical-align: top;
+          box-sizing: border-box;
+          position: relative;
+        }
+        .ProseMirror table th {
+          font-weight: 600;
+          text-align: left;
+          background-color: #EDE3CC;
+          color: #3A2E1E;
+        }
+        .ProseMirror table td {
+          background-color: #FDFAF3;
+        }
+        .ProseMirror table .selectedCell:after {
+          z-index: 2;
+          position: absolute;
+          content: "";
+          left: 0;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          background: rgba(26, 107, 138, 0.15);
+          pointer-events: none;
+        }
+        .ProseMirror table .column-resize-handle {
+          position: absolute;
+          right: -2px;
+          top: 0;
+          bottom: -2px;
+          width: 4px;
+          background-color: #1A6B8A;
+          pointer-events: none;
+        }
+
+        /* Horizontal rule */
+        .ProseMirror hr {
+          border: none;
+          border-top: 2px solid #CFC0A8;
+          margin: 1.5em 0;
+        }
+
+        /* ==========================================
+           Math / LaTeX styling
+           ========================================== */
         .math-inline .katex {
           font-size: 1em;
         }
-        /* TipTap Math Extension styling */
         .Tiptap-mathematics-editor {
           background: #EDE3CC;
-          border-radius: 4px;
-          padding: 2px 6px;
+          border: 1.5px solid #CFC0A8;
+          border-radius: 8px;
+          padding: 4px 8px;
           font-family: 'KaTeX_Math', 'Times New Roman', serif;
         }
         .Tiptap-mathematics-render {
@@ -854,7 +1048,6 @@ export function RichTextEditor({
           outline: 2px solid #1A6B8A;
           outline-offset: 1px;
         }
-        /* Math nodes - clickable and hoverable */
         .tiptap-math.latex {
           cursor: pointer;
           padding: 2px 4px;
@@ -869,7 +1062,6 @@ export function RichTextEditor({
           background-color: #D4C8A0;
           box-shadow: 0 0 0 2px #1A6B8A;
         }
-        /* Rendered KaTeX math styling */
         .katex-rendered {
           display: inline-block;
           padding: 0 2px;
@@ -877,7 +1069,6 @@ export function RichTextEditor({
         .katex-rendered .katex {
           font-size: 1.1em;
         }
-        /* Block/display math styling */
         .katex-display {
           display: block;
           text-align: center;
@@ -887,13 +1078,15 @@ export function RichTextEditor({
         .katex-display .katex {
           font-size: 1.2em;
         }
-        /* Block math display */
         .Tiptap-mathematics-render--display {
           display: block;
           text-align: center;
           margin: 1em 0;
         }
-        /* Remove tippy.js default styling */
+
+        /* ==========================================
+           Tippy.js (slash menu popup)
+           ========================================== */
         .tippy-box {
           background: transparent !important;
           border: none !important;
@@ -904,51 +1097,6 @@ export function RichTextEditor({
         }
         .tippy-arrow {
           display: none !important;
-        }
-        /* Table styling */
-        .ProseMirror table {
-          border-collapse: collapse;
-          table-layout: fixed;
-          width: 100%;
-          margin: 1em 0;
-          overflow: hidden;
-        }
-        .ProseMirror table td,
-        .ProseMirror table th {
-          min-width: 1em;
-          border: 1px solid #CFC0A8;
-          padding: 8px 12px;
-          vertical-align: top;
-          box-sizing: border-box;
-          position: relative;
-        }
-        .ProseMirror table th {
-          font-weight: 600;
-          text-align: left;
-          background-color: #E8DCC0;
-        }
-        .ProseMirror table .selectedCell:after {
-          z-index: 2;
-          position: absolute;
-          content: "";
-          left: 0;
-          right: 0;
-          top: 0;
-          bottom: 0;
-          background: rgba(26, 107, 138, 0.2);
-          pointer-events: none;
-        }
-        .ProseMirror table .column-resize-handle {
-          position: absolute;
-          right: -2px;
-          top: 0;
-          bottom: -2px;
-          width: 4px;
-          background-color: #1A6B8A;
-          pointer-events: none;
-        }
-        .tableWrapper {
-          overflow-x: auto;
         }
       `}</style>
       </div>
@@ -963,6 +1111,12 @@ function parseContentToHTML(markdown: string): string {
   // First, preserve HTML embeds (iframes, divs with embeds, audio, video) - extract and replace with placeholders
   const htmlEmbeds: string[] = [];
   let processed = markdown.replace(/<div class="(youtube-embed|desmos-embed|whiteboard-embed)"[\s\S]*?<\/div>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
+  });
+
+  // Preserve details/collapsible blocks
+  processed = processed.replace(/<details[^>]*>[\s\S]*?<\/details>/g, (match) => {
     htmlEmbeds.push(match);
     return `__HTML_EMBED_${htmlEmbeds.length - 1}__`;
   });
@@ -1022,15 +1176,42 @@ function parseContentToHTML(markdown: string): string {
   const processedLines: string[] = [];
   let inBulletList = false;
   let inOrderedList = false;
-  
+  let inBlockquote = false;
+
+  // Helper function to close open block-level elements
+  const closeOpenBlocks = () => {
+    if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+    if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+    if (inBlockquote) { processedLines.push('</blockquote>'); inBlockquote = false; }
+  };
+
+  // Helper function to process inline formatting
+  const processInline = (text: string): string => {
+    // First restore any display math placeholders that might be inline
+    text = text.replace(/__DISPLAY_MATH_(\d+)__/g, (_, idx) => {
+      return displayMathBlocks[parseInt(idx)] || '';
+    });
+    // Convert LaTeX math $...$ to TipTap math nodes
+    text = text.replace(/\$([^$]+)\$/g, (_, latex) => {
+      const escapedLatex = latex.trim().replace(/"/g, '&quot;');
+      return `<span data-type="inlineMath" data-latex="${escapedLatex}"></span>`;
+    });
+    // Convert bold (before italic)
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Convert italic
+    text = text.replace(/(?<![*\w])\*([^*]+)\*(?![*\w])/g, '<em>$1</em>');
+    // Convert inline code
+    text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return text;
+  };
+
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-    
+    const line = lines[i];
+
     // Skip HTML embed placeholders
     if (line.match(/__HTML_EMBED_\d+__/)) {
       const idx = parseInt(line.match(/__HTML_EMBED_(\d+)__/)?.[1] || '0');
-      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      closeOpenBlocks();
       processedLines.push(htmlEmbeds[idx]);
       continue;
     }
@@ -1038,8 +1219,7 @@ function parseContentToHTML(markdown: string): string {
     // Skip code block placeholders
     if (line.match(/__CODE_BLOCK_\d+__/)) {
       const idx = parseInt(line.match(/__CODE_BLOCK_(\d+)__/)?.[1] || '0');
-      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      closeOpenBlocks();
       processedLines.push(codeBlocks[idx]);
       continue;
     }
@@ -1047,8 +1227,7 @@ function parseContentToHTML(markdown: string): string {
     // Skip display math placeholders
     if (line.match(/__DISPLAY_MATH_\d+__/)) {
       const idx = parseInt(line.match(/__DISPLAY_MATH_(\d+)__/)?.[1] || '0');
-      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      closeOpenBlocks();
       processedLines.push(displayMathBlocks[idx]);
       continue;
     }
@@ -1056,40 +1235,21 @@ function parseContentToHTML(markdown: string): string {
     // Skip table placeholders
     if (line.match(/__TABLE_\d+__/)) {
       const idx = parseInt(line.match(/__TABLE_(\d+)__/)?.[1] || '0');
-      if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
-      if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
+      closeOpenBlocks();
       processedLines.push(tables[idx]);
       continue;
     }
-    
-    // Check for headings/lists FIRST (on original line structure)
+
+    // Check for block-level patterns
     const h3Match = line.match(/^### (.+)$/);
     const h2Match = line.match(/^## (.+)$/);
     const h1Match = line.match(/^# (.+)$/);
     const bulletMatch = line.match(/^[-*] (.+)$/);
     const orderedMatch = line.match(/^\d+\. (.+)$/);
-    
-    // Helper function to process inline formatting
-    const processInline = (text: string): string => {
-      // First restore any display math placeholders that might be inline
-      text = text.replace(/__DISPLAY_MATH_(\d+)__/g, (_, idx) => {
-        return displayMathBlocks[parseInt(idx)] || '';
-      });
-      // Convert LaTeX math $...$ to TipTap math nodes
-      text = text.replace(/\$([^$]+)\$/g, (_, latex) => {
-        const escapedLatex = latex.trim().replace(/"/g, '&quot;');
-        return `<span data-type="inlineMath" data-latex="${escapedLatex}"></span>`;
-      });
-      // Convert bold (before italic)
-      text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      // Convert italic
-      text = text.replace(/(?<![*\w])\*([^*]+)\*(?![*\w])/g, '<em>$1</em>');
-      // Convert inline code
-      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-      return text;
-    };
-    
-    // Close any open lists if we're switching types
+    const blockquoteMatch = line.match(/^> (.*)$/);
+    const horizontalRuleMatch = line.match(/^(---+|\*\*\*+|___+)\s*$/);
+
+    // Close lists/blockquotes when switching to a different block type
     if (!bulletMatch && inBulletList) {
       processedLines.push('</ul>');
       inBulletList = false;
@@ -1098,8 +1258,15 @@ function parseContentToHTML(markdown: string): string {
       processedLines.push('</ol>');
       inOrderedList = false;
     }
-    
-    if (h3Match) {
+    if (!blockquoteMatch && inBlockquote) {
+      processedLines.push('</blockquote>');
+      inBlockquote = false;
+    }
+
+    if (horizontalRuleMatch) {
+      closeOpenBlocks();
+      processedLines.push('<hr>');
+    } else if (h3Match) {
       processedLines.push(`<h3>${processInline(h3Match[1])}</h3>`);
     } else if (h2Match) {
       processedLines.push(`<h2>${processInline(h2Match[1])}</h2>`);
@@ -1110,25 +1277,34 @@ function parseContentToHTML(markdown: string): string {
         processedLines.push('<ul>');
         inBulletList = true;
       }
-      processedLines.push(`<li>${processInline(bulletMatch[1])}</li>`);
+      processedLines.push(`<li><p>${processInline(bulletMatch[1])}</p></li>`);
     } else if (orderedMatch) {
       if (!inOrderedList) {
         processedLines.push('<ol>');
         inOrderedList = true;
       }
-      processedLines.push(`<li>${processInline(orderedMatch[1])}</li>`);
+      processedLines.push(`<li><p>${processInline(orderedMatch[1])}</p></li>`);
+    } else if (blockquoteMatch) {
+      if (!inBlockquote) {
+        processedLines.push('<blockquote>');
+        inBlockquote = true;
+      }
+      processedLines.push(`<p>${processInline(blockquoteMatch[1])}</p>`);
     } else if (line.trim()) {
       // Regular paragraph
       processedLines.push(`<p>${processInline(line)}</p>`);
     }
   }
-  
-  // Close any remaining open lists
+
+  // Close any remaining open blocks
   if (inBulletList) {
     processedLines.push('</ul>');
   }
   if (inOrderedList) {
     processedLines.push('</ol>');
+  }
+  if (inBlockquote) {
+    processedLines.push('</blockquote>');
   }
   
   return processedLines.join('');
@@ -1140,8 +1316,12 @@ function htmlToMarkdown(html: string): string {
 
   let markdown = html;
 
-  // Preserve HTML embeds (youtube, desmos, whiteboard, audio, video) - extract and protect them
+  // Preserve HTML embeds (details, youtube, desmos, whiteboard, audio, video) - extract and protect them
   const htmlEmbeds: string[] = [];
+  markdown = markdown.replace(/<details[^>]*>[\s\S]*?<\/details>/g, (match) => {
+    htmlEmbeds.push(match);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
   markdown = markdown.replace(/<div class="(youtube-embed|desmos-embed|whiteboard-embed)"[\s\S]*?<\/div>/g, (match) => {
     htmlEmbeds.push(match);
     return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
@@ -1156,14 +1336,11 @@ function htmlToMarkdown(html: string): string {
   });
 
   // Convert TipTap math extension nodes back to $...$ syntax
-  // The math extension stores the latex in a data attribute or special structure
   markdown = markdown.replace(/<span[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*data-latex="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
   markdown = markdown.replace(/<span[^>]*data-latex="([^"]*)"[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
 
-  // Convert inline math that was rendered with katex-rendered class
+  // Convert inline math rendered with katex
   markdown = markdown.replace(/<span[^>]*class="katex-rendered"[^>]*>[\s\S]*?<\/span>/g, (match) => {
-    // Try to extract the original latex - it's usually lost, so we preserve the rendered HTML
-    // Best approach is to look for annotation with original tex
     const texMatch = match.match(/<annotation encoding="application\/x-tex">([^<]+)<\/annotation>/);
     if (texMatch) {
       return `$${texMatch[1]}$`;
@@ -1171,43 +1348,62 @@ function htmlToMarkdown(html: string): string {
     return match;
   });
 
-  // Convert headings (add newline before for proper spacing)
+  // Extract LaTeX from KaTeX rendered spans before stripping tags
+  markdown = markdown.replace(/<span class="katex">[\s\S]*?<annotation encoding="application\/x-tex">([^<]+)<\/annotation>[\s\S]*?<\/span>/g, '$$$1$$');
+
+  // Convert code blocks BEFORE inline code (otherwise <pre><code> gets destroyed)
+  markdown = markdown.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/g, '\n```\n$1\n```\n');
+
+  // Convert inline formatting
+  markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/g, '**$1**');
+  markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/g, '*$1*');
+  markdown = markdown.replace(/<code>([\s\S]*?)<\/code>/g, '`$1`');
+
+  // Convert headings
   markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/g, '\n# $1\n');
   markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/g, '\n## $1\n');
   markdown = markdown.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/g, '\n### $1\n');
 
-  // Convert bold
-  markdown = markdown.replace(/<strong>([\s\S]*?)<\/strong>/g, '**$1**');
+  // Convert horizontal rules
+  markdown = markdown.replace(/<hr\s*\/?>/g, '\n---\n');
 
-  // Convert italic
-  markdown = markdown.replace(/<em>([\s\S]*?)<\/em>/g, '*$1*');
-
-  // Convert inline code
-  markdown = markdown.replace(/<code>([\s\S]*?)<\/code>/g, '`$1`');
-  
-  // Convert ordered lists with numbering
-  let listItemIndex = 0;
-  markdown = markdown.replace(/<ol[^>]*>/g, () => { listItemIndex = 0; return '\n'; });
-  markdown = markdown.replace(/<\/ol>/g, '\n');
-  markdown = markdown.replace(/<li>([\s\S]*?)<\/li>/g, (match, content) => {
-    // Check if we're in an ordered list context (crude check)
-    listItemIndex++;
-    return `- ${content}\n`;
+  // Convert blockquotes - extract content, prefix each line with >
+  markdown = markdown.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/g, (_, inner) => {
+    // Strip <p> tags inside blockquotes and prefix with >
+    const content = inner
+      .replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1')
+      .trim();
+    const lines = content.split('\n').filter((l: string) => l.trim());
+    return '\n' + lines.map((l: string) => `> ${l.trim()}`).join('\n') + '\n';
   });
-  
+
+  // Convert ordered lists - must process <ol> blocks before <ul> blocks
+  markdown = markdown.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/g, (_, inner) => {
+    let idx = 0;
+    const items = inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_m: string, content: string) => {
+      idx++;
+      // Strip inner <p> tags that TipTap wraps list item content with
+      const cleanContent = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1').trim();
+      return `${idx}. ${cleanContent}\n`;
+    });
+    return '\n' + items.replace(/<[^>]+>/g, '');
+  });
+
   // Convert unordered lists
-  markdown = markdown.replace(/<ul[^>]*>/g, '\n');
-  markdown = markdown.replace(/<\/ul>/g, '\n');
-  
+  markdown = markdown.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/g, (_, inner) => {
+    const items = inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_m: string, content: string) => {
+      // Strip inner <p> tags that TipTap wraps list item content with
+      const cleanContent = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1').trim();
+      return `- ${cleanContent}\n`;
+    });
+    return '\n' + items.replace(/<[^>]+>/g, '');
+  });
+
   // Convert paragraphs
   markdown = markdown.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1\n\n');
 
-  // Extract LaTeX from any remaining KaTeX rendered output before stripping HTML
-  // KaTeX includes the original tex in an annotation element
-  markdown = markdown.replace(/<span class="katex">[\s\S]*?<annotation encoding="application\/x-tex">([^<]+)<\/annotation>[\s\S]*?<\/span>/g, '$$$1$$');
-
   // Clean up - remove remaining HTML tags (but not our preserved ones)
-  markdown = markdown.replace(/<[^>]+>/g, ''); // Remove remaining HTML tags
+  markdown = markdown.replace(/<[^>]+>/g, '');
   markdown = markdown.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
 
   // Restore preserved HTML embeds

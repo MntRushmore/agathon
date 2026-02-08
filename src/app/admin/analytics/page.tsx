@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import {
-  Activity, Users, Sparkles, Layout, FileText, BookOpen,
-  TrendingUp, RefreshCw, ArrowUp, ArrowDown, Minus,
-} from 'lucide-react';
+  Pulse, UsersThree, Sparkle, SquaresFour, FileText, BookOpenText,
+  TrendUp, ArrowsClockwise, ArrowUp, ArrowDown, Minus,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 
 interface AnalyticsData {
@@ -94,7 +94,7 @@ export default function AdminAnalyticsPage() {
           <p className="text-muted-foreground text-sm mt-0.5">User growth, engagement, and platform trends</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -104,10 +104,10 @@ export default function AdminAnalyticsPage() {
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">User Growth</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
           {[
-            { label: 'Total Users', value: data.growth.totalUsers, icon: Users },
-            { label: 'This Week', value: data.growth.usersThisWeek, icon: TrendingUp },
-            { label: 'This Month', value: data.growth.usersThisMonth, icon: TrendingUp },
-            { label: 'Last 90 Days', value: data.growth.usersLast90d, icon: TrendingUp },
+            { label: 'Total Users', value: data.growth.totalUsers, icon: UsersThree },
+            { label: 'This Week', value: data.growth.usersThisWeek, icon: TrendUp },
+            { label: 'This Month', value: data.growth.usersThisMonth, icon: TrendUp },
+            { label: 'Last 90 Days', value: data.growth.usersLast90d, icon: TrendUp },
           ].map((m) => (
             <div key={m.label} className="bg-card p-5">
               <div className="flex items-start justify-between">
@@ -169,8 +169,8 @@ export default function AdminAnalyticsPage() {
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Engagement (Last 30 Days)</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border border border-border">
           {[
-            { label: 'AI Requests', weekVal: data.engagement.aiRequestsWeek, monthVal: data.engagement.aiRequestsMonth, icon: Sparkles },
-            { label: 'Boards Created', weekVal: data.engagement.boardsWeek, monthVal: data.engagement.boardsMonth, icon: Layout },
+            { label: 'AI Requests', weekVal: data.engagement.aiRequestsWeek, monthVal: data.engagement.aiRequestsMonth, icon: Sparkle },
+            { label: 'Boards Created', weekVal: data.engagement.boardsWeek, monthVal: data.engagement.boardsMonth, icon: SquaresFour },
             { label: 'Submissions', weekVal: data.engagement.submissionsWeek, monthVal: data.engagement.submissionsMonth, icon: FileText },
           ].map((m) => (
             <div key={m.label} className="bg-card p-5">
