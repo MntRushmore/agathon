@@ -101,30 +101,34 @@ type Whiteboard = {
 // Feature card color variants - muted, professional creme palette
 type ColorVariant = 'green' | 'blue' | 'purple' | 'amber';
 
-const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string; accentBg: string }> = {
+const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string; accentBg: string; accentBar: string }> = {
   green: {
-    iconBg: 'bg-[oklch(0.94_0.03_200)]',
-    iconColor: 'text-[oklch(0.42_0.08_200)]',
-    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_200)]',
-    accentBg: 'bg-[oklch(0.94_0.03_200)]',
+    iconBg: 'bg-[oklch(0.92_0.08_145)]',
+    iconColor: 'text-[oklch(0.40_0.16_145)]',
+    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_145)]',
+    accentBg: 'bg-[oklch(0.92_0.08_145)]',
+    accentBar: 'border-l-[oklch(0.52_0.18_145)]',
   },
   blue: {
-    iconBg: 'bg-[oklch(0.94_0.03_240)]',
-    iconColor: 'text-[oklch(0.45_0.12_240)]',
-    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_240)]',
-    accentBg: 'bg-[oklch(0.94_0.03_240)]',
+    iconBg: 'bg-[oklch(0.92_0.08_220)]',
+    iconColor: 'text-[oklch(0.42_0.17_220)]',
+    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_220)]',
+    accentBg: 'bg-[oklch(0.92_0.08_220)]',
+    accentBar: 'border-l-[oklch(0.48_0.17_220)]',
   },
   purple: {
-    iconBg: 'bg-[oklch(0.94_0.03_290)]',
-    iconColor: 'text-[oklch(0.45_0.14_290)]',
-    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_290)]',
-    accentBg: 'bg-[oklch(0.94_0.03_290)]',
+    iconBg: 'bg-[oklch(0.92_0.08_285)]',
+    iconColor: 'text-[oklch(0.42_0.18_285)]',
+    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_285)]',
+    accentBg: 'bg-[oklch(0.92_0.08_285)]',
+    accentBar: 'border-l-[oklch(0.50_0.18_285)]',
   },
   amber: {
-    iconBg: 'bg-[oklch(0.95_0.03_75)]',
-    iconColor: 'text-[oklch(0.55_0.12_75)]',
-    hoverBorder: 'group-hover:border-[oklch(0.88_0.04_75)]',
-    accentBg: 'bg-[oklch(0.95_0.03_75)]',
+    iconBg: 'bg-[oklch(0.93_0.08_70)]',
+    iconColor: 'text-[oklch(0.52_0.18_70)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.08_70)]',
+    accentBg: 'bg-[oklch(0.93_0.08_70)]',
+    accentBar: 'border-l-[oklch(0.72_0.20_70)]',
   },
 };
 
@@ -1292,26 +1296,27 @@ export default function Dashboard() {
         ) : (
           /* Dashboard Home View */
           <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
-            <div className="max-w-2xl w-full">
+            <div className="max-w-3xl w-full">
               {/* Simple Greeting */}
-              <div className="text-center mb-10">
-                <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+              <div className="text-left mb-10">
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground tracking-tight">
                   {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : '!'}
                 </h1>
-                <p className="text-muted-foreground mt-2">
+                <p className="text-muted-foreground mt-3 max-w-xl">
                   What would you like to work on?
                 </p>
               </div>
 
 
               {/* Feature Cards */}
-              <div ref={featureCardsRef} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div ref={featureCardsRef} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {featureCards.map((card) => {
                   const colors = colorVariants[card.color];
                   return (
                     <button
                       key={card.id}
                       data-feature-card
+                      data-variant={card.color}
                       onClick={card.onClick}
                       disabled={creating && card.id === 'whiteboard'}
                       className={cn(
@@ -1319,7 +1324,7 @@ export default function Dashboard() {
                         "hover:shadow-md active:scale-[0.99]",
                         "disabled:opacity-50 disabled:cursor-not-allowed",
                         colors.hoverBorder,
-                        card.isPrimary && "ring-2 ring-primary/20 border-primary/30",
+                        card.isPrimary && "feature-card--primary ring-2 ring-primary/20",
                         card.comingSoon && "opacity-50"
                       )}
                     >
