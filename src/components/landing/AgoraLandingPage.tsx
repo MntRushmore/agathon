@@ -1,16 +1,71 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { WaitlistDialog } from './WaitlistDialog';
+import { animate, stagger } from 'animejs';
 
 export function AgoraLandingPage() {
   const searchParams = useSearchParams();
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [waitlistRole, setWaitlistRole] = useState<'student' | 'teacher' | 'parent'>('student');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const heroContentRef = useRef<HTMLDivElement>(null);
+
+  // Hero entrance animations
+  useEffect(() => {
+    if (!heroContentRef.current) return;
+
+    // Tagline words stagger
+    const taglineWords = heroContentRef.current.querySelectorAll('[data-tagline-word]');
+    if (taglineWords.length > 0) {
+      animate(taglineWords, {
+        opacity: [0, 1],
+        translateY: [30, 0],
+        delay: stagger(100, { start: 200 }),
+        duration: 600,
+        ease: 'outQuint',
+      });
+    }
+
+    // Heading slide-up
+    const heading = heroContentRef.current.querySelector('[data-hero-heading]');
+    if (heading) {
+      animate(heading, {
+        opacity: [0, 1],
+        translateY: [30, 0],
+        delay: 600,
+        duration: 700,
+        ease: 'outQuint',
+      });
+    }
+
+    // Right side content (subtitle + CTA)
+    const rightElements = heroContentRef.current.querySelectorAll('[data-hero-right]');
+    if (rightElements.length > 0) {
+      animate(rightElements, {
+        opacity: [0, 1],
+        translateY: [20, 0],
+        delay: stagger(150, { start: 800 }),
+        duration: 600,
+        ease: 'outQuint',
+      });
+    }
+
+    // CTA button scale-in
+    const cta = heroContentRef.current.querySelector('[data-hero-cta]');
+    if (cta) {
+      animate(cta, {
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        delay: 1100,
+        duration: 500,
+        ease: 'outQuint',
+      });
+    }
+  }, []);
 
   // Open waitlist dialog if ?waitlist=true is in URL
   useEffect(() => {
@@ -100,17 +155,17 @@ export function AgoraLandingPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="absolute inset-0 flex items-end pb-16 lg:pb-20 px-6 lg:px-16 pointer-events-none">
+        <div ref={heroContentRef} className="absolute inset-0 flex items-end pb-16 lg:pb-20 px-6 lg:px-16 pointer-events-none">
           <div className="max-w-[1400px] mx-auto w-full pointer-events-auto">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-16">
               {/* Left side */}
               <div className="space-y-5">
                 <div className="flex items-center gap-5 text-[13px] font-medium text-white/70">
-                  <span>Draw freely</span>
-                  <span>Think visually</span>
-                  <span>Learn deeply</span>
+                  <span data-tagline-word className="opacity-0">Draw freely</span>
+                  <span data-tagline-word className="opacity-0">Think visually</span>
+                  <span data-tagline-word className="opacity-0">Learn deeply</span>
                 </div>
-                <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white">
+                <h1 data-hero-heading className="text-[clamp(2.5rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white opacity-0">
                   A place to think,
                   <br />
                   not just write.
@@ -119,7 +174,7 @@ export function AgoraLandingPage() {
 
               {/* Right side */}
               <div className="lg:max-w-[380px] space-y-5">
-                <div className="space-y-2">
+                <div data-hero-right className="space-y-2 opacity-0">
                   <p className="text-[15px] text-white/95">
                     <span className="font-semibold">agathon</span> is an AI Socratic whiteboard.
                   </p>
@@ -129,9 +184,9 @@ export function AgoraLandingPage() {
                     answers yourself.
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div data-hero-cta className="flex items-center gap-4 opacity-0">
                   <Button
-                    className="rounded-full px-6 h-11 text-[14px] font-medium bg-white text-black hover:bg-white/90"
+                    className="rounded-full px-6 h-11 text-[14px] font-medium bg-white text-black hover:bg-white/90 shadow-lg hover:scale-[1.02] transition-transform"
                     style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
                     onClick={() => openWaitlist()}
                   >
