@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Video, Layers, ClipboardList } from 'lucide-react';
+import { Sparkle, VideoCamera, Stack, ClipboardText } from '@phosphor-icons/react';
 import { QuickActionPill } from './QuickActionPill';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -34,25 +34,25 @@ export function JournalEditor({
 
   const quickActions = [
     {
-      icon: <Sparkles className="h-4 w-4" />,
+      icon: <Sparkle weight="duotone" className="h-4 w-4" />,
       label: 'Ask Feynman to teach you',
       variant: 'green' as const,
       action: 'Feynman Method',
     },
     {
-      icon: <Video className="h-4 w-4" />,
+      icon: <VideoCamera weight="duotone" className="h-4 w-4" />,
       label: 'Generate a video',
       variant: 'pink' as const,
       action: 'Video Generation',
     },
     {
-      icon: <Layers className="h-4 w-4" />,
+      icon: <Stack weight="duotone" className="h-4 w-4" />,
       label: 'Study with flashcards',
       variant: 'blue' as const,
       action: 'Flashcards',
     },
     {
-      icon: <ClipboardList className="h-4 w-4" />,
+      icon: <ClipboardText weight="duotone" className="h-4 w-4" />,
       label: 'Create practice problems',
       variant: 'orange' as const,
       action: 'Practice Problems',

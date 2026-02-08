@@ -1000,14 +1000,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const hintsRemaining = hintLimit !== null ? Math.max(hintLimit - currentHintCount, 0) : null;
 
   const trackAIUsage = useCallback(async (mode: string, prompt?: string, aiResponse?: string) => {
-    if (!submissionId && !assignmentId) return;
     try {
       const response = await fetch('/api/track-ai-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          submissionId,
-          assignmentId,
+          submissionId: submissionId || undefined,
+          assignmentId: assignmentId || undefined,
+          whiteboardId: id,
           mode,
           prompt: prompt || `Auto-triggered ${mode} mode assistance`,
           aiResponse,
@@ -1055,7 +1055,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     } catch (error) {
       console.error('Failed to track AI usage:', error);
     }
-  }, [submissionId, assignmentId, hintLimit, maybeWarnHintLimit]);
+  }, [id, submissionId, assignmentId, hintLimit, maybeWarnHintLimit]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
@@ -1179,6 +1179,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   useEffect(() => {
     if (assignmentMeta?.defaultMode) {
       setAssistanceMode(assignmentMeta.defaultMode);
+    } else {
+      // Fall back to user's preferred AI mode from settings
+      const stored = localStorage.getItem('agathon_pref_ai_mode');
+      if (stored === 'feedback' || stored === 'suggest' || stored === 'answer') {
+        setAssistanceMode(stored);
+      }
     }
   }, [assignmentMeta]);
 

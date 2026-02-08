@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       const {
         submissionId,
         assignmentId,
+        whiteboardId,
         mode,
         prompt,
         responseSummary,
@@ -36,19 +37,7 @@ export async function POST(req: NextRequest) {
 
       const summaryText = responseSummary || (aiResponse ? aiResponse.slice(0, 500) : null);
 
-      const usageData: {
-        student_id: string;
-        mode: string;
-        prompt?: string;
-        response_summary?: string | null;
-        concept_tags?: string[];
-        input_tokens: number;
-        output_tokens: number;
-        total_cost: number;
-        model_used: string;
-        submission_id?: string;
-        assignment_id?: string;
-      } = {
+      const usageData: Record<string, unknown> = {
         student_id: user.id,
         mode,
         prompt,
@@ -60,9 +49,10 @@ export async function POST(req: NextRequest) {
         model_used: modelUsed || 'unknown',
       };
 
-      // Only add submission and assignment IDs if provided
+      // Only add optional IDs if provided
       if (submissionId) usageData.submission_id = submissionId;
       if (assignmentId) usageData.assignment_id = assignmentId;
+      if (whiteboardId) usageData.whiteboard_id = whiteboardId;
 
       const { error: usageError } = await supabase
         .from('ai_usage')
@@ -70,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     if (usageError) {
       console.error('Error tracking AI usage:', usageError);
+      return NextResponse.json({ error: 'Failed to track usage' }, { status: 500 });
     }
 
     // If no submission ID, just track usage and return

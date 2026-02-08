@@ -206,12 +206,9 @@
     /* Mediterranean typography */
     line-height: 1.6;
     letter-spacing: -0.01em;
-    /* Parchment paper texture via layered gradients */
+    /* Subtle warm tint — minimal, not decorative */
     background-image:
-      radial-gradient(ellipse at 15% 30%, oklch(0.92 0.05 70 / 0.35) 0%, transparent 40%),
-      radial-gradient(ellipse at 85% 15%, oklch(0.95 0.04 85 / 0.28) 0%, transparent 40%),
-      radial-gradient(ellipse at 50% 85%, oklch(0.90 0.04 65 / 0.22) 0%, transparent 40%),
-      radial-gradient(ellipse at 70% 60%, oklch(0.93 0.03 80 / 0.18) 0%, transparent 50%);
+      radial-gradient(ellipse at 50% 0%, oklch(0.93 0.02 75 / 0.20) 0%, transparent 60%);
     position: relative;
     z-index: 0;
     /* Prevent pull-to-refresh and improve touch handling on mobile */
@@ -233,7 +230,7 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.035;
+    opacity: 0.018;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 256px 256px;
@@ -245,15 +242,22 @@
     z-index: 1;
   }
 
-  /* Classical headings with serif font */
+  /* Clean headings — use sans-serif by default, opt-in to serif where appropriate */
   h1, h2, h3 {
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  }
+
+  /* Serif only for landing/marketing pages */
+  .serif-headings h1,
+  .serif-headings h2,
+  .serif-headings h3 {
     font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
   }
 
   h1 {
-    font-size: var(--text-4xl);
+    font-size: var(--text-2xl);
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.3;
     letter-spacing: -0.02em;
   }
 
@@ -524,15 +528,11 @@ select {
 
 /* Feature card with subtle hover */
 .feature-card {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-xs);
-  border: 1px solid var(--border);
-  background: var(--card);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .feature-card:hover {
-  box-shadow: var(--shadow-sm);
-  border-color: oklch(0.80 0.05 220);
+  box-shadow: none;
 }
 
 /* Empty state card - dashed border */
@@ -578,44 +578,16 @@ select {
   color: oklch(0.40 0.10 145);
 }
 
-/* Feature card accent bars by variant */
-.feature-card {
-  border-left: 3px solid transparent;
+/* Disable animations when user preference is off */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
 }
 
-.feature-card[data-variant="blue"] {
-  border-left-color: oklch(0.48 0.17 220);
-}
-
-.feature-card[data-variant="green"] {
-  border-left-color: oklch(0.52 0.18 145);
-}
-
-.feature-card[data-variant="purple"] {
-  border-left-color: oklch(0.50 0.18 285);
-}
-
-.feature-card[data-variant="amber"] {
-  border-left-color: oklch(0.72 0.20 70);
-}
-
-/* Primary feature card — spans full width, elevated treatment */
-.feature-card--primary {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, var(--card) 0%, oklch(0.95 0.04 220) 100%);
-  padding: 1.75rem;
-  border-left-width: 4px;
-}
-
-.feature-card--primary:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.feature-card--primary .icon-container {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-}
+/* Feature card accent bars removed — clean, borderless look */
 
 /* Button press feedback */
 button:active {

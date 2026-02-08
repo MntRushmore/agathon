@@ -7,21 +7,21 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Users,
-  BookOpen,
-  Sparkles,
-  TrendingUp,
+  UsersThree,
+  BookOpenText,
+  Sparkle,
+  TrendUp,
   FileText,
-  Layout,
-  AlertCircle,
-  Download,
-  RefreshCw,
+  SquaresFour,
+  WarningCircle,
+  DownloadSimple,
+  ArrowsClockwise,
   Coins,
   Crown,
   Plus,
   Clock,
   ArrowRight,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -229,11 +229,11 @@ New Users (Month),${stats.newUsersMonth}`;
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={exportToCSV} className="rounded-none h-8 text-xs">
-            <Download className="w-3.5 h-3.5 mr-1.5" />
+            <DownloadSimple weight="duotone" className="w-3.5 h-3.5 mr-1.5" />
             Export
           </Button>
         </div>
@@ -277,7 +277,7 @@ New Users (Month),${stats.newUsersMonth}`;
       {/* Error */}
       {error && (
         <div className="bg-destructive/5 border border-destructive/20 p-4 flex items-start gap-3">
-          <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+          <WarningCircle weight="duotone" className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-destructive">Error</p>
             <p className="text-sm text-muted-foreground mt-0.5">{error}</p>
@@ -288,10 +288,10 @@ New Users (Month),${stats.newUsersMonth}`;
       {/* Key Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
         {[
-          { label: 'Total Users', value: stats?.totalUsers, sub: `${stats?.totalStudents} students, ${stats?.totalTeachers} teachers`, icon: Users },
-          { label: 'Classes', value: stats?.totalClasses, sub: `${stats?.totalAssignments} assignments`, icon: BookOpen },
-          { label: 'AI Requests', value: stats?.totalAIUsage, sub: `$${(stats?.totalAICost || 0).toFixed(2)} est. cost`, icon: Sparkles },
-          { label: 'New This Week', value: `+${stats?.newUsersWeek}`, sub: `${stats?.newUsersMonth} this month`, icon: TrendingUp },
+          { label: 'Total Users', value: stats?.totalUsers, sub: `${stats?.totalStudents} students, ${stats?.totalTeachers} teachers`, icon: UsersThree },
+          { label: 'Classes', value: stats?.totalClasses, sub: `${stats?.totalAssignments} assignments`, icon: BookOpenText },
+          { label: 'AI Requests', value: stats?.totalAIUsage, sub: `$${(stats?.totalAICost || 0).toFixed(2)} est. cost`, icon: Sparkle },
+          { label: 'New This Week', value: `+${stats?.newUsersWeek}`, sub: `${stats?.newUsersMonth} this month`, icon: TrendUp },
         ].map((metric) => (
           <div key={metric.label} className="bg-card p-5">
             <div className="flex items-start justify-between">
@@ -349,9 +349,9 @@ New Users (Month),${stats.newUsersMonth}`;
           </div>
           <div className="divide-y divide-border">
             {[
-              { label: 'Whiteboards', value: stats?.totalBoards, icon: Layout },
+              { label: 'Whiteboards', value: stats?.totalBoards, icon: SquaresFour },
               { label: 'Submissions', value: stats?.totalSubmissions, icon: FileText },
-              { label: 'Assignments', value: stats?.totalAssignments, icon: BookOpen },
+              { label: 'Assignments', value: stats?.totalAssignments, icon: BookOpenText },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                 <div className="flex items-center gap-3">
@@ -406,9 +406,9 @@ New Users (Month),${stats.newUsersMonth}`;
       {/* Quick Navigation */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border border border-border">
         {[
-          { href: '/admin/users', label: 'User Management', desc: 'Manage users and roles', icon: Users },
+          { href: '/admin/users', label: 'User Management', desc: 'Manage users and roles', icon: UsersThree },
           { href: '/admin/content', label: 'Content', desc: 'Review and moderate', icon: FileText },
-          { href: '/admin/analytics', label: 'Analytics', desc: 'Trends and engagement', icon: TrendingUp },
+          { href: '/admin/analytics', label: 'Analytics', desc: 'Trends and engagement', icon: TrendUp },
         ].map((item) => (
           <Link
             key={item.href}
