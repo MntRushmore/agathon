@@ -65,7 +65,6 @@ function ToolButton({ icon, shortcut, isActive, onClick, label, hasDropdown, cla
 
 // Pen size presets
 const PEN_SIZES = [
-  { label: 'XS', value: 1, preview: 4 },
   { label: 'S', value: 2, preview: 6 },
   { label: 'M', value: 4, preview: 10 },
   { label: 'L', value: 8, preview: 16 },
