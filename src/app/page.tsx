@@ -1035,7 +1035,7 @@ export default function Dashboard() {
                   <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" weight="duotone" />
                   <Input
                     type="text"
-                    placeholder="MagnifyingGlass boards..."
+                    placeholder=" Search boards..."
                     value={searchQuery}
                     onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
                     className="pl-9 bg-card border-border"
