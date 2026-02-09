@@ -1,0 +1,9 @@
+{
+  "name": "webapp-testing",
+  "description": "",
+  "source": "anthropics/skills",
+  "sourceType": "github",
+  "subpath": "webapp-testing",
+  "installedAt": "2026-02-07T22:09:54.478Z",
+  "enabled": true
+}

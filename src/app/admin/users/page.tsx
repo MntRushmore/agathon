@@ -22,10 +22,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  MoreVertical, Search, Eye, Trash2, Shield, GraduationCap,
-  Users as UsersIcon, RotateCcw, ChevronLeft, ChevronRight,
-  Coins, Plus, RefreshCw,
-} from 'lucide-react';
+  DotsThreeVertical, MagnifyingGlass, Eye, Trash, ShieldCheck, GraduationCap,
+  UsersThree, ArrowCounterClockwise, CaretLeft, CaretRight,
+  Coins, Plus, ArrowsClockwise,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
 
@@ -173,8 +173,8 @@ export default function AdminUsersPage() {
   const getRoleBadge = (role: UserRole) => {
     const config = {
       student: { cls: 'bg-muted text-muted-foreground', icon: GraduationCap, label: 'Student' },
-      teacher: { cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: UsersIcon, label: 'Teacher' },
-      admin: { cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: Shield, label: 'Admin' },
+      teacher: { cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: UsersThree, label: 'Teacher' },
+      admin: { cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: ShieldCheck, label: 'Admin' },
     };
     const { cls, icon: Icon, label } = config[role];
     return (
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -213,7 +213,7 @@ export default function AdminUsersPage() {
       {/* Filters */}
       <div className="flex gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name or email..."
             value={searchQuery}
@@ -295,7 +295,7 @@ export default function AdminUsersPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-none">
-                          <MoreVertical className="h-4 w-4" />
+                          <DotsThreeVertical weight="duotone" className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">
@@ -310,18 +310,18 @@ export default function AdminUsersPage() {
                           <GraduationCap className="mr-2 h-4 w-4" /> Set Student
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'teacher')}>
-                          <UsersIcon className="mr-2 h-4 w-4" /> Set Teacher
+                          <UsersThree weight="duotone" className="mr-2 h-4 w-4" /> Set Teacher
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'admin')}>
-                          <Shield className="mr-2 h-4 w-4" /> Set Admin
+                          <ShieldCheck weight="duotone" className="mr-2 h-4 w-4" /> Set Admin
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleResetOnboarding(u.id, u.email)}>
-                          <RotateCcw className="mr-2 h-4 w-4" /> Reset Onboarding
+                          <ArrowCounterClockwise weight="duotone" className="mr-2 h-4 w-4" /> Reset Onboarding
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleDeleteUser(u.id, u.email)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -345,7 +345,7 @@ export default function AdminUsersPage() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeft weight="duotone" className="h-4 w-4" />
             </Button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page: number;
@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              <ChevronRight className="h-4 w-4" />
+              <CaretRight weight="duotone" className="h-4 w-4" />
             </Button>
           </div>
         </div>

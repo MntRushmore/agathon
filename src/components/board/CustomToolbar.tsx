@@ -260,13 +260,13 @@ export function CustomToolbar() {
 
   return (
     <div
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[500] pointer-events-auto"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[var(--z-toolbar)] pointer-events-auto max-w-[calc(100vw-2rem)]"
       onPointerDown={handleContainerPointerDown}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/60 px-2 py-1.5">
+      <div className="flex items-center gap-1.5 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/60 px-2 py-1.5 overflow-x-auto scrollbar-hide">
         {/* Selection tools */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           {tools.map((tool) => (
             <ToolButton
               key={tool.id}
@@ -283,7 +283,7 @@ export function CustomToolbar() {
         <div className="w-px h-8 bg-gray-200 mx-1" />
 
         {/* Drawing tools */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           {drawingTools.map((tool) => (
             tool.id === 'draw' ? (
               <Popover key={tool.id} open={penSettingsOpen} onOpenChange={setPenSettingsOpen}>
@@ -404,7 +404,7 @@ export function CustomToolbar() {
         <div className="w-px h-8 bg-gray-200 mx-1" />
 
         {/* Undo/Redo */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <button
             onClick={() => editor.undo()}
             onPointerDown={(e) => e.stopPropagation()}

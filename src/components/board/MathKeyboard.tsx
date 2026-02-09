@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Undo2, Redo2, Clipboard, Delete, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
+import { animate, stagger } from 'animejs';
 
 type LayoutType = 'numbers' | 'operators' | 'letters' | 'greek';
 
@@ -16,9 +17,24 @@ interface MathKeyboardProps {
 export function MathKeyboard({ isOpen, onClose, onInsert }: MathKeyboardProps) {
   const [inputValue, setInputValue] = useState('');
   const [activeLayout, setActiveLayout] = useState<LayoutType>('numbers');
+  const keysRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<string[]>(['']);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+
+  // Stagger keys on layout change
+  useEffect(() => {
+    if (!keysRef.current) return;
+    const keys = keysRef.current.querySelectorAll('button');
+    if (keys.length === 0) return;
+    animate(keys, {
+      scale: [0.85, 1],
+      opacity: [0, 1],
+      delay: stagger(15, { start: 50 }),
+      duration: 250,
+      ease: 'outQuint',
+    });
+  }, [activeLayout]);
 
   // Close on Escape
   useEffect(() => {
@@ -195,7 +211,7 @@ export function MathKeyboard({ isOpen, onClose, onInsert }: MathKeyboardProps) {
   return (
     <div
       className={cn(
-        "fixed z-[1200] bg-[#d1d3d9] rounded-xl shadow-2xl",
+        "fixed z-[var(--z-keyboard)] bg-[#d1d3d9] rounded-xl shadow-2xl",
         "w-[520px] max-w-[95vw] animate-in fade-in slide-in-from-bottom-2 duration-200",
         "bottom-20 left-1/2 -translate-x-1/2"
       )}
@@ -264,7 +280,7 @@ export function MathKeyboard({ isOpen, onClose, onInsert }: MathKeyboardProps) {
       </div>
 
       {/* Keyboard Area */}
-      <div className="p-2 pt-0">
+      <div ref={keysRef} className="p-2 pt-0">
         {activeLayout === 'numbers' && (
           <div className="flex gap-1.5">
             {/* Left column - variables */}

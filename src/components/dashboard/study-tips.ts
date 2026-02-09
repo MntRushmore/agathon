@@ -48,8 +48,10 @@ export function getTimeBasedGreeting(): string {
     return "Good morning";
   } else if (hour >= 12 && hour < 17) {
     return "Good afternoon";
-  } else {
+  } else if (hour >= 17 && hour < 21) {
     return "Good evening";
+  } else {
+    return "Good night";
   }
 }
 

@@ -14,9 +14,9 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import {
-  Plus, Copy, MoreHorizontal, Ticket, CheckCircle, XCircle, Loader2,
-  Hash, Users, Shield, RefreshCw,
-} from 'lucide-react';
+  Plus, Copy, DotsThree, Ticket, CheckCircle, XCircle, CircleNotch,
+  Hash, UsersThree, ShieldCheck, ArrowsClockwise,
+} from '@phosphor-icons/react';
 import type { InviteCode } from '@/types/database';
 
 function formatCode(code: string): string {
@@ -130,7 +130,7 @@ export default function AdminInviteCodesPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
@@ -190,7 +190,7 @@ export default function AdminInviteCodesPage() {
                     <Input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="rounded-none" />
                   </div>
                   <Button className="w-full rounded-none" onClick={handleGenerate} disabled={generating}>
-                    {generating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>) : 'Generate Code'}
+                    {generating ? (<><CircleNotch weight="duotone" className="h-4 w-4 mr-2 animate-spin" />Generating...</>) : 'Generate Code'}
                   </Button>
                 </div>
               )}
@@ -203,8 +203,8 @@ export default function AdminInviteCodesPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-border border border-border">
         {[
           { label: 'Total Codes', value: totalCodes, icon: Hash },
-          { label: 'Active', value: activeCodes, icon: Shield },
-          { label: 'Redemptions', value: totalRedemptions, icon: Users },
+          { label: 'Active', value: activeCodes, icon: ShieldCheck },
+          { label: 'Redemptions', value: totalRedemptions, icon: UsersThree },
         ].map((s) => (
           <div key={s.label} className="bg-card p-5">
             <div className="flex items-start justify-between">
@@ -270,7 +270,7 @@ export default function AdminInviteCodesPage() {
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-none">
-                          <MoreHorizontal className="h-4 w-4" />
+                          <DotsThree weight="duotone" className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">

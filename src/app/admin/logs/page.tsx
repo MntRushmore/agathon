@@ -8,9 +8,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  ScrollText, RefreshCw, ChevronLeft, ChevronRight, Clock,
-  User, Trash2, Shield, Key, Eye, FileText,
-} from 'lucide-react';
+  Scroll, ArrowsClockwise, CaretLeft, CaretRight, Clock,
+  User, Trash, ShieldCheck, Key, Eye, FileText,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -93,8 +93,8 @@ export default function AdminLogsPage() {
   };
 
   const getActionIcon = (type: string) => {
-    if (type.includes('delete')) return Trash2;
-    if (type.includes('role')) return Shield;
+    if (type.includes('delete')) return Trash;
+    if (type.includes('role')) return ShieldCheck;
     if (type.includes('impersonate')) return Eye;
     if (type.includes('invite')) return Key;
     if (type.includes('content')) return FileText;
@@ -146,7 +146,7 @@ export default function AdminLogsPage() {
           <p className="text-muted-foreground text-sm mt-0.5">{totalCount} total audit log entries</p>
         </div>
         <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
@@ -221,7 +221,7 @@ export default function AdminLogsPage() {
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeft weight="duotone" className="h-4 w-4" />
             </Button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page: number;
@@ -251,7 +251,7 @@ export default function AdminLogsPage() {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              <ChevronRight className="h-4 w-4" />
+              <CaretRight weight="duotone" className="h-4 w-4" />
             </Button>
           </div>
         </div>
