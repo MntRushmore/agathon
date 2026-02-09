@@ -96,7 +96,7 @@ Guidelines:
       ];
 
       const response = await callHackClubAI({
-        model: 'google/gemini-2.5-flash',
+        model: process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash',
         messages,
         stream: true,
         max_tokens: 1500,
@@ -171,7 +171,7 @@ Only output JSON.`;
       : image;
 
     const response = await callHackClubAI({
-      model: 'google/gemini-2.5-flash',
+      model: process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash',
       messages: [
         {
           role: 'user',
@@ -257,8 +257,9 @@ Only output JSON.`;
 
   } catch (error) {
     console.error('Go Deeper API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate deeper explanation';
     return NextResponse.json(
-      { error: 'Failed to generate deeper explanation' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

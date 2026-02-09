@@ -2656,18 +2656,39 @@ export default function BoardPage() {
     }, 100);
 
     const createBackgroundShape = (editor: any, style: string) => {
-      // Create multiple smaller tiles instead of one huge image for better performance
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d')!;
 
-      // Much smaller tile size - will create multiple
-      const tileSize = 1000;
-      canvas.width = tileSize;
-      canvas.height = tileSize;
+      // Different dimensions for lined paper (document-style) vs grid
+      let canvasWidth: number;
+      let canvasHeight: number;
+      let xPosition: number;
+      let yPosition: number;
+
+      if (style === 'lined') {
+        // Create a tall, narrow document-style page (like Google Docs)
+        // Standard letter/A4 width in pixels (8.5" at ~100 DPI)
+        canvasWidth = 850;
+        // Very tall height to allow scrolling through many pages worth of content
+        canvasHeight = 20000;
+        // Position at top-left with some margin from edge
+        xPosition = 50;
+        yPosition = 50;
+      } else {
+        // Grid paper stays as square tile
+        canvasWidth = 1000;
+        canvasHeight = 1000;
+        // Centered positioning for grid
+        xPosition = -canvasWidth / 2;
+        yPosition = -canvasHeight / 2;
+      }
+
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
 
       // Fill with white background
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, tileSize, tileSize);
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
       if (style === 'lined') {
         // Draw horizontal lines
@@ -2675,10 +2696,10 @@ export default function BoardPage() {
         ctx.lineWidth = 1;
         const lineSpacing = 32;
 
-        for (let y = 0; y < tileSize; y += lineSpacing) {
+        for (let y = 0; y < canvasHeight; y += lineSpacing) {
           ctx.beginPath();
           ctx.moveTo(0, y);
-          ctx.lineTo(tileSize, y);
+          ctx.lineTo(canvasWidth, y);
           ctx.stroke();
         }
       } else if (style === 'grid') {
@@ -2688,25 +2709,25 @@ export default function BoardPage() {
         const gridSize = 20;
 
         // Vertical lines
-        for (let x = 0; x < tileSize; x += gridSize) {
+        for (let x = 0; x < canvasWidth; x += gridSize) {
           ctx.beginPath();
           ctx.moveTo(x, 0);
-          ctx.lineTo(x, tileSize);
+          ctx.lineTo(x, canvasHeight);
           ctx.stroke();
         }
 
         // Horizontal lines
-        for (let y = 0; y < tileSize; y += gridSize) {
+        for (let y = 0; y < canvasHeight; y += gridSize) {
           ctx.beginPath();
           ctx.moveTo(0, y);
-          ctx.lineTo(tileSize, y);
+          ctx.lineTo(canvasWidth, y);
           ctx.stroke();
         }
       }
 
       const dataUrl = canvas.toDataURL('image/png');
 
-      // Create the background as a single centered tile
+      // Create the background shape
       const assetId = AssetRecordType.createId();
       const shapeId = createShapeId();
 
@@ -2717,8 +2738,8 @@ export default function BoardPage() {
         props: {
           name: `background-${style}.png`,
           src: dataUrl,
-          w: tileSize,
-          h: tileSize,
+          w: canvasWidth,
+          h: canvasHeight,
           mimeType: 'image/png',
           isAnimated: false,
         },
@@ -2728,12 +2749,12 @@ export default function BoardPage() {
       editor.createShape({
         id: shapeId,
         type: 'image',
-        x: -tileSize / 2,
-        y: -tileSize / 2,
+        x: xPosition,
+        y: yPosition,
         props: {
           assetId,
-          w: tileSize,
-          h: tileSize,
+          w: canvasWidth,
+          h: canvasHeight,
         },
         isLocked: true,
       });
