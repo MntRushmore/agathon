@@ -918,6 +918,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       bounds: { x: number; y: number; width: number; height: number };
       screenPos: { x: number; y: number };
     } | null>(null);
+    const [feedbackCardClosing, setFeedbackCardClosing] = useState(false);
+    const [lassoPromptClosing, setLassoPromptClosing] = useState(false);
     const [userId, setUserId] = useState<string>("");
     const [showOnboarding, setShowOnboarding] = useState(true);
     const [hintLimit, setHintLimit] = useState<number | null>(assignmentRestrictions?.hintLimit ?? null);
@@ -998,14 +1000,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const hintsRemaining = hintLimit !== null ? Math.max(hintLimit - currentHintCount, 0) : null;
 
   const trackAIUsage = useCallback(async (mode: string, prompt?: string, aiResponse?: string) => {
-    if (!submissionId && !assignmentId) return;
     try {
       const response = await fetch('/api/track-ai-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          submissionId,
-          assignmentId,
+          submissionId: submissionId || undefined,
+          assignmentId: assignmentId || undefined,
+          whiteboardId: id,
           mode,
           prompt: prompt || `Auto-triggered ${mode} mode assistance`,
           aiResponse,
@@ -1053,7 +1055,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     } catch (error) {
       console.error('Failed to track AI usage:', error);
     }
-  }, [submissionId, assignmentId, hintLimit, maybeWarnHintLimit]);
+  }, [id, submissionId, assignmentId, hintLimit, maybeWarnHintLimit]);
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
@@ -1177,6 +1179,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   useEffect(() => {
     if (assignmentMeta?.defaultMode) {
       setAssistanceMode(assignmentMeta.defaultMode);
+    } else {
+      // Fall back to user's preferred AI mode from settings
+      const stored = localStorage.getItem('agathon_pref_ai_mode');
+      if (stored === 'feedback' || stored === 'suggest' || stored === 'answer') {
+        setAssistanceMode(stored);
+      }
     }
   }, [assignmentMeta]);
 
@@ -2261,7 +2269,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
       {/* Active users indicator */}
       {activeUsers.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-[1000] ios-safe-bottom ios-safe-right">
+        <div className="fixed bottom-4 right-4 z-[var(--z-controls)] ios-safe-bottom ios-safe-right">
           <div className="bg-card border rounded-lg shadow-sm px-3 py-2 flex items-center gap-2">
             <div className="flex items-center gap-1">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'} animate-pulse`} />
@@ -2281,7 +2289,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
       {/* AI Content Stats for Teachers */}
       {isTeacherViewing && aiShapeCount > 0 && (
-        <div className="fixed bottom-4 left-4 z-[1000] ios-safe-bottom ios-safe-left">
+        <div className="fixed bottom-4 left-4 z-[var(--z-controls)] ios-safe-bottom ios-safe-left">
           <div className="bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-lg shadow-sm px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-3 h-3 rounded-full bg-purple-500" />
@@ -2385,8 +2393,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         <div
           className={
             isLandscape
-              ? "fixed left-4 top-24 z-[1100] max-w-xs ios-safe-left"
-              : "fixed top-24 left-4 z-[1100] max-w-sm ios-safe-left"
+              ? "fixed left-4 top-24 z-[var(--z-overlay)] max-w-xs ios-safe-left"
+              : "fixed top-24 left-4 z-[var(--z-overlay)] max-w-sm ios-safe-left"
           }
         >
           <div className="bg-card border rounded-lg shadow-sm p-4 space-y-1">
@@ -2435,11 +2443,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 {/* AI Tutor Panel + Button - hide when teacher is viewing student board */}
           {!isTeacherViewing && (
             <>
-              <AITutorButton
-                onClick={() => setAiTutorOpen(true)}
-                isOpen={aiTutorOpen}
-                messageCount={aiTutor.messages.length}
-              />
               <AITutorPanel
                 isOpen={aiTutorOpen}
                 onClose={() => setAiTutorOpen(false)}
@@ -2473,9 +2476,9 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
           )}
 
-          {/* Hint Button - fixed position */}
+          {/* Grouped floating controls — bottom-right */}
           {!isTeacherViewing && editor && (
-            <div className="fixed bottom-20 right-4 z-[1000] ios-safe-bottom ios-safe-right flex items-center gap-2">
+            <div className="fixed bottom-4 right-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2">
               <HintButton
                 isLoading={isHintLoading}
                 onClick={async () => {
@@ -2493,6 +2496,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   }
                 }}
               />
+              <AITutorButton
+                onClick={() => setAiTutorOpen(true)}
+                isOpen={aiTutorOpen}
+                messageCount={aiTutor.messages.length}
+              />
             </div>
           )}
 
@@ -2501,7 +2509,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <LassoActionPrompt
               position={lassoPrompt.screenPos}
               onAction={handleLassoAction}
-              onDismiss={() => setLassoPrompt(null)}
+              isClosing={lassoPromptClosing}
+              onDismiss={() => {
+                setLassoPromptClosing(true);
+                setTimeout(() => {
+                  setLassoPrompt(null);
+                  setLassoPromptClosing(false);
+                }, 150);
+              }}
             />
           )}
 
@@ -2513,7 +2528,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               isCorrect={feedbackCard.isCorrect}
               solution={feedbackCard.solution}
               position={feedbackCard.position}
-              onClose={() => setFeedbackCard(null)}
+              isClosing={feedbackCardClosing}
+              onClose={() => {
+                setFeedbackCardClosing(true);
+                setTimeout(() => {
+                  setFeedbackCard(null);
+                  setFeedbackCardClosing(false);
+                }, 200);
+              }}
               onDragEnd={(x, y) => {
                 setFeedbackCard(prev => prev ? { ...prev, position: { x, y } } : null);
               }}

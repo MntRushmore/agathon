@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -21,14 +21,14 @@ import {
 } from '@/components/ui/collapsible';
 import {
   Plus,
-  ChevronLeft,
-  ChevronDown,
-  Home,
+  CaretLeft,
+  CaretDown,
+  House,
   FolderOpen,
-  BookOpen,
-  Pencil,
-  Zap,
-} from 'lucide-react';
+  BookOpenText,
+  PencilSimple,
+  Lightning,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { TemplateSelectionDialog } from '@/components/board/TemplateSelectionDialog';
 
@@ -58,12 +58,10 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
   const { user, profile } = useAuth();
   const supabase = createClient();
 
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(STORAGE_KEY) === 'true';
-    }
-    return false;
-  });
+  const [collapsed, setCollapsed] = useState(true);
+  const [hoverOpen, setHoverOpen] = useState(false);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   const [journals, setJournals] = useState<SidebarJournal[]>([]);
   const [whiteboards, setWhiteboards] = useState<SidebarWhiteboard[]>([]);
@@ -72,19 +70,48 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
   const [creating, setCreating] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
+  // The sidebar is "visually open" when either pinned open or hover-expanded
+  const isOpen = !collapsed || hoverOpen;
+
   // Persist and notify collapse state
   const toggleCollapse = useCallback(() => {
     setCollapsed(prev => {
       const next = !prev;
       localStorage.setItem(STORAGE_KEY, String(next));
-      onCollapseChange?.(next);
+      onCollapseChange?.(next && !hoverOpen);
       return next;
     });
-  }, [onCollapseChange]);
+  }, [onCollapseChange, hoverOpen]);
+
+  // Hover handlers for auto-expand
+  const handleMouseEnter = useCallback(() => {
+    if (!collapsed) return; // Already pinned open
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoverOpen(true);
+      onCollapseChange?.(false);
+    }, 200);
+  }, [collapsed, onCollapseChange]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    if (!collapsed) return; // Pinned open, don't auto-collapse
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoverOpen(false);
+      onCollapseChange?.(true);
+    }, 300);
+  }, [collapsed, onCollapseChange]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    };
+  }, []);
 
   // Notify parent of initial state
   useEffect(() => {
-    onCollapseChange?.(collapsed);
+    onCollapseChange?.(true); // Default closed
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch journals
@@ -257,14 +284,17 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
 
   return (
     <aside
+      ref={sidebarRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className={cn(
         'fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-40',
-        collapsed ? 'w-16 bg-transparent' : 'w-56 bg-card border-r border-border',
+        isOpen ? 'w-56 bg-card border-r border-border shadow-lg' : 'w-16 bg-transparent',
       )}
     >
       {/* Header */}
       <div className="p-4 flex items-center justify-between">
-        {collapsed ? (
+        {!isOpen ? (
           <button
             onClick={toggleCollapse}
             className="w-full flex items-center justify-center"
@@ -276,9 +306,9 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
             <Logo size="sm" showText />
             <button
               onClick={toggleCollapse}
-              className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+              className="p-2 hover:bg-muted transition-colors text-muted-foreground"
             >
-              <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+              <CaretLeft weight="duotone" className="h-4 w-4" />
             </button>
           </>
         )}
@@ -290,27 +320,27 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium',
+                'w-full flex items-center gap-2.5 transition-all duration-150 font-medium',
                 'bg-primary text-primary-foreground hover:bg-primary/90',
-                collapsed ? 'justify-center px-2 py-2' : 'px-4 py-2'
+                !isOpen ? 'justify-center px-2 py-2' : 'px-4 py-2'
               )}
             >
-              <Plus className="h-4 w-4 flex-shrink-0" strokeWidth={2.5} />
-              {!collapsed && <span className="text-sm">New</span>}
+              <Plus weight="bold" className="h-4 w-4 flex-shrink-0" />
+              {isOpen && <span className="text-sm">New</span>}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuContent align="start" className="w-48 rounded-none">
             <DropdownMenuItem onClick={createWhiteboard}>
-              <Pencil className="w-4 h-4 mr-2" strokeWidth={2} />
+              <PencilSimple weight="duotone" className="w-4 h-4 mr-2" />
               New Board
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
-              <Zap className="w-4 h-4 mr-2" strokeWidth={2} />
+              <Lightning weight="duotone" className="w-4 h-4 mr-2" />
               Quick Board
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={createJournal}>
-              <BookOpen className="w-4 h-4 mr-2" strokeWidth={2} />
+              <BookOpenText weight="duotone" className="w-4 h-4 mr-2" />
               New Journal
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -319,41 +349,41 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
 
       {/* Primary Navigation */}
       <nav className="flex-1 px-3 py-2 overflow-y-auto flex flex-col">
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <button
             onClick={() => router.push('/')}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left',
+              'w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-150 text-left',
               'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
-            <Home className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
-            {!collapsed && <span className="text-sm">Home</span>}
+            <House weight="duotone" className="h-[18px] w-[18px] flex-shrink-0" />
+            {isOpen && <span className="text-sm">Home</span>}
           </button>
           <button
             onClick={() => router.push('/')}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left',
+              'w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-150 text-left',
               'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
-            <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
-            {!collapsed && <span className="text-sm">My Boards</span>}
+            <FolderOpen weight="duotone" className="h-[18px] w-[18px] flex-shrink-0" />
+            {isOpen && <span className="text-sm">My Boards</span>}
           </button>
           <button
             onClick={() => router.push('/journal')}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left',
+              'w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-150 text-left',
               'bg-accent text-foreground font-medium'
             )}
           >
-            <BookOpen className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={2} />
-            {!collapsed && <span className="text-sm">My Journals</span>}
+            <BookOpenText weight="duotone" className="h-[18px] w-[18px] flex-shrink-0" />
+            {isOpen && <span className="text-sm">My Journals</span>}
           </button>
         </div>
 
         {/* Your Journals */}
-        {!collapsed && (
+        {isOpen && (
           <Collapsible open={journalsOpen} onOpenChange={setJournalsOpen} className="mt-4">
             <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
               <div className="flex items-center gap-2">
@@ -364,7 +394,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                   </span>
                 )}
               </div>
-              <ChevronDown className={cn(
+              <CaretDown weight="bold" className={cn(
                 "h-3 w-3 transition-transform duration-200",
                 journalsOpen && "rotate-180"
               )} />
@@ -376,13 +406,13 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                     key={j.id}
                     onClick={() => router.push(`/journal/${j.id}`)}
                     className={cn(
-                      'w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150 text-left',
+                      'w-full flex items-center gap-2 px-3 py-1.5 transition-all duration-150 text-left',
                       j.id === activeJournalId
                         ? 'bg-accent text-foreground font-medium'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
-                    <BookOpen className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                    <BookOpenText className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-[13px] truncate" title={j.title || 'Untitled'}>{j.title || 'Untitled'}</span>
                   </button>
                 ))}
@@ -395,7 +425,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
         )}
 
         {/* Recent Boards */}
-        {!collapsed && (
+        {isOpen && (
           <Collapsible open={boardsOpen} onOpenChange={setBoardsOpen} className="mt-1">
             <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors">
               <div className="flex items-center gap-2">
@@ -406,7 +436,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                   </span>
                 )}
               </div>
-              <ChevronDown className={cn(
+              <CaretDown weight="bold" className={cn(
                 "h-3 w-3 transition-transform duration-200",
                 boardsOpen && "rotate-180"
               )} />
@@ -417,9 +447,9 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
                   <button
                     key={wb.id}
                     onClick={() => router.push(`/board/${wb.id}`)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 transition-all duration-150 text-left text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
-                    <Pencil className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.5} />
+                    <PencilSimple className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-[13px] truncate" title={wb.title || 'Untitled Board'}>{wb.title || 'Untitled Board'}</span>
                   </button>
                 ))}
@@ -438,12 +468,12 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
       {/* Footer */}
       <div className="p-3 space-y-1">
         {/* Usage indicators */}
-        {!collapsed && user && (
+        {isOpen && user && (
           <div className="px-3 py-2 space-y-3">
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                 <span className="flex items-center gap-1.5">
-                  <Pencil className="w-3 h-3" />
+                  <PencilSimple className="w-3 h-3" />
                   Boards
                 </span>
                 <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
@@ -453,7 +483,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
             <div>
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                 <span className="flex items-center gap-1.5">
-                  <BookOpen className="w-3 h-3" />
+                  <BookOpenText className="w-3 h-3" />
                   Journals
                 </span>
                 <span>{journals.length} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
@@ -464,14 +494,14 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
         )}
 
         {/* User info */}
-        {!collapsed && (
+        {isOpen && (
           <div className="pt-2 mt-2 border-t border-border">
             {user ? (
               <button
                 onClick={() => router.push('/profile')}
-                className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted rounded-lg transition-colors text-left"
+                className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center text-xs font-semibold flex-shrink-0">
                   {profile?.full_name
                     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
                     : user.email?.substring(0, 2).toUpperCase()}
@@ -486,7 +516,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
             ) : (
               <button
                 onClick={() => router.push('/login')}
-                className="w-full px-3 py-2.5 text-sm text-left hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                className="w-full px-3 py-2.5 text-sm text-left hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               >
                 Sign in
               </button>

@@ -1,10 +1,21 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
-import { RefreshCw, Home } from 'lucide-react';
+import { ArrowCounterClockwise, House, Lightning } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
+const quips = [
+  "Mistakes are proof that you're trying. — Ancient proverb (and us, right now)",
+  "The only real mistake is the one from which we learn nothing. — Henry Ford",
+  "To err is human. To reload, divine.",
+  "Even the best scrolls get torn sometimes.",
+  "A bug in the agora! The philosophers are investigating.",
+  "Plato's cave had fewer issues than this.",
+  "Knowledge is knowing this broke. Wisdom is clicking Try Again.",
+  "The oracle didn't see this one coming.",
+];
 
 export default function Error({
   error,
@@ -13,51 +24,81 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [quip] = useState(() => quips[Math.floor(Math.random() * quips.length)]);
+  const [crackle, setCrackle] = useState(false);
+
   useEffect(() => {
-    try { logger.error({ error }, 'Application error'); } catch (e) { /* ignore logging errors */ }
+    try { logger.error({ error }, 'Application error'); } catch { /* ignore */ }
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="max-w-md text-center">
-        <div className="mb-8">
-          <div className="h-16 w-16 mx-auto rounded-full bg-red-50 flex items-center justify-center">
-            <span className="text-2xl">!</span>
+        {/* Lightning icon with crackle animation */}
+        <div className="mb-6 flex justify-center">
+          <div
+            className={`h-20 w-20 rounded-full bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-200/60 dark:border-amber-700/30 flex items-center justify-center transition-all duration-200 ${crackle ? 'scale-95' : ''}`}
+          >
+            <Lightning
+              className={`h-9 w-9 text-amber-400/70 transition-transform duration-150 ${crackle ? 'scale-125 rotate-12' : ''}`}
+              weight="duotone"
+            />
           </div>
         </div>
 
-        <h1 className="text-2xl font-semibold text-[#1a1a1a] mb-3">
+        {/* Title */}
+        <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-[0.2em] mb-2">
           Something went wrong
+        </p>
+        <h1
+          className="text-5xl font-bold text-foreground/10 mb-4 select-none"
+          style={{ fontFamily: 'var(--font-serif, Georgia), Georgia, serif', letterSpacing: '-0.04em' }}
+        >
+          Oops
         </h1>
 
-        <p className="text-[#666] mb-8">
-          We encountered an unexpected error. Our team has been notified.
+        {/* Quip */}
+        <p
+          className="text-[14px] text-muted-foreground leading-relaxed mb-8 min-h-[3em]"
+          style={{ fontStyle: 'italic' }}
+        >
+          &ldquo;{quip}&rdquo;
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        {/* Actions */}
+        <div className="flex items-center justify-center gap-2">
           <Button
-            onClick={reset}
-            className="bg-[#1a1a1a] hover:bg-[#333] text-white rounded-xl h-11 px-6"
+            size="sm"
+            className="h-9 px-5 text-[13px] gap-2"
+            onClick={() => {
+              setCrackle(true);
+              setTimeout(() => {
+                setCrackle(false);
+                reset();
+              }, 200);
+            }}
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <ArrowCounterClockwise className="h-4 w-4" weight="duotone" />
             Try again
           </Button>
 
           <Button
             asChild
             variant="ghost"
-            className="text-[#666] hover:text-[#1a1a1a] rounded-xl h-11 px-6"
+            size="sm"
+            className="h-9 px-5 text-[13px] gap-2 text-muted-foreground"
           >
             <Link href="/">
-              <Home className="h-4 w-4 mr-2" />
+              <House className="h-4 w-4" weight="duotone" />
               Go home
             </Link>
           </Button>
         </div>
 
+        {/* Error ID */}
         {error.digest && (
-          <p className="mt-8 text-xs text-[#999]">
-            Error ID: {error.digest}
+          <p className="mt-10 text-[11px] text-muted-foreground/30 font-mono">
+            ref: {error.digest}
           </p>
         )}
       </div>

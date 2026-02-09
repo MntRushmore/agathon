@@ -51,6 +51,14 @@
 :root {
   --radius: 0.625rem;
 
+  /* Z-index hierarchy */
+  --z-toolbar: 500;
+  --z-controls: 1000;
+  --z-panel: 1050;
+  --z-overlay: 1100;
+  --z-keyboard: 1200;
+  --z-status: 12000;
+
   /* Modern minimalist font sizes */
   --text-xs: 0.75rem;    /* 12px - tiny labels */
   --text-sm: 0.875rem;   /* 14px - body small */
@@ -77,7 +85,7 @@
   --card-foreground: oklch(0.28 0.04 55);
   --popover: oklch(0.96 0.025 80);
   --popover-foreground: oklch(0.28 0.04 55);
-  --primary: oklch(0.45 0.10 220);          /* Mediterranean sea blue */
+  --primary: oklch(0.48 0.17 220);          /* Mediterranean sea blue */
   --primary-foreground: oklch(0.96 0.025 80);
   --secondary: oklch(0.92 0.035 75);        /* Warm tan secondary */
   --secondary-foreground: oklch(0.30 0.04 55);
@@ -88,20 +96,20 @@
   --destructive: oklch(0.52 0.14 30);       /* Terracotta red */
   --border: oklch(0.85 0.04 75);            /* Sand border */
   --input: oklch(0.88 0.04 75);
-  --ring: oklch(0.45 0.10 220);             /* Mediterranean blue ring */
-  --chart-1: oklch(0.52 0.14 30);
-  --chart-2: oklch(0.50 0.12 145);
-  --chart-3: oklch(0.45 0.10 220);
-  --chart-4: oklch(0.72 0.14 70);
-  --chart-5: oklch(0.48 0.12 285);
+  --ring: oklch(0.48 0.17 220);             /* Mediterranean blue ring */
+  --chart-1: oklch(0.52 0.18 30);
+  --chart-2: oklch(0.52 0.18 145);
+  --chart-3: oklch(0.48 0.17 220);
+  --chart-4: oklch(0.72 0.20 70);
+  --chart-5: oklch(0.50 0.18 285);
   --sidebar: oklch(0.93 0.03 75);
   --sidebar-foreground: oklch(0.28 0.04 55);
-  --sidebar-primary: oklch(0.45 0.10 220);
+  --sidebar-primary: oklch(0.48 0.17 220);
   --sidebar-primary-foreground: oklch(0.96 0.025 80);
-  --sidebar-accent: oklch(0.88 0.05 220);
+  --sidebar-accent: oklch(0.88 0.08 220);
   --sidebar-accent-foreground: oklch(0.30 0.04 55);
   --sidebar-border: oklch(0.85 0.04 75);
-  --sidebar-ring: oklch(0.45 0.10 220);
+  --sidebar-ring: oklch(0.48 0.17 220);
 
   /* Warm sepia shadows */
   --shadow-xs: 0 1px 2px 0 rgb(74 55 40 / 0.04);
@@ -111,16 +119,16 @@
   --shadow-xl: 0 20px 25px -5px rgb(74 55 40 / 0.12), 0 8px 10px -6px rgb(74 55 40 / 0.06);
 
   /* Semantic accent colors - Mediterranean palette */
-  --accent-green: oklch(0.50 0.12 145);     /* Olive green */
-  --accent-green-muted: oklch(0.90 0.04 145);
-  --accent-blue: oklch(0.50 0.12 230);      /* Deep Aegean blue */
-  --accent-blue-muted: oklch(0.90 0.04 230);
-  --accent-purple: oklch(0.48 0.12 285);    /* Byzantium purple */
-  --accent-purple-muted: oklch(0.90 0.04 285);
-  --accent-amber: oklch(0.72 0.14 70);      /* Golden amber sunlight */
-  --accent-amber-muted: oklch(0.92 0.04 70);
-  --accent-red: oklch(0.52 0.14 30);        /* Terracotta red */
-  --accent-red-muted: oklch(0.92 0.04 30);
+  --accent-green: oklch(0.52 0.18 145);     /* Olive green */
+  --accent-green-muted: oklch(0.90 0.06 145);
+  --accent-blue: oklch(0.52 0.18 230);      /* Deep Aegean blue */
+  --accent-blue-muted: oklch(0.90 0.06 230);
+  --accent-purple: oklch(0.50 0.18 285);    /* Byzantium purple */
+  --accent-purple-muted: oklch(0.90 0.06 285);
+  --accent-amber: oklch(0.72 0.20 70);      /* Golden amber sunlight */
+  --accent-amber-muted: oklch(0.92 0.06 70);
+  --accent-red: oklch(0.52 0.18 30);        /* Terracotta red */
+  --accent-red-muted: oklch(0.92 0.06 30);
 
   /* Sandy sidebar */
   --sidebar-dark: oklch(0.92 0.03 75);
@@ -138,43 +146,43 @@
   --card-foreground: oklch(0.92 0.025 75);
   --popover: oklch(0.22 0.02 55);
   --popover-foreground: oklch(0.92 0.025 75);
-  --primary: oklch(0.55 0.10 220);
+  --primary: oklch(0.58 0.17 220);
   --primary-foreground: oklch(0.18 0.02 55);
   --secondary: oklch(0.28 0.02 55);
   --secondary-foreground: oklch(0.92 0.025 75);
   --muted: oklch(0.28 0.02 55);
   --muted-foreground: oklch(0.65 0.03 75);
-  --accent: oklch(0.30 0.04 220);
+  --accent: oklch(0.30 0.06 220);
   --accent-foreground: oklch(0.92 0.025 75);
-  --destructive: oklch(0.62 0.14 30);
+  --destructive: oklch(0.62 0.18 30);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.55 0.10 220);
-  --chart-1: oklch(0.62 0.14 30);
-  --chart-2: oklch(0.60 0.10 145);
-  --chart-3: oklch(0.55 0.10 220);
-  --chart-4: oklch(0.75 0.12 70);
-  --chart-5: oklch(0.58 0.12 285);
+  --ring: oklch(0.58 0.17 220);
+  --chart-1: oklch(0.62 0.18 30);
+  --chart-2: oklch(0.62 0.16 145);
+  --chart-3: oklch(0.58 0.17 220);
+  --chart-4: oklch(0.75 0.18 70);
+  --chart-5: oklch(0.60 0.16 285);
   --sidebar: oklch(0.20 0.02 55);
   --sidebar-foreground: oklch(0.92 0.025 75);
-  --sidebar-primary: oklch(0.55 0.10 220);
+  --sidebar-primary: oklch(0.58 0.17 220);
   --sidebar-primary-foreground: oklch(0.18 0.02 55);
-  --sidebar-accent: oklch(0.30 0.04 220);
+  --sidebar-accent: oklch(0.30 0.06 220);
   --sidebar-accent-foreground: oklch(0.92 0.025 75);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.55 0.10 220);
+  --sidebar-ring: oklch(0.58 0.17 220);
 
   /* Dark mode accent colors */
-  --accent-green: oklch(0.60 0.10 145);
-  --accent-green-muted: oklch(0.28 0.04 145);
-  --accent-blue: oklch(0.60 0.10 230);
-  --accent-blue-muted: oklch(0.28 0.04 230);
-  --accent-purple: oklch(0.58 0.10 285);
-  --accent-purple-muted: oklch(0.28 0.04 285);
-  --accent-amber: oklch(0.75 0.12 70);
-  --accent-amber-muted: oklch(0.28 0.04 70);
-  --accent-red: oklch(0.62 0.12 30);
-  --accent-red-muted: oklch(0.28 0.04 30);
+  --accent-green: oklch(0.62 0.16 145);
+  --accent-green-muted: oklch(0.28 0.06 145);
+  --accent-blue: oklch(0.62 0.16 230);
+  --accent-blue-muted: oklch(0.28 0.06 230);
+  --accent-purple: oklch(0.60 0.16 285);
+  --accent-purple-muted: oklch(0.28 0.06 285);
+  --accent-amber: oklch(0.75 0.18 70);
+  --accent-amber-muted: oklch(0.28 0.06 70);
+  --accent-red: oklch(0.62 0.18 30);
+  --accent-red-muted: oklch(0.28 0.06 30);
 
   /* Dark sidebar colors */
   --sidebar-dark: oklch(0.16 0.02 55);
@@ -198,12 +206,11 @@
     /* Mediterranean typography */
     line-height: 1.6;
     letter-spacing: -0.01em;
-    /* Parchment paper texture via layered gradients */
+    /* Subtle warm tint — minimal, not decorative */
     background-image:
-      radial-gradient(ellipse at 15% 30%, oklch(0.92 0.05 70 / 0.20) 0%, transparent 40%),
-      radial-gradient(ellipse at 85% 15%, oklch(0.95 0.04 85 / 0.15) 0%, transparent 40%),
-      radial-gradient(ellipse at 50% 85%, oklch(0.90 0.04 65 / 0.12) 0%, transparent 40%),
-      radial-gradient(ellipse at 70% 60%, oklch(0.93 0.03 80 / 0.08) 0%, transparent 50%);
+      radial-gradient(ellipse at 50% 0%, oklch(0.93 0.02 75 / 0.20) 0%, transparent 60%);
+    position: relative;
+    z-index: 0;
     /* Prevent pull-to-refresh and improve touch handling on mobile */
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
@@ -216,15 +223,41 @@
     touch-action: none;
   }
 
-  /* Classical headings with serif font */
+  /* Parchment noise grain texture */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.018;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* Ensure content sits above grain texture */
+  body > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Clean headings — use sans-serif by default, opt-in to serif where appropriate */
   h1, h2, h3 {
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  }
+
+  /* Serif only for landing/marketing pages */
+  .serif-headings h1,
+  .serif-headings h2,
+  .serif-headings h3 {
     font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
   }
 
   h1 {
-    font-size: var(--text-4xl);
+    font-size: var(--text-2xl);
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.3;
     letter-spacing: -0.02em;
   }
 
@@ -495,15 +528,11 @@ select {
 
 /* Feature card with subtle hover */
 .feature-card {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-xs);
-  border: 1px solid var(--border);
-  background: var(--card);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .feature-card:hover {
-  box-shadow: var(--shadow-sm);
-  border-color: oklch(0.80 0.05 220);
+  box-shadow: none;
 }
 
 /* Empty state card - dashed border */
@@ -548,6 +577,17 @@ select {
   background: oklch(0.90 0.04 145);
   color: oklch(0.40 0.10 145);
 }
+
+/* Disable animations when user preference is off */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Feature card accent bars removed — clean, borderless look */
 
 /* Button press feedback */
 button:active {
@@ -710,3 +750,12 @@ kbd {
    ============================================ */
 
 /* Background patterns are now created as canvas shapes instead of CSS */
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

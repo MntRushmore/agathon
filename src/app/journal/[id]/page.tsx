@@ -7,51 +7,57 @@ import { useAuth } from '@/components/auth/auth-provider';
 import {
   Lightbulb,
   Timer,
-  MoreHorizontal,
-  Loader2,
+  DotsThree,
+  CircleNotch,
   Plus,
-  Sparkles,
-  Layers,
-  ClipboardList,
+  Sparkle,
+  Stack,
+  ClipboardText,
   Square,
-  Type,
-  Heading1,
-  Heading2,
-  Heading3,
-  List,
-  ListOrdered,
-  ImagePlus,
-  Quote,
+  TextT,
+  TextHOne,
+  TextHTwo,
+  TextHThree,
+  ListBullets,
+  ListNumbers,
+  ImageSquare,
+  Quotes,
   Minus,
   Table,
-  ChevronDown,
-  ChevronUp,
+  CaretDown,
+  CaretUp,
   Code,
-  Sigma,
-  PenTool,
-  LineChart,
-  BarChart3,
+  MathOperations,
+  PenNib,
+  ChartLine,
+  ChartBar,
   FileText,
   Link,
   Image,
-  AudioLines,
-  Video,
-  Youtube,
-  FileType,
-  Clapperboard,
+  Waveform,
+  VideoCamera,
+  YoutubeLogo,
+  FileDoc,
+  FilmSlate,
   X,
-  Search,
-  ExternalLink,
-  Send,
+  MagnifyingGlass,
+  ArrowSquareOut,
+  PaperPlaneTilt,
   Copy,
-  RefreshCw,
+  ArrowsClockwise,
   Check,
   ArrowUp,
   Shuffle,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+  Trash,
+  CaretLeft,
+  CaretRight,
+} from '@phosphor-icons/react';
+import {
+  Dialog, DialogPanel, DialogTitle, DialogBackdrop,
+  Switch,
+  RadioGroup, Radio,
+  TabGroup, TabList, Tab, TabPanels, TabPanel,
+} from '@headlessui/react';
 import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
 import { toast } from 'sonner';
@@ -69,23 +75,23 @@ function renderMarkdown(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     // Headers (order matters - check longer patterns first)
-    .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-[#4A3728]">$1</h6>')
-    .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-[#4A3728]">$1</h5>')
-    .replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-[13px] mt-2.5 mb-0.5 text-[#4A3728]">$1</h4>')
-    .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[14px] mt-2.5 mb-0.5 text-[#4A3728]">$1</h4>')
-    .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[15px] mt-3 mb-1 text-[#3A2E1E]">$1</h3>')
-    .replace(/^# (.+)$/gm, '<h2 class="font-bold text-[16px] mt-3 mb-1 text-[#3A2E1E]">$1</h2>')
+    .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h6>')
+    .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h5>')
+    .replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-[13px] mt-2.5 mb-0.5 text-foreground">$1</h4>')
+    .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[14px] mt-2.5 mb-0.5 text-foreground">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[15px] mt-3 mb-1 text-foreground">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2 class="font-bold text-[16px] mt-3 mb-1 text-foreground">$1</h2>')
     // Bold and italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-[#4A3728]">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     // Inline code
-    .replace(/`([^`]+)`/g, '<code class="bg-[#E8DCC0] px-1 py-0.5 rounded text-[12px] font-mono text-[#5C4B3A]">$1</code>')
+    .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-[12px] font-mono text-foreground/80">$1</code>')
     // Unordered lists
-    .replace(/^\* (.+)$/gm, '<li class="ml-3 list-disc text-[#5C4B3A]">$1</li>')
-    .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-[#5C4B3A]">$1</li>')
+    .replace(/^\* (.+)$/gm, '<li class="ml-3 list-disc text-foreground/80">$1</li>')
+    .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-foreground/80">$1</li>')
     // Ordered lists
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-3 list-decimal text-[#5C4B3A]">$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li class="ml-3 list-decimal text-foreground/80">$1</li>')
     // Line breaks
     .replace(/\n\n/g, '</p><p class="mt-1.5">')
     .replace(/\n/g, '<br />');
@@ -106,12 +112,12 @@ function renderMarkdown(text: string): string {
 // Dynamically import tldraw to avoid SSR issues
 const InlineWhiteboard = dynamic(
   () => import('@/components/journal/InlineWhiteboard').then(mod => mod.InlineWhiteboard),
-  { ssr: false, loading: () => <div className="h-[400px] bg-[#E8DCC0] rounded-xl animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
 );
 
 const InlineDesmos = dynamic(
   () => import('@/components/journal/InlineDesmos').then(mod => mod.InlineDesmos),
-  { ssr: false, loading: () => <div className="h-[400px] bg-[#E8DCC0] rounded-xl animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
 );
 
 interface JournalData {
@@ -200,15 +206,15 @@ function ContentWithEmbeds({
         const wb = embeddedWhiteboards.find(w => w.id === id);
         return (
           <div key={`wb-${id}`} className="my-4 group relative">
-            <div className="text-sm text-[#7D6B58] mb-2 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <PenTool className="h-4 w-4" />
+                <PenNib className="h-4 w-4" />
                 <span>Whiteboard</span>
               </div>
               {onDeleteWhiteboard && (
                 <button
                   onClick={() => onDeleteWhiteboard(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-[#9B8B78] hover:text-[#A85535] hover:bg-[#F0DCD0] rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                   title="Delete whiteboard"
                 >
                   <X className="h-4 w-4" />
@@ -231,15 +237,15 @@ function ContentWithEmbeds({
         const expression = match[2];
         return (
           <div key={`desmos-${id}`} className="my-4 group relative">
-            <div className="text-sm text-[#7D6B58] mb-2 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <LineChart className="h-4 w-4" />
+                <ChartLine className="h-4 w-4" />
                 <span>Desmos Graph</span>
               </div>
               {onDeleteDesmos && (
                 <button
                   onClick={() => onDeleteDesmos(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-[#9B8B78] hover:text-[#A85535] hover:bg-[#F0DCD0] rounded-lg transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                   title="Delete graph"
                 >
                   <X className="h-4 w-4" />
@@ -262,58 +268,58 @@ const slashCommands = [
   {
     category: 'Build with Agathon',
     items: [
-      { id: 'notes', icon: Sparkles, label: 'Generate notes', color: 'text-[#1A6B8A]' },
-      { id: 'practice', icon: ClipboardList, label: 'Generate practice problems', color: 'text-[#6B5A48]' },
-      { id: 'flashcards', icon: Layers, label: 'Generate flashcards', color: 'text-[#3A6B9F]' },
-      { id: 'generate-image', icon: ImagePlus, label: 'Generate image', color: 'text-[#6B5A48]' },
+      { id: 'notes', icon: Sparkle, label: 'Generate notes', color: 'text-muted-foreground' },
+      { id: 'practice', icon: ClipboardText, label: 'Generate practice problems', color: 'text-muted-foreground' },
+      { id: 'flashcards', icon: Stack, label: 'Generate flashcards', color: 'text-muted-foreground' },
+      { id: 'generate-image', icon: ImageSquare, label: 'Generate image', color: 'text-muted-foreground' },
     ],
   },
   {
     category: 'Basic editing',
     items: [
-      { id: 'text', icon: Type, label: 'Text', color: 'text-[#6B5A48]' },
-      { id: 'h1', icon: Heading1, label: 'Heading 1', color: 'text-[#6B5A48]' },
-      { id: 'h2', icon: Heading2, label: 'Heading 2', color: 'text-[#6B5A48]' },
-      { id: 'h3', icon: Heading3, label: 'Heading 3', color: 'text-[#6B5A48]' },
-      { id: 'bullet', icon: List, label: 'Bullet list', color: 'text-[#6B5A48]' },
-      { id: 'numbered', icon: ListOrdered, label: 'Numbered list', color: 'text-[#6B5A48]' },
-      { id: 'quote', icon: Quote, label: 'Quote', color: 'text-[#6B5A48]' },
-      { id: 'divider', icon: Minus, label: 'Divider', color: 'text-[#6B5A48]' },
+      { id: 'text', icon: TextT, label: 'Text', color: 'text-muted-foreground' },
+      { id: 'h1', icon: TextHOne, label: 'Heading 1', color: 'text-muted-foreground' },
+      { id: 'h2', icon: TextHTwo, label: 'Heading 2', color: 'text-muted-foreground' },
+      { id: 'h3', icon: TextHThree, label: 'Heading 3', color: 'text-muted-foreground' },
+      { id: 'bullet', icon: ListBullets, label: 'Bullet list', color: 'text-muted-foreground' },
+      { id: 'numbered', icon: ListNumbers, label: 'Numbered list', color: 'text-muted-foreground' },
+      { id: 'quote', icon: Quotes, label: 'Quote', color: 'text-muted-foreground' },
+      { id: 'divider', icon: Minus, label: 'Divider', color: 'text-muted-foreground' },
     ],
   },
   {
     category: 'Advanced editing',
     items: [
-      { id: 'table', icon: Table, label: 'Table', color: 'text-[#1A6B8A]' },
-      { id: 'details', icon: ChevronDown, label: 'Details', color: 'text-[#6B5A48]' },
-      { id: 'code', icon: Code, label: 'Code block', color: 'text-[#6B5A48]' },
-      { id: 'latex', icon: Sigma, label: 'LaTeX block', color: 'text-[#6B5A48]' },
+      { id: 'table', icon: Table, label: 'Table', color: 'text-muted-foreground' },
+      { id: 'details', icon: CaretDown, label: 'Details', color: 'text-muted-foreground' },
+      { id: 'code', icon: Code, label: 'Code block', color: 'text-muted-foreground' },
+      { id: 'latex', icon: MathOperations, label: 'LaTeX block', color: 'text-muted-foreground' },
     ],
   },
   {
     category: 'Interactive editing',
     items: [
-      { id: 'whiteboard', icon: PenTool, label: 'Whiteboard', color: 'text-[#6B5A48]' },
-      { id: 'desmos', icon: LineChart, label: 'Desmos graph', color: 'text-[#6B5A48]' },
-      { id: 'chart', icon: BarChart3, label: 'Chart', color: 'text-[#6B5A48]' },
+      { id: 'whiteboard', icon: PenNib, label: 'Whiteboard', color: 'text-muted-foreground' },
+      { id: 'desmos', icon: ChartLine, label: 'Desmos graph', color: 'text-muted-foreground' },
+      { id: 'chart', icon: ChartBar, label: 'Chart', color: 'text-muted-foreground' },
     ],
   },
   {
     category: 'Journals',
     items: [
-      { id: 'subjournal', icon: FileText, label: 'Subjournal', color: 'text-[#6B5A48]' },
-      { id: 'link-journal', icon: Link, label: 'Link to existing journal', color: 'text-[#6B5A48]' },
+      { id: 'subjournal', icon: FileText, label: 'Subjournal', color: 'text-muted-foreground' },
+      { id: 'link-journal', icon: Link, label: 'Link to existing journal', color: 'text-muted-foreground' },
     ],
   },
   {
     category: 'Media',
     items: [
-      { id: 'video-library', icon: Clapperboard, label: 'Add from Video Library', color: 'text-[#1A6B8A]' },
-      { id: 'image', icon: Image, label: 'Image', color: 'text-[#6B5A48]' },
-      { id: 'audio', icon: AudioLines, label: 'Audio', color: 'text-[#6B5A48]' },
-      { id: 'video', icon: Video, label: 'Video', color: 'text-[#6B5A48]' },
-      { id: 'youtube', icon: Youtube, label: 'YouTube', color: 'text-[#6B5A48]' },
-      { id: 'pdf', icon: FileType, label: 'PDF', color: 'text-[#6B5A48]' },
+      { id: 'video-library', icon: FilmSlate, label: 'Add from Video Library', color: 'text-muted-foreground' },
+      { id: 'image', icon: Image, label: 'Image', color: 'text-muted-foreground' },
+      { id: 'audio', icon: Waveform, label: 'Audio', color: 'text-muted-foreground' },
+      { id: 'video', icon: VideoCamera, label: 'Video', color: 'text-muted-foreground' },
+      { id: 'youtube', icon: YoutubeLogo, label: 'YouTube', color: 'text-muted-foreground' },
+      { id: 'pdf', icon: FileDoc, label: 'PDF', color: 'text-muted-foreground' },
     ],
   },
 ];
@@ -1501,8 +1507,11 @@ export default function JournalEditorPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F2E8D5]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#9B8B78]" />
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-muted-foreground">Loading journal...</p>
+        </div>
       </div>
     );
   }
@@ -1511,7 +1520,7 @@ export default function JournalEditorPage() {
   const allCommands = getAllCommands();
 
   return (
-    <div className="min-h-screen bg-[#F2E8D5] flex">
+    <div className="min-h-screen bg-background flex">
       <JournalSidebar
         activeJournalId={params.id as string}
         onCollapseChange={setSidebarCollapsed}
@@ -1522,21 +1531,19 @@ export default function JournalEditorPage() {
       )}>
 
       {/* Topic Prompt Modal */}
-      {showTopicModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div 
-            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog open={showTopicModal} onClose={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-[#3A2E1E] mb-2">
+              <DialogTitle className="text-lg font-semibold text-foreground mb-2">
                 {pendingAction === 'Agathon Method' && 'Ask Agathon to teach you'}
                 {pendingAction === 'Flashcards' && 'Create flashcards'}
                 {pendingAction === 'Practice Problems' && 'Generate practice problems'}
                 {pendingAction === 'Notes' && 'Create notes'}
                 {pendingAction === 'Image' && 'Generate an image'}
-              </h3>
-              <p className="text-sm text-[#7D6B58] mb-4">
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground mb-4">
                 {getActionPromptText(pendingAction || '')}
               </p>
               <input
@@ -1547,54 +1554,46 @@ export default function JournalEditorPage() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && topicInput.trim()) {
                     handleTopicSubmit();
-                  } else if (e.key === 'Escape') {
-                    setShowTopicModal(false);
-                    setPendingAction(null);
-                    setTopicInput('');
                   }
                 }}
                 placeholder="e.g., Addition, Fractions, Photosynthesis..."
-                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#1A6B8A]/30 focus:border-[#2D8BAB] transition-all"
+                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
               <button
-                onClick={() => {
-                  setShowTopicModal(false);
-                  setPendingAction(null);
-                  setTopicInput('');
-                }}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
+                onClick={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }}
+                className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-accent transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleTopicSubmit}
                 disabled={!topicInput.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#155A73] text-white font-medium hover:bg-[#0E4A60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Generate
               </button>
             </div>
-          </div>
+          </DialogPanel>
         </div>
-      )}
+      </Dialog>
 
       {/* Header controls */}
-      <header className="flex items-center justify-between px-5 py-4 relative z-[60] border-b border-[#E8DCC0]">
+      <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border">
         {/* Left - Navigation */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/journal')}
-            className="p-2 hover:bg-[#E8DCC0] rounded-lg transition-colors border border-transparent hover:border-[#CFC0A8]"
+            className="p-2 hover:bg-muted transition-colors text-foreground"
             title="Back to journals"
           >
-            <ChevronLeft className="h-5 w-5 text-[#4A3728]" strokeWidth={2} />
+            <CaretLeft weight="bold" className="h-5 w-5" />
           </button>
         </div>
 
         {/* Center - Chat/Command bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-6">
+        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
           <div className="relative" ref={chatBarRef}>
             {/* Main chat bar */}
             <div className="flex flex-col">
@@ -1605,20 +1604,20 @@ export default function JournalEditorPage() {
                   }
                 }}
                 className={cn(
-                  'flex items-center gap-3 bg-[#C2B280] rounded-xl px-3 py-2.5 cursor-pointer',
+                  'flex items-center gap-3 bg-foreground/10 border border-border px-3 py-2 cursor-pointer',
                   'transition-all duration-300 ease-out',
                   searchExpanded
-                    ? 'min-w-[600px] bg-[#B0A06A] shadow-lg rounded-b-none'
-                    : 'min-w-[420px] hover:bg-[#B0A06A]'
+                    ? 'min-w-[600px] bg-card shadow-lg border-b-0'
+                    : 'min-w-[420px] hover:bg-foreground/15'
                 )}
               >
                 {searchExpanded ? (
                   <>
                     {isChatting ? (
-                      <Loader2 className="h-5 w-5 text-[#3A2E1E] flex-shrink-0 animate-spin" />
+                      <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin flex-shrink-0" />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-4 w-4 text-[#3A2E1E]" />
+                      <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
+                        <Plus weight="bold" className="h-4 w-4 text-foreground" />
                       </div>
                     )}
                     <input
@@ -1656,16 +1655,16 @@ export default function JournalEditorPage() {
                         }
                       }}
                       placeholder='Ask anything or type "/" for commands...'
-                      className="flex-1 bg-transparent border-none outline-none text-[#3A2E1E] text-sm placeholder:text-[#3A2E1E]/60 focus:ring-0"
+                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
                       disabled={isChatting}
                     />
                     {chatInput.trim() && !showSlashMenu && (
                       <button
                         onClick={handleChatSubmit}
                         disabled={isChatting}
-                        className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center hover:bg-[#908050] transition-colors disabled:opacity-50"
+                        className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
                       >
-                        <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
+                        <ArrowUp className="h-4 w-4" />
                       </button>
                     )}
                     {chatMessages.length > 0 && !chatInput.trim() && (
@@ -1677,22 +1676,22 @@ export default function JournalEditorPage() {
                           setChatMessages([]);
                           setPendingContent(null);
                         }}
-                        className="p-1.5 hover:bg-[#3A2E1E]/10 rounded-lg transition-colors"
+                        className="p-1.5 hover:bg-foreground/10 transition-colors"
                       >
-                        <X className="h-4 w-4 text-[#3A2E1E]" />
+                        <X className="h-4 w-4 text-foreground" />
                       </button>
                     )}
                   </>
                 ) : (
                   <>
-                    <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
-                      <Plus className="h-4 w-4 text-[#3A2E1E]" />
+                    <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
+                      <Sparkle weight="duotone" className="h-4 w-4 text-foreground" />
                     </div>
-                    <span className="flex-1 text-[#3A2E1E]/70 text-sm transition-opacity duration-500">
+                    <span className="flex-1 text-muted-foreground text-sm transition-opacity duration-500">
                       {placeholderTexts[placeholderIndex]}
                     </span>
-                    <div className="w-7 h-7 rounded-lg bg-[#A09060] flex items-center justify-center flex-shrink-0">
-                      <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
+                    <div className="w-7 h-7 bg-foreground text-background flex items-center justify-center flex-shrink-0">
+                      <ArrowUp className="h-4 w-4" />
                     </div>
                   </>
                 )}
@@ -1700,15 +1699,14 @@ export default function JournalEditorPage() {
               {/* Chat label below the bar */}
               {!searchExpanded && (
                 <div className="flex items-center justify-center gap-1 mt-1.5">
-                  <span className="text-[#3A2E1E]/60 text-xs font-medium">Chat</span>
-                  <ChevronUp className="h-3 w-3 text-[#3A2E1E]/60" />
+                  <span className="text-muted-foreground text-xs font-medium">Chat with Agathon</span>
                 </div>
               )}
             </div>
 
             {/* Chat conversation panel */}
             {searchExpanded && !showSlashMenu && (
-              <div className="absolute top-full left-0 right-0 bg-[#F2E8D5] rounded-b-2xl shadow-xl border border-t-0 border-[#CFC0A8]/50 overflow-hidden z-[100]">
+              <div className="absolute top-full left-0 right-0 bg-card border border-t-0 border-border shadow-xl overflow-hidden z-[100]">
                 {/* Chat messages */}
                 <div
                   ref={chatContainerRef}
@@ -1716,45 +1714,45 @@ export default function JournalEditorPage() {
                 >
                   {chatMessages.length === 0 ? (
                     <div className="text-center py-6">
-                      <div className="w-12 h-12 rounded-full bg-[#C2B280] flex items-center justify-center mx-auto mb-3">
-                        <Sparkles className="h-5 w-5 text-[#3A2E1E]" />
+                      <div className="w-10 h-10 bg-foreground/10 flex items-center justify-center mx-auto mb-3">
+                        <Sparkle weight="duotone" className="h-5 w-5 text-foreground" />
                       </div>
-                      <p className="text-sm text-[#7D6B58] mb-1">No messages yet</p>
-                      <p className="text-xs text-[#9B8B78]">Ask a question or type "/" for commands</p>
+                      <p className="text-sm text-muted-foreground mb-1">No messages yet</p>
+                      <p className="text-xs text-muted-foreground/60">Ask a question or type &quot;/&quot; for commands</p>
                     </div>
                   ) : null}
                   {chatMessages.map((msg, idx) => (
                     <div key={idx}>
                       {msg.role === 'user' ? (
                         <div className="flex justify-end mb-2">
-                          <div className="bg-[#F7F0E3] text-[#5C4B3A] rounded-full px-4 py-1.5 text-sm shadow-sm border border-[#DFD0B8]">
+                          <div className="bg-muted text-foreground px-4 py-1.5 text-sm border border-border">
                             {msg.content}
                           </div>
                         </div>
                       ) : (
                         <div className="space-y-2">
                           <div className="flex gap-2.5">
-                            <div className="w-6 h-6 rounded-full bg-[#C2B280] flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <Sparkles className="h-3 w-3 text-[#3A2E1E]" />
+                            <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Sparkle className="h-3 w-3 text-background" />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div
-                                className="text-[13px] text-[#5C4B3A] leading-relaxed"
+                                className="text-[13px] text-foreground/80 leading-relaxed"
                                 dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
                               />
                               {/* Action buttons for assistant messages */}
                               <div className="flex items-center gap-2 mt-2">
                                 {msg.written ? (
                                   <>
-                                    <span className="inline-flex items-center gap-1 text-[11px] text-[#1A6B8A] font-medium">
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-medium">
                                       <Check className="h-3 w-3" />
                                       Written!
                                     </span>
                                     <button
                                       onClick={() => handleReapplyContent(msg.content, idx)}
-                                      className="inline-flex items-center gap-1 text-[11px] text-[#9B8B78] hover:text-[#6B5A48] font-medium transition-colors"
+                                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
                                     >
-                                      <RefreshCw className="h-3 w-3" />
+                                      <ArrowsClockwise className="h-3 w-3" />
                                       Reapply changes
                                     </button>
                                   </>
@@ -1762,14 +1760,14 @@ export default function JournalEditorPage() {
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={handleAcceptContent}
-                                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-[#155A73] text-white rounded-md hover:bg-[#0E4A60] transition-colors font-medium"
+                                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
                                     >
                                       <Check className="h-3 w-3" />
                                       Add to Journal
                                     </button>
                                     <button
                                       onClick={handleDismissContent}
-                                      className="text-[11px] text-[#9B8B78] hover:text-[#6B5A48] font-medium transition-colors"
+                                      className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
                                     >
                                       Dismiss
                                     </button>
@@ -1777,7 +1775,7 @@ export default function JournalEditorPage() {
                                 ) : null}
                                 <button
                                   onClick={() => handleCopyMessage(msg.content)}
-                                  className="inline-flex items-center p-0.5 text-[#B8A898] hover:text-[#7D6B58] transition-colors ml-auto"
+                                  className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
                                   title="Copy to clipboard"
                                 >
                                   <Copy className="h-3 w-3" />
@@ -1791,10 +1789,10 @@ export default function JournalEditorPage() {
                   ))}
                   {isChatting && (
                     <div className="flex gap-2.5">
-                      <div className="w-6 h-6 rounded-full bg-[#C2B280] flex items-center justify-center flex-shrink-0">
-                        <Loader2 className="h-3 w-3 text-[#3A2E1E] animate-spin" />
+                      <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0">
+                        <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
                       </div>
-                      <div className="text-[13px] text-[#9B8B78]">
+                      <div className="text-[13px] text-muted-foreground">
                         Thinking...
                       </div>
                     </div>
@@ -1802,10 +1800,10 @@ export default function JournalEditorPage() {
                 </div>
 
                 {/* Clear chat button at the bottom */}
-                <div className="border-t border-[#DFD0B8] px-4 py-2 flex justify-end bg-[#F7F0E3]/50">
+                <div className="border-t border-border px-4 py-2 flex justify-end bg-muted/50">
                   <button
                     onClick={handleClearChat}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-[#BF6B4D] hover:text-[#8E4228] hover:bg-[#F0DCD0] rounded transition-colors font-medium"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
                   >
                     <X className="h-3 w-3" />
                     Clear chat
@@ -1816,7 +1814,7 @@ export default function JournalEditorPage() {
 
             {/* Slash Command Menu */}
             {showSlashMenu && searchExpanded && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-[100] bg-[#F7F0E3] rounded-2xl shadow-2xl border border-[#CFC0A8] py-3 max-h-[420px] overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 z-[100] bg-card border border-t-0 border-border shadow-2xl py-2 max-h-[420px] overflow-y-auto">
                 {slashCommands.map((category, catIndex) => {
                   const filteredItems = category.items.filter(item =>
                     item.label.toLowerCase().includes(slashFilter.toLowerCase())
@@ -1825,8 +1823,8 @@ export default function JournalEditorPage() {
                   if (filteredItems.length === 0) return null;
 
                   return (
-                    <div key={category.category} className={catIndex > 0 ? 'mt-2' : ''}>
-                      <div className="px-4 py-1.5 text-xs font-medium text-[#9B8B78]">
+                    <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
+                      <div className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                         {category.category}
                       </div>
                       {filteredItems.map((item) => {
@@ -1840,19 +1838,13 @@ export default function JournalEditorPage() {
                             onClick={() => executeCommand(item.id)}
                             className={cn(
                               'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
-                              isSelected ? 'bg-[#E8DCC0]' : 'hover:bg-[#F0E4CC]'
+                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                             )}
                           >
-                            <Icon className={cn(
-                              'h-5 w-5',
-                              isSelected ? 'text-[#1A6B8A]' :
-                              item.id === 'notes' ? 'text-[#1A6B8A]' :
-                              item.id === 'flashcards' ? 'text-[#3A6B9F]' :
-                              'text-[#9B8B78]'
-                            )} />
+                            <Icon className="h-4 w-4" />
                             <span className={cn(
                               'text-sm',
-                              isSelected ? 'text-[#1A6B8A] font-medium' : 'text-[#5C4B3A]'
+                              isSelected && 'font-medium'
                             )}>
                               {item.label}
                             </span>
@@ -1868,46 +1860,47 @@ export default function JournalEditorPage() {
         </div>
 
         {/* Right - Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {/* Proactive AI Lightbulb Button with Dropdown */}
           <div className="relative" ref={proactiveDropdownRef}>
             <button
               className={cn(
-                "p-2.5 rounded-lg transition-colors",
+                "p-2 transition-colors",
                 proactiveAIEnabled
-                  ? "bg-[#F5E8C8] text-[#A88030] hover:bg-[#EDD8A8]"
-                  : "hover:bg-[#E8DCC0] text-[#7D6B58]"
+                  ? "bg-accent text-foreground"
+                  : "hover:bg-muted text-muted-foreground"
               )}
               onClick={() => setShowProactiveDropdown(!showProactiveDropdown)}
             >
-              <Lightbulb className="h-5 w-5" />
+              <Lightbulb weight="duotone" className="h-5 w-5" />
               {isGeneratingSuggestion && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#C89B40] rounded-full animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-foreground animate-pulse" />
               )}
             </button>
             {showProactiveDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-[#F7F0E3] rounded-xl shadow-lg border border-[#CFC0A8] p-4 z-50">
+              <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border shadow-lg p-4 z-50">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-[#C89B40]" />
-                    <span className="font-medium text-[#4A3728] text-sm">Proactive AI Mode</span>
+                    <Lightbulb weight="duotone" className="h-4 w-4 text-foreground" />
+                    <span className="font-medium text-foreground text-sm">Proactive AI Mode</span>
                   </div>
-                  <button
-                    onClick={() => setProactiveAIEnabled(!proactiveAIEnabled)}
+                  <Switch
+                    checked={proactiveAIEnabled}
+                    onChange={setProactiveAIEnabled}
                     className={cn(
                       "relative w-10 h-5 rounded-full transition-colors",
-                      proactiveAIEnabled ? "bg-[#1A6B8A]" : "bg-[#B8A898]"
+                      proactiveAIEnabled ? "bg-foreground" : "bg-muted-foreground/30"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
+                        "absolute top-0.5 w-4 h-4 bg-background rounded-full shadow transition-transform",
                         proactiveAIEnabled ? "translate-x-5" : "translate-x-0.5"
                       )}
                     />
-                  </button>
+                  </Switch>
                 </div>
-                <p className="text-xs text-[#7D6B58]">
+                <p className="text-xs text-muted-foreground">
                   {proactiveAIEnabled
                     ? "AI will suggest helpful additions as you write"
                     : "Enable to get intelligent suggestions while writing"}
@@ -1916,20 +1909,20 @@ export default function JournalEditorPage() {
             )}
           </div>
           <button
-            className="p-2.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#7D6B58]"
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground"
             onClick={() => toast.info('Timer feature coming soon!')}
           >
-            <Timer className="h-5 w-5" />
+            <Timer weight="duotone" className="h-5 w-5" />
           </button>
           <button
-            className="p-2.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#7D6B58]"
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground"
             onClick={() => toast.info('More options coming soon!')}
           >
-            <MoreHorizontal className="h-5 w-5" />
+            <DotsThree weight="duotone" className="h-5 w-5" />
           </button>
           <button
             onClick={() => toast.info('Sharing is coming soon!')}
-            className="ml-2 bg-[#3A2E1E] hover:bg-[#2D2318] text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
           >
             Share
           </button>
@@ -1937,59 +1930,51 @@ export default function JournalEditorPage() {
       </header>
 
       {/* Main Content Area */}
-      <main className="px-8 py-6 max-w-4xl mx-auto">
+      <main className="px-8 py-8 max-w-3xl mx-auto">
 
         {/* Large serif title */}
-        <div className="mb-6 flex items-start gap-3">
+        <div className="mb-8">
           <input
             type="text"
             value={title}
             onChange={handleTitleChange}
-            className="text-4xl font-bold bg-transparent border-none outline-none text-[#3A2E1E] placeholder:text-[#9B8B78] focus:ring-0 w-full"
+            className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
             style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
             placeholder="New Journal"
           />
-          <button
-            className="mt-2 p-1.5 hover:bg-[#E8DCC0] rounded-lg transition-colors text-[#9B8B78] flex-shrink-0"
-            onClick={() => toast.info('More options coming soon!')}
-          >
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
+          <div className="h-px bg-border mt-4" />
         </div>
         {/* Start with section - only show when empty */}
         {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
-          <div className="mb-6">
-            <p className="text-sm text-[#9B8B78] mb-3">Start with</p>
-            <div className="flex flex-wrap gap-3">
+          <div className="mb-8">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
+            <div className="grid grid-cols-3 gap-px bg-border border border-border">
               <button
                 onClick={() => handleQuickAction('Agathon Method')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
               >
-                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#155A73]" />
-                </span>
-                Ask Agathon to teach you
+                <Sparkle weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">Ask Agathon</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Flashcards')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
               >
-                <span className="w-6 h-6 rounded-md bg-[#D4E0EC] flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-[#3A6B9F]" />
-                </span>
-                Study with flashcards
+                <Stack weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">Flashcards</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Practice Problems')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
               >
-                <span className="w-6 h-6 rounded-md bg-[#F0DCD0] flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-[#A85535]" />
-                </span>
-                Create practice problems
+                <ClipboardText weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                <p className="text-sm font-medium text-foreground">Practice</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
               </button>
             </div>
           </div>
@@ -1997,59 +1982,44 @@ export default function JournalEditorPage() {
 
         {/* Inline Input for Practice Problems / Flashcards */}
         {activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
-          <div className="mb-6 space-y-4">
-            {/* Show the quick action buttons */}
-            <div className="flex flex-wrap gap-3">
+          <div className="mb-8 space-y-4">
+            {/* Tabs for quick action selection */}
+            <div className="flex gap-px bg-border border border-border">
               <button
                 onClick={() => handleQuickAction('Agathon Method')}
                 disabled={isGenerating}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all disabled:opacity-50 shadow-sm"
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
               >
-                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#155A73]" />
-                </span>
-                Ask Agathon to teach you
+                Ask Agathon
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Flashcards')}
                 disabled={isGenerating}
                 className={cn(
-                  "inline-flex items-center gap-3 px-5 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50 shadow-sm",
+                  "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
                   activeInlineInput === 'Flashcards'
-                    ? "bg-[#C2B280] text-[#3A2E1E] border border-[#A09060]"
-                    : "bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] hover:shadow-md"
+                    ? "bg-foreground text-background"
+                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <span className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center",
-                  activeInlineInput === 'Flashcards' ? "bg-[#A09060]" : "bg-[#D4E0EC]"
-                )}>
-                  <Layers className={cn("h-4 w-4", activeInlineInput === 'Flashcards' ? "text-[#3A2E1E]" : "text-[#3A6B9F]")} />
-                </span>
-                Study with flashcards
+                Flashcards
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Practice Problems')}
                 disabled={isGenerating}
                 className={cn(
-                  "inline-flex items-center gap-3 px-5 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50 shadow-sm",
+                  "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
                   activeInlineInput === 'Practice Problems'
-                    ? "bg-[#C2B280] text-[#3A2E1E] border border-[#A09060]"
-                    : "bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] hover:shadow-md"
+                    ? "bg-foreground text-background"
+                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <span className={cn(
-                  "w-6 h-6 rounded-md flex items-center justify-center",
-                  activeInlineInput === 'Practice Problems' ? "bg-[#A09060]" : "bg-[#F0DCD0]"
-                )}>
-                  <ClipboardList className={cn("h-4 w-4", activeInlineInput === 'Practice Problems' ? "text-[#3A2E1E]" : "text-[#A85535]")} />
-                </span>
-                Create practice problems
+                Practice
               </button>
             </div>
 
-            {/* Inline input bubble */}
-            <div className="flex items-center gap-2 bg-[#E8DCC0] rounded-2xl px-4 py-3 border border-[#B0A06A]">
+            {/* Inline input */}
+            <div className="flex items-center gap-2 bg-muted px-4 py-3 border border-border">
               <input
                 ref={inlineInputRef}
                 type="text"
@@ -2063,13 +2033,13 @@ export default function JournalEditorPage() {
                     setInlineInputValue('');
                   }
                 }}
-                placeholder={activeInlineInput === 'Practice Problems' ? 'Generate practice problems...' : 'Study with flashcards...'}
-                className="flex-1 bg-transparent border-none outline-none text-[#3A2E1E] text-sm placeholder:text-[#3A2E1E]/50 focus:ring-0"
+                placeholder={activeInlineInput === 'Practice Problems' ? 'What topic for practice problems?' : 'What topic for flashcards?'}
+                className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
                 disabled={isGenerating}
               />
-              {/* Count selector for practice problems or flashcards */}
+              {/* Count selector */}
               {(activeInlineInput === 'Practice Problems' || activeInlineInput === 'Flashcards') && (
-                <div className="flex items-center gap-1 bg-[#F7F0E3] rounded-lg px-2 py-1 border border-[#CFC0A8]">
+                <div className="flex items-center gap-1 bg-card px-2 py-1 border border-border">
                   <select
                     value={activeInlineInput === 'Flashcards' ? flashcardCount : practiceCount}
                     onChange={(e) => {
@@ -2079,7 +2049,7 @@ export default function JournalEditorPage() {
                         setPracticeCount(Number(e.target.value));
                       }
                     }}
-                    className="bg-transparent border-none outline-none text-sm text-[#5C4B3A] focus:ring-0 pr-1"
+                    className="bg-transparent border-none outline-none text-sm text-foreground focus:ring-0 pr-1"
                   >
                     {[5, 10, 15, 20].map(n => (
                       <option key={n} value={n}>{n}</option>
@@ -2090,9 +2060,9 @@ export default function JournalEditorPage() {
               <button
                 onClick={handleInlineInputSubmit}
                 disabled={!inlineInputValue.trim() || isGenerating}
-                className="w-8 h-8 rounded-lg bg-[#B0A06A] flex items-center justify-center hover:bg-[#A09060] transition-colors disabled:opacity-50"
+                className="w-8 h-8 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
               >
-                <ArrowUp className="h-4 w-4 text-[#3A2E1E]" />
+                <ArrowUp className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -2100,97 +2070,56 @@ export default function JournalEditorPage() {
 
         {/* Flashcard Loading State */}
         {isGeneratingFlashcards && (
-          <div className="mb-6 space-y-4">
-            {/* Show the quick action buttons */}
-            <div className="flex flex-wrap gap-3">
-              <button
-                disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#9B8B78] text-sm font-medium shadow-sm opacity-50"
-              >
-                <span className="w-6 h-6 rounded-md bg-[#D4E8F0]/50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#60A0B8]" />
-                </span>
-                Ask Agathon to teach you
-              </button>
-              <button
-                disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C2B280] text-[#3A2E1E] border border-[#A09060] text-sm font-medium shadow-sm"
-              >
-                <span className="w-6 h-6 rounded-md bg-[#A09060] flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-[#3A2E1E]" />
-                </span>
-                Study with flashcards
-              </button>
-              <button
-                disabled
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#9B8B78] text-sm font-medium shadow-sm opacity-50"
-              >
-                <span className="w-6 h-6 rounded-md bg-[#F0DCD0]/50 flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-[#D08868]" />
-                </span>
-                Create practice problems
-              </button>
+          <div className="mb-8 space-y-4">
+            <div className="flex gap-px bg-border border border-border">
+              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Ask Agathon</div>
+              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">Flashcards</div>
+              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Practice</div>
             </div>
 
-            {/* Loading state bubble */}
             <div className="space-y-3">
-              <div className="bg-[#E8DCC0] rounded-3xl border border-[#B0A06A] overflow-hidden">
+              <div className="bg-card border border-border overflow-hidden">
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-6 w-6 text-[#1A6B8A] animate-spin mr-3" />
-                  <span className="text-[#155A73] font-medium">Creating {flashcardCount} flashcards...</span>
+                  <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mr-3" />
+                  <span className="text-foreground font-medium">Creating {flashcardCount} flashcards...</span>
                 </div>
               </div>
-              <p className="text-sm text-[#7D6B58]">&quot;{flashcardTopic}&quot;</p>
+              <p className="text-sm text-muted-foreground">&quot;{flashcardTopic}&quot;</p>
             </div>
           </div>
         )}
 
         {/* Interactive Flashcard Display */}
         {flashcards.length > 0 && !isGeneratingFlashcards && (
-          <div className="mb-6 space-y-4">
-            {/* Show the quick action buttons */}
-            <div className="flex flex-wrap gap-3">
+          <div className="mb-8 space-y-4">
+            <div className="flex gap-px bg-border border border-border">
               <button
-                onClick={() => {
-                  setFlashcards([]);
-                  handleQuickAction('Agathon Method');
-                }}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all shadow-sm"
+                onClick={() => { setFlashcards([]); handleQuickAction('Agathon Method'); }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
-                <span className="w-6 h-6 rounded-md bg-[#D4E8F0] flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#155A73]" />
-                </span>
-                Ask Agathon to teach you
+                Ask Agathon
               </button>
+              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">
+                Flashcards
+              </div>
               <button
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#C2B280] text-[#3A2E1E] border border-[#A09060] text-sm font-medium shadow-sm"
+                onClick={() => { setFlashcards([]); handleOpenInlineInput('Practice Problems'); }}
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               >
-                <span className="w-6 h-6 rounded-md bg-[#A09060] flex items-center justify-center">
-                  <Layers className="h-4 w-4 text-[#3A2E1E]" />
-                </span>
-                Study with flashcards
-              </button>
-              <button
-                onClick={() => {
-                  setFlashcards([]);
-                  handleOpenInlineInput('Practice Problems');
-                }}
-                className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-[#F7F0E3] border border-[#DFD0B8] text-[#5C4B3A] text-sm font-medium hover:shadow-md transition-all shadow-sm"
-              >
-                <span className="w-6 h-6 rounded-md bg-[#F0DCD0] flex items-center justify-center">
-                  <ClipboardList className="h-4 w-4 text-[#A85535]" />
-                </span>
-                Create practice problems
+                Practice
               </button>
             </div>
 
             {/* Flashcard */}
             <div
               onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)}
-              className="bg-[#F0E4CC] rounded-3xl border border-[#DFD0B8] min-h-[350px] flex items-center justify-center cursor-pointer hover:shadow-lg transition-all shadow-sm"
+              className="bg-card border border-border min-h-[320px] flex items-center justify-center cursor-pointer hover:bg-accent transition-all"
             >
               <div className="px-12 py-16 text-center max-w-2xl">
-                <p className="text-xl font-medium text-[#4A3728] leading-relaxed">
+                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
+                  {isFlashcardFlipped ? 'Answer' : 'Question'} — Click to flip
+                </p>
+                <p className="text-xl font-medium text-foreground leading-relaxed" style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}>
                   {isFlashcardFlipped
                     ? flashcards[currentFlashcardIndex]?.answer
                     : flashcards[currentFlashcardIndex]?.question}
@@ -2199,39 +2128,37 @@ export default function JournalEditorPage() {
             </div>
 
             {/* Flashcard Controls */}
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex items-center bg-[#F7F0E3] rounded-xl border border-[#CFC0A8] shadow-sm">
-                <button
-                  onClick={handleShuffleFlashcards}
-                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] rounded-l-xl transition-colors border-r border-[#CFC0A8]"
-                  title="Shuffle"
-                >
-                  <Shuffle className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handlePrevFlashcard}
-                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] transition-colors border-r border-[#CFC0A8]"
-                  title="Previous"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="px-4 py-2 text-sm text-[#6B5A48] font-medium min-w-[80px] text-center">
-                  {currentFlashcardIndex + 1} of {flashcards.length}
-                </span>
-                <button
-                  onClick={handleNextFlashcard}
-                  className="p-2.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#F0E4CC] transition-colors border-l border-[#CFC0A8]"
-                  title="Next"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="flex items-center justify-center gap-px bg-border border border-border w-fit mx-auto">
+              <button
+                onClick={handleShuffleFlashcards}
+                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Shuffle"
+              >
+                <Shuffle className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handlePrevFlashcard}
+                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Previous"
+              >
+                <CaretLeft weight="bold" className="h-4 w-4" />
+              </button>
+              <span className="px-4 py-2.5 bg-card text-sm text-foreground font-medium tabular-nums min-w-[80px] text-center">
+                {currentFlashcardIndex + 1} / {flashcards.length}
+              </span>
+              <button
+                onClick={handleNextFlashcard}
+                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Next"
+              >
+                <CaretRight weight="bold" className="h-4 w-4" />
+              </button>
               <button
                 onClick={handleDeleteFlashcards}
-                className="p-2.5 text-[#BF6B4D] hover:text-[#8E4228] hover:bg-[#F0DCD0] rounded-xl border border-[#CFC0A8] shadow-sm transition-colors"
+                className="p-2.5 bg-card text-red-600 dark:text-red-400 hover:bg-muted transition-colors"
                 title="Delete flashcards"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -2239,12 +2166,12 @@ export default function JournalEditorPage() {
 
         {/* Pending Blocks - Diff-style Accept/Deny UI */}
         {pendingBlocks.length > 0 && (
-          <div className="mb-6 space-y-3">
+          <div className="mb-8 space-y-2">
             {/* Header with Accept All / Deny All */}
-            <div className="flex items-center justify-between bg-[#E8DCC0] rounded-xl px-4 py-3">
+            <div className="flex items-center justify-between bg-muted px-4 py-3 border border-border">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[#1A6B8A]" />
-                <span className="text-sm font-medium text-[#0E4A60]">
+                <Sparkle weight="duotone" className="h-4 w-4 text-foreground" />
+                <span className="text-sm font-medium text-foreground">
                   {pendingBlocks.filter(b => b.status === 'pending').length} section{pendingBlocks.filter(b => b.status === 'pending').length !== 1 ? 's' : ''} to review
                 </span>
               </div>
@@ -2252,7 +2179,7 @@ export default function JournalEditorPage() {
                 <button
                   onClick={handleAcceptAllBlocks}
                   disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#155A73] text-white rounded-lg hover:bg-[#0E4A60] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
                 >
                   <Check className="h-3.5 w-3.5" />
                   Accept All
@@ -2260,14 +2187,14 @@ export default function JournalEditorPage() {
                 <button
                   onClick={handleDenyAllBlocks}
                   disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#A85535] text-white rounded-lg hover:bg-[#8E4228] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
                   <X className="h-3.5 w-3.5" />
                   Deny All
                 </button>
                 <button
                   onClick={handleClearPendingBlocks}
-                  className="p-1.5 text-[#7D6B58] hover:text-[#5C4B3A] hover:bg-[#E8DCC0] rounded-lg transition-colors"
+                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   title="Dismiss all"
                 >
                   <X className="h-4 w-4" />
@@ -2280,12 +2207,12 @@ export default function JournalEditorPage() {
               <div
                 key={block.id}
                 className={cn(
-                  'relative rounded-xl border overflow-hidden transition-all duration-300',
+                  'relative border overflow-hidden transition-all duration-300',
                   block.status === 'pending'
-                    ? 'bg-[#E8DCC0]/50 border-[#A8C8D8]'
+                    ? 'bg-card border-border'
                     : block.status === 'accepted'
-                    ? 'bg-[#D4E8F0]/30 border-[#C0D8E8] opacity-60'
-                    : 'bg-[#F0DCD0]/30 border-[#E8C8B8] opacity-40 line-through'
+                    ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 opacity-60'
+                    : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-40 line-through'
                 )}
               >
                 {/* Left accent bar */}
@@ -2293,28 +2220,28 @@ export default function JournalEditorPage() {
                   className={cn(
                     'absolute left-0 top-0 bottom-0 w-1',
                     block.status === 'pending'
-                      ? 'bg-[#1A6B8A]'
+                      ? 'bg-foreground'
                       : block.status === 'accepted'
-                      ? 'bg-[#2D8BAB]'
-                      : 'bg-[#BF6B4D]'
+                      ? 'bg-green-600'
+                      : 'bg-red-600'
                   )}
                 />
 
                 <div className="pl-4 pr-3 py-3">
                   <div className="flex items-start gap-3">
-                    {/* Plus icon on left */}
+                    {/* Status icon */}
                     {block.status === 'pending' && (
-                      <div className="w-5 h-5 rounded bg-[#1A6B8A] flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Plus className="h-3 w-3 text-white" />
+                      <div className="w-5 h-5 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Plus className="h-3 w-3 text-background" />
                       </div>
                     )}
                     {block.status === 'accepted' && (
-                      <div className="w-5 h-5 rounded bg-[#2D8BAB] flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 bg-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
                     {block.status === 'denied' && (
-                      <div className="w-5 h-5 rounded bg-[#BF6B4D] flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 bg-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <X className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -2324,25 +2251,25 @@ export default function JournalEditorPage() {
                       <div
                         className={cn(
                           'text-sm leading-relaxed',
-                          block.status === 'denied' ? 'text-[#9B8B78]' : 'text-[#5C4B3A]'
+                          block.status === 'denied' ? 'text-muted-foreground' : 'text-foreground/80'
                         )}
                         dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content.slice(0, 300) + (block.content.length > 300 ? '...' : '')) }}
                       />
                     </div>
 
-                    {/* Accept/Deny buttons on right */}
+                    {/* Accept/Deny buttons */}
                     {block.status === 'pending' && (
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                           onClick={() => handleAcceptBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-[#155A73] text-white rounded-lg hover:bg-[#0E4A60] transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
                         >
                           <Check className="h-3 w-3" />
                           Accept
                         </button>
                         <button
                           onClick={() => handleDenyBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-[#A85535] text-white rounded-lg hover:bg-[#8E4228] transition-colors"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
                         >
                           <X className="h-3 w-3" />
                           Deny
@@ -2350,12 +2277,11 @@ export default function JournalEditorPage() {
                       </div>
                     )}
 
-                    {/* Status indicator for processed blocks */}
                     {block.status === 'accepted' && (
-                      <span className="text-xs text-[#1A6B8A] font-medium flex-shrink-0">Added</span>
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium flex-shrink-0">Added</span>
                     )}
                     {block.status === 'denied' && (
-                      <span className="text-xs text-[#BF6B4D] font-medium flex-shrink-0">Removed</span>
+                      <span className="text-xs text-red-600 dark:text-red-400 font-medium flex-shrink-0">Removed</span>
                     )}
                   </div>
                 </div>
@@ -2395,26 +2321,26 @@ export default function JournalEditorPage() {
           {/* Proactive AI Suggestion Display */}
           {proactiveSuggestion && proactiveAIEnabled && (
             <div className="mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-gradient-to-r from-[#F5E8C8] to-[#F0E0B8] rounded-2xl border border-[#D8C888] p-4 shadow-sm">
+              <div className="bg-accent border border-border p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#EDD8A8] flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="h-4 w-4 text-[#A88030]" />
+                  <div className="w-8 h-8 bg-muted flex items-center justify-center flex-shrink-0">
+                    <Lightbulb className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#5C4B3A] leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
                       {proactiveSuggestion}
                     </p>
                     <div className="flex items-center gap-2 mt-3">
                       <button
                         onClick={handleApplySuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#C89B40] hover:bg-[#A88030] text-white text-xs font-medium rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background text-xs font-medium transition-colors hover:bg-foreground/90"
                       >
                         <Check className="h-3 w-3" />
                         Add to notes
                       </button>
                       <button
                         onClick={handleDismissSuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#F7F0E3] hover:bg-[#F0E4CC] text-[#6B5A48] text-xs font-medium rounded-lg border border-[#CFC0A8] transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-muted text-muted-foreground text-xs font-medium border border-border transition-colors"
                       >
                         <X className="h-3 w-3" />
                         Dismiss
@@ -2429,9 +2355,9 @@ export default function JournalEditorPage() {
           {/* Proactive AI Generating Indicator */}
           {isGeneratingSuggestion && proactiveAIEnabled && !proactiveSuggestion && (
             <div className="mt-4 animate-in fade-in duration-200">
-              <div className="bg-[#F5E8C8]/50 rounded-xl border border-[#E8D8A8] px-4 py-3 flex items-center gap-3">
-                <Loader2 className="h-4 w-4 text-[#C89B40] animate-spin" />
-                <span className="text-sm text-[#8A6820]">Thinking of suggestions...</span>
+              <div className="bg-accent/50 border border-border px-4 py-3 flex items-center gap-3">
+                <CircleNotch className="h-4 w-4 text-muted-foreground animate-spin" />
+                <span className="text-sm text-muted-foreground">Thinking of suggestions...</span>
               </div>
             </div>
           )}
@@ -2439,8 +2365,8 @@ export default function JournalEditorPage() {
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 right-0 px-6 py-4">
-        <span className="text-xs text-[#9B8B78]">
+      <footer className="fixed bottom-0 right-0 px-6 py-3">
+        <span className="text-xs text-muted-foreground tabular-nums">
           {isSaving ? (
             'Saving...'
           ) : lastSaved ? (
@@ -2452,26 +2378,21 @@ export default function JournalEditorPage() {
       </footer>
 
       {/* YouTube Embed Modal */}
-      {showYoutubeModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog open={showYoutubeModal} onClose={() => setShowYoutubeModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
-                  <Youtube className="h-5 w-5 text-[#A85535]" />
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <YoutubeLogo weight="duotone" className="h-5 w-5 text-muted-foreground" />
                   Embed YouTube Video
-                </h3>
-                <button
-                  onClick={() => setShowYoutubeModal(false)}
-                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-[#7D6B58]" />
+                </DialogTitle>
+                <button onClick={() => setShowYoutubeModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
-              <p className="text-sm text-[#7D6B58] mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Paste a YouTube video URL to embed it in your journal.
               </p>
               <input
@@ -2480,130 +2401,92 @@ export default function JournalEditorPage() {
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && youtubeUrl.trim()) {
-                    handleYoutubeEmbed();
-                  } else if (e.key === 'Escape') {
-                    setShowYoutubeModal(false);
-                  }
+                  if (e.key === 'Enter' && youtubeUrl.trim()) handleYoutubeEmbed();
                 }}
                 placeholder="https://www.youtube.com/watch?v=..."
-                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#A85535]/30 focus:border-[#BF6B4D] transition-all"
+                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
-              <button
-                onClick={() => setShowYoutubeModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
-              >
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowYoutubeModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleYoutubeEmbed}
-                disabled={!youtubeUrl.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#A85535] text-white font-medium hover:bg-[#8E4228] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button onClick={handleYoutubeEmbed} disabled={!youtubeUrl.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Embed
               </button>
             </div>
-          </div>
+          </DialogPanel>
         </div>
-      )}
+      </Dialog>
 
       {/* Journal Link Modal */}
-      {showJournalLinkModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog open={showJournalLinkModal} onClose={() => setShowJournalLinkModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
-                  <Link className="h-5 w-5 text-[#3A6B9F]" />
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Link className="h-5 w-5 text-muted-foreground" />
                   Link to Journal
-                </h3>
-                <button
-                  onClick={() => setShowJournalLinkModal(false)}
-                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-[#7D6B58]" />
+                </DialogTitle>
+                <button onClick={() => setShowJournalLinkModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9B8B78]" />
+                <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
                   autoFocus
                   value={journalSearchQuery}
-                  onChange={(e) => {
-                    setJournalSearchQuery(e.target.value);
-                    searchJournals(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setShowJournalLinkModal(false);
-                    }
-                  }}
+                  onChange={(e) => { setJournalSearchQuery(e.target.value); searchJournals(e.target.value); }}
                   placeholder="Search journals..."
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#3A6B9F]/30 focus:border-[#5A8BBF] transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
                 />
               </div>
               <div className="max-h-64 overflow-y-auto space-y-2">
                 {searchedJournals.length === 0 ? (
-                  <p className="text-sm text-[#7D6B58] text-center py-4">No journals found</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No journals found</p>
                 ) : (
                   searchedJournals.map((j) => (
-                    <button
-                      key={j.id}
-                      onClick={() => handleJournalLink(j)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#F0E4CC] transition-colors text-left"
-                    >
-                      <FileText className="h-5 w-5 text-[#9B8B78] flex-shrink-0" />
+                    <button key={j.id} onClick={() => handleJournalLink(j)} className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors text-left">
+                      <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#3A2E1E] truncate">{j.title}</p>
-                        <p className="text-xs text-[#7D6B58]">
-                          {formatDistance(new Date(j.updated_at), new Date(), { addSuffix: true })}
-                        </p>
+                        <p className="text-sm font-medium text-foreground truncate">{j.title}</p>
+                        <p className="text-xs text-muted-foreground">{formatDistance(new Date(j.updated_at), new Date(), { addSuffix: true })}</p>
                       </div>
-                      <ExternalLink className="h-4 w-4 text-[#9B8B78]" />
+                      <ArrowSquareOut className="h-4 w-4 text-muted-foreground" />
                     </button>
                   ))
                 )}
               </div>
             </div>
-            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
-              <button
-                onClick={() => setShowJournalLinkModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
-              >
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowJournalLinkModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
                 Cancel
               </button>
             </div>
-          </div>
+          </DialogPanel>
         </div>
-      )}
+      </Dialog>
 
       {/* Desmos Graph Modal */}
-      {showDesmosModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog open={showDesmosModal} onClose={() => setShowDesmosModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
-                  <LineChart className="h-5 w-5 text-[#155A73]" />
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <ChartLine className="h-5 w-5 text-muted-foreground" />
                   Add Desmos Graph
-                </h3>
-                <button
-                  onClick={() => setShowDesmosModal(false)}
-                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-[#7D6B58]" />
+                </DialogTitle>
+                <button onClick={() => setShowDesmosModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
-              <p className="text-sm text-[#7D6B58] mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Enter a math expression to graph (e.g., y=x^2, sin(x), etc.)
               </p>
               <input
@@ -2612,111 +2495,92 @@ export default function JournalEditorPage() {
                 value={desmosExpression}
                 onChange={(e) => setDesmosExpression(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && desmosExpression.trim()) {
-                    handleDesmosEmbed();
-                  } else if (e.key === 'Escape') {
-                    setShowDesmosModal(false);
-                  }
+                  if (e.key === 'Enter' && desmosExpression.trim()) handleDesmosEmbed();
                 }}
                 placeholder="y = x^2"
-                className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#1A6B8A]/30 focus:border-[#2D8BAB] transition-all font-mono"
+                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all font-mono"
               />
             </div>
-            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
-              <button
-                onClick={() => setShowDesmosModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
-              >
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowDesmosModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
                 Cancel
               </button>
-              <button
-                onClick={handleDesmosEmbed}
-                disabled={!desmosExpression.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#155A73] text-white font-medium hover:bg-[#0E4A60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button onClick={handleDesmosEmbed} disabled={!desmosExpression.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Add Graph
               </button>
             </div>
-          </div>
+          </DialogPanel>
         </div>
-      )}
+      </Dialog>
 
       {/* Chart Modal */}
-      {showChartModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-[#F7F0E3] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Dialog open={showChartModal} onClose={() => setShowChartModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#3A2E1E] flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-purple-500" />
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <ChartBar className="h-5 w-5 text-muted-foreground" />
                   Create Chart
-                </h3>
+                </DialogTitle>
                 <button
                   onClick={() => setShowChartModal(false)}
-                  className="p-1 hover:bg-[#E8DCC0] rounded-lg transition-colors"
+                  className="p-1 hover:bg-muted transition-colors"
                 >
-                  <X className="h-5 w-5 text-[#7D6B58]" />
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[#5C4B3A] mb-2 block">Chart Type</label>
-                  <div className="flex gap-2">
+                  <label className="text-sm font-medium text-foreground/80 mb-2 block">Chart Type</label>
+                  <RadioGroup value={chartType} onChange={setChartType} className="flex gap-2">
                     {(['bar', 'line', 'pie'] as const).map((type) => (
-                      <button
+                      <Radio
                         key={type}
-                        onClick={() => setChartType(type)}
+                        value={type}
                         className={cn(
-                          'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                          chartType === type
-                            ? 'bg-purple-100 text-purple-700'
-                            : 'bg-[#E8DCC0] text-[#6B5A48] hover:bg-[#DDD0B0]'
+                          'flex-1 px-3 py-2 text-sm font-medium transition-colors cursor-pointer text-center',
+                          'data-[checked]:bg-foreground data-[checked]:text-background',
+                          'bg-muted text-muted-foreground hover:bg-accent'
                         )}
                       >
-                        {type === 'bar' ? '📊 Bar' : type === 'line' ? '📈 Line' : '🥧 Pie'}
-                      </button>
+                        {type === 'bar' ? 'Bar' : type === 'line' ? 'Line' : 'Pie'}
+                      </Radio>
                     ))}
-                  </div>
+                  </RadioGroup>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[#5C4B3A] mb-2 block">Data</label>
+                  <label className="text-sm font-medium text-foreground/80 mb-2 block">Data</label>
                   <textarea
                     value={chartData}
                     onChange={(e) => setChartData(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') {
-                        setShowChartModal(false);
-                      }
-                    }}
                     placeholder="Label1,10;Label2,20;Label3,30"
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-[#CFC0A8] bg-[#F0E4CC] text-[#3A2E1E] placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all font-mono text-sm"
+                    className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all font-mono text-sm"
                   />
-                  <p className="text-xs text-[#7D6B58] mt-1">Format: Label,Value separated by semicolons</p>
+                  <p className="text-xs text-muted-foreground mt-1">Format: Label,Value separated by semicolons</p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3 p-4 bg-[#F0E4CC] border-t border-[#DFD0B8]">
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
               <button
                 onClick={() => setShowChartModal(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[#6B5A48] font-medium hover:bg-[#E8DCC0] transition-colors"
+                className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleChartCreate}
                 disabled={!chartData.trim()}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Chart
               </button>
             </div>
-          </div>
+          </DialogPanel>
         </div>
-      )}
+      </Dialog>
 
       {/* Hidden file inputs */}
       <input

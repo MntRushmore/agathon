@@ -1,29 +1,56 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
-  User,
-  Coins,
-  Mail,
-  Shield,
-  Loader2,
-} from 'lucide-react';
+  CaretRight,
+  CircleNotch,
+  SignOut,
+} from '@phosphor-icons/react';
+
+// Preference keys in localStorage
+const PREF_KEYS = {
+  AI_MODE: 'agathon_pref_ai_mode',
+  ANIMATIONS: 'agathon_pref_animations',
+  BOARD_TEMPLATE: 'agathon_pref_board_template',
+} as const;
+
+type AiMode = 'feedback' | 'suggest' | 'answer';
+type BoardTemplate = 'blank' | 'lined' | 'graph';
+
+function useLocalPref<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
+  const [value, setValue] = useState<T>(fallback);
+  useEffect(() => {
+    const stored = localStorage.getItem(key);
+    if (stored) setValue(stored as T);
+  }, [key]);
+  const set = useCallback((v: T) => {
+    setValue(v);
+    localStorage.setItem(key, v);
+    window.dispatchEvent(new Event('agathon-pref-change'));
+  }, [key]);
+  return [value, set];
+}
 
 export default function SettingsPage() {
   const { user, profile, refreshProfile } = useAuth();
   const router = useRouter();
+  const supabase = createClient();
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
+  const [nameChanged, setNameChanged] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  // Local preferences
+  const [aiMode, setAiMode] = useLocalPref<AiMode>(PREF_KEYS.AI_MODE, 'feedback');
+  const [animations, setAnimations] = useLocalPref<'on' | 'off'>(PREF_KEYS.ANIMATIONS, 'on');
+  const [boardTemplate, setBoardTemplate] = useLocalPref<BoardTemplate>(PREF_KEYS.BOARD_TEMPLATE, 'blank');
 
   useEffect(() => {
     if (profile?.full_name) {
@@ -37,166 +64,257 @@ export default function SettingsPage() {
     }
   }, [user, router]);
 
-  const handleSave = async () => {
-    if (!user) return;
-
+  const handleSaveName = async () => {
+    if (!user || !nameChanged) return;
     setSaving(true);
     try {
-      const supabase = createClient();
-
       const { error } = await supabase
         .from('profiles')
         .update({ full_name: fullName })
         .eq('id', user.id);
-
       if (error) throw error;
-
       await refreshProfile();
-      toast.success('Settings saved successfully');
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      toast.error('Failed to save settings');
+      setNameChanged(false);
+      toast.success('Name updated');
+    } catch {
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut();
+      router.push('/');
+    } catch {
+      toast.error('Failed to sign out');
+      setSigningOut(false);
     }
   };
 
   if (!user || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="duotone" />
       </div>
     );
   }
 
+  const planLabel = profile.plan_tier === 'premium' || profile.plan_tier === 'enterprise'
+    ? 'Enterprise'
+    : 'Free';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.01_210)] via-background to-background">
-      <div className="max-w-3xl mx-auto px-6 py-12 space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div className="flex items-center gap-2.5 mb-8">
+          <button
             onClick={() => router.back()}
-            className="rounded-full"
+            className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold">Settings</h1>
-            <p className="text-muted-foreground">Manage your account and preferences</p>
-          </div>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
+            Settings
+          </h1>
         </div>
 
-        {/* Account Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Account Information
-            </CardTitle>
-            <CardDescription>
-              Your basic account details
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                Email
-              </Label>
-              <Input value={user.email || ''} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Label>Role</Label>
-              <Badge variant="outline" className="capitalize">
-                <Shield className="h-3 w-3 mr-1" />
-                {profile.role}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Credits Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Coins className="h-5 w-5" />
-              AI Credits
-            </CardTitle>
-            <CardDescription>
-              Your credit balance for enterprise AI features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-              <div>
-                <p className="text-sm text-muted-foreground">Current Balance</p>
-                <p className="text-3xl font-bold">{profile.credits ?? 0}</p>
-                <p className="text-xs text-muted-foreground">credits available</p>
-              </div>
-              <Button onClick={() => router.push('/credits')}>
-                Manage Credits
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              Credits are used for enterprise features like handwritten visual feedback on your canvas.
-              All other AI features are free for everyone.
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Plan Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
-            <CardDescription>
-              Your subscription status
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <Badge variant={profile.plan_tier === 'premium' || profile.plan_tier === 'enterprise' ? 'default' : 'secondary'}>
-                  {profile.plan_tier === 'premium' || profile.plan_tier === 'enterprise' ? 'Enterprise' : profile.plan_tier === 'free' ? 'Free' : profile.plan_tier || 'Free'}
-                </Badge>
-                {profile.plan_status && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Status: {profile.plan_status}
-                  </p>
+        {/* Account */}
+        <section className="mb-8">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Account</h2>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border">
+            {/* Name */}
+            <div className="px-4 py-3.5">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">Name</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={fullName}
+                  onChange={(e) => { setFullName(e.target.value); setNameChanged(true); }}
+                  placeholder="Your name"
+                  className="h-8 text-[13px] bg-transparent border-border"
+                />
+                {nameChanged && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-[12px] flex-shrink-0"
+                    onClick={handleSaveName}
+                    disabled={saving}
+                  >
+                    {saving ? <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" /> : 'Save'}
+                  </Button>
                 )}
               </div>
-              <Button variant="outline" onClick={() => router.push('/billing')}>
-                View Plans
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+            {/* Email */}
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">Email</span>
+                <span className="text-[13px] text-foreground">{user.email}</span>
+              </div>
+            </div>
+            {/* Role */}
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">Role</span>
+                <span className="text-[13px] text-foreground capitalize">{profile.role}</span>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
+        {/* Plan & Credits */}
+        <section className="mb-8">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Plan</h2>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border">
+            <button
+              onClick={() => router.push('/billing')}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-muted/30 transition-colors rounded-t-lg group"
+            >
+              <div>
+                <span className="text-[13px] font-medium text-foreground block">Subscription</span>
+                <span className="text-[11px] text-muted-foreground">{planLabel} plan</span>
+              </div>
+              <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
+            </button>
+            <button
+              onClick={() => router.push('/credits')}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-muted/30 transition-colors rounded-b-lg group"
+            >
+              <div>
+                <span className="text-[13px] font-medium text-foreground block">AI Credits</span>
+                <span className="text-[11px] text-muted-foreground">{profile.credits ?? 0} credits available</span>
+              </div>
+              <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
+            </button>
+          </div>
+        </section>
+
+        {/* Preferences */}
+        <section className="mb-8">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Preferences</h2>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border">
+            {/* Default AI Mode */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-[13px] font-medium text-foreground block">Default AI mode</span>
+                  <span className="text-[11px] text-muted-foreground">How AI responds when you draw</span>
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                {([
+                  { value: 'feedback' as AiMode, label: 'Feedback', desc: 'Hints & guidance' },
+                  { value: 'suggest' as AiMode, label: 'Suggest', desc: 'Step-by-step help' },
+                  { value: 'answer' as AiMode, label: 'Answer', desc: 'Direct solutions' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setAiMode(opt.value)}
+                    className={`flex-1 px-3 py-2 rounded-md text-left transition-colors ${
+                      aiMode === opt.value
+                        ? 'bg-primary/10 border border-primary/20'
+                        : 'bg-muted/50 border border-transparent hover:bg-muted'
+                    }`}
+                  >
+                    <span className={`text-[12px] font-medium block ${aiMode === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Default Board Template */}
+            <div className="px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-[13px] font-medium text-foreground block">Default board template</span>
+                  <span className="text-[11px] text-muted-foreground">Background for new boards</span>
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                {([
+                  { value: 'blank' as BoardTemplate, label: 'Blank' },
+                  { value: 'lined' as BoardTemplate, label: 'Lined' },
+                  { value: 'graph' as BoardTemplate, label: 'Graph' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setBoardTemplate(opt.value)}
+                    className={`flex-1 px-3 py-2 rounded-md text-center transition-colors ${
+                      boardTemplate === opt.value
+                        ? 'bg-primary/10 border border-primary/20 text-primary'
+                        : 'bg-muted/50 border border-transparent text-foreground hover:bg-muted'
+                    } text-[12px] font-medium`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Animations */}
+            <div className="px-4 py-3.5 flex items-center justify-between">
+              <div>
+                <span className="text-[13px] font-medium text-foreground block">Animations</span>
+                <span className="text-[11px] text-muted-foreground">Interface motion and transitions</span>
+              </div>
+              <button
+                onClick={() => setAnimations(animations === 'on' ? 'off' : 'on')}
+                className={`relative w-9 h-5 rounded-full transition-colors ${
+                  animations === 'on' ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                    animations === 'on' ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Keyboard Shortcuts Reference */}
+        <section className="mb-8">
+          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Keyboard shortcuts</h2>
+          <div className="border border-border rounded-lg bg-card divide-y divide-border">
+            {[
+              { keys: '\u2318 A', action: 'New board' },
+              { keys: '\u2318 J', action: 'Open journal' },
+              { keys: '\u2318 K', action: 'Search' },
+              { keys: '\u2318 N', action: 'Quick note' },
+            ].map((shortcut) => (
+              <div key={shortcut.keys} className="px-4 py-2.5 flex items-center justify-between">
+                <span className="text-[13px] text-foreground">{shortcut.action}</span>
+                <kbd className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">{shortcut.keys}</kbd>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Sign Out */}
+        <section>
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full flex items-center gap-2.5 px-4 py-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors text-left"
+          >
+            {signingOut ? (
+              <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
             ) : (
-              'Save Changes'
+              <SignOut className="h-4 w-4 text-muted-foreground" weight="duotone" />
             )}
-          </Button>
-        </div>
+            <span className="text-[13px] text-foreground">{signingOut ? 'Signing out...' : 'Sign out'}</span>
+          </button>
+        </section>
+
+        {/* Footer */}
+        <p className="text-center text-[11px] text-muted-foreground/50 mt-8">
+          Agathon v1.0
+        </p>
       </div>
     </div>
   );

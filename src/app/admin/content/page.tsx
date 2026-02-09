@@ -13,18 +13,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import {
-  Search, MoreVertical, Eye, Trash2, BookOpen, FileText, Layout, Pen, RefreshCw,
-} from 'lucide-react';
+  MagnifyingGlass, DotsThreeVertical, Eye, Trash, BookOpenText, FileText, SquaresFour, PencilSimple, ArrowsClockwise,
+} from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { formatDistance } from 'date-fns';
 
 type ContentTab = 'classes' | 'assignments' | 'boards' | 'documents';
 
-const TABS: { key: ContentTab; label: string; icon: typeof BookOpen }[] = [
-  { key: 'classes', label: 'Classes', icon: BookOpen },
+const TABS: { key: ContentTab; label: string; icon: typeof BookOpenText }[] = [
+  { key: 'classes', label: 'Classes', icon: BookOpenText },
   { key: 'assignments', label: 'Assignments', icon: FileText },
-  { key: 'boards', label: 'Boards', icon: Layout },
-  { key: 'documents', label: 'Documents', icon: Pen },
+  { key: 'boards', label: 'Boards', icon: SquaresFour },
+  { key: 'documents', label: 'Documents', icon: PencilSimple },
 ];
 
 export default function AdminContentPage() {
@@ -101,7 +101,7 @@ export default function AdminContentPage() {
           <p className="text-muted-foreground text-sm mt-0.5">Review and manage platform content</p>
         </div>
         <Button variant="outline" size="sm" onClick={loadAllContent} className="rounded-none h-8 text-xs">
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+          <ArrowsClockwise weight="duotone" className="w-3.5 h-3.5 mr-1.5" />
           Refresh
         </Button>
       </div>
@@ -127,7 +127,7 @@ export default function AdminContentPage() {
 
       {/* Search */}
       <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={`Search ${activeTab}...`}
           value={searchQuery}
@@ -168,10 +168,10 @@ export default function AdminContentPage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDistance(new Date(item.created_at), new Date(), { addSuffix: true })}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><DotsThreeVertical weight="duotone" className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">
                         <DropdownMenuItem onClick={() => handleDelete('class', item.id, item.name)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -212,10 +212,10 @@ export default function AdminContentPage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDistance(new Date(item.created_at), new Date(), { addSuffix: true })}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><DotsThreeVertical weight="duotone" className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">
                         <DropdownMenuItem onClick={() => handleDelete('assignment', item.id, item.title)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -250,13 +250,13 @@ export default function AdminContentPage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDistance(new Date(item.updated_at), new Date(), { addSuffix: true })}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><DotsThreeVertical weight="duotone" className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">
                         <DropdownMenuItem onClick={() => window.open(`/board/${item.id}`, '_blank')}>
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete('board', item.id, item.title || 'Untitled')} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -291,13 +291,13 @@ export default function AdminContentPage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDistance(new Date(item.updated_at), new Date(), { addSuffix: true })}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 rounded-none"><DotsThreeVertical weight="duotone" className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-none">
                         <DropdownMenuItem onClick={() => window.open(`/journal/${item.id}`, '_blank')}>
                           <Eye className="mr-2 h-4 w-4" /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete('document', item.id, item.title || 'Untitled')} className="text-destructive focus:text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

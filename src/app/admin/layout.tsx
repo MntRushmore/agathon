@@ -5,26 +5,26 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { toast } from 'sonner';
 import {
-  Shield,
-  Users,
+  ShieldCheck,
+  UsersThree,
   FileText,
-  BarChart3,
-  ChevronLeft,
+  ChartBar,
+  CaretLeft,
   Ticket,
-  Activity,
-  ScrollText,
-} from 'lucide-react';
+  Pulse,
+  Scroll,
+} from '@phosphor-icons/react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const adminNavItems = [
-  { href: '/admin', label: 'Overview', icon: BarChart3 },
-  { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin', label: 'Overview', icon: ChartBar },
+  { href: '/admin/users', label: 'Users', icon: UsersThree },
   { href: '/admin/content', label: 'Content', icon: FileText },
-  { href: '/admin/analytics', label: 'Analytics', icon: Activity },
+  { href: '/admin/analytics', label: 'Analytics', icon: Pulse },
   { href: '/admin/invite-codes', label: 'Invite Codes', icon: Ticket },
-  { href: '/admin/logs', label: 'System Logs', icon: ScrollText },
+  { href: '/admin/logs', label: 'System Logs', icon: Scroll },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -93,7 +93,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="px-4 py-5 border-b border-border">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 bg-foreground flex items-center justify-center">
-                <Shield className="h-3.5 w-3.5 text-background" />
+                <ShieldCheck weight="duotone" className="h-3.5 w-3.5 text-background" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-foreground">Admin Panel</span>
             </div>
@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               href="/"
               className="flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <CaretLeft weight="duotone" className="h-4 w-4" />
               Back to App
             </Link>
           </div>
