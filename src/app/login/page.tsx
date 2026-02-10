@@ -8,8 +8,11 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { toast } from 'sonner';
 import { mapSupabaseError } from '@/lib/error-utils';
 import { logger } from '@/lib/logger';
-import { Eye, EyeOff } from 'lucide-react';
-import Image from 'next/image';
+import { Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
+import { motion } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Logo } from '@/components/ui/logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -97,8 +100,8 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <div className="h-8 w-8 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="duotone" />
       </div>
     );
   }
@@ -108,29 +111,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex">
+    <div className="min-h-screen bg-background flex">
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="w-full max-w-sm"
+        >
           {/* Logo */}
           <Link href="/" className="inline-flex items-center gap-2 mb-12">
-            <Image
-              src="/logo/agathon.png"
-              alt="Agathon"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="font-semibold text-[#1a1a1a]">Agathon</span>
+            <Logo size="sm" showText />
           </Link>
 
           {/* Invite error banner */}
           {inviteError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="text-sm text-red-800 font-medium">
+            <div className="mb-6 p-4 bg-destructive/5 border border-destructive/20 rounded-xl">
+              <p className="text-sm text-destructive font-medium">
                 A valid invite code is required to use Agathon.
               </p>
-              <p className="text-xs text-red-600 mt-1">
+              <p className="text-xs text-destructive/80 mt-1">
                 <Link href="/signup" className="font-medium hover:underline">Sign up with an invite code</Link>
                 {' '}or{' '}
                 <Link href="/?waitlist=true" className="font-medium hover:underline">join the waitlist</Link>
@@ -141,19 +142,20 @@ export default function LoginPage() {
 
           {/* Title */}
           <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-[#1a1a1a] mb-2">
+            <h1 className="text-2xl font-semibold text-foreground mb-2">
               Welcome back
             </h1>
-            <p className="text-[#666]">
+            <p className="text-muted-foreground">
               Sign in to continue learning
             </p>
           </div>
 
           {/* Google Sign In */}
-          <button
+          <Button
+            variant="outline"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 h-11 bg-white border border-[#E8E4DC] rounded-xl hover:bg-[#F5F3EE] transition-colors disabled:opacity-50 mb-6"
+            className="w-full h-11 gap-3 mb-6 rounded-xl"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -173,16 +175,16 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            <span className="text-[#1a1a1a] font-medium text-sm">
+            <span className="font-medium text-sm">
               Continue with Google
             </span>
-          </button>
+          </Button>
 
           {/* Divider */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-[#E8E4DC]" />
-            <span className="text-xs text-[#999]">or</span>
-            <div className="flex-1 h-px bg-[#E8E4DC]" />
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
 
           {/* Form */}
@@ -191,43 +193,43 @@ export default function LoginPage() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Email
               </label>
-              <input
+              <Input
                 type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full h-11 px-4 bg-white border border-[#E8E4DC] rounded-xl text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+                className="h-11 rounded-xl"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#1a1a1a] mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={loading}
-                  className="w-full h-11 px-4 pr-11 bg-white border border-[#E8E4DC] rounded-xl text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:border-[#1a1a1a] transition-colors"
+                  className="h-11 pr-11 rounded-xl"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999] hover:text-[#666] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeSlash className="h-4 w-4" weight="duotone" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" weight="duotone" />
                   )}
                 </button>
               </div>
@@ -238,70 +240,76 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="text-sm text-[#666] hover:text-[#1a1a1a] transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Forgot password?
               </button>
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-[#1a1a1a] hover:bg-[#333] text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+              className="w-full h-11 rounded-xl"
             >
-              {loading ? 'Please wait...' : 'Sign in'}
-            </button>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <CircleNotch className="h-4 w-4 animate-spin" weight="duotone" />
+                  Please wait...
+                </span>
+              ) : (
+                'Sign in'
+              )}
+            </Button>
           </form>
 
           {/* Sign up link */}
-          <p className="text-center text-sm text-[#666] mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-[#1a1a1a] font-medium hover:underline">
+            <Link href="/signup" className="text-foreground font-medium hover:underline">
               Sign up
             </Link>
           </p>
 
           {/* Beta notice */}
-          <div className="mt-6 p-3 bg-white border border-[#E8E4DC] rounded-xl">
-            <p className="text-xs text-[#666] text-center">
+          <div className="mt-6 p-3 bg-card border border-border rounded-xl">
+            <p className="text-xs text-muted-foreground text-center">
               Agathon is currently in beta. Security is not guaranteed.
             </p>
           </div>
 
           {/* Footer links */}
-          <div className="mt-8 pt-6 border-t border-[#E8E4DC]">
-            <p className="text-xs text-[#999] text-center">
+          <div className="mt-8 pt-6 border-t border-border">
+            <p className="text-xs text-muted-foreground/70 text-center">
               By continuing, you agree to our{' '}
-              <Link href="/terms" className="text-[#666] hover:underline">
+              <Link href="/terms" className="text-muted-foreground hover:underline">
                 Terms
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-[#666] hover:underline">
+              <Link href="/privacy" className="text-muted-foreground hover:underline">
                 Privacy Policy
               </Link>
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Right side - Branding (hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 bg-[#1a1a1a] items-center justify-center p-12">
-        <div className="max-w-md text-center">
-          <Image
-            src="/logo/agathon.png"
-            alt="Agathon"
-            width={80}
-            height={80}
-            className="mx-auto mb-8 rounded-2xl"
-          />
-          <h2 className="text-3xl font-semibold text-white mb-4">
+      <div className="hidden lg:flex flex-1 bg-foreground items-center justify-center p-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
+          className="max-w-md text-center"
+        >
+          <Logo size="lg" className="mx-auto mb-8" />
+          <h2 className="text-3xl font-semibold text-background mb-4">
             Learn smarter, not harder
           </h2>
-          <p className="text-[#999] text-lg">
+          <p className="text-background/60 text-lg">
             Agathon helps you understand concepts deeply with AI-powered hints
             and guidance—never just giving you the answer.
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

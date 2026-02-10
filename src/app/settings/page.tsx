@@ -117,29 +117,29 @@ export default function SettingsPage() {
           >
             <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
+          <h1 className="text-lg font-semibold text-foreground">
             Settings
           </h1>
         </div>
 
         {/* Account */}
         <section className="mb-8">
-          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Account</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Account</h2>
           <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {/* Name */}
             <div className="px-4 py-3.5">
-              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">Name</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">Name</label>
               <div className="flex items-center gap-2">
                 <Input
                   value={fullName}
                   onChange={(e) => { setFullName(e.target.value); setNameChanged(true); }}
                   placeholder="Your name"
-                  className="h-8 text-[13px] bg-transparent border-border"
+                  className="h-9 text-sm bg-transparent border-border"
                 />
                 {nameChanged && (
                   <Button
                     size="sm"
-                    className="h-8 text-[12px] flex-shrink-0"
+                    className="h-9 flex-shrink-0"
                     onClick={handleSaveName}
                     disabled={saving}
                   >
@@ -151,15 +151,15 @@ export default function SettingsPage() {
             {/* Email */}
             <div className="px-4 py-3.5 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">Email</span>
-                <span className="text-[13px] text-foreground">{user.email}</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">Email</span>
+                <span className="text-sm text-foreground">{user.email}</span>
               </div>
             </div>
             {/* Role */}
             <div className="px-4 py-3.5 flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider block">Role</span>
-                <span className="text-[13px] text-foreground capitalize">{profile.role}</span>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block">Role</span>
+                <span className="text-sm text-foreground capitalize">{profile.role}</span>
               </div>
             </div>
           </div>
@@ -167,15 +167,15 @@ export default function SettingsPage() {
 
         {/* Plan & Credits */}
         <section className="mb-8">
-          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Plan</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Plan</h2>
           <div className="border border-border rounded-lg bg-card divide-y divide-border">
             <button
               onClick={() => router.push('/billing')}
               className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-muted/30 transition-colors rounded-t-lg group"
             >
               <div>
-                <span className="text-[13px] font-medium text-foreground block">Subscription</span>
-                <span className="text-[11px] text-muted-foreground">{planLabel} plan</span>
+                <span className="text-sm font-medium text-foreground block">Subscription</span>
+                <span className="text-xs text-muted-foreground">{planLabel} plan</span>
               </div>
               <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>
@@ -184,8 +184,8 @@ export default function SettingsPage() {
               className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-muted/30 transition-colors rounded-b-lg group"
             >
               <div>
-                <span className="text-[13px] font-medium text-foreground block">AI Credits</span>
-                <span className="text-[11px] text-muted-foreground">{profile.credits ?? 0} credits available</span>
+                <span className="text-sm font-medium text-foreground block">AI Credits</span>
+                <span className="text-xs text-muted-foreground">{profile.credits ?? 0} credits available</span>
               </div>
               <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>
@@ -194,14 +194,14 @@ export default function SettingsPage() {
 
         {/* Preferences */}
         <section className="mb-8">
-          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Preferences</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Preferences</h2>
           <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {/* Default AI Mode */}
             <div className="px-4 py-3.5">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <span className="text-[13px] font-medium text-foreground block">Default AI mode</span>
-                  <span className="text-[11px] text-muted-foreground">How AI responds when you draw</span>
+                  <span className="text-sm font-medium text-foreground block">Default AI mode</span>
+                  <span className="text-xs text-muted-foreground">How AI responds when you draw</span>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -219,8 +219,8 @@ export default function SettingsPage() {
                         : 'bg-muted/50 border border-transparent hover:bg-muted'
                     }`}
                   >
-                    <span className={`text-[12px] font-medium block ${aiMode === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
-                    <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                    <span className={`text-xs font-medium block ${aiMode === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground/70">{opt.desc}</span>
                   </button>
                 ))}
               </div>
@@ -230,8 +230,8 @@ export default function SettingsPage() {
             <div className="px-4 py-3.5">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <span className="text-[13px] font-medium text-foreground block">Default board template</span>
-                  <span className="text-[11px] text-muted-foreground">Background for new boards</span>
+                  <span className="text-sm font-medium text-foreground block">Default board template</span>
+                  <span className="text-xs text-muted-foreground">Background for new boards</span>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                       boardTemplate === opt.value
                         ? 'bg-primary/10 border border-primary/20 text-primary'
                         : 'bg-muted/50 border border-transparent text-foreground hover:bg-muted'
-                    } text-[12px] font-medium`}
+                    } text-xs font-medium`}
                   >
                     {opt.label}
                   </button>
@@ -258,8 +258,8 @@ export default function SettingsPage() {
             {/* Animations */}
             <div className="px-4 py-3.5 flex items-center justify-between">
               <div>
-                <span className="text-[13px] font-medium text-foreground block">Animations</span>
-                <span className="text-[11px] text-muted-foreground">Interface motion and transitions</span>
+                <span className="text-sm font-medium text-foreground block">Animations</span>
+                <span className="text-xs text-muted-foreground">Interface motion and transitions</span>
               </div>
               <button
                 onClick={() => setAnimations(animations === 'on' ? 'off' : 'on')}
@@ -279,7 +279,7 @@ export default function SettingsPage() {
 
         {/* Keyboard Shortcuts Reference */}
         <section className="mb-8">
-          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Keyboard shortcuts</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Keyboard shortcuts</h2>
           <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {[
               { keys: '\u2318 A', action: 'New board' },
@@ -288,8 +288,8 @@ export default function SettingsPage() {
               { keys: '\u2318 N', action: 'Quick note' },
             ].map((shortcut) => (
               <div key={shortcut.keys} className="px-4 py-2.5 flex items-center justify-between">
-                <span className="text-[13px] text-foreground">{shortcut.action}</span>
-                <kbd className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">{shortcut.keys}</kbd>
+                <span className="text-sm text-foreground">{shortcut.action}</span>
+                <kbd className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">{shortcut.keys}</kbd>
               </div>
             ))}
           </div>
@@ -307,12 +307,12 @@ export default function SettingsPage() {
             ) : (
               <SignOut className="h-4 w-4 text-muted-foreground" weight="duotone" />
             )}
-            <span className="text-[13px] text-foreground">{signingOut ? 'Signing out...' : 'Sign out'}</span>
+            <span className="text-sm text-foreground">{signingOut ? 'Signing out...' : 'Sign out'}</span>
           </button>
         </section>
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-muted-foreground/50 mt-8">
+        <p className="text-center text-xs text-muted-foreground/50 mt-8">
           Agathon v1.0
         </p>
       </div>

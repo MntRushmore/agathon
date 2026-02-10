@@ -45,8 +45,10 @@ import {
   FileText,
   Note,
 } from '@phosphor-icons/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -439,8 +441,7 @@ export default function Dashboard() {
             setActiveView('journals');
             break;
           case 'k':
-            e.preventDefault();
-            document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+            // Cmd+K is handled globally by CommandPalette
             break;
           case 'n':
             e.preventDefault();
@@ -725,8 +726,40 @@ export default function Dashboard() {
   // Show loading state while checking auth
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex">
+        {/* Skeleton sidebar */}
+        <div className="w-56 h-screen border-r border-border bg-card p-4 flex flex-col gap-4">
+          <Skeleton className="h-8 w-24" />
+          <div className="space-y-2 mt-4">
+            <Skeleton className="h-9 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full rounded-lg" />
+          </div>
+          <div className="mt-auto space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-8 w-full rounded-lg" />
+          </div>
+        </div>
+        {/* Skeleton main content */}
+        <div className="flex-1 flex items-start justify-center pt-[12vh] px-8">
+          <div className="w-full max-w-4xl space-y-6">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-7 w-64" />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <Skeleton key={i} className="h-24 rounded-lg" />
+              ))}
+            </div>
+            <div className="space-y-2 mt-6">
+              <Skeleton className="h-4 w-20" />
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -739,11 +772,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className={cn(
-        "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
-        "bg-card border-r border-border",
-        sidebarCollapsed ? "w-16" : "w-56"
-      )}>
+      <motion.aside
+        layout
+        className={cn(
+          "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
+          "bg-card border-r border-border",
+          sidebarCollapsed ? "w-16" : "w-56"
+        )}>
         {/* Sidebar Header */}
         <div className="p-4 flex items-center justify-between">
           {sidebarCollapsed ? (
@@ -975,15 +1010,23 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </aside>
+      </motion.aside>
 
       {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300 ease-out",
         sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
+        <AnimatePresence mode="wait">
         {activeView === 'boards' ? (
           /* My Boards View */
+          <motion.div
+            key="boards"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
           <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -1103,7 +1146,11 @@ export default function Dashboard() {
 
                 {filteredBoards.map((board) => (
                   viewMode === 'grid' ? (
-                    <div
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
                       key={board.id}
                       className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
                       onClick={() => router.push(`/board/${board.id}`)}
@@ -1237,7 +1284,7 @@ export default function Dashboard() {
                           </DropdownMenu>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ) : (
                     /* List view */
                     <div
@@ -1372,8 +1419,16 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          </motion.div>
         ) : activeView === 'journals' ? (
           /* My Journals View */
+          <motion.div
+            key="journals"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
           <div className="max-w-6xl mx-auto px-8 py-10">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -1456,8 +1511,16 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          </motion.div>
         ) : (
           /* Dashboard Home View */
+          <motion.div
+            key="home"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
           <div className="flex items-start justify-center min-h-screen px-8 lg:px-12 pt-[12vh] pb-12">
           <div className="w-full max-w-4xl">
               {/* Greeting */}
@@ -1472,9 +1535,12 @@ export default function Dashboard() {
 
               {/* All feature cards in a single grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
-                {featureCards.map((card) => (
-                  <button
+                {featureCards.map((card, index) => (
+                  <motion.button
                     key={card.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={card.onClick}
                     disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
                     className={cn(
@@ -1495,7 +1561,7 @@ export default function Dashboard() {
                     </div>
                     <h3 className="text-[13px] font-semibold text-foreground leading-tight" style={{ fontFamily: 'var(--font-sans)' }}>{card.title}</h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{card.description}</p>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
 
@@ -1512,9 +1578,12 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <div className="border border-border rounded-lg bg-card divide-y divide-border">
-                    {recentItems.map((item) => (
-                      <button
+                    {recentItems.map((item, index) => (
+                      <motion.button
                         key={`${item.type}-${item.id}`}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2, delay: index * 0.03 }}
                         onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
                         className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30 transition-colors first:rounded-t-lg last:rounded-b-lg"
                       >
@@ -1547,7 +1616,7 @@ export default function Dashboard() {
                             {getFriendlyTimestamp(new Date(item.updated_at))}
                           </span>
                         </div>
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -1555,12 +1624,20 @@ export default function Dashboard() {
 
           </div>
           </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </main>
 
       {/* Pomodoro Timer Popup */}
+      <AnimatePresence>
       {pomodoroActive && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-4 z-40">
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-4 z-40"
+        >
           <div className="flex items-center gap-2">
             <Timer className={cn(
               "w-5 h-5",
@@ -1609,8 +1686,9 @@ export default function Dashboard() {
           <Badge variant="secondary" className="text-xs">
             {pomodoroPaused ? 'Paused' : pomodoroMode === 'work' ? 'Focus' : 'Break'}
           </Badge>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Quick Note Dialog */}
       <Dialog open={quickNoteOpen} onOpenChange={setQuickNoteOpen}>

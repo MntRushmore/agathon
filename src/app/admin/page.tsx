@@ -25,6 +25,9 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
+import { motion } from 'motion/react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Stats {
   totalUsers: number;
@@ -118,10 +121,10 @@ export default function AdminDashboardPage() {
   if (!profile || loading) {
     return (
       <div className="space-y-6">
-        <div className="h-6 bg-muted w-48 animate-pulse" />
+        <Skeleton className="h-6 w-48" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 bg-muted animate-pulse" />
+            <Skeleton key={i} className="h-24" />
           ))}
         </div>
       </div>
@@ -292,8 +295,14 @@ New Users (Month),${stats.newUsersMonth}`;
           { label: 'Classes', value: stats?.totalClasses, sub: `${stats?.totalAssignments} assignments`, icon: BookOpenText },
           { label: 'AI Requests', value: stats?.totalAIUsage, sub: `$${(stats?.totalAICost || 0).toFixed(2)} est. cost`, icon: Sparkle },
           { label: 'New This Week', value: `+${stats?.newUsersWeek}`, sub: `${stats?.newUsersMonth} this month`, icon: TrendUp },
-        ].map((metric) => (
-          <div key={metric.label} className="bg-card p-5">
+        ].map((metric, index) => (
+          <motion.div
+            key={metric.label}
+            className="bg-card p-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+          >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{metric.label}</p>
@@ -302,7 +311,7 @@ New Users (Month),${stats.newUsersMonth}`;
               <metric.icon className="h-4 w-4 text-muted-foreground/50" />
             </div>
             <p className="text-xs text-muted-foreground mt-2">{metric.sub}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -315,28 +324,43 @@ New Users (Month),${stats.newUsersMonth}`;
               Details <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="space-y-3">
-            {Object.entries(stats?.aiByMode || {}).length === 0 ? (
+          {(() => {
+            const aiModeData = Object.entries(stats?.aiByMode || {})
+              .sort(([, a], [, b]) => b - a)
+              .map(([mode, count]) => ({ mode: mode.charAt(0).toUpperCase() + mode.slice(1), count }));
+            const chartColors = ['oklch(0.48 0.17 220)', 'oklch(0.52 0.18 145)', 'oklch(0.50 0.18 285)', 'oklch(0.72 0.20 70)', 'oklch(0.52 0.18 30)'];
+
+            return aiModeData.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No AI usage data yet</p>
             ) : (
-              Object.entries(stats?.aiByMode || {})
-                .sort(([, a], [, b]) => b - a)
-                .map(([mode, count]) => (
-                  <div key={mode} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="capitalize font-medium">{mode}</span>
-                      <span className="text-muted-foreground tabular-nums">{count}</span>
-                    </div>
-                    <div className="h-1 bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-foreground/70"
-                        style={{ width: `${Math.min(100, (count / (stats?.totalAIUsage || 1)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
+              <ResponsiveContainer width="100%" height={aiModeData.length * 40 + 20}>
+                <BarChart layout="vertical" data={aiModeData} margin={{ top: 0, right: 12, bottom: 0, left: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="mode"
+                    width={90}
+                    tick={{ fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 0,
+                      border: '1px solid var(--border)',
+                      background: 'var(--card)',
+                    }}
+                  />
+                  <Bar dataKey="count" radius={[0, 2, 2, 0]} barSize={18}>
+                    {aiModeData.map((_, index) => (
+                      <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            );
+          })()}
         </div>
 
         {/* Content Overview */}
@@ -377,8 +401,14 @@ New Users (Month),${stats.newUsersMonth}`;
           <p className="text-sm text-muted-foreground py-6 text-center">No recorded activity yet</p>
         ) : (
           <div className="divide-y divide-border">
-            {recentActivity.map((log) => (
-              <div key={log.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            {recentActivity.map((log, index) => (
+              <motion.div
+                key={log.id}
+                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.03 }}
+              >
                 <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -397,7 +427,7 @@ New Users (Month),${stats.newUsersMonth}`;
                 <span className="text-xs text-muted-foreground whitespace-nowrap">
                   {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                 </span>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -410,19 +440,20 @@ New Users (Month),${stats.newUsersMonth}`;
           { href: '/admin/content', label: 'Content', desc: 'Review and moderate', icon: FileText },
           { href: '/admin/analytics', label: 'Analytics', desc: 'Trends and engagement', icon: TrendUp },
         ].map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="bg-card p-5 hover:bg-accent transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <div>
-                <p className="text-sm font-medium">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.desc}</p>
+          <motion.div key={item.href} whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+            <Link
+              href={item.href}
+              className="bg-card p-5 hover:bg-accent transition-colors group block h-full"
+            >
+              <div className="flex items-center gap-3">
+                <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <div>
+                  <p className="text-sm font-medium">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          </motion.div>
         ))}
       </div>
     </div>

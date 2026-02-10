@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, CircleNotch } from '@phosphor-icons/react';
 
 interface SignUpFormProps {
   onSuccess?: () => void;
@@ -183,13 +183,13 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               {codeStatus === 'validating' && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
               )}
               {codeStatus === 'valid' && (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-green-500" weight="duotone" />
               )}
               {codeStatus === 'invalid' && (
-                <XCircle className="h-4 w-4 text-red-500" />
+                <XCircle className="h-4 w-4 text-red-500" weight="duotone" />
               )}
             </div>
           </div>
@@ -197,9 +197,9 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             <p className="text-xs text-red-500">{codeError}</p>
           )}
           {codeStatus === 'invalid' && (
-            <p className="text-xs text-[#666] mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Don&apos;t have a code?{' '}
-              <a href="/?waitlist=true" className="text-[#1a1a1a] font-medium hover:underline">
+              <a href="/?waitlist=true" className="text-foreground font-medium hover:underline">
                 Join the waitlist
               </a>{' '}
               to get one.

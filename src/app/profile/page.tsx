@@ -8,18 +8,19 @@ import { toast } from 'sonner';
 import { mapSupabaseError } from '@/lib/error-utils';
 import { logger } from '@/lib/logger';
 import {
-  ChevronLeft,
-  LogOut,
+  CaretLeft,
+  SignOut,
   User,
-  Mail,
-  Shield,
+  Envelope,
+  ShieldCheck,
   CreditCard,
-  Bell,
-  Moon,
-  Sun,
-  Loader2
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  CircleNotch,
+  House,
+  CaretRight,
+} from '@phosphor-icons/react';
+import { motion } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -30,14 +31,12 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, router]);
 
-  // Initialize form with profile data
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
@@ -71,7 +70,6 @@ export default function ProfilePage() {
     setSigningOut(true);
     try {
       await signOut();
-      // The signOut function in auth-provider already redirects to /login
     } catch (error) {
       toast.error('Failed to sign out');
       setSigningOut(false);
@@ -88,16 +86,14 @@ export default function ProfilePage() {
       .substring(0, 2);
   };
 
-  // Show loading while checking auth state
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="duotone" />
       </div>
     );
   }
 
-  // Don't render if not logged in (will redirect)
   if (!user || !profile) {
     return null;
   }
@@ -111,13 +107,18 @@ export default function ProfilePage() {
             onClick={() => router.back()}
             className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft className="h-5 w-5" />
+            <CaretLeft className="h-5 w-5" weight="duotone" />
           </button>
           <h1 className="text-lg font-semibold text-foreground">Profile</h1>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <motion.main
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="max-w-2xl mx-auto px-4 py-8"
+      >
         {/* Profile Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="w-20 h-20 rounded-full bg-foreground text-background flex items-center justify-center text-2xl font-semibold ring-4 ring-primary/20">
@@ -129,7 +130,7 @@ export default function ProfilePage() {
             </h2>
             <p className="text-sm text-muted-foreground">{profile.email}</p>
             <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full capitalize">
-              {profile.role === 'admin' && <Shield className="h-3 w-3" />}
+              {profile.role === 'admin' && <ShieldCheck className="h-3 w-3" weight="duotone" />}
               {profile.role}
             </span>
           </div>
@@ -137,31 +138,43 @@ export default function ProfilePage() {
 
         {/* Account Section */}
         <section className="mb-8">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
             Account
           </h3>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             {/* Full Name */}
-            <div className="p-4 border-b border-border">
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
                 Full Name
               </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                placeholder="Enter your full name"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="h-9"
+                />
+                {fullName !== (profile.full_name || '') && (
+                  <Button
+                    size="sm"
+                    className="h-9 flex-shrink-0"
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                  >
+                    {saving ? <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" /> : 'Save'}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* Email (read-only) */}
-            <div className="p-4 border-b border-border">
-              <label className="block text-sm font-medium text-foreground mb-2">
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
                 Email
               </label>
               <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
-                <Mail className="h-4 w-4 text-muted-foreground" />
+                <Envelope className="h-4 w-4 text-muted-foreground" weight="duotone" />
                 <span className="text-sm text-muted-foreground">{profile.email}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -171,45 +184,27 @@ export default function ProfilePage() {
 
             {/* Role (read-only) */}
             <div className="p-4">
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
                 Account Type
               </label>
               <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
-                <User className="h-4 w-4 text-muted-foreground" />
+                <User className="h-4 w-4 text-muted-foreground" weight="duotone" />
                 <span className="text-sm text-muted-foreground capitalize">{profile.role}</span>
               </div>
             </div>
           </div>
-
-          {/* Save Button */}
-          {fullName !== (profile.full_name || '') && (
-            <button
-              onClick={handleSaveProfile}
-              disabled={saving}
-              className="mt-4 w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-colors disabled:opacity-50"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                'Save Changes'
-              )}
-            </button>
-          )}
         </section>
 
         {/* Credits Section */}
         <section className="mb-8">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
             Usage
           </h3>
           <div className="bg-card rounded-xl border border-border p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-primary" />
+                  <CreditCard className="h-5 w-5 text-primary" weight="duotone" />
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Credits</p>
@@ -231,46 +226,46 @@ export default function ProfilePage() {
 
         {/* Quick Links */}
         <section className="mb-8">
-          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
             Quick Links
           </h3>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden divide-y divide-border">
             <button
               onClick={() => router.push('/billing')}
-              className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors text-left border-b border-border"
+              className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left group"
             >
-              <CreditCard className="h-5 w-5 text-muted-foreground" />
+              <CreditCard className="h-5 w-5 text-muted-foreground" weight="duotone" />
               <div className="flex-1">
                 <p className="font-medium text-foreground">Plans & Billing</p>
                 <p className="text-sm text-muted-foreground">Manage your subscription</p>
               </div>
-              <ChevronLeft className="h-5 w-5 text-muted-foreground rotate-180" />
+              <CaretRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>
 
             {profile.role === 'admin' && (
               <button
                 onClick={() => router.push('/admin')}
-                className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors text-left border-b border-border"
+                className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left group"
               >
-                <Shield className="h-5 w-5 text-muted-foreground" />
+                <ShieldCheck className="h-5 w-5 text-muted-foreground" weight="duotone" />
                 <div className="flex-1">
                   <p className="font-medium text-foreground">Admin Console</p>
                   <p className="text-sm text-muted-foreground">Manage platform</p>
                 </div>
-                <ChevronLeft className="h-5 w-5 text-muted-foreground rotate-180" />
+                <CaretRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
               </button>
             )}
 
             <button
               onClick={() => router.push('/')}
-              className="w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors text-left"
+              className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left group"
             >
-              <User className="h-5 w-5 text-muted-foreground" />
+              <House className="h-5 w-5 text-muted-foreground" weight="duotone" />
               <div className="flex-1">
                 <p className="font-medium text-foreground">Dashboard</p>
                 <p className="text-sm text-muted-foreground">Go back to home</p>
               </div>
-              <ChevronLeft className="h-5 w-5 text-muted-foreground rotate-180" />
+              <CaretRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>
           </div>
         </section>
@@ -284,18 +279,18 @@ export default function ProfilePage() {
           >
             {signingOut ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <CircleNotch className="h-5 w-5 animate-spin" weight="duotone" />
                 Signing out...
               </>
             ) : (
               <>
-                <LogOut className="h-5 w-5" />
+                <SignOut className="h-5 w-5" weight="duotone" />
                 Sign Out
               </>
             )}
           </button>
         </section>
-      </main>
+      </motion.main>
     </div>
   );
 }
