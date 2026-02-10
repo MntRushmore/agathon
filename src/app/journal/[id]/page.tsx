@@ -1894,8 +1894,8 @@ export default function JournalEditorPage() {
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-background rounded-full shadow transition-transform",
-                        proactiveAIEnabled ? "translate-x-5" : "translate-x-0.5"
+                        "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
+                        proactiveAIEnabled ? "translate-x-[calc((100% - 2.5rem) / 2)]" : "translate-x-0.5"
                       )}
                     />
                   </Switch>
