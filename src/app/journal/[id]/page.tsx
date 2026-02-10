@@ -1889,13 +1889,13 @@ export default function JournalEditorPage() {
                     onChange={setProactiveAIEnabled}
                     className={cn(
                       "relative w-10 h-5 rounded-full transition-colors",
-                      proactiveAIEnabled ? "bg-foreground" : "bg-muted-foreground/30"
+                      proactiveAIEnabled ? "bg-[#1A6B8A]" : "bg-[#B8A898]"
                     )}
                   >
                     <span
                       className={cn(
                         "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
-                        proactiveAIEnabled ? "translate-x-[calc((100% - 2.5rem) / 2)]" : "translate-x-0.5"
+                        proactiveAIEnabled ? "translate-x-[calc((100% - 2rem) / 2)]" : "translate-x-0.5"
                       )}
                     />
                   </Switch>
