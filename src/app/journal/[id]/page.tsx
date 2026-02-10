@@ -1138,7 +1138,7 @@ export default function JournalEditorPage() {
 
   // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
-    const journalLink = `\n\n[📓 ${linkedJournal.title}](/journal/${linkedJournal.id})\n`;
+    const journalLink = `\n\n[https://agathon.app/journal/${linkedJournal.id}\n`;
     const newContent = content ? content + journalLink : journalLink;
     setContent(newContent);
     setShowJournalLinkModal(false);
