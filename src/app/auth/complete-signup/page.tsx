@@ -23,7 +23,17 @@ export default function CompleteSignupPage() {
       const code = localStorage.getItem('agathon_pending_invite_code');
 
       if (!code) {
-        // No pending code — user may have already redeemed or arrived here directly
+        // No pending code — user signed up previously but redemption didn't complete.
+        // Mark them as redeemed since their invite was validated at signup time.
+        try {
+          await fetch('/api/auth/redeem-invite', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ forceRedeem: true }),
+          });
+        } catch (e) {
+          console.error('Force redeem failed:', e);
+        }
         router.push('/');
         return;
       }
