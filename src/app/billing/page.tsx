@@ -172,7 +172,7 @@ export default function BillingPage() {
           >
             <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
           </button>
-          <h1 className="text-lg font-semibold text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
+          <h1 className="text-lg font-semibold text-foreground">
             Billing
           </h1>
         </div>
@@ -181,8 +181,8 @@ export default function BillingPage() {
         <section className="mb-8">
           <div className="flex items-baseline justify-between mb-3">
             <div>
-              <span className="text-[13px] font-medium text-foreground">{activePlan.name} plan</span>
-              <span className="text-[13px] text-muted-foreground ml-1.5">
+              <span className="text-sm font-medium text-foreground">{activePlan.name} plan</span>
+              <span className="text-sm text-muted-foreground ml-1.5">
                 {loadingUsage
                   ? ''
                   : usage
@@ -191,7 +191,7 @@ export default function BillingPage() {
               </span>
             </div>
             {usage && activePlan.monthlyInteractions && (
-              <span className="text-[13px] tabular-nums text-muted-foreground">
+              <span className="text-sm tabular-nums text-muted-foreground">
                 {usage.totalInteractions}<span className="text-muted-foreground/50"> / {activePlan.monthlyInteractions}</span>
               </span>
             )}
@@ -199,7 +199,7 @@ export default function BillingPage() {
           {!loadingUsage && usage && activePlan.monthlyInteractions ? (
             <div>
               <Progress value={usageProgress} className="h-1.5" />
-              <p className="text-[11px] text-muted-foreground/60 mt-1.5">
+              <p className="text-xs text-muted-foreground/60 mt-1.5">
                 Resets {usage.windowStart ? formatDistanceToNow(new Date(new Date(usage.windowStart).getTime() + 30 * 24 * 60 * 60 * 1000), { addSuffix: true }) : 'in 30 days'}
               </p>
             </div>
@@ -210,7 +210,7 @@ export default function BillingPage() {
 
         {/* Plans */}
         <section className="mb-8">
-          <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Plans</h2>
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Plans</h2>
           <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {plans.map((plan) => {
               const isCurrentPlan = activePlan.id === plan.id;
@@ -219,21 +219,21 @@ export default function BillingPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-foreground">{plan.name}</span>
+                        <span className="text-sm font-semibold text-foreground">{plan.name}</span>
                         {isCurrentPlan && (
-                          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Current</span>
+                          <span className="text-[10px] font-medium text-muted-foreground/70 bg-muted px-1.5 py-0.5 rounded">Current</span>
                         )}
                       </div>
-                      <p className="text-[12px] text-muted-foreground mt-0.5">{plan.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{plan.description}</p>
                     </div>
                     <div className="text-right flex-shrink-0 ml-4">
                       <span className="text-lg font-semibold text-foreground">{plan.price}</span>
-                      <span className="text-[12px] text-muted-foreground">/{plan.interval}</span>
+                      <span className="text-xs text-muted-foreground">/{plan.interval}</span>
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
                     {plan.features.map((feature) => (
-                      <span key={feature} className="text-[12px] text-muted-foreground flex items-center gap-1.5">
+                      <span key={feature} className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <Check className="h-3 w-3 text-muted-foreground/60 flex-shrink-0" weight="duotone" />
                         {feature}
                       </span>
@@ -245,7 +245,7 @@ export default function BillingPage() {
                       disabled={checkoutLoading === plan.id || !plan.productId}
                       variant={plan.id === 'enterprise' ? 'default' : 'outline'}
                       size="sm"
-                      className="h-8 text-[12px]"
+                      className="h-8 text-xs"
                     >
                       {checkoutLoading === plan.id ? (
                         <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
@@ -270,8 +270,8 @@ export default function BillingPage() {
           >
             <Coins className="h-4 w-4 text-muted-foreground flex-shrink-0" weight="duotone" />
             <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-medium text-foreground block">Buy credit packs</span>
-              <span className="text-[11px] text-muted-foreground">For handwritten canvas feedback and other enterprise features</span>
+              <span className="text-sm font-medium text-foreground block">Buy credit packs</span>
+              <span className="text-xs text-muted-foreground">For handwritten canvas feedback and other enterprise features</span>
             </div>
             <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0" weight="duotone" />
           </button>
@@ -280,7 +280,7 @@ export default function BillingPage() {
         {/* Recent Activity */}
         {usage && usage.recent.length > 0 && (
           <section>
-            <h2 className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-sans)' }}>Recent activity</h2>
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Recent activity</h2>
             <div className="border border-border rounded-lg bg-card divide-y divide-border">
               {usage.recent.slice(0, 5).map((row, idx) => (
                 <div
@@ -289,11 +289,11 @@ export default function BillingPage() {
                 >
                   <div className="flex items-center gap-2.5">
                     <Lightning className="h-3.5 w-3.5 text-muted-foreground/50" weight="duotone" />
-                    <span className="text-[13px] text-foreground capitalize">
+                    <span className="text-sm text-foreground capitalize">
                       {row.mode || 'AI Assist'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground/70">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground/70">
                     <span className="tabular-nums">{row.tokens.toLocaleString()} tokens</span>
                     <span className="tabular-nums">
                       {row.createdAt
@@ -308,7 +308,7 @@ export default function BillingPage() {
         )}
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-muted-foreground/50 mt-8">
+        <p className="text-center text-xs text-muted-foreground/50 mt-8">
           Payments processed by Polar. Cancel anytime.
         </p>
       </div>

@@ -8,18 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { StrugglingStudentsPanel } from '@/components/teacher/StrugglingStudentsPanel';
 import { createClient } from '@/lib/supabase/client';
 import {
-  Users,
+  UsersThree,
   FileText,
   Clock,
   Plus,
-  ChevronRight,
-  BookOpen,
-  AlertTriangle,
+  CaretRight,
+  BookOpenText,
+  WarningCircle,
   CheckCircle,
   ArrowLeft,
-  Sparkles,
-  Calendar,
-} from 'lucide-react';
+  Sparkle,
+  CalendarBlank,
+} from '@phosphor-icons/react';
+import { motion } from 'motion/react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistance, format, isToday, isTomorrow, isPast } from 'date-fns';
 import Link from 'next/link';
 import {
@@ -320,26 +322,77 @@ export default function TeacherDashboardPage() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'submission':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <CheckCircle weight="duotone" className="h-4 w-4 text-green-500" />;
       case 'join':
-        return <Users className="h-4 w-4 text-blue-500" />;
+        return <UsersThree weight="duotone" className="h-4 w-4 text-blue-500" />;
       case 'help_request':
-        return <AlertTriangle className="h-4 w-4 text-amber-500" />;
+        return <WarningCircle weight="duotone" className="h-4 w-4 text-amber-500" />;
       default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+        return <Clock weight="duotone" className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 bg-muted rounded w-1/3" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-32 bg-muted rounded-xl" />
-              ))}
+        <div className="border-b bg-card">
+          <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-10 rounded-md" />
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-48" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <Card key={i}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                  </div>
+                  <Skeleton className="h-3 w-32 mt-3" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-5 w-40" />
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+            <div>
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-5 w-32" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex items-start gap-3">
+                      <Skeleton className="h-4 w-4 mt-0.5 rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -354,7 +407,7 @@ export default function TeacherDashboardPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft weight="duotone" className="h-5 w-5" />
               </Button>
               <div>
                 <h1 className="text-2xl font-semibold">
@@ -368,13 +421,13 @@ export default function TeacherDashboardPage() {
             <div className="flex gap-3">
               <Button variant="outline" asChild>
                 <Link href="/teacher/classes">
-                  <BookOpen className="h-4 w-4 mr-2" />
+                  <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
                   My Classes
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/teacher/assignments/create">
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus weight="duotone" className="h-4 w-4 mr-2" />
                   New Assignment
                 </Link>
               </Button>
@@ -386,101 +439,83 @@ export default function TeacherDashboardPage() {
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <TooltipProvider>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total Students</p>
-                        <p className="text-3xl font-bold">{stats.totalStudents}</p>
-                      </div>
-                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Users className="h-6 w-6 text-blue-600" />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Across {stats.totalClasses} classes
-                    </p>
-                  </CardContent>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Students currently enrolled in your active classes.</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push('/teacher/classes')}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Active Assignments</p>
-                        <p className="text-3xl font-bold">{stats.activeAssignments}</p>
-                      </div>
-                      <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                        <FileText className="h-6 w-6 text-green-600" />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {stats.pendingSubmissions} pending submissions
-                    </p>
-                  </CardContent>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Published assignments that are still in progress.</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Card className={`hover:shadow-md transition-shadow cursor-pointer ${stats.strugglingStudents > 0 ? 'border-amber-300' : ''}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Need Attention</p>
-                        <p className="text-3xl font-bold">{stats.strugglingStudents}</p>
-                      </div>
-                      <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stats.strugglingStudents > 0 ? 'bg-amber-100' : 'bg-muted'}`}>
-                        <AlertTriangle className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Students showing struggle indicators
-                    </p>
-                  </CardContent>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Students flagged for repeated hints or long time-on-task.</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">AI Assists Today</p>
-                        <p className="text-3xl font-bold">{stats.aiAssistsToday}</p>
-                      </div>
-                      <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                        <Sparkles className="h-6 w-6 text-purple-600" />
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Across all assignments today
-                    </p>
-                  </CardContent>
-                </Card>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>AI hints, guided steps, and quick solves requested in the last 24 hours.</p>
-              </TooltipContent>
-            </Tooltip>
+            {[
+              {
+                key: 'students',
+                label: 'Total Students',
+                value: stats.totalStudents,
+                subtitle: `Across ${stats.totalClasses} classes`,
+                icon: <UsersThree weight="duotone" className="h-6 w-6 text-blue-600" />,
+                iconBg: 'bg-blue-100',
+                tooltip: 'Students currently enrolled in your active classes.',
+                onClick: () => router.push('/teacher/classes'),
+                cardClassName: 'hover:shadow-md transition-shadow cursor-pointer',
+              },
+              {
+                key: 'assignments',
+                label: 'Active Assignments',
+                value: stats.activeAssignments,
+                subtitle: `${stats.pendingSubmissions} pending submissions`,
+                icon: <FileText weight="duotone" className="h-6 w-6 text-green-600" />,
+                iconBg: 'bg-green-100',
+                tooltip: 'Published assignments that are still in progress.',
+                onClick: () => router.push('/teacher/classes'),
+                cardClassName: 'hover:shadow-md transition-shadow cursor-pointer',
+              },
+              {
+                key: 'attention',
+                label: 'Need Attention',
+                value: stats.strugglingStudents,
+                subtitle: 'Students showing struggle indicators',
+                icon: <WarningCircle weight="duotone" className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />,
+                iconBg: stats.strugglingStudents > 0 ? 'bg-amber-100' : 'bg-muted',
+                tooltip: 'Students flagged for repeated hints or long time-on-task.',
+                onClick: undefined,
+                cardClassName: `hover:shadow-md transition-shadow cursor-pointer ${stats.strugglingStudents > 0 ? 'border-amber-300' : ''}`,
+              },
+              {
+                key: 'ai-assists',
+                label: 'AI Assists Today',
+                value: stats.aiAssistsToday,
+                subtitle: 'Across all assignments today',
+                icon: <Sparkle weight="duotone" className="h-6 w-6 text-purple-600" />,
+                iconBg: 'bg-purple-100',
+                tooltip: 'AI hints, guided steps, and quick solves requested in the last 24 hours.',
+                onClick: undefined,
+                cardClassName: 'hover:shadow-md transition-shadow',
+              },
+            ].map((stat, index) => (
+              <motion.div
+                key={stat.key}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.06 }}
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Card className={stat.cardClassName} onClick={stat.onClick}>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">{stat.label}</p>
+                            <p className="text-3xl font-bold">{stat.value}</p>
+                          </div>
+                          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stat.iconBg}`}>
+                            {stat.icon}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {stat.subtitle}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{stat.tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </motion.div>
+            ))}
           </div>
         </TooltipProvider>
 
@@ -489,51 +524,67 @@ export default function TeacherDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+                  <CalendarBlank weight="duotone" className="h-5 w-5" />
                   Recent Assignments
                 </CardTitle>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/teacher/classes">
-                    View all <ChevronRight className="h-4 w-4 ml-1" />
+                    View all <CaretRight weight="duotone" className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>
               </CardHeader>
               <CardContent>
                 {recentAssignments.length === 0 ? (
                   <div className="text-center py-8">
-                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                    <FileText weight="duotone" className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                     <p className="text-muted-foreground mb-4">No assignments yet</p>
                     <Button asChild>
                       <Link href="/teacher/assignments/create">
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus weight="duotone" className="h-4 w-4 mr-2" />
                         Create your first assignment
                       </Link>
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {recentAssignments.map((assignment) => (
-                      <div
+                    {recentAssignments.map((assignment, index) => (
+                      <motion.div
                         key={assignment.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/teacher/classes/${assignment.class.id}/assignments/${assignment.id}`)}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.06 }}
                       >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">{assignment.title}</span>
-                            {getDueDateBadge(assignment.due_date)}
+                        <div
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => router.push(`/teacher/classes/${assignment.class.id}/assignments/${assignment.id}`)}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{assignment.title}</span>
+                              {getDueDateBadge(assignment.due_date)}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {assignment.class.name}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {assignment.class.name}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
-                            {assignment.submissionStats.submitted}/{assignment.submissionStats.total}
+                          <div className="text-right min-w-[80px]">
+                            <div className="text-lg font-semibold">
+                              {assignment.submissionStats.submitted}/{assignment.submissionStats.total}
+                            </div>
+                            <div className="mt-1 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                style={{
+                                  width: assignment.submissionStats.total > 0
+                                    ? `${(assignment.submissionStats.submitted / assignment.submissionStats.total) * 100}%`
+                                    : '0%',
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">submitted</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">submitted</p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
@@ -547,20 +598,26 @@ export default function TeacherDashboardPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
+                  <Clock weight="duotone" className="h-5 w-5" />
                   Recent Activity
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {recentActivity.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <Clock weight="duotone" className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recent activity</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {recentActivity.map((activity) => (
-                      <div key={activity.id} className="flex items-start gap-3">
+                    {recentActivity.map((activity, index) => (
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.06 }}
+                        className="flex items-start gap-3"
+                      >
                         <div className="mt-0.5">{getActivityIcon(activity.type)}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm">
@@ -571,7 +628,7 @@ export default function TeacherDashboardPage() {
                             {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                           </p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
@@ -585,19 +642,19 @@ export default function TeacherDashboardPage() {
               <CardContent className="space-y-2">
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/assignments/create">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus weight="duotone" className="h-4 w-4 mr-2" />
                     Create Assignment
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/classes">
-                    <Users className="h-4 w-4 mr-2" />
+                    <UsersThree weight="duotone" className="h-4 w-4 mr-2" />
                     Manage Classes
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/templates">
-                    <BookOpen className="h-4 w-4 mr-2" />
+                    <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
                     Assignment Templates
                   </Link>
                 </Button>

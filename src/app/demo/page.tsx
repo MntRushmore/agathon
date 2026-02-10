@@ -2,12 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import { Logo } from '@/components/ui/logo';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function DemoPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // Auto-play when page loads
     if (videoRef.current) {
       videoRef.current.play().catch(() => {
         // Autoplay might be blocked, that's okay
@@ -42,18 +43,17 @@ export default function DemoPage() {
         <h1 className="text-2xl font-semibold text-white mb-2">
           AI-Powered Whiteboard Demo
         </h1>
-        <p className="text-gray-400">
+        <p className="text-white/50">
           Draw problems, get instant feedback, and learn by doing.
         </p>
       </div>
 
       {/* CTA */}
-      <a
-        href="https://agathon.app"
-        className="mt-8 px-6 py-3 bg-white text-black font-medium rounded-full hover:bg-gray-100 transition-colors"
-      >
-        Try Agathon Free
-      </a>
+      <Button asChild className="mt-8 rounded-full px-6 h-11 bg-white text-black hover:bg-white/90">
+        <Link href="/">
+          Try Agathon Free
+        </Link>
+      </Button>
     </div>
   );
 }
