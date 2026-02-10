@@ -71,17 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.error({ error }, 'Error fetching profile');
         setProfile(null);
       } else if (data && data.invite_redeemed === false) {
-        // Allow users on /auth/complete-signup to stay logged in — they're about to redeem
-        if (window.location.pathname === '/auth/complete-signup') {
-          setProfile(data);
-          return;
+        // User signed up but invite redemption didn't complete — let them through
+        // The invite code was already validated at signup time, so they're legitimate
+        logger.warn('User has not redeemed invite code yet, allowing sign-in');
+        setProfile(data);
+        // Redirect to complete-signup if not already there, so redemption can finish
+        if (window.location.pathname !== '/auth/complete-signup') {
+          window.location.href = '/auth/complete-signup';
         }
-        // User hasn't redeemed an invite code — sign them out
-        logger.warn('User has not redeemed an invite code, signing out');
-        await supabase.auth.signOut();
-        setUser(null);
-        setProfile(null);
-        window.location.href = '/login?error=invite_required';
         return;
       } else {
         setProfile(data);

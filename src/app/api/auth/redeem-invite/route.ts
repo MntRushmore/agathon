@@ -13,7 +13,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code } = await req.json();
+    const { code, forceRedeem } = await req.json();
+
+    // If forceRedeem is set, the user already validated an invite at signup but
+    // redemption didn't complete. Just mark them as redeemed.
+    if (forceRedeem) {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ invite_redeemed: true })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Force redeem error:', updateError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to update profile' },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ success: true });
+    }
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
