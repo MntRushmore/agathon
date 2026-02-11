@@ -68,7 +68,7 @@ export function SocraticModeSection() {
               <div className="max-w-[320px]">
                 <p className="text-[12px] text-white/40 mb-2 tracking-wider uppercase">Agathon</p>
                 <div className="bg-white rounded-2xl rounded-bl-sm px-5 py-4">
-                  <p className="text-[15px] text-[#1a1a1a]">What do you think the first step should be to isolate x?</p>
+                  <p className="text-[15px] text-foreground">What do you think the first step should be to isolate x?</p>
                 </div>
               </div>
             </div>
@@ -86,7 +86,7 @@ export function SocraticModeSection() {
             <div className="flex justify-start">
               <div className="max-w-[320px]">
                 <div className="bg-white rounded-2xl rounded-bl-sm px-5 py-4">
-                  <p className="text-[15px] text-[#1a1a1a]">Exactly. What do you get when you do that?</p>
+                  <p className="text-[15px] text-foreground">Exactly. What do you get when you do that?</p>
                 </div>
               </div>
             </div>
@@ -95,7 +95,7 @@ export function SocraticModeSection() {
             <div className="flex justify-end">
               <div className="max-w-[300px]">
                 <div className="bg-white rounded-2xl rounded-br-sm px-5 py-4">
-                  <p className="text-[15px] text-[#1a1a1a] font-medium">3x = 15, so x = 5!</p>
+                  <p className="text-[15px] text-foreground font-medium">3x = 15, so x = 5!</p>
                 </div>
               </div>
             </div>

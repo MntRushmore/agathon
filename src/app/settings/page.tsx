@@ -12,6 +12,7 @@ import {
   CaretRight,
   CircleNotch,
   SignOut,
+  Books,
 } from '@phosphor-icons/react';
 
 // Preference keys in localStorage
@@ -186,6 +187,26 @@ export default function SettingsPage() {
               <div>
                 <span className="text-sm font-medium text-foreground block">AI Credits</span>
                 <span className="text-xs text-muted-foreground">{profile.credits ?? 0} credits available</span>
+              </div>
+              <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
+            </button>
+          </div>
+        </section>
+
+        {/* Knowledge Base */}
+        <section className="mb-8">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">Knowledge Base</h2>
+          <div className="border border-border rounded-lg bg-card">
+            <button
+              onClick={() => router.push('/knowledge')}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-muted/30 transition-colors rounded-lg group"
+            >
+              <div className="flex items-center gap-3">
+                <Books className="h-5 w-5 text-primary" weight="duotone" />
+                <div>
+                  <span className="text-sm font-medium text-foreground block">Connected Sources</span>
+                  <span className="text-xs text-muted-foreground">Google Drive, Classroom &mdash; let the AI reference your notes</span>
+                </div>
               </div>
               <CaretRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>

@@ -1931,12 +1931,12 @@ export default function JournalEditorPage() {
                     onChange={setProactiveAIEnabled}
                     className={cn(
                       "relative w-10 h-5 rounded-full transition-colors",
-                      proactiveAIEnabled ? "bg-[#1A6B8A]" : "bg-[#B8A898]"
+                      proactiveAIEnabled ? "bg-[#007ba5]" : "bg-[#c0c4cc]"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
+                        "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
                         proactiveAIEnabled ? "translate-x-0" : "translate-x-5"
                       )}
                     />

@@ -44,6 +44,14 @@ import {
   Lightning,
   FileText,
   Note,
+  Books,
+  ArrowRight,
+  ArrowsClockwise,
+  CircleNotch,
+  Warning,
+  CheckCircle,
+  Eye,
+  ClockCountdown,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -117,37 +125,37 @@ type RecentItem = {
   boardType?: string;
 };
 
-// Feature card color variants - muted, professional creme palette
+// Feature card color variants - clean modern palette with Agathon blue
 type ColorVariant = 'green' | 'blue' | 'purple' | 'amber';
 
 const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; hoverBorder: string; accentBg: string; accentBar: string }> = {
   green: {
-    iconBg: 'bg-[oklch(0.92_0.08_145)]',
-    iconColor: 'text-[oklch(0.40_0.16_145)]',
-    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_145)]',
-    accentBg: 'bg-[oklch(0.92_0.08_145)]',
-    accentBar: 'border-l-[oklch(0.52_0.18_145)]',
+    iconBg: 'bg-[oklch(0.95_0.04_155)]',
+    iconColor: 'text-[oklch(0.45_0.14_155)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_155)]',
+    accentBg: 'bg-[oklch(0.95_0.04_155)]',
+    accentBar: 'border-l-[oklch(0.55_0.16_155)]',
   },
   blue: {
-    iconBg: 'bg-[oklch(0.92_0.08_220)]',
-    iconColor: 'text-[oklch(0.42_0.17_220)]',
-    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_220)]',
-    accentBg: 'bg-[oklch(0.92_0.08_220)]',
-    accentBar: 'border-l-[oklch(0.48_0.17_220)]',
+    iconBg: 'bg-[oklch(0.94_0.03_225)]',
+    iconColor: 'text-[oklch(0.52_0.11_225)]',
+    hoverBorder: 'group-hover:border-[oklch(0.84_0.04_225)]',
+    accentBg: 'bg-[oklch(0.94_0.03_225)]',
+    accentBar: 'border-l-[oklch(0.52_0.11_225)]',
   },
   purple: {
-    iconBg: 'bg-[oklch(0.92_0.08_285)]',
-    iconColor: 'text-[oklch(0.42_0.18_285)]',
-    hoverBorder: 'group-hover:border-[oklch(0.82_0.08_285)]',
-    accentBg: 'bg-[oklch(0.92_0.08_285)]',
-    accentBar: 'border-l-[oklch(0.50_0.18_285)]',
+    iconBg: 'bg-[oklch(0.95_0.04_285)]',
+    iconColor: 'text-[oklch(0.45_0.14_285)]',
+    hoverBorder: 'group-hover:border-[oklch(0.85_0.04_285)]',
+    accentBg: 'bg-[oklch(0.95_0.04_285)]',
+    accentBar: 'border-l-[oklch(0.52_0.15_285)]',
   },
   amber: {
-    iconBg: 'bg-[oklch(0.93_0.08_70)]',
-    iconColor: 'text-[oklch(0.52_0.18_70)]',
-    hoverBorder: 'group-hover:border-[oklch(0.85_0.08_70)]',
-    accentBg: 'bg-[oklch(0.93_0.08_70)]',
-    accentBar: 'border-l-[oklch(0.72_0.20_70)]',
+    iconBg: 'bg-[oklch(0.96_0.04_80)]',
+    iconColor: 'text-[oklch(0.55_0.14_80)]',
+    hoverBorder: 'group-hover:border-[oklch(0.88_0.04_80)]',
+    accentBg: 'bg-[oklch(0.96_0.04_80)]',
+    accentBar: 'border-l-[oklch(0.65_0.15_80)]',
   },
 };
 
@@ -160,6 +168,20 @@ const boardTypeIcons: Record<string, React.ReactNode> = {
   diagram: <GridNine className="w-3.5 h-3.5" weight="duotone" />,
   general: <PencilLine className="w-3.5 h-3.5" weight="duotone" />,
 };
+
+function toEmbedUrl(url: string): string {
+  if (url.includes('docs.google.com/document')) {
+    return url.replace(/\/edit.*$/, '/preview');
+  }
+  const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch && url.includes('drive.google.com')) {
+    return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+  }
+  if (url.includes('docs.google.com/')) {
+    return url.replace(/\/edit.*$/, '/preview');
+  }
+  return url;
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -197,6 +219,15 @@ export default function Dashboard() {
   // Rename state
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
+
+  // Google Classroom assignments from knowledge base
+  const [classroomAssignments, setClassroomAssignments] = useState<any[]>([]);
+  const [classroomConnected, setClassroomConnected] = useState(false);
+  const [classroomExpired, setClassroomExpired] = useState(false);
+  const [classroomCourses, setClassroomCourses] = useState<string[]>([]);
+  const [classroomCourseFilter, setClassroomCourseFilter] = useState<string | null>(null);
+  const [classroomStats, setClassroomStats] = useState<{ total: number; turned_in: number; graded: number; missing: number; upcoming: number }>({ total: 0, turned_in: 0, graded: 0, missing: 0, upcoming: 0 });
+  const [classroomSyncing, setClassroomSyncing] = useState(false);
 
   // Share state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -251,8 +282,10 @@ export default function Dashboard() {
     if (!authLoading && user) {
       fetchWhiteboards();
       fetchJournals();
-      if (profile?.role === 'student') {
+      if (profile?.role === 'student' || profile?.role === 'admin') {
         fetchAssignments();
+        fetchClassroomAssignments();
+        triggerAutoSync();
       }
     } else if (!authLoading && !user) {
       setLoading(false);
@@ -302,6 +335,47 @@ export default function Dashboard() {
       setAssignments(data || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
+    }
+  }
+
+  async function fetchClassroomAssignments(course?: string | null) {
+    try {
+      const params = new URLSearchParams();
+      if (course) params.set('course', course);
+      const res = await fetch(`/api/knowledge/assignments?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setClassroomConnected(data.connected);
+        setClassroomExpired(data.expired || false);
+        setClassroomAssignments(data.assignments || []);
+        setClassroomCourses(data.courses || []);
+        setClassroomStats(data.stats || { total: 0, turned_in: 0, graded: 0, missing: 0, upcoming: 0 });
+      }
+    } catch (error) {
+      console.error('Error fetching classroom assignments:', error);
+    }
+  }
+
+  async function triggerAutoSync() {
+    try {
+      const res = await fetch('/api/knowledge/auto-sync', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.reason === 'stale') {
+          setClassroomSyncing(true);
+          const syncRes = await fetch('/api/knowledge/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+          });
+          if (syncRes.ok) {
+            await fetchClassroomAssignments(classroomCourseFilter);
+          }
+          setClassroomSyncing(false);
+        }
+      }
+    } catch {
+      setClassroomSyncing(false);
     }
   }
 
@@ -478,6 +552,61 @@ export default function Dashboard() {
       toast.error('Failed to create journal');
     }
   }, [user, router, supabase, isAdmin, journals.length]);
+
+  async function openClassroomInBoard(assignment: any) {
+    if (!user) return;
+    try {
+      const preferredMode = localStorage.getItem('agathon_pref_ai_mode') || 'feedback';
+      const docUrl = assignment.metadata?.url as string | undefined;
+      const { data, error } = await supabase
+        .from('whiteboards')
+        .insert([{
+          name: assignment.title || 'Classroom Assignment',
+          title: assignment.title || 'Classroom Assignment',
+          user_id: user.id,
+          data: {},
+          metadata: {
+            templateId: 'blank',
+            subject: assignment.metadata?.course_name || 'General',
+            instructions: assignment.content || '',
+            defaultMode: preferredMode,
+            ...(docUrl ? { documentUrl: toEmbedUrl(docUrl), documentTitle: assignment.title || 'Document' } : {}),
+          },
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      toast.success('Board created from assignment');
+      router.push(`/board/${data.id}`);
+    } catch (error) {
+      console.error('Error creating board from assignment:', error);
+      toast.error('Failed to create board');
+    }
+  }
+
+  async function openClassroomInJournal(assignment: any) {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('journals')
+        .insert([{
+          user_id: user.id,
+          title: assignment.title || 'Classroom Assignment',
+          content: [
+            { type: 'heading', content: assignment.title || 'Classroom Assignment' },
+            { type: 'paragraph', content: assignment.content || '' },
+          ],
+        }])
+        .select()
+        .single();
+      if (error) throw error;
+      toast.success('Journal created from assignment');
+      router.push(`/journal/${data.id}`);
+    } catch (error) {
+      console.error('Error creating journal from assignment:', error);
+      toast.error('Failed to create journal');
+    }
+  }
 
   async function deleteJournal(id: string) {
     try {
@@ -872,6 +1001,13 @@ export default function Dashboard() {
             >
               <BookOpenText className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
               {!sidebarCollapsed && <span className="text-sm">My Journals</span>}
+            </button>
+            <button
+              onClick={() => router.push('/knowledge')}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+            >
+              <Books className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+              {!sidebarCollapsed && <span className="text-sm">Knowledge Base</span>}
             </button>
           </div>
 
@@ -1418,6 +1554,259 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Google Classroom Section for Students + Admins */}
+            {(profile?.role === 'student' || profile?.role === 'admin') && (classroomConnected ? (
+              <div className="mt-12">
+                {/* Header with sync + manage */}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" weight="duotone" />
+                    Google Classroom
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    {classroomSyncing && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CircleNotch className="w-3 h-3 animate-spin" weight="duotone" />
+                        Syncing...
+                      </span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground gap-1.5"
+                      onClick={async () => {
+                        setClassroomSyncing(true);
+                        try {
+                          await fetch('/api/knowledge/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'google_classroom' }) });
+                          await fetchClassroomAssignments(classroomCourseFilter);
+                          toast.success('Classroom synced');
+                        } catch { toast.error('Sync failed'); }
+                        setClassroomSyncing(false);
+                      }}
+                      disabled={classroomSyncing}
+                    >
+                      <ArrowsClockwise className="w-3.5 h-3.5" weight="duotone" />
+                      Sync
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground gap-1.5"
+                      onClick={() => router.push('/knowledge')}
+                    >
+                      Manage
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Token expiry warning */}
+                {classroomExpired && (
+                  <div className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 flex items-center gap-3">
+                    <Warning className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" weight="duotone" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Connection expired</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">Your Google Classroom token has expired. Reconnect to keep syncing.</p>
+                    </div>
+                    <Button size="sm" variant="outline" className="shrink-0" onClick={() => router.push('/knowledge')}>
+                      Reconnect
+                    </Button>
+                  </div>
+                )}
+
+                {/* Stats bar */}
+                {classroomStats.total > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <ClockCountdown className="w-4 h-4 text-blue-600 dark:text-blue-400" weight="duotone" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.upcoming}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Upcoming</p>
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" weight="duotone" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.turned_in}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Turned In</p>
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                        <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" weight="duotone" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.graded}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Graded</p>
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-md bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <Warning className="w-4 h-4 text-red-600 dark:text-red-400" weight="duotone" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.missing}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Missing</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Course filter */}
+                {classroomCourses.length > 1 && (
+                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => { setClassroomCourseFilter(null); fetchClassroomAssignments(null); }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
+                        !classroomCourseFilter
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      All Courses
+                    </button>
+                    {classroomCourses.map(course => (
+                      <button
+                        key={course}
+                        onClick={() => { setClassroomCourseFilter(course); fetchClassroomAssignments(course); }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
+                          classroomCourseFilter === course
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        )}
+                      >
+                        {course}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Assignments list */}
+                {classroomAssignments.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {classroomAssignments.map((item: any) => {
+                      const subState = item.metadata?.submission_state;
+                      const isTurnedIn = subState === 'TURNED_IN';
+                      const isReturned = subState === 'RETURNED';
+                      const isLate = item.metadata?.late;
+                      const grade = item.metadata?.assigned_grade;
+                      const maxPts = item.metadata?.max_points;
+                      const dueDate = item.metadata?.due_date;
+                      let dueDateStr = '';
+                      let isOverdue = false;
+                      if (dueDate) {
+                        const d = typeof dueDate === 'string' ? new Date(dueDate) : new Date(dueDate.year, dueDate.month - 1, dueDate.day);
+                        dueDateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                        isOverdue = d < new Date() && !isTurnedIn && !isReturned;
+                      }
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "group bg-card rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md",
+                            isOverdue ? "border-red-200 dark:border-red-900/50" : "border-border"
+                          )}
+                        >
+                          <div className="p-4 pb-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1">
+                                {item.title}
+                              </h3>
+                              {/* Status badge */}
+                              {isReturned ? (
+                                <Badge className="shrink-0 text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-0">
+                                  {grade != null && maxPts ? `${grade}/${maxPts}` : 'Returned'}
+                                </Badge>
+                              ) : isTurnedIn ? (
+                                <Badge className="shrink-0 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
+                                  Turned In
+                                </Badge>
+                              ) : isOverdue ? (
+                                <Badge className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0">
+                                  {isLate ? 'Late' : 'Missing'}
+                                </Badge>
+                              ) : maxPts ? (
+                                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                                  {maxPts} pts
+                                </Badge>
+                              ) : null}
+                            </div>
+                            {item.metadata?.course_name && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {item.metadata.course_name}
+                              </p>
+                            )}
+                            {dueDateStr && (
+                              <p className={cn(
+                                "text-xs flex items-center gap-1.5 mt-2",
+                                isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
+                              )}>
+                                <Clock className="w-3 h-3" weight="duotone" />
+                                {isOverdue ? 'Was due' : 'Due'} {dueDateStr}
+                              </p>
+                            )}
+                          </div>
+                          <div className="px-4 pb-3 flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 gap-1.5 text-xs h-8"
+                              onClick={() => openClassroomInBoard(item)}
+                            >
+                              <PencilLine className="w-3 h-3" weight="duotone" />
+                              Board
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 gap-1.5 text-xs h-8"
+                              onClick={() => openClassroomInJournal(item)}
+                            >
+                              <BookOpenText className="w-3 h-3" weight="duotone" />
+                              Journal
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-card rounded-xl border border-border">
+                    <GraduationCap className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" weight="duotone" />
+                    <p className="text-sm font-medium text-foreground">No assignments found</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {classroomCourseFilter ? 'Try selecting a different course' : 'Your classroom assignments will appear here after syncing'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-12">
+                <div
+                  className="bg-card rounded-xl border border-dashed border-border p-6 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors"
+                  onClick={() => router.push('/knowledge')}
+                >
+                  <div className="icon-container icon-container-lg icon-container-green shrink-0">
+                    <GraduationCap className="w-5 h-5" weight="duotone" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground">Connect Google Classroom</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      See your assignments here and open them in a board or journal
+                    </p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" weight="duotone" />
+                </div>
+              </div>
+            ))}
           </div>
           </motion.div>
         ) : activeView === 'journals' ? (

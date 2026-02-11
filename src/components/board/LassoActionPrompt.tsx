@@ -106,7 +106,7 @@ export function LassoActionPrompt({ position, onAction, onDismiss, isClosing }: 
             <button
               data-lasso-btn
               onClick={() => onAction('chat')}
-              className="flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-violet-600 rounded hover:bg-violet-50 transition-colors whitespace-nowrap opacity-0"
+              className="flex items-center gap-1 px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-[#007ba5] rounded hover:bg-sky-50 transition-colors whitespace-nowrap opacity-0"
             >
               <MessageCircle className="w-3 h-3" />
               Ask AI

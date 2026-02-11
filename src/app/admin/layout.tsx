@@ -73,20 +73,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {isImpersonating && (
-        <div className="bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-4">
-          <span>Impersonating another user</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={stopImpersonation}
-            className="border-white/40 text-white hover:bg-white/10 rounded-none h-7 text-xs"
-          >
-            Exit
-          </Button>
-        </div>
-      )}
-
       <div className="flex">
         {/* Sidebar */}
         <aside className="w-52 border-r border-border min-h-screen bg-card fixed left-0 top-0 flex flex-col">

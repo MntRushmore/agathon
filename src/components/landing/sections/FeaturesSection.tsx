@@ -29,11 +29,11 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-32 px-6 lg:px-16 bg-[#f5f3f0]">
+    <section id="features" className="py-32 px-6 lg:px-16 bg-[#f8f9fa]">
       <div className="max-w-[1200px] mx-auto">
         {/* Section Header */}
         <div className="mb-20">
-          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-[#1a1a1a] leading-[1.05] tracking-[-0.03em] max-w-2xl">
+          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-foreground leading-[1.05] tracking-[-0.03em] max-w-2xl">
             Everything you need to actually learn
           </h2>
         </div>
@@ -45,7 +45,7 @@ export function FeaturesSection() {
               <div className="text-[13px] text-gray-400 font-medium mb-4 tracking-wider">
                 {String(index + 1).padStart(2, '0')}
               </div>
-              <h3 className="text-[20px] font-normal text-[#1a1a1a] mb-3 tracking-[-0.01em]">
+              <h3 className="text-[20px] font-normal text-foreground mb-3 tracking-[-0.01em]">
                 {feature.title}
               </h3>
               <p className="text-[16px] text-gray-500 leading-relaxed">

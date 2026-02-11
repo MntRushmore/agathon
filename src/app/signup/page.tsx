@@ -84,7 +84,7 @@ export default function SignupPage() {
       </div>
 
       {/* Right side - Branding (hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 bg-foreground items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12">
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -92,10 +92,10 @@ export default function SignupPage() {
           className="max-w-md text-center"
         >
           <Logo size="xl" className="mx-auto mb-8" />
-          <h2 className="text-3xl font-semibold text-background mb-4">
+          <h2 className="text-3xl font-semibold text-white mb-4">
             Learn smarter, not harder
           </h2>
-          <p className="text-background/60 text-lg">
+          <p className="text-white/70 text-lg">
             Agathon helps you understand concepts deeply with AI-powered hints
             and guidance—never just giving you the answer.
           </p>

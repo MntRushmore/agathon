@@ -73,24 +73,24 @@ export default function CompleteSignupPage() {
   }, [user, authLoading, router]);
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
         {status === 'redeeming' && (
           <>
-            <Loader2 className="h-8 w-8 animate-spin text-[#1a1a1a] mx-auto" />
-            <p className="mt-4 text-[#666]">Setting up your account...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-foreground mx-auto" />
+            <p className="mt-4 text-muted-foreground">Setting up your account...</p>
           </>
         )}
         {status === 'success' && (
           <>
             <CheckCircle className="h-8 w-8 text-green-600 mx-auto" />
-            <p className="mt-4 text-[#1a1a1a] font-medium">You&apos;re all set!</p>
-            <p className="mt-1 text-[#666] text-sm">Redirecting...</p>
+            <p className="mt-4 text-foreground font-medium">You&apos;re all set!</p>
+            <p className="mt-1 text-muted-foreground text-sm">Redirecting...</p>
           </>
         )}
         {status === 'error' && (
           <>
-            <p className="text-[#666]">Redirecting...</p>
+            <p className="text-muted-foreground">Redirecting...</p>
           </>
         )}
       </div>

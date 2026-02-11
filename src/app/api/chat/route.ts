@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
+import { searchKnowledgeBase, buildKnowledgeAwarePrompt, hasKnowledgeBase, getUpcomingAssignmentsContext } from '@/lib/ai/knowledge-agent';
 
 interface CanvasContext {
   subject?: string;
@@ -108,6 +109,27 @@ You are currently in Socratic Mode. Your goal is to lead the student to the answ
 - Focus on identifying what the student already knows and where they are stuck.
 - Ask 1-2 targeted questions at a time to nudge them toward the next logical step.
 - If they are completely stuck, provide a very small hint and ask a question about it.`;
+    }
+
+    // Knowledge Base Agent: search the student's connected notes for relevant context
+    const latestUserMessage = messages.filter(m => m.role === 'user').pop();
+    if (latestUserMessage) {
+      try {
+        const hasKB = await hasKnowledgeBase(user.id);
+        if (hasKB) {
+          const [knowledgeContext, upcomingContext] = await Promise.all([
+            searchKnowledgeBase(user.id, latestUserMessage.content),
+            getUpcomingAssignmentsContext(user.id),
+          ]);
+          systemPrompt = buildKnowledgeAwarePrompt(systemPrompt, knowledgeContext);
+          if (upcomingContext) {
+            systemPrompt += upcomingContext;
+          }
+        }
+      } catch (kbError) {
+        // Knowledge base search is non-critical — continue without it
+        console.error('Knowledge base search error:', kbError);
+      }
     }
 
     // Build messages with image content for vision model

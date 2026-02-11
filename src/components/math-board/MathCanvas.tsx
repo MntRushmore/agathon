@@ -55,7 +55,7 @@ export const MathCanvas = forwardRef<MathCanvasRef, MathCanvasProps>(({
   tool,
   penColor = '#1a1a2e',
   penWidth = 2.5,
-  solutionColor = '#00B4D8', // Nice cyan color
+  solutionColor = '#007ba5', // Agathon blue
   disabled = false,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

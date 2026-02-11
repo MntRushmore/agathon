@@ -27,10 +27,10 @@ export function AITutorButton({ onClick, isOpen, messageCount = 0, className }: 
       aria-label="Open AI Tutor"
       data-tutorial="chat-button"
     >
-      <MessageCircle className="h-4 w-4 text-violet-500" />
+      <MessageCircle className="h-4 w-4 text-[#007ba5]" />
       <span className="text-sm font-medium">AI Tutor</span>
       {messageCount > 0 && (
-        <span className="ml-0.5 h-4 min-w-[16px] rounded-full bg-violet-500 text-white text-[10px] font-medium flex items-center justify-center px-1">
+        <span className="ml-0.5 h-4 min-w-[16px] rounded-full bg-[#007ba5] text-white text-[10px] font-medium flex items-center justify-center px-1">
           {messageCount > 9 ? '9+' : messageCount}
         </span>
       )}

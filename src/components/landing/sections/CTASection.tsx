@@ -4,11 +4,11 @@ import { WaitlistForm } from '../WaitlistForm';
 
 export function CTASection() {
   return (
-    <section id="cta" className="py-32 px-6 lg:px-16 bg-[#f5f3f0]">
+    <section id="cta" className="py-32 px-6 lg:px-16 bg-[#f8f9fa]">
       <div className="max-w-[1200px] mx-auto">
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-32">
           <div>
-            <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-[#1a1a1a] leading-[1.05] tracking-[-0.03em]">
+            <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-foreground leading-[1.05] tracking-[-0.03em]">
               Ready to think<br />clearly?
             </h2>
           </div>

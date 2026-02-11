@@ -87,7 +87,7 @@ export function WaitlistForm({
           className={`w-full h-12 text-[14px] font-medium rounded-lg ${
             dark
               ? 'bg-white text-gray-900 hover:bg-gray-100'
-              : 'bg-[#1a1a1a] text-white hover:bg-[#333]'
+              : 'bg-[#007ba5] text-white hover:bg-[#006080]'
           }`}
         >
           {loading ? (
@@ -124,7 +124,7 @@ export function WaitlistForm({
         className={`h-11 px-5 text-[14px] font-medium rounded-lg ${
           dark
             ? 'bg-white text-gray-900 hover:bg-gray-100'
-            : 'bg-[#1a1a1a] text-white hover:bg-[#333]'
+            : 'bg-[#007ba5] text-white hover:bg-[#006080]'
         }`}
       >
         {loading ? (

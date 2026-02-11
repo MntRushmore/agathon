@@ -6,7 +6,7 @@ export function HowItWorksSection() {
       <div className="max-w-[1200px] mx-auto">
         {/* Section Header */}
         <div className="mb-24">
-          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-[#1a1a1a] leading-[1.05] tracking-[-0.03em]">
+          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-foreground leading-[1.05] tracking-[-0.03em]">
             How it works
           </h2>
         </div>
@@ -19,7 +19,7 @@ export function HowItWorksSection() {
               <span className="text-[13px] text-gray-400 font-medium tracking-wider">01</span>
             </div>
             <div>
-              <h3 className="text-[28px] font-normal text-[#1a1a1a] mb-4 tracking-[-0.02em]">
+              <h3 className="text-[28px] font-normal text-foreground mb-4 tracking-[-0.02em]">
                 Write your problem
               </h3>
               <p className="text-[17px] text-gray-500 leading-relaxed max-w-md">
@@ -35,7 +35,7 @@ export function HowItWorksSection() {
               <span className="text-[13px] text-gray-400 font-medium tracking-wider">02</span>
             </div>
             <div>
-              <h3 className="text-[28px] font-normal text-[#1a1a1a] mb-4 tracking-[-0.02em]">
+              <h3 className="text-[28px] font-normal text-foreground mb-4 tracking-[-0.02em]">
                 Get the right question
               </h3>
               <p className="text-[17px] text-gray-500 leading-relaxed max-w-md">
@@ -51,7 +51,7 @@ export function HowItWorksSection() {
               <span className="text-[13px] text-gray-400 font-medium tracking-wider">03</span>
             </div>
             <div>
-              <h3 className="text-[28px] font-normal text-[#1a1a1a] mb-4 tracking-[-0.02em]">
+              <h3 className="text-[28px] font-normal text-foreground mb-4 tracking-[-0.02em]">
                 Discover the answer yourself
               </h3>
               <p className="text-[17px] text-gray-500 leading-relaxed max-w-md">
@@ -75,8 +75,8 @@ export function HowItWorksSection() {
               </p>
             </div>
             <div>
-              <p className="text-[13px] text-[#1a1a1a] font-medium mb-6 tracking-wider uppercase">Agathon</p>
-              <p className="text-[32px] font-light text-[#1a1a1a] leading-[1.2] tracking-[-0.02em]">
+              <p className="text-[13px] text-[#007ba5] font-medium mb-6 tracking-wider uppercase">Agathon</p>
+              <p className="text-[32px] font-light text-foreground leading-[1.2] tracking-[-0.02em]">
                 "What's the first step to isolate x?"
               </p>
               <p className="text-[15px] text-gray-500 mt-6">

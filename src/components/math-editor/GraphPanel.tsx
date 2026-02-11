@@ -13,7 +13,7 @@ interface GraphPanelProps {
 
 // Color palette for multiple equations
 const GRAPH_COLORS = [
-  '#2563eb', // blue
+  '#007ba5', // agathon blue (primary)
   '#dc2626', // red
   '#16a34a', // green
   '#9333ea', // purple

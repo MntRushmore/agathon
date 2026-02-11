@@ -122,7 +122,7 @@ export function FeedbackCard({
       case 'step':
         return <ArrowRight className="w-4 h-4 text-blue-500" />;
       case 'answer':
-        return <CheckCircle className="w-4 h-4 text-violet-500" />;
+        return <CheckCircle className="w-4 h-4 text-[#007ba5]" />;
       default:
         return <Lightbulb className="w-4 h-4 text-gray-500" />;
     }
@@ -139,7 +139,7 @@ export function FeedbackCard({
       case 'step':
         return 'bg-blue-50 border-blue-100';
       case 'answer':
-        return 'bg-violet-50 border-violet-100';
+        return 'bg-sky-50 border-sky-100';
       default:
         return 'bg-gray-50 border-gray-100';
     }
@@ -227,13 +227,13 @@ export function FeedbackCard({
             {!showSolution ? (
               <button
                 onClick={() => setShowSolution(true)}
-                className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                className="text-sm text-[#007ba5] hover:text-[#006080] font-medium"
               >
                 Show full solution
               </button>
             ) : (
-              <div ref={solutionRef} className="p-3 bg-violet-50 rounded-lg border border-violet-100 opacity-0">
-                <p className="text-xs text-violet-600 font-medium mb-2">Solution</p>
+              <div ref={solutionRef} className="p-3 bg-sky-50 rounded-lg border border-sky-100 opacity-0">
+                <p className="text-xs text-[#007ba5] font-medium mb-2">Solution</p>
                 <div className="text-sm text-gray-700 overflow-x-auto">
                   <LatexRenderer content={solution} />
                 </div>

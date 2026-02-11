@@ -328,7 +328,7 @@ New Users (Month),${stats.newUsersMonth}`;
             const aiModeData = Object.entries(stats?.aiByMode || {})
               .sort(([, a], [, b]) => b - a)
               .map(([mode, count]) => ({ mode: mode.charAt(0).toUpperCase() + mode.slice(1), count }));
-            const chartColors = ['oklch(0.48 0.17 220)', 'oklch(0.52 0.18 145)', 'oklch(0.50 0.18 285)', 'oklch(0.72 0.20 70)', 'oklch(0.52 0.18 30)'];
+            const chartColors = ['oklch(0.52 0.11 225)', 'oklch(0.52 0.14 145)', 'oklch(0.50 0.14 285)', 'oklch(0.55 0.12 160)', 'oklch(0.45 0.10 260)'];
 
             return aiModeData.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No AI usage data yet</p>

@@ -127,7 +127,7 @@ export default function CreditsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.01_210)] via-background to-background">
+    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.003_260)] via-background to-background">
       <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -183,16 +183,16 @@ export default function CreditsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="font-medium text-green-800">With Credits (Enterprise)</p>
-                <ul className="text-sm text-green-700 mt-1 space-y-1">
+              <div className="p-3 bg-[oklch(0.95_0.02_225)] rounded-lg border border-[oklch(0.85_0.04_225)]">
+                <p className="font-medium text-[oklch(0.30_0.06_225)]">With Credits (Enterprise)</p>
+                <ul className="text-sm text-[oklch(0.38_0.05_225)] mt-1 space-y-1">
                   <li>• Handwritten visual feedback on canvas</li>
                   <li>• AI-drawn annotations on your work</li>
                 </ul>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="font-medium text-gray-800">Free for Everyone</p>
-                <ul className="text-sm text-gray-600 mt-1 space-y-1">
+              <div className="p-3 bg-[oklch(0.96_0.003_260)] rounded-lg border border-[oklch(0.92_0.003_260)]">
+                <p className="font-medium text-[oklch(0.25_0.005_260)]">Free for Everyone</p>
+                <ul className="text-sm text-[oklch(0.40_0.005_260)] mt-1 space-y-1">
                   <li>• Full AI tutor with vision (sees your canvas)</li>
                   <li>• Socratic tutoring mode</li>
                   <li>• Math solving and step-by-step analysis</li>
@@ -300,12 +300,12 @@ export default function CreditsPage() {
         </Card>
 
         {/* Subscription CTA */}
-        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+        <Card className="bg-gradient-to-r from-[oklch(0.96_0.02_225)] to-[oklch(0.97_0.003_260)] border-[oklch(0.85_0.04_225)]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  <Sparkles className="h-5 w-5 text-[oklch(0.52_0.11_225)]" />
                   Want more credits each month?
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">

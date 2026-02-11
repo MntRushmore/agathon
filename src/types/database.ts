@@ -43,6 +43,7 @@ export interface Whiteboard {
   preview: string | null;
   metadata: Json;
   data: Json;
+  is_public: boolean;
 }
 
 export interface BoardShare {
@@ -73,6 +74,8 @@ export interface Class {
   grade_level: string | null;
   join_code: string;
   is_active: boolean;
+  gc_course_id?: string | null;
+  gc_course_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +95,7 @@ export interface Assignment {
   instructions: string | null;
   due_date: string | null;
   is_published: boolean;
+  gc_coursework_id?: string | null;
   metadata?: {
     allowAI?: boolean;
     allowedModes?: string[];

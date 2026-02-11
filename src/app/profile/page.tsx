@@ -17,6 +17,7 @@ import {
   CircleNotch,
   House,
   CaretRight,
+  Books,
 } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
@@ -238,6 +239,18 @@ export default function ProfilePage() {
               <div className="flex-1">
                 <p className="font-medium text-foreground">Plans & Billing</p>
                 <p className="text-sm text-muted-foreground">Manage your subscription</p>
+              </div>
+              <CaretRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
+            </button>
+
+            <button
+              onClick={() => router.push('/knowledge')}
+              className="w-full p-4 flex items-center gap-3 hover:bg-muted/30 transition-colors text-left group"
+            >
+              <Books className="h-5 w-5 text-primary" weight="duotone" />
+              <div className="flex-1">
+                <p className="font-medium text-foreground">Knowledge Base</p>
+                <p className="text-sm text-muted-foreground">Connect Google Drive & Classroom</p>
               </div>
               <CaretRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" weight="duotone" />
             </button>
