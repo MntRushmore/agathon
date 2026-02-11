@@ -13,7 +13,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
       <div className="max-w-[1200px] mx-auto">
         {/* Section Header */}
         <div className="mb-24">
-          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-[#1a1a1a] leading-[1.05] tracking-[-0.03em]">
+          <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-foreground leading-[1.05] tracking-[-0.03em]">
             Built for everyone who<br />cares about learning
           </h2>
         </div>
@@ -23,7 +23,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
           {/* Students */}
           <div className="grid lg:grid-cols-12 gap-8 py-20 border-t border-gray-200">
             <div className="lg:col-span-4">
-              <h3 className="text-[32px] font-light text-[#1a1a1a] tracking-[-0.02em]">
+              <h3 className="text-[32px] font-light text-foreground tracking-[-0.02em]">
                 Students
               </h3>
             </div>
@@ -41,7 +41,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
             <div className="lg:col-span-3 flex lg:justify-end items-start">
               <button
                 onClick={() => onJoinWaitlist('student')}
-                className="text-[14px] font-medium text-[#1a1a1a] flex items-center gap-2 hover:gap-3 transition-all group"
+                className="text-[14px] font-medium text-[#007ba5] flex items-center gap-2 hover:gap-3 transition-all group"
               >
                 Join as student
                 <ArrowRight className="w-4 h-4" />
@@ -52,7 +52,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
           {/* Teachers */}
           <div className="grid lg:grid-cols-12 gap-8 py-20 border-t border-gray-200">
             <div className="lg:col-span-4">
-              <h3 className="text-[32px] font-light text-[#1a1a1a] tracking-[-0.02em]">
+              <h3 className="text-[32px] font-light text-foreground tracking-[-0.02em]">
                 Teachers
               </h3>
             </div>
@@ -70,7 +70,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
             <div className="lg:col-span-3 flex lg:justify-end items-start">
               <button
                 onClick={() => onJoinWaitlist('teacher')}
-                className="text-[14px] font-medium text-[#1a1a1a] flex items-center gap-2 hover:gap-3 transition-all group"
+                className="text-[14px] font-medium text-[#007ba5] flex items-center gap-2 hover:gap-3 transition-all group"
               >
                 Join as teacher
                 <ArrowRight className="w-4 h-4" />
@@ -81,7 +81,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
           {/* Parents */}
           <div className="grid lg:grid-cols-12 gap-8 py-20 border-t border-gray-200">
             <div className="lg:col-span-4">
-              <h3 className="text-[32px] font-light text-[#1a1a1a] tracking-[-0.02em]">
+              <h3 className="text-[32px] font-light text-foreground tracking-[-0.02em]">
                 Parents
               </h3>
             </div>
@@ -99,7 +99,7 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
             <div className="lg:col-span-3 flex lg:justify-end items-start">
               <button
                 onClick={() => onJoinWaitlist('parent')}
-                className="text-[14px] font-medium text-[#1a1a1a] flex items-center gap-2 hover:gap-3 transition-all group"
+                className="text-[14px] font-medium text-[#007ba5] flex items-center gap-2 hover:gap-3 transition-all group"
               >
                 Join as parent
                 <ArrowRight className="w-4 h-4" />

@@ -5,6 +5,7 @@ import { AuthProvider } from './auth/auth-provider';
 import { Toaster } from './ui/sonner';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CommandPalette } from './CommandPalette';
+import { ImpersonationBar } from './admin/ImpersonationBar';
 
 function useAnimationPreference() {
   useEffect(() => {
@@ -29,6 +30,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <ImpersonationBar />
         {children}
         <Toaster />
         <CommandPalette />

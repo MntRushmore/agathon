@@ -257,7 +257,7 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
     return (
       <div className={cn(
         'group relative flex items-start gap-3 py-3 transition-colors',
-        isFocused ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''
+        isFocused ? 'bg-[#e0f2f7]/50 dark:bg-[#007ba5]/10' : ''
       )}>
         {/* Line number */}
         <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-3 font-mono">
@@ -268,9 +268,9 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
         <div className="flex-1 flex justify-center">
           <div className={cn(
             'relative inline-block px-6 py-4 rounded-lg transition-all',
-            'bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-950/30 dark:to-indigo-950/30',
-            'border border-blue-200/50 dark:border-blue-800/30',
-            isFocused && 'ring-2 ring-blue-400/50 dark:ring-blue-500/30'
+            'bg-gradient-to-r from-[#e0f2f7]/80 to-[#eef5fa]/80 dark:from-[#007ba5]/10 dark:to-[#007ba5]/5',
+            'border border-[#007ba5]/20 dark:border-[#007ba5]/30',
+            isFocused && 'ring-2 ring-[#007ba5]/50 dark:ring-[#007ba5]/30'
           )}>
             {React.createElement('math-field', {
               ref: mathfieldRef,
@@ -281,7 +281,7 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
               style: {
                 minHeight: '32px',
                 fontSize: '1.375rem',
-                '--caret-color': '#3b82f6',
+                '--caret-color': '#007ba5',
               },
             })}
 
@@ -289,7 +289,7 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
             {showSuggestions && suggestions.length > 0 && (
               <div className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-700 overflow-hidden z-50">
                 {/* Search term display */}
-                <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/30 border-b dark:border-gray-700">
+                <div className="px-4 py-2 bg-[#e0f2f7] dark:bg-[#007ba5]/10 border-b dark:border-gray-700">
                   <span className="font-mono text-sm">{searchTerm}</span>
                 </div>
 
@@ -301,7 +301,7 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
                       className={cn(
                         'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
                         index === selectedSuggestion
-                          ? 'bg-blue-50 dark:bg-blue-950/50'
+                          ? 'bg-[#e0f2f7] dark:bg-[#007ba5]/20'
                           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
                       )}
                       onClick={() => insertSuggestion(suggestion)}

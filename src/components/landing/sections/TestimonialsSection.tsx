@@ -24,16 +24,16 @@ export function TestimonialsSection() {
       <div className="max-w-[1200px] mx-auto">
         {/* Large quote */}
         <div className="mb-32">
-          <blockquote className="text-[clamp(1.75rem,4vw,3rem)] font-light text-[#1a1a1a] leading-[1.25] tracking-[-0.02em] max-w-4xl">
+          <blockquote className="text-[clamp(1.75rem,4vw,3rem)] font-light text-foreground leading-[1.25] tracking-[-0.02em] max-w-4xl">
             "The difference is my students come to class with questions about
             <em className="italic"> why</em> something works, not just asking for the answer."
           </blockquote>
           <div className="mt-10 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#1a1a1a] flex items-center justify-center text-white text-[14px] font-medium">
+            <div className="w-12 h-12 rounded-full bg-[#007ba5] flex items-center justify-center text-white text-[14px] font-medium">
               DR
             </div>
             <div>
-              <p className="text-[15px] text-[#1a1a1a] font-medium">Dr. Rebecca Chen</p>
+              <p className="text-[15px] text-foreground font-medium">Dr. Rebecca Chen</p>
               <p className="text-[14px] text-gray-400">Math Department Chair, Lincoln High School</p>
             </div>
           </div>
@@ -43,11 +43,11 @@ export function TestimonialsSection() {
         <div className="grid md:grid-cols-3 gap-12 pt-20 border-t border-gray-200">
           {testimonials.map((testimonial) => (
             <div key={testimonial.author}>
-              <p className="text-[17px] text-[#1a1a1a] leading-relaxed mb-8">
+              <p className="text-[17px] text-foreground leading-relaxed mb-8">
                 "{testimonial.quote}"
               </p>
               <div>
-                <p className="text-[15px] text-[#1a1a1a] font-medium">
+                <p className="text-[15px] text-foreground font-medium">
                   {testimonial.author}
                 </p>
                 <p className="text-[14px] text-gray-400">
@@ -61,7 +61,7 @@ export function TestimonialsSection() {
         {/* Stats */}
         <div className="mt-32 grid grid-cols-3 gap-8">
           <div>
-            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-[#1a1a1a] tracking-[-0.03em]">
+            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               2,500+
             </p>
             <p className="text-[15px] text-gray-400 mt-2">
@@ -69,7 +69,7 @@ export function TestimonialsSection() {
             </p>
           </div>
           <div>
-            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-[#1a1a1a] tracking-[-0.03em]">
+            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               50+
             </p>
             <p className="text-[15px] text-gray-400 mt-2">
@@ -77,7 +77,7 @@ export function TestimonialsSection() {
             </p>
           </div>
           <div>
-            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-[#1a1a1a] tracking-[-0.03em]">
+            <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               94%
             </p>
             <p className="text-[15px] text-gray-400 mt-2">

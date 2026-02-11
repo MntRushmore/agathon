@@ -37,10 +37,10 @@ export default function Error({
         {/* Lightning icon with crackle animation */}
         <div className="mb-6 flex justify-center">
           <div
-            className={`h-20 w-20 rounded-full bg-amber-50 dark:bg-amber-900/20 border-2 border-dashed border-amber-200/60 dark:border-amber-700/30 flex items-center justify-center transition-all duration-200 ${crackle ? 'scale-95' : ''}`}
+            className={`h-20 w-20 rounded-full bg-[oklch(0.96_0.003_260)] dark:bg-[oklch(0.20_0.005_260)] border-2 border-dashed border-[oklch(0.88_0.003_260)] dark:border-[oklch(0.30_0.005_260)] flex items-center justify-center transition-all duration-200 ${crackle ? 'scale-95' : ''}`}
           >
             <Lightning
-              className={`h-9 w-9 text-amber-400/70 transition-transform duration-150 ${crackle ? 'scale-125 rotate-12' : ''}`}
+              className={`h-9 w-9 text-[oklch(0.52_0.11_225)]/70 transition-transform duration-150 ${crackle ? 'scale-125 rotate-12' : ''}`}
               weight="duotone"
             />
           </div>

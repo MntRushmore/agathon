@@ -53,7 +53,7 @@ import { toast } from "sonner";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Check, Clock } from "lucide-react";
+import { BookOpen, Check, Clock, FileText, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { CustomToolbar } from "@/components/board/CustomToolbar";
 import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
@@ -62,6 +62,7 @@ import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { DocumentPanelContext } from "@/lib/contexts/document-panel-context";
 import { MyScriptMathOverlay } from "@/components/board/MyScriptMathOverlay";
 import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board/tools/LassoSolveTool";
 import { LassoActionPrompt } from "@/components/board/LassoActionPrompt";
@@ -728,7 +729,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
     answer: aiShapes.filter((s: any) => s.meta?.aiMode === 'answer').length,
   };
 
-  // Generate CSS rules to highlight AI shapes with purple outlines
+  // Generate CSS rules to highlight AI shapes with blue outlines
   const cssRules = useMemo(() => {
     if (aiShapes.length === 0) return '';
 
@@ -736,8 +737,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
 
     rules.push(`
       @keyframes ai-pulse-glow {
-        0%, 100% { box-shadow: 0 0 8px 2px rgba(147, 51, 234, 0.5); }
-        50% { box-shadow: 0 0 16px 4px rgba(147, 51, 234, 0.7); }
+        0%, 100% { box-shadow: 0 0 8px 2px rgba(0, 123, 165, 0.5); }
+        50% { box-shadow: 0 0 16px 4px rgba(0, 123, 165, 0.7); }
       }
     `);
 
@@ -748,15 +749,15 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
       switch (mode) {
         case 'suggest':
           rules.push(`${selector} {
-            outline: 2px solid rgba(147, 51, 234, 0.7) !important;
+            outline: 2px solid rgba(0, 123, 165, 0.7) !important;
             outline-offset: 3px;
-            box-shadow: 0 0 8px 1px rgba(147, 51, 234, 0.3);
+            box-shadow: 0 0 8px 1px rgba(0, 123, 165, 0.3);
             border-radius: 4px;
           }`);
           break;
         case 'answer':
           rules.push(`${selector} {
-            outline: 3px solid rgba(126, 34, 206, 0.85) !important;
+            outline: 3px solid rgba(0, 101, 137, 0.85) !important;
             outline-offset: 3px;
             animation: ai-pulse-glow 2s ease-in-out infinite;
             border-radius: 4px;
@@ -765,7 +766,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
         default:
           // feedback and other modes get subtle dashed outline
           rules.push(`${selector} {
-            outline: 2px dashed rgba(168, 85, 247, 0.6) !important;
+            outline: 2px dashed rgba(56, 163, 201, 0.6) !important;
             outline-offset: 3px;
             border-radius: 4px;
           }`);
@@ -787,7 +788,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
         <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 mb-2 max-w-xs">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-sm flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-500" />
+              <Sparkles className="h-4 w-4 text-sky-600" />
               AI Usage Summary
             </h4>
             <button onClick={() => setShowLegend(false)} className="text-muted-foreground hover:text-foreground">
@@ -805,8 +806,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
               <div className="space-y-1.5">
                 {aiStats.feedback > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-2 border-dashed border-purple-400" />
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                    <span className="w-5 border-t-2 border-dashed border-sky-400" />
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
                       {aiStats.feedback} Light Hint{aiStats.feedback !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Dashed outline</span>
@@ -814,8 +815,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
                 )}
                 {aiStats.suggest > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-2 border-solid border-purple-500" />
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                    <span className="w-5 border-t-2 border-solid border-sky-500" />
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
                       {aiStats.suggest} Guided Hint{aiStats.suggest !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Solid outline + glow</span>
@@ -823,8 +824,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
                 )}
                 {aiStats.answer > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-[3px] border-solid border-purple-700" />
-                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                    <span className="w-5 border-t-[3px] border-solid border-sky-700" />
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
                       {aiStats.answer} Solution{aiStats.answer !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Thick outline + pulse</span>
@@ -832,7 +833,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                AI-generated content is outlined in purple on the canvas.
+                AI-generated content is outlined in blue on the canvas.
               </p>
             </div>
           )}
@@ -842,11 +843,90 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
       {!showLegend && aiShapes.length > 0 && (
         <button
           onClick={() => setShowLegend(true)}
-          className="bg-purple-600 text-white rounded-full p-3 shadow-lg hover:bg-purple-700 transition-colors"
+          className="bg-[#007ba5] text-white rounded-full p-3 shadow-lg hover:bg-[#006589] transition-colors"
         >
           <Sparkles className="h-5 w-5" />
         </button>
       )}
+    </div>
+  );
+}
+
+function DocumentPanel({
+  url,
+  title,
+  isOpen,
+  onClose,
+}: {
+  url: string;
+  title: string;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [width, setWidth] = useState(420);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const startWidth = useRef(420);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setDragging(true);
+    startX.current = e.clientX;
+    startWidth.current = width;
+    e.preventDefault();
+  }, [width]);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      // Dragging left edge: moving left increases width
+      const newWidth = Math.min(700, Math.max(300, startWidth.current - (e.clientX - startX.current)));
+      setWidth(newWidth);
+    };
+    const handleMouseUp = () => setDragging(false);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed right-0 top-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)] flex flex-col shadow-lg"
+      style={{ width }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-gray-50/80 shrink-0">
+        <FileText className="h-4 w-4 text-gray-500 shrink-0" />
+        <span className="text-sm font-medium text-gray-800 truncate flex-1">{title}</span>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
+          title="Close document panel"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </button>
+      </div>
+      {/* Iframe body */}
+      <div className="flex-1 overflow-hidden relative">
+        <iframe
+          src={url}
+          className="w-full h-full border-0"
+          allow="autoplay"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          title={title}
+        />
+        {/* Overlay blocks iframe from stealing mouse events while resizing */}
+        {dragging && <div className="absolute inset-0" />}
+      </div>
+      {/* Resize handle — left edge */}
+      <div
+        onMouseDown={handleMouseDown}
+        className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors"
+      />
     </div>
   );
 }
@@ -862,6 +942,11 @@ type AssignmentMeta = {
   allowedModes?: string[];
   hintLimit?: number | null;
   backgroundStyle?: string;
+  documentUrl?: string;
+  documentTitle?: string;
+  // Google Classroom submission linkage
+  gcCourseId?: string;
+  gcCourseworkId?: string;
 };
 
 type HelpCheckDecision = {
@@ -887,9 +972,11 @@ type BoardContentProps = {
     submissionId?: string | null;
     assignmentId?: string | null;
     initialHintCount?: number;
+    docPanelOpen?: boolean;
+    setDocPanelOpen?: (open: boolean) => void;
   };
 
-function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId, initialHintCount = 0 }: BoardContentProps) {
+function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmentBoard, assignmentRestrictions, isTeacherViewing, hasBanner, submissionId, assignmentId, initialHintCount = 0, docPanelOpen = false, setDocPanelOpen }: BoardContentProps) {
 
   const editor = useEditor();
   const router = useRouter();
@@ -2290,12 +2377,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       {/* AI Content Stats for Teachers */}
       {isTeacherViewing && aiShapeCount > 0 && (
         <div className="fixed bottom-4 left-4 z-[var(--z-controls)] ios-safe-bottom ios-safe-left">
-          <div className="bg-purple-100 dark:bg-purple-900/30 border border-purple-300 dark:border-purple-700 rounded-lg shadow-sm px-4 py-3">
+          <div className="bg-sky-100 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 rounded-lg shadow-sm px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-full bg-purple-500" />
-              <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">AI Usage Detected</span>
+              <div className="w-3 h-3 rounded-full bg-sky-500" />
+              <span className="text-sm font-semibold text-sky-800 dark:text-sky-300">AI Usage Detected</span>
             </div>
-            <p className="text-xs text-purple-700 dark:text-purple-400">
+            <p className="text-xs text-sky-700 dark:text-sky-400">
               {aiShapeCount} AI-generated {aiShapeCount === 1 ? 'element' : 'elements'} on this canvas
             </p>
           </div>
@@ -2440,6 +2527,27 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           {/* Admin Plan Toggle */}
           <AdminPlanToggle />
 
+          {/* Document Panel — shows when board was created from a KB document with a URL */}
+          {assignmentMeta?.documentUrl && (
+            <>
+              <DocumentPanel
+                url={assignmentMeta.documentUrl}
+                title={assignmentMeta.documentTitle || 'Document'}
+                isOpen={docPanelOpen}
+                onClose={() => setDocPanelOpen?.(false)}
+              />
+              {!docPanelOpen && (
+                <button
+                  onClick={() => setDocPanelOpen?.(true)}
+                  className="fixed right-3 top-4 z-[var(--z-panel)] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-md p-2 hover:bg-muted transition-colors"
+                  title="Show document"
+                >
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
+            </>
+          )}
+
 {/* AI Tutor Panel + Button - hide when teacher is viewing student board */}
           {!isTeacherViewing && (
             <>
@@ -2561,6 +2669,77 @@ export default function BoardPage() {
   const [isTeacherViewing, setIsTeacherViewing] = useState(false);
   const [studentName, setStudentName] = useState<string>("");
   const [showTutorial, setShowTutorial] = useState(false);
+  const [docPanelOpen, setDocPanelOpen] = useState(false);
+  const [gcSubmitting, setGcSubmitting] = useState(false);
+  const [gcSubmitted, setGcSubmitted] = useState(false);
+
+  // Open doc panel once assignmentMeta loads with a documentUrl
+  useEffect(() => {
+    if (assignmentMeta?.documentUrl) setDocPanelOpen(true);
+  }, [assignmentMeta]);
+
+  // Check if this GC assignment was already submitted
+  useEffect(() => {
+    async function checkGcSubmissionStatus() {
+      if (!assignmentMeta?.gcCourseworkId) return;
+      try {
+        const { data } = await supabase
+          .from('knowledge_base')
+          .select('metadata')
+          .eq('source', 'google_classroom')
+          .eq('source_id', `cw_${assignmentMeta.gcCourseworkId}`)
+          .maybeSingle();
+        if ((data?.metadata as Record<string, unknown>)?.submission_state === 'TURNED_IN') {
+          setGcSubmitted(true);
+        }
+      } catch { /* best-effort */ }
+    }
+    checkGcSubmissionStatus();
+  }, [assignmentMeta]);
+
+  const handleGoogleClassroomSubmit = async () => {
+    if (!assignmentMeta?.gcCourseId || !assignmentMeta?.gcCourseworkId) return;
+
+    if (!confirm('Submit this whiteboard to Google Classroom? A link to your board will be attached and the assignment will be turned in.')) {
+      return;
+    }
+
+    setGcSubmitting(true);
+    try {
+      const res = await fetch('/api/classroom/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: assignmentMeta.gcCourseId,
+          courseworkId: assignmentMeta.gcCourseworkId,
+          boardId: id,
+          boardTitle: boardTitle || 'Whiteboard',
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.needsReconnect) {
+          toast.error('Google Classroom connection expired. Please reconnect in Knowledge Base.');
+        } else if (data.alreadySubmitted) {
+          toast.info('This assignment was already turned in on Google Classroom.');
+          setGcSubmitted(true);
+        } else {
+          toast.error(data.error || 'Failed to submit to Google Classroom');
+        }
+        return;
+      }
+
+      toast.success('Submitted to Google Classroom!');
+      setGcSubmitted(true);
+    } catch (error) {
+      console.error('Google Classroom submission error:', error);
+      toast.error('Failed to submit to Google Classroom');
+    } finally {
+      setGcSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     async function loadBoard() {
@@ -2576,7 +2755,7 @@ export default function BoardPage() {
 
         const { data, error } = await supabase
           .from('whiteboards')
-          .select('data, metadata, title, user_id')
+          .select('data, metadata, title, user_id, is_public')
           .eq('id', id)
           .single();
 
@@ -2611,7 +2790,14 @@ export default function BoardPage() {
               .eq('shared_with_user_id', user.id)
               .single();
 
-            setCanEdit(share?.permission === 'edit');
+            if (share?.permission === 'edit') {
+              setCanEdit(true);
+            } else if (share?.permission === 'view' || (data as any).is_public) {
+              // View-only: explicit share or public board (e.g. submitted to Google Classroom)
+              setCanEdit(false);
+            } else {
+              setCanEdit(false);
+            }
           }
         }
       } catch (e) {
@@ -2753,7 +2939,7 @@ export default function BoardPage() {
 
       if (style === 'lined') {
         // Draw horizontal lines
-        ctx.strokeStyle = '#e8e4dc';
+        ctx.strokeStyle = '#e2e4e8';
         ctx.lineWidth = 1;
         const lineSpacing = 32;
 
@@ -2765,7 +2951,7 @@ export default function BoardPage() {
         }
       } else if (style === 'grid') {
         // Draw grid
-        ctx.strokeStyle = '#e8e4dc';
+        ctx.strokeStyle = '#e2e4e8';
         ctx.lineWidth = 1;
         const gridSize = 20;
 
@@ -3047,7 +3233,7 @@ export default function BoardPage() {
       {isTeacherViewing && (
         <div className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Eye className="w-4 h-4" />
-          Viewing {studentName}'s submission - AI-generated content is highlighted in purple
+          Viewing {studentName}'s submission - AI-generated content is highlighted in blue
         </div>
       )}
 
@@ -3096,6 +3282,32 @@ export default function BoardPage() {
         </div>
       )}
 
+      {/* Google Classroom submit button - shown for boards created from GC assignments */}
+      {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !submissionData && !isTeacherViewing && (
+        <div className="fixed bottom-4 left-4 z-[11000]">
+          {gcSubmitted ? (
+            <div className="bg-green-100 border border-green-300 rounded-full px-4 py-2 flex items-center gap-2 shadow-md">
+              <Check className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700">Submitted to Google Classroom</span>
+            </div>
+          ) : (
+            <Button
+              onClick={handleGoogleClassroomSubmit}
+              disabled={gcSubmitting}
+              className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white px-4"
+            >
+              {gcSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Check className="w-4 h-4 mr-2" />
+              )}
+              {gcSubmitting ? 'Submitting...' : 'Submit to Google Classroom'}
+            </Button>
+          )}
+        </div>
+      )}
+
+        <DocumentPanelContext.Provider value={docPanelOpen}>
         <Tldraw
           licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
           tools={[LassoSolveTool]}
@@ -3148,6 +3360,24 @@ export default function BoardPage() {
               }
             }
 
+            // Auto-populate a note when opening from Knowledge Base with content but no canvas data
+            if (!initialData && assignmentMeta?.instructions && assignmentMeta.instructions.length > 10) {
+              const noteId = createShapeId();
+              editor.createShape({
+                id: noteId,
+                type: 'note',
+                x: 200,
+                y: 200,
+                props: {
+                  richText: toRichText(assignmentMeta.instructions.slice(0, 3000)),
+                  size: 'm',
+                  color: 'yellow',
+                  font: 'sans',
+                },
+              });
+              editor.zoomToFit({ animation: { duration: 200 } });
+            }
+
             // Set read-only mode immediately if needed
             if (!canEdit) {
               editor.updateInstanceState({ isReadonly: true });
@@ -3166,8 +3396,11 @@ export default function BoardPage() {
               submissionId={submissionData?.id}
               assignmentId={submissionData?.assignment_id}
               initialHintCount={submissionData?.ai_help_count ?? 0}
+              docPanelOpen={docPanelOpen}
+              setDocPanelOpen={setDocPanelOpen}
             />
         </Tldraw>
+        </DocumentPanelContext.Provider>
 
         {/* First-time board tutorial */}
         {showTutorial && (

@@ -116,7 +116,7 @@ export function TutorialTooltip({
             left: targetRef.current.getBoundingClientRect().left - 4,
             width: targetRef.current.getBoundingClientRect().width + 8,
             height: targetRef.current.getBoundingClientRect().height + 8,
-            boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.5)',
+            boxShadow: '0 0 0 4px rgba(0, 123, 165, 0.5), 0 0 0 9999px rgba(0, 0, 0, 0.5)',
             borderRadius: '8px',
             transition: 'all 0.3s ease',
           }}

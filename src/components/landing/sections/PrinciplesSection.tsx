@@ -21,12 +21,12 @@ const principles = [
 
 export function PrinciplesSection() {
   return (
-    <section id="principles" className="py-32 px-6 lg:px-16 bg-[#f5f3f0]">
+    <section id="principles" className="py-32 px-6 lg:px-16 bg-[#f8f9fa]">
       <div className="max-w-[1200px] mx-auto">
         {/* Section Header */}
         <div className="grid lg:grid-cols-2 gap-16 mb-24">
           <div>
-            <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-[#1a1a1a] leading-[1.05] tracking-[-0.03em]">
+            <h2 className="text-[clamp(2.5rem,5vw,4rem)] font-light text-foreground leading-[1.05] tracking-[-0.03em]">
               What we believe
             </h2>
           </div>
@@ -51,7 +51,7 @@ export function PrinciplesSection() {
                 </span>
               </div>
               <div className="lg:col-span-4">
-                <h3 className="text-[24px] font-normal text-[#1a1a1a] tracking-[-0.02em]">
+                <h3 className="text-[24px] font-normal text-foreground tracking-[-0.02em]">
                   {principle.title}
                 </h3>
               </div>

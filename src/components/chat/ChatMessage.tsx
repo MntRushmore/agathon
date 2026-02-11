@@ -52,7 +52,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-violet-100 text-violet-600'
+          isUser ? 'bg-primary text-primary-foreground' : 'bg-sky-100 text-[#007ba5]'
         )}
       >
         {isUser ? (

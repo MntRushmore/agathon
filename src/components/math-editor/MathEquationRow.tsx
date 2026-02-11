@@ -108,7 +108,7 @@ export function MathEquationRow({
     <div
       className={cn(
         'group relative flex items-center gap-3 p-3 rounded-lg border transition-all',
-        isFocused ? 'border-blue-400 bg-blue-50/50 shadow-sm' : 'border-gray-200 hover:border-gray-300',
+        isFocused ? 'border-[#007ba5] bg-[#e0f2f7]/50 shadow-sm' : 'border-gray-200 hover:border-gray-300',
         'hover:bg-gray-50/50'
       )}
       onMouseEnter={() => setIsHovered(true)}
@@ -126,14 +126,14 @@ export function MathEquationRow({
           style: {
             minHeight: '40px',
             fontSize: '1.25rem',
-            '--caret-color': '#3b82f6',
+            '--caret-color': '#007ba5',
           },
         })}
       </div>
 
       {/* Solution Display */}
       {(solution || isSolving) && (
-        <div className="flex items-center gap-2 text-cyan-600 font-medium text-lg shrink-0">
+        <div className="flex items-center gap-2 text-[#007ba5] font-medium text-lg shrink-0">
           {isSolving ? (
             <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
           ) : (
@@ -154,7 +154,7 @@ export function MathEquationRow({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+            className="h-8 w-8 text-[#007ba5] hover:text-[#006080] hover:bg-[#e0f2f7]"
             onClick={(e) => {
               e.stopPropagation();
               onGraph();

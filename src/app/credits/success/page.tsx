@@ -38,7 +38,7 @@ export default function CreditsSuccessPage() {
   }, [refreshCredits]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.01_210)] via-background to-background flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.003_260)] via-background to-background flex items-center justify-center px-4 py-16">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-2 text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">

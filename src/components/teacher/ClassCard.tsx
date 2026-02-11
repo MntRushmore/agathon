@@ -224,11 +224,18 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
         </CardHeader>
 
         <CardContent className="pb-3">
-          {classData.subject && (
-            <Badge variant="secondary" className="mb-3">
-              {classData.subject}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2 mb-3">
+            {classData.subject && (
+              <Badge variant="secondary">
+                {classData.subject}
+              </Badge>
+            )}
+            {classData.gc_course_id && (
+              <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+                Google Classroom
+              </Badge>
+            )}
+          </div>
 
           {classData.description && (
             <p className="text-sm text-muted-foreground line-clamp-2 mb-3">

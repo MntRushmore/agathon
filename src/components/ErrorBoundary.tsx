@@ -36,7 +36,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-sm text-muted-foreground mb-4">An unexpected error occurred. You can try reloading the page.</p>
             <div className="flex justify-center gap-2">
               <button
-                className="px-4 py-2 bg-[#1a1a1a] text-white rounded-md"
+                className="px-4 py-2 bg-[oklch(0.52_0.11_225)] text-white rounded-md"
                 onClick={() => window.location.reload()}
               >
                 Reload

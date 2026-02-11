@@ -180,10 +180,10 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
     let globalIndex = 0;
 
     return (
-      <div className="bg-[#F7F0E3] rounded-xl shadow-2xl border border-[#CFC0A8] py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
+      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e4e8] py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
         {Object.entries(groupedItems).map(([category, categoryItems]) => (
           <div key={category}>
-            <div className="px-3 py-1.5 text-xs font-medium text-[#9B8B78] uppercase tracking-wider">
+            <div className="px-3 py-1.5 text-xs font-medium text-[#9096a2] uppercase tracking-wider">
               {category}
             </div>
             {categoryItems.map((item) => {
@@ -195,22 +195,22 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
                   onClick={() => selectItem(currentIndex)}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
-                    currentIndex === localSelectedIndex ? 'bg-[#E8DCC0]' : 'hover:bg-[#F0E4CC]'
+                    currentIndex === localSelectedIndex ? 'bg-[#f0f1f3]' : 'hover:bg-[#f5f6f8]'
                   )}
                 >
                   <Icon className={cn(
                     'h-5 w-5 flex-shrink-0',
-                    currentIndex === localSelectedIndex ? 'text-[#1A6B8A]' : 'text-[#9B8B78]'
+                    currentIndex === localSelectedIndex ? 'text-[#007ba5]' : 'text-[#9096a2]'
                   )} />
                   <div className="flex-1 min-w-0">
                     <div className={cn(
                       'text-sm font-medium',
-                      currentIndex === localSelectedIndex ? 'text-[#1A6B8A]' : 'text-[#5C4B3A]'
+                      currentIndex === localSelectedIndex ? 'text-[#007ba5]' : 'text-[#4a4f5c]'
                     )}>
                       {item.label}
                     </div>
                     {item.description && (
-                      <div className="text-xs text-[#9B8B78] truncate">
+                      <div className="text-xs text-[#9096a2] truncate">
                         {item.description}
                       </div>
                     )}
@@ -221,7 +221,7 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
           </div>
         ))}
         {items.length === 0 && (
-          <div className="px-3 py-4 text-sm text-[#9B8B78] text-center">
+          <div className="px-3 py-4 text-sm text-[#9096a2] text-center">
             No commands found
           </div>
         )}
@@ -393,7 +393,7 @@ export function RichTextEditor({
         },
         code: {
           HTMLAttributes: {
-            class: 'bg-[#E8DCC0] rounded px-1.5 py-0.5 font-mono text-sm',
+            class: 'bg-[#f0f1f3] rounded px-1.5 py-0.5 font-mono text-sm',
           },
         },
         bulletList: {
@@ -419,7 +419,7 @@ export function RichTextEditor({
       LinkExtension.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-[#1A6B8A] underline decoration-[#1A6B8A]/40 hover:decoration-[#1A6B8A]',
+          class: 'text-[#007ba5] underline decoration-[#007ba5]/40 hover:decoration-[#007ba5]',
         },
       }),
       MathExtension.configure({
@@ -441,12 +441,12 @@ export function RichTextEditor({
       }),
       TiptapTableHeader.configure({
         HTMLAttributes: {
-          class: 'border border-[#CFC0A8] bg-[#E8DCC0] px-4 py-2 text-left font-semibold',
+          class: 'border border-[#e2e4e8] bg-[#f0f1f3] px-4 py-2 text-left font-semibold',
         },
       }),
       TiptapTableCell.configure({
         HTMLAttributes: {
-          class: 'border border-[#CFC0A8] px-4 py-2',
+          class: 'border border-[#e2e4e8] px-4 py-2',
         },
       }),
       DetailsNode,
@@ -459,13 +459,13 @@ export function RichTextEditor({
       attributes: {
         class: cn(
           'prose max-w-none focus:outline-none min-h-[60vh]',
-          'prose-headings:font-bold prose-headings:text-[#3A2E1E]',
+          'prose-headings:font-bold prose-headings:text-[#1a1d2b]',
           'prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4',
           'prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3',
           'prose-h3:text-xl prose-h3:mt-4 prose-h3:mb-2',
-          'prose-p:text-[#5C4B3A] prose-p:leading-relaxed prose-p:my-3',
-          'prose-li:text-[#5C4B3A]',
-          'prose-strong:font-semibold prose-strong:text-[#3A2E1E]',
+          'prose-p:text-[#4a4f5c] prose-p:leading-relaxed prose-p:my-3',
+          'prose-li:text-[#4a4f5c]',
+          'prose-strong:font-semibold prose-strong:text-[#1a1d2b]',
         ),
       },
       handleClick: (view, pos, event) => {
@@ -717,12 +717,12 @@ export function RichTextEditor({
     <div className={cn('relative flex gap-4', className)}>
       {/* Left Sidebar Toolbar - sticky within editor */}
       <div className="sticky top-24 self-start z-40 flex-shrink-0">
-        <div className="flex flex-col items-center gap-1 bg-[#F7F0E3] rounded-xl shadow-lg border border-[#CFC0A8] p-1.5">
+        <div className="flex flex-col items-center gap-1 bg-white rounded-xl shadow-lg border border-[#e2e4e8] p-1.5">
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('heading', { level: 1 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('heading', { level: 1 }) && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Heading 1"
           >
@@ -731,8 +731,8 @@ export function RichTextEditor({
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('heading', { level: 2 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('heading', { level: 2 }) && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Heading 2"
           >
@@ -741,19 +741,19 @@ export function RichTextEditor({
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('heading', { level: 3 }) && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('heading', { level: 3 }) && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Heading 3"
           >
             <TextHThree className="h-4 w-4" weight="duotone" />
           </button>
-          <div className="w-5 h-px bg-[#CFC0A8] my-1" />
+          <div className="w-5 h-px bg-[#e2e4e8] my-1" />
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('bulletList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('bulletList') && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Bullet List"
           >
@@ -762,8 +762,8 @@ export function RichTextEditor({
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('orderedList') && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('orderedList') && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Numbered List"
           >
@@ -772,8 +772,8 @@ export function RichTextEditor({
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('blockquote') && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('blockquote') && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Quote"
           >
@@ -782,8 +782,8 @@ export function RichTextEditor({
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run(); }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#E8DCC0] transition-colors text-[#6B5A48] hover:text-[#3A2E1E]',
-              editor.isActive('codeBlock') && 'bg-[#D4E8F0] text-[#1A6B8A]'
+              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
+              editor.isActive('codeBlock') && 'bg-[#e0f2f7] text-[#007ba5]'
             )}
             title="Code Block"
           >
@@ -797,7 +797,7 @@ export function RichTextEditor({
       {/* Bubble Menu - floating toolbar on text selection */}
       <div
         ref={bubbleMenuRef}
-        className="flex items-center gap-0.5 bg-[#F7F0E3] rounded-xl shadow-xl border border-[#CFC0A8] px-1.5 py-1 z-50"
+        className="flex items-center gap-0.5 bg-white rounded-xl shadow-xl border border-[#e2e4e8] px-1.5 py-1 z-50"
         style={{ visibility: 'hidden', opacity: 0, transition: 'opacity 0.15s ease', position: 'absolute' }}
       >
         {/* Bold */}
@@ -809,8 +809,8 @@ export function RichTextEditor({
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             editor.isActive('bold')
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title="Bold"
         >
@@ -826,8 +826,8 @@ export function RichTextEditor({
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             editor.isActive('italic')
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title="Italic"
         >
@@ -843,8 +843,8 @@ export function RichTextEditor({
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             editor.isActive('underline')
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title="Underline"
         >
@@ -860,8 +860,8 @@ export function RichTextEditor({
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             editor.isActive('strike')
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title="Strikethrough"
         >
@@ -884,15 +884,15 @@ export function RichTextEditor({
           className={cn(
             'p-1.5 rounded-lg transition-colors',
             editor.isActive('link')
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title="Link"
         >
           <LinkSimple className="h-4 w-4" weight="duotone" />
         </button>
 
-        <div className="w-px h-5 bg-[#CFC0A8] mx-1" />
+        <div className="w-px h-5 bg-[#e2e4e8] mx-1" />
 
         {/* Read Aloud (ElevenLabs TTS) */}
         <button
@@ -903,8 +903,8 @@ export function RichTextEditor({
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors',
             ttsPlaying
-              ? 'bg-[#D4E8F0] text-[#1A6B8A]'
-              : 'text-[#5C4B3A] hover:bg-[#E8DCC0]'
+              ? 'bg-[#e0f2f7] text-[#007ba5]'
+              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
           )}
           title={ttsPlaying ? 'Stop reading' : 'Read aloud'}
           disabled={ttsLoading}
@@ -927,7 +927,7 @@ export function RichTextEditor({
 
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {
-          color: #9B8B78;
+          color: #9096a2;
           content: attr(data-placeholder);
           float: left;
           height: 0;
@@ -944,21 +944,21 @@ export function RichTextEditor({
 
         /* Details / collapsible section card */
         .ProseMirror details {
-          border: 1.5px solid #CFC0A8;
+          border: 1.5px solid #e2e4e8;
           border-radius: 10px;
           margin: 1.25em 0;
           overflow: hidden;
-          background: #FDFAF3;
+          background: #ffffff;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .ProseMirror details summary {
           cursor: pointer;
           padding: 10px 14px;
-          background: #EDE3CC;
+          background: #f0f1f3;
           font-weight: 600;
-          color: #3A2E1E;
+          color: #1a1d2b;
           user-select: none;
-          border-bottom: 1px solid #CFC0A8;
+          border-bottom: 1px solid #e2e4e8;
           display: flex;
           align-items: center;
           gap: 6px;
@@ -972,7 +972,7 @@ export function RichTextEditor({
           display: inline-block;
           width: 0;
           height: 0;
-          border-left: 5px solid #9B8B78;
+          border-left: 5px solid #9096a2;
           border-top: 4px solid transparent;
           border-bottom: 4px solid transparent;
           transition: transform 0.15s ease;
@@ -982,7 +982,7 @@ export function RichTextEditor({
           transform: rotate(90deg);
         }
         .ProseMirror details summary:hover {
-          background: #E4D9BD;
+          background: #e8e9ec;
         }
         .ProseMirror details:not([open]) summary {
           border-bottom: none;
@@ -996,11 +996,11 @@ export function RichTextEditor({
 
         /* Code block card */
         .ProseMirror pre {
-          border: 1.5px solid #CFC0A8;
+          border: 1.5px solid #e2e4e8;
           border-radius: 10px;
           margin: 1.25em 0;
           padding: 14px 16px;
-          background: #EDE3CC;
+          background: #f0f1f3;
           font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
           font-size: 0.875rem;
           line-height: 1.6;
@@ -1013,7 +1013,7 @@ export function RichTextEditor({
           padding: 0;
           border-radius: 0;
           font-size: inherit;
-          color: #3A2E1E;
+          color: #1a1d2b;
         }
         .ProseMirror pre::after {
           content: 'Shift+Enter to exit';
@@ -1021,33 +1021,33 @@ export function RichTextEditor({
           bottom: 6px;
           right: 10px;
           font-size: 0.7rem;
-          color: #9B8B78;
+          color: #9096a2;
           font-family: -apple-system, BlinkMacSystemFont, sans-serif;
           pointer-events: none;
         }
 
         /* Blockquote card */
         .ProseMirror blockquote {
-          border: 1.5px solid #8DA878;
-          border-left: 4px solid #8DA878;
+          border: 1.5px solid #007ba5;
+          border-left: 4px solid #007ba5;
           border-radius: 10px;
           margin: 1.25em 0;
           padding: 12px 16px;
-          background: rgba(141, 168, 120, 0.06);
+          background: rgba(0, 123, 165, 0.06);
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .ProseMirror blockquote p {
-          color: #5C4B3A;
+          color: #4a4f5c;
           font-style: italic;
         }
 
         /* Table card */
         .ProseMirror .tableWrapper {
-          border: 1.5px solid #CFC0A8;
+          border: 1.5px solid #e2e4e8;
           border-radius: 10px;
           margin: 1.25em 0;
           overflow: hidden;
-          background: #FDFAF3;
+          background: #ffffff;
           box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .ProseMirror table {
@@ -1059,7 +1059,7 @@ export function RichTextEditor({
         .ProseMirror table td,
         .ProseMirror table th {
           min-width: 1em;
-          border: 1px solid #CFC0A8;
+          border: 1px solid #e2e4e8;
           padding: 10px 14px;
           vertical-align: top;
           box-sizing: border-box;
@@ -1068,11 +1068,11 @@ export function RichTextEditor({
         .ProseMirror table th {
           font-weight: 600;
           text-align: left;
-          background-color: #EDE3CC;
-          color: #3A2E1E;
+          background-color: #f0f1f3;
+          color: #1a1d2b;
         }
         .ProseMirror table td {
-          background-color: #FDFAF3;
+          background-color: #ffffff;
         }
         .ProseMirror table .selectedCell:after {
           z-index: 2;
@@ -1082,7 +1082,7 @@ export function RichTextEditor({
           right: 0;
           top: 0;
           bottom: 0;
-          background: rgba(26, 107, 138, 0.15);
+          background: rgba(0, 123, 165, 0.15);
           pointer-events: none;
         }
         .ProseMirror table .column-resize-handle {
@@ -1091,14 +1091,14 @@ export function RichTextEditor({
           top: 0;
           bottom: -2px;
           width: 4px;
-          background-color: #1A6B8A;
+          background-color: #007ba5;
           pointer-events: none;
         }
 
         /* Horizontal rule */
         .ProseMirror hr {
           border: none;
-          border-top: 2px solid #CFC0A8;
+          border-top: 2px solid #e2e4e8;
           margin: 1.5em 0;
         }
 
@@ -1109,8 +1109,8 @@ export function RichTextEditor({
           font-size: 1em;
         }
         .Tiptap-mathematics-editor {
-          background: #EDE3CC;
-          border: 1.5px solid #CFC0A8;
+          background: #f0f1f3;
+          border: 1.5px solid #e2e4e8;
           border-radius: 8px;
           padding: 4px 8px;
           font-family: 'KaTeX_Math', 'Times New Roman', serif;
@@ -1119,7 +1119,7 @@ export function RichTextEditor({
           padding: 0 2px;
         }
         .Tiptap-mathematics-editor:focus {
-          outline: 2px solid #1A6B8A;
+          outline: 2px solid #007ba5;
           outline-offset: 1px;
         }
         .tiptap-math.latex {
@@ -1129,12 +1129,12 @@ export function RichTextEditor({
           transition: background-color 0.15s ease, box-shadow 0.15s ease;
         }
         .tiptap-math.latex:hover {
-          background-color: #E8DCC0;
-          box-shadow: 0 0 0 2px #B0A06A;
+          background-color: #f0f1f3;
+          box-shadow: 0 0 0 2px #007ba5;
         }
         .ProseMirror .tiptap-math.latex.ProseMirror-selectednode {
-          background-color: #D4C8A0;
-          box-shadow: 0 0 0 2px #1A6B8A;
+          background-color: #e0f2f7;
+          box-shadow: 0 0 0 2px #007ba5;
         }
         .katex-rendered {
           display: inline-block;
@@ -1162,7 +1162,7 @@ export function RichTextEditor({
         .tiptap-math.latex[data-display="yes"] {
           display: block;
           width: 100%;
-          background-color: #F6F4EC;
+          background-color: #f8f9fa;
           border-radius: 8px;
           padding: 24px;
           margin: 16px 0;
@@ -1171,7 +1171,7 @@ export function RichTextEditor({
           transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .tiptap-math.latex[data-display="yes"]:hover {
-          background-color: #EDE8DA;
+          background-color: #f0f1f3;
           box-shadow: none;
         }
         .tiptap-math.latex[data-display="yes"] .Tiptap-mathematics-editor {
@@ -1181,7 +1181,7 @@ export function RichTextEditor({
           font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
           font-size: 0.9em;
           padding: 16px 20px;
-          background: #F6F4EC;
+          background: #f8f9fa;
           border: none;
         }
         .tiptap-math.latex[data-display="yes"] .katex {

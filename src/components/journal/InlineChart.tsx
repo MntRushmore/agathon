@@ -65,7 +65,7 @@ export function decodeChartData(encoded: string): ChartConfig {
 
 // ── Color palette ──────────────────────────────────────────
 
-const SERIES_COLORS = ['#6B8E5B', '#1A6B8A', '#C17A3A', '#8B5A8B', '#C15A5A'];
+const SERIES_COLORS = ['#007ba5', '#0891b2', '#6366f1', '#8b5cf6', '#dc2626'];
 
 // ── Component ──────────────────────────────────────────────
 
@@ -154,7 +154,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
   };
 
   // ── Input style ──
-  const inputClass = 'w-full px-3 py-2 border border-[#CFC0A8] bg-[#F6F4EC] text-[#3A2E1E] text-sm rounded-lg placeholder:text-[#9B8B78] focus:outline-none focus:ring-2 focus:ring-[#1A6B8A]/30 focus:border-[#1A6B8A] transition-colors';
+  const inputClass = 'w-full px-3 py-2 border border-[#e2e4e8] bg-white text-[#1a1d2b] text-sm rounded-lg placeholder:text-[#9096a2] focus:outline-none focus:ring-2 focus:ring-[#007ba5]/30 focus:border-[#007ba5] transition-colors';
 
   // ── Render chart ──
   const renderChart = () => {
@@ -164,13 +164,13 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
     };
 
     const axisProps = {
-      xAxis: <XAxis dataKey="x" tick={{ fontSize: 12, fill: '#5C4B3A' }} />,
-      yAxis: <YAxis tick={{ fontSize: 12, fill: '#5C4B3A' }} />,
-      grid: <CartesianGrid strokeDasharray="3 3" stroke="#CFC0A8" opacity={0.5} />,
+      xAxis: <XAxis dataKey="x" tick={{ fontSize: 12, fill: '#4a4f5c' }} />,
+      yAxis: <YAxis tick={{ fontSize: 12, fill: '#4a4f5c' }} />,
+      grid: <CartesianGrid strokeDasharray="3 3" stroke="#e2e4e8" opacity={0.5} />,
       tooltip: <Tooltip
         contentStyle={{
-          backgroundColor: '#F6F4EC',
-          border: '1px solid #CFC0A8',
+          backgroundColor: '#ffffff',
+          border: '1px solid #e2e4e8',
           borderRadius: 8,
           fontSize: 12,
         }}
@@ -202,7 +202,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
       return (
         <ScatterChart margin={chartProps.margin}>
           {axisProps.grid}
-          <XAxis dataKey="x" type="number" tick={{ fontSize: 12, fill: '#5C4B3A' }} name={xAxisTitle} />
+          <XAxis dataKey="x" type="number" tick={{ fontSize: 12, fill: '#4a4f5c' }} name={xAxisTitle} />
           {axisProps.yAxis}
           {axisProps.tooltip}
           {series.map((s, i) => (
@@ -239,14 +239,14 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
   return (
     <div>
       {/* Chart card */}
-      <div className="rounded-xl border border-[#CFC0A8] overflow-hidden bg-[#F6F4EC]">
+      <div className="rounded-xl border border-[#e2e4e8] overflow-hidden bg-white">
         {/* Title area */}
         <div className="px-5 pt-4 pb-1">
           {title && (
-            <h3 className="text-lg font-semibold text-[#3A2E1E]">{title}</h3>
+            <h3 className="text-lg font-semibold text-[#1a1d2b]">{title}</h3>
           )}
           {subtitle && (
-            <p className="text-sm text-[#5C4B3A] mt-0.5">{subtitle}</p>
+            <p className="text-sm text-[#4a4f5c] mt-0.5">{subtitle}</p>
           )}
         </div>
 
@@ -256,7 +256,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
             {yAxisTitle && (
               <div className="flex-shrink-0 -mr-2">
                 <span
-                  className="block text-xs text-[#9B8B78] font-medium"
+                  className="block text-xs text-[#9096a2] font-medium"
                   style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
                 >
                   {yAxisTitle}
@@ -270,17 +270,17 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
             </div>
           </div>
           {xAxisTitle && (
-            <p className="text-xs text-[#9B8B78] font-medium text-center mt-1">{xAxisTitle}</p>
+            <p className="text-xs text-[#9096a2] font-medium text-center mt-1">{xAxisTitle}</p>
           )}
         </div>
 
         {/* Inline editor */}
         {isEditing && (
-          <div className="border-t border-[#CFC0A8] bg-[#EDE3CC] p-4 space-y-4">
+          <div className="border-t border-[#e2e4e8] bg-[#f5f6f8] p-4 space-y-4">
             {/* Title & Subtitle */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-[#5C4B3A] mb-1 block">Chart Title</label>
+                <label className="text-xs font-medium text-[#4a4f5c] mb-1 block">Chart Title</label>
                 <input
                   type="text"
                   value={title}
@@ -290,7 +290,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-[#5C4B3A] mb-1 block">Subtitle (optional)</label>
+                <label className="text-xs font-medium text-[#4a4f5c] mb-1 block">Subtitle (optional)</label>
                 <input
                   type="text"
                   value={subtitle}
@@ -303,7 +303,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
 
             {/* Chart Type */}
             <div>
-              <label className="text-xs font-medium text-[#5C4B3A] mb-2 block">Chart Type</label>
+              <label className="text-xs font-medium text-[#4a4f5c] mb-2 block">Chart Type</label>
               <div className="flex gap-2">
                 {([
                   { type: 'bar' as const, icon: ChartBar, label: 'Bar' },
@@ -316,8 +316,8 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors',
                       chartType === type
-                        ? 'bg-[#1A6B8A] text-white border-[#1A6B8A]'
-                        : 'bg-[#F6F4EC] text-[#5C4B3A] border-[#CFC0A8] hover:bg-[#E8DCC0]'
+                        ? 'bg-[#007ba5] text-white border-[#007ba5]'
+                        : 'bg-white text-[#4a4f5c] border-[#e2e4e8] hover:bg-[#f5f6f8]'
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -330,7 +330,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
             {/* Axis Titles */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-[#5C4B3A] mb-1 block">X Axis Title</label>
+                <label className="text-xs font-medium text-[#4a4f5c] mb-1 block">X Axis Title</label>
                 <input
                   type="text"
                   value={xAxisTitle}
@@ -340,7 +340,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-[#5C4B3A] mb-1 block">Y Axis Title</label>
+                <label className="text-xs font-medium text-[#4a4f5c] mb-1 block">Y Axis Title</label>
                 <input
                   type="text"
                   value={yAxisTitle}
@@ -354,10 +354,10 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
             {/* Data Series */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-[#5C4B3A]">Data Series</label>
+                <label className="text-xs font-medium text-[#4a4f5c]">Data Series</label>
                 <button
                   onClick={addSeries}
-                  className="flex items-center gap-1 text-xs font-medium text-[#1A6B8A] hover:text-[#145A73] bg-[#1A6B8A]/10 hover:bg-[#1A6B8A]/20 px-2.5 py-1 rounded-md transition-colors"
+                  className="flex items-center gap-1 text-xs font-medium text-[#007ba5] hover:text-[#006080] bg-[#007ba5]/10 hover:bg-[#007ba5]/20 px-2.5 py-1 rounded-md transition-colors"
                 >
                   <Plus className="h-3 w-3" weight="bold" />
                   Add Series
@@ -366,19 +366,19 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
 
               <div className="space-y-3">
                 {series.map((s, sIdx) => (
-                  <div key={sIdx} className="border border-[#CFC0A8] rounded-lg bg-[#F6F4EC] p-3">
+                  <div key={sIdx} className="border border-[#e2e4e8] rounded-lg bg-white p-3">
                     {/* Series header */}
                     <div className="flex items-center gap-2 mb-2">
                       <input
                         type="text"
                         value={s.name}
                         onChange={(e) => updateSeriesName(sIdx, e.target.value)}
-                        className="flex-1 px-2 py-1 border border-[#CFC0A8] bg-white text-[#3A2E1E] text-sm font-medium rounded focus:outline-none focus:ring-1 focus:ring-[#1A6B8A]/30"
+                        className="flex-1 px-2 py-1 border border-[#e2e4e8] bg-white text-[#1a1d2b] text-sm font-medium rounded focus:outline-none focus:ring-1 focus:ring-[#007ba5]/30"
                       />
                       {series.length > 1 && (
                         <button
                           onClick={() => removeSeries(sIdx)}
-                          className="p-1 text-[#9B8B78] hover:text-red-600 transition-colors"
+                          className="p-1 text-[#9096a2] hover:text-red-600 transition-colors"
                           title="Remove series"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -388,8 +388,8 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
 
                     {/* Column headers */}
                     <div className="grid grid-cols-[1fr_1fr_28px] gap-2 mb-1">
-                      <span className="text-[10px] uppercase tracking-wider text-[#9B8B78] font-medium px-1">X Value</span>
-                      <span className="text-[10px] uppercase tracking-wider text-[#9B8B78] font-medium px-1">Y Value</span>
+                      <span className="text-[10px] uppercase tracking-wider text-[#9096a2] font-medium px-1">X Value</span>
+                      <span className="text-[10px] uppercase tracking-wider text-[#9096a2] font-medium px-1">Y Value</span>
                       <span />
                     </div>
 
@@ -402,18 +402,18 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
                             value={d.x}
                             onChange={(e) => updateDataPoint(sIdx, dIdx, 'x', e.target.value)}
                             placeholder="Label"
-                            className="px-2 py-1.5 border border-[#CFC0A8] bg-white text-[#3A2E1E] text-sm rounded focus:outline-none focus:ring-1 focus:ring-[#1A6B8A]/30"
+                            className="px-2 py-1.5 border border-[#e2e4e8] bg-white text-[#1a1d2b] text-sm rounded focus:outline-none focus:ring-1 focus:ring-[#007ba5]/30"
                           />
                           <input
                             type="number"
                             value={d.y}
                             onChange={(e) => updateDataPoint(sIdx, dIdx, 'y', e.target.value)}
                             placeholder="0"
-                            className="px-2 py-1.5 border border-[#CFC0A8] bg-white text-[#3A2E1E] text-sm rounded focus:outline-none focus:ring-1 focus:ring-[#1A6B8A]/30"
+                            className="px-2 py-1.5 border border-[#e2e4e8] bg-white text-[#1a1d2b] text-sm rounded focus:outline-none focus:ring-1 focus:ring-[#007ba5]/30"
                           />
                           <button
                             onClick={() => removeDataPoint(sIdx, dIdx)}
-                            className="p-1 text-[#9B8B78] hover:text-red-600 transition-colors flex-shrink-0"
+                            className="p-1 text-[#9096a2] hover:text-red-600 transition-colors flex-shrink-0"
                             title="Remove row"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -425,7 +425,7 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
                     {/* Add row */}
                     <button
                       onClick={() => addDataPoint(sIdx)}
-                      className="flex items-center gap-1 text-xs text-[#1A6B8A] hover:text-[#145A73] mt-2 transition-colors"
+                      className="flex items-center gap-1 text-xs text-[#007ba5] hover:text-[#006080] mt-2 transition-colors"
                     >
                       <Plus className="h-3 w-3" />
                       Add row
@@ -440,11 +440,11 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
 
       {/* Bottom toolbar pill */}
       <div className="flex items-center justify-center mt-2">
-        <div className="flex items-center gap-1 bg-[#F7F0E3] rounded-full shadow-md border border-[#CFC0A8] px-1.5 py-1">
+        <div className="flex items-center gap-1 bg-white rounded-full shadow-md border border-[#e2e4e8] px-1.5 py-1">
           {isEditing ? (
             <button
               onClick={handleSave}
-              className="p-1.5 rounded-full bg-[#6B8E5B] text-white hover:bg-[#5A7A4A] transition-colors"
+              className="p-1.5 rounded-full bg-[#007ba5] text-white hover:bg-[#006080] transition-colors"
               title="Save chart"
             >
               <Check className="h-3.5 w-3.5" weight="bold" />
@@ -452,19 +452,19 @@ export function InlineChart({ id, initialData, onSave, onDelete }: InlineChartPr
           ) : (
             <button
               onClick={() => setIsEditing(true)}
-              className="p-1.5 rounded-full text-[#5C4B3A] hover:bg-[#E8DCC0] transition-colors"
+              className="p-1.5 rounded-full text-[#4a4f5c] hover:bg-[#f5f6f8] transition-colors"
               title="Edit chart"
             >
               <PencilSimple className="h-3.5 w-3.5" />
             </button>
           )}
-          <div className="flex items-center gap-1 px-2 text-xs text-[#5C4B3A] font-medium">
+          <div className="flex items-center gap-1 px-2 text-xs text-[#4a4f5c] font-medium">
             <ChartBar className="h-3.5 w-3.5" />
             {chartType.charAt(0).toUpperCase() + chartType.slice(1)}
           </div>
           <button
             onClick={() => onDelete(id)}
-            className="p-1.5 rounded-full text-[#9B8B78] hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="p-1.5 rounded-full text-[#9096a2] hover:text-red-600 hover:bg-red-50 transition-colors"
             title="Delete chart"
           >
             <Trash className="h-3.5 w-3.5" />

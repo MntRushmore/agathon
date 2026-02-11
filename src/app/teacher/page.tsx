@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   Sparkle,
   CalendarBlank,
+  GraduationCap,
 } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -656,6 +657,12 @@ export default function TeacherDashboardPage() {
                   <Link href="/teacher/templates">
                     <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
                     Assignment Templates
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link href="/teacher/settings">
+                    <GraduationCap weight="duotone" className="h-4 w-4 mr-2" />
+                    Google Classroom
                   </Link>
                 </Button>
               </CardContent>

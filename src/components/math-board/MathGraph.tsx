@@ -86,7 +86,7 @@ export function MathGraph({ equations, onClose }: MathGraphProps) {
             calculatorRef.current.setExpression({
               id: `eq-${index}`,
               latex: `x=${right}`,
-              color: '#00B4D8',
+              color: '#007ba5',
             });
             return;
           } else {
@@ -99,7 +99,7 @@ export function MathGraph({ equations, onClose }: MathGraphProps) {
       calculatorRef.current.setExpression({
         id: `eq-${index}`,
         latex: `y=${cleanEq}`,
-        color: '#00B4D8',
+        color: '#007ba5',
       });
     });
 
@@ -138,7 +138,7 @@ export function MathGraph({ equations, onClose }: MathGraphProps) {
             calculatorRef.current.setExpression({
               id: `eq-${index}`,
               latex: `x=${right}`,
-              color: '#00B4D8',
+              color: '#007ba5',
             });
             return;
           } else {
@@ -150,7 +150,7 @@ export function MathGraph({ equations, onClose }: MathGraphProps) {
       calculatorRef.current.setExpression({
         id: `eq-${index}`,
         latex: `y=${cleanEq}`,
-        color: '#00B4D8',
+        color: '#007ba5',
       });
     });
   }, [equations]);

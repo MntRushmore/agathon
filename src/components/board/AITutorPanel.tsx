@@ -200,8 +200,8 @@ export function AITutorPanel({
         onMouseDown={handleDragStart}
         className={cn(
           'absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize',
-          'hover:bg-violet-400 transition-colors',
-          isDragging && 'bg-violet-500'
+          'hover:bg-sky-400 transition-colors',
+          isDragging && 'bg-sky-500'
         )}
       >
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-8 flex items-center justify-center -translate-x-1/2 bg-white border border-gray-200 rounded-l shadow-sm opacity-0 hover:opacity-100 transition-opacity">
@@ -337,11 +337,11 @@ export function AITutorPanel({
                       data-step
                       className={cn(
                         'p-3 rounded-lg transition-all opacity-0',
-                        idx === 0 ? 'bg-violet-50' : 'bg-gray-50'
+                        idx === 0 ? 'bg-sky-50' : 'bg-gray-50'
                       )}
                     >
                       <div className="flex gap-2.5">
-                        <span className={cn('text-xs font-medium mt-0.5', idx === 0 ? 'text-violet-500' : 'text-gray-400')}>
+                        <span className={cn('text-xs font-medium mt-0.5', idx === 0 ? 'text-sky-600' : 'text-gray-400')}>
                           {step.number}.
                         </span>
                         <div className="flex-1 min-w-0">
@@ -447,7 +447,7 @@ export function AITutorPanel({
                   <button
                     onClick={() => sendAnalysisFollowUp('Can you explain this in more detail with an example?')}
                     disabled={isAnalysisStreaming}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-violet-600 bg-violet-50 hover:bg-violet-100 rounded-full transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-full transition-colors disabled:opacity-50"
                   >
                     <BookOpen className="w-3 h-3" />
                     Give me an example
@@ -485,7 +485,7 @@ export function AITutorPanel({
                     key={msg.id}
                     className={cn(
                       'rounded-lg p-3 text-sm',
-                      msg.role === 'user' ? 'bg-violet-50 text-violet-900 ml-6' : 'bg-gray-50 text-gray-700 mr-2'
+                      msg.role === 'user' ? 'bg-sky-50 text-sky-900 ml-6' : 'bg-gray-50 text-gray-700 mr-2'
                     )}
                   >
                     <p className="text-[10px] font-medium mb-1 opacity-50">
@@ -530,7 +530,7 @@ export function AITutorPanel({
                 className={cn(
                   'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors',
                   isSocratic
-                    ? 'text-violet-600 bg-violet-50'
+                    ? 'text-sky-700 bg-sky-50'
                     : 'text-gray-400 hover:text-gray-500'
                 )}
               >
@@ -566,7 +566,7 @@ export function AITutorPanel({
             }
             disabled={isLoading || (activeTab === 'analysis' && !analysisData)}
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-violet-300 focus:border-violet-300 disabled:opacity-50"
+            className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-sky-300 focus:border-sky-300 disabled:opacity-50"
             style={{ minHeight: '36px', maxHeight: '120px' }}
           />
           {isLoading ? (
@@ -582,7 +582,7 @@ export function AITutorPanel({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500 text-white hover:bg-violet-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-end"
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#007ba5] text-white hover:bg-[#006589] transition-colors disabled:opacity-30 disabled:cursor-not-allowed self-end"
             >
               <Send className="w-3.5 h-3.5" />
             </button>

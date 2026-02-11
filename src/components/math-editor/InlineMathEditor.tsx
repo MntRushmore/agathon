@@ -131,7 +131,7 @@ export function InlineMathEditor({
           style: {
             minHeight: '40px',
             fontSize: '1.25rem',
-            '--caret-color': '#3b82f6',
+            '--caret-color': '#007ba5',
           },
         })}
       </div>
@@ -165,7 +165,7 @@ export function InlineMathEditor({
             variant="default"
             size="sm"
             onClick={handleSave}
-            className="gap-1 bg-blue-500 hover:bg-blue-600"
+            className="gap-1 bg-[#007ba5] hover:bg-[#006080]"
           >
             <Check className="h-4 w-4" />
             Done

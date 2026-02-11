@@ -45,6 +45,9 @@ export default function CreateAssignmentPage() {
   const [hintLimit, setHintLimit] = useState<number | null>(null);
   const [hasHintLimit, setHasHintLimit] = useState(false);
 
+  // Google Classroom
+  const [postToGC, setPostToGC] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -157,6 +160,59 @@ export default function CreateAssignmentPage() {
           selectedClassIds.length === 1 ? 'class' : 'classes'
         }${totalFailed > 0 ? `. ${totalFailed} failed.` : ''}`,
       });
+
+      // Post to Google Classroom if enabled
+      if (postToGC) {
+        const gcLinkedResults = results.filter(({ assignment }) => {
+          const cls = classes.find((c) => c.id === assignment.class_id);
+          return cls?.gc_course_id;
+        });
+
+        if (gcLinkedResults.length === 0) {
+          toast({
+            title: 'Google Classroom',
+            description: 'No selected classes are linked to Google Classroom. Import courses first from My Classes.',
+            variant: 'destructive',
+          });
+        } else {
+          let gcSuccesses = 0;
+          let gcFailures = 0;
+
+          const gcResults = await Promise.allSettled(
+            gcLinkedResults.map(async ({ assignment }) => {
+              const res = await fetch('/api/teacher/google-classroom/post-assignment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignmentId: assignment.id }),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || 'Failed to post');
+              }
+              return res.json();
+            })
+          );
+
+          for (const r of gcResults) {
+            if (r.status === 'fulfilled') gcSuccesses++;
+            else gcFailures++;
+          }
+
+          if (gcSuccesses > 0) {
+            toast({
+              title: 'Posted to Google Classroom',
+              description: `Assignment posted to ${gcSuccesses} Google Classroom course${gcSuccesses > 1 ? 's' : ''}`,
+            });
+          }
+          if (gcFailures > 0) {
+            toast({
+              title: 'Google Classroom issue',
+              description: `Failed to post to ${gcFailures} course${gcFailures > 1 ? 's' : ''}. Check the console for details.`,
+              variant: 'destructive',
+            });
+          }
+        }
+      }
 
       router.push('/teacher/classes');
     } catch (error) {
@@ -463,6 +519,11 @@ export default function CreateAssignmentPage() {
                           {classData.subject && (
                             <Badge variant="secondary">{classData.subject}</Badge>
                           )}
+                          {classData.gc_course_id && (
+                            <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+                              GC
+                            </Badge>
+                          )}
                         </div>
                         {classData.grade_level && (
                           <p className="text-sm text-muted-foreground mt-1">
@@ -484,6 +545,26 @@ export default function CreateAssignmentPage() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+
+            {/* Google Classroom Integration */}
+            {selectedClassIds.some((id) => classes.find((c) => c.id === id)?.gc_course_id) && (
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={postToGC}
+                    onChange={(e) => setPostToGC(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">Post to Google Classroom</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      A link to this assignment will appear in your students&apos; Google Classroom
+                    </p>
+                  </div>
+                </label>
               </div>
             )}
 

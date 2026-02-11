@@ -8,8 +8,10 @@ import { ClassCard } from '@/components/teacher/ClassCard';
 import { CreateClassDialog } from '@/components/teacher/CreateClassDialog';
 import { getTeacherClasses, getClassMemberCount } from '@/lib/api/classes';
 import { Class } from '@/types/database';
-import { Grid3x3, List, Search, ArrowLeft } from 'lucide-react';
+import { Grid3x3, List, Search, ArrowLeft, Download, Loader2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import type { GCCourse } from '@/types/google-classroom';
 
 type ViewMode = 'grid' | 'list';
 
@@ -23,6 +25,12 @@ export default function TeacherClassesPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [gcConnected, setGcConnected] = useState(false);
+  const [gcCourses, setGcCourses] = useState<GCCourse[]>([]);
+  const [gcLoading, setGcLoading] = useState(true);
+  const [showGcImport, setShowGcImport] = useState(false);
+  const [selectedGcIds, setSelectedGcIds] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
 
   const loadClasses = async () => {
     setLoading(true);
@@ -45,9 +53,64 @@ export default function TeacherClassesPage() {
     }
   };
 
+  const loadGcCourses = async () => {
+    setGcLoading(true);
+    try {
+      const res = await fetch('/api/teacher/google-classroom/courses');
+      if (res.ok) {
+        const data = await res.json();
+        setGcConnected(data.connected);
+        setGcCourses((data.courses || []).filter((c: GCCourse) => !c.importedClassId));
+      }
+    } catch {
+      // GC not available, that's fine
+    } finally {
+      setGcLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadClasses();
+    loadGcCourses();
   }, []);
+
+  const handleImportCourses = async () => {
+    if (selectedGcIds.size === 0) return;
+    setImporting(true);
+    try {
+      const res = await fetch('/api/teacher/google-classroom/import-courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseIds: Array.from(selectedGcIds) }),
+      });
+      const data = await res.json();
+
+      if (data.imported > 0) {
+        toast.success(`Imported ${data.imported} course${data.imported > 1 ? 's' : ''} from Google Classroom`);
+      }
+      if (data.skipped > 0) {
+        toast.info(`${data.skipped} course${data.skipped > 1 ? 's were' : ' was'} already imported`);
+      }
+
+      setSelectedGcIds(new Set());
+      setShowGcImport(false);
+      // Refresh both lists
+      await Promise.all([loadClasses(), loadGcCourses()]);
+    } catch {
+      toast.error('Failed to import courses');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const toggleGcCourse = (id: string) => {
+    setSelectedGcIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const filteredClasses = classes.filter((classData) => {
     const query = searchQuery.toLowerCase();
@@ -55,9 +118,11 @@ export default function TeacherClassesPage() {
       classData.name.toLowerCase().includes(query) ||
       classData.subject?.toLowerCase().includes(query) ||
       classData.grade_level?.toLowerCase().includes(query) ||
-      classData.join_code.toLowerCase().includes(query)
+      classData.join_code?.toLowerCase().includes(query)
     );
   });
+
+  const unimportedGcCourses = gcCourses;
 
   return (
     <div className="min-h-screen bg-background page-transition">
@@ -80,7 +145,22 @@ export default function TeacherClassesPage() {
                 </p>
               </div>
             </div>
-            <CreateClassDialog onClassCreated={loadClasses} />
+            <div className="flex items-center gap-2">
+              {gcConnected && unimportedGcCourses.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowGcImport(!showGcImport)}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Import from Google Classroom
+                  <span className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                    {unimportedGcCourses.length}
+                  </span>
+                </Button>
+              )}
+              <CreateClassDialog onClassCreated={loadClasses} />
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
@@ -109,6 +189,83 @@ export default function TeacherClassesPage() {
           </div>
         </div>
       </div>
+
+      {/* Google Classroom Import Panel */}
+      {showGcImport && gcConnected && (
+        <div className="border-b bg-green-50/50 dark:bg-green-950/20">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 text-green-600" fill="currentColor">
+                  <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c1.66 0 3.22-.45 4.56-1.24l.44.44c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41l-.44-.44A8.96 8.96 0 0 0 21 12c0-4.97-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm-1-11h2v3h3v2h-3v3h-2v-3H8v-2h3V8z" />
+                </svg>
+                <h3 className="font-medium text-sm">
+                  Select Google Classroom courses to import
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleImportCourses}
+                  disabled={importing || selectedGcIds.size === 0}
+                >
+                  {importing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Import {selectedGcIds.size > 0 ? `(${selectedGcIds.size})` : ''}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setShowGcImport(false); setSelectedGcIds(new Set()); }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+              {unimportedGcCourses.map((course) => (
+                <button
+                  key={course.id}
+                  onClick={() => toggleGcCourse(course.id)}
+                  className={`text-left p-3 rounded-lg border transition-colors ${
+                    selectedGcIds.has(course.id)
+                      ? 'border-green-500 bg-green-100/50 dark:bg-green-900/30'
+                      : 'border-border bg-background hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{course.name}</p>
+                      {course.section && (
+                        <p className="text-xs text-muted-foreground truncate">{course.section}</p>
+                      )}
+                    </div>
+                    <div
+                      className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 ml-2 ${
+                        selectedGcIds.has(course.id)
+                          ? 'bg-green-600 border-green-600'
+                          : 'border-muted-foreground'
+                      }`}
+                    >
+                      {selectedGcIds.has(course.id) && (
+                        <Check className="h-3 w-3 text-white" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -147,7 +304,15 @@ export default function TeacherClassesPage() {
                 <p className="text-muted-foreground mb-6 max-w-md">
                   Create your first class to get started. Students can join using a unique join code.
                 </p>
-                <CreateClassDialog onClassCreated={loadClasses} />
+                <div className="flex items-center gap-3">
+                  <CreateClassDialog onClassCreated={loadClasses} />
+                  {gcConnected && unimportedGcCourses.length > 0 && (
+                    <Button variant="outline" onClick={() => setShowGcImport(true)} className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Import from Google Classroom
+                    </Button>
+                  )}
+                </div>
               </>
             )}
           </div>

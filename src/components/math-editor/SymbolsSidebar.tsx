@@ -180,12 +180,12 @@ export function SymbolsSidebar({ onInsertSymbol, variables }: SymbolsSidebarProp
                 onClick={() => onInsertSymbol(v.name)}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
               >
-                <span className="text-blue-600 dark:text-blue-400 font-mono">{v.name}</span>
+                <span className="text-[#007ba5] dark:text-[#33b5d6] font-mono">{v.name}</span>
                 <span className="text-xs text-gray-500 truncate">{v.description}</span>
               </button>
             ))}
             {variables.length > 6 && (
-              <button className="text-xs text-blue-500 hover:underline px-2">
+              <button className="text-xs text-[#007ba5] hover:underline px-2">
                 See all {variables.length}
               </button>
             )}
@@ -217,7 +217,7 @@ export function SymbolsSidebar({ onInsertSymbol, variables }: SymbolsSidebarProp
                     variant="ghost"
                     size="sm"
                     onClick={() => onInsertSymbol(symbol.latex)}
-                    className="h-10 text-lg font-normal hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                    className="h-10 text-lg font-normal hover:bg-[#e0f2f7] dark:hover:bg-[#007ba5]/10"
                     title={symbol.label}
                   >
                     {symbol.display}
