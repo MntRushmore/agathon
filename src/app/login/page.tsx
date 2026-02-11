@@ -301,7 +301,7 @@ export default function LoginPage() {
           transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
           className="max-w-md text-center"
         >
-          <Logo size="lg" className="mx-auto mb-8" />
+          <Logo size="xl" className="mx-auto mb-8" />
           <h2 className="text-3xl font-semibold text-background mb-4">
             Learn smarter, not harder
           </h2>

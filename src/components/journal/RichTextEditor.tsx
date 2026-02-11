@@ -36,11 +36,23 @@ const DetailsNode = Node.create({
   group: 'block',
   defining: true,
   content: 'detailsSummary detailsContent',
+  addAttributes() {
+    return {
+      open: {
+        default: true,
+        parseHTML: (element) => element.hasAttribute('open'),
+        renderHTML: (attributes) => {
+          if (!attributes.open) return {};
+          return { open: 'true' };
+        },
+      },
+    };
+  },
   parseHTML() {
     return [{ tag: 'details' }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ['details', { ...HTMLAttributes, open: 'true' }, 0];
+    return ['details', HTMLAttributes, 0];
   },
 });
 
@@ -227,6 +239,12 @@ export function RichTextEditor({
   className,
   onSlashCommand
 }: RichTextEditorProps) {
+  // Use refs to avoid stale closures in Tiptap editor callbacks
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onSlashCommandRef = useRef(onSlashCommand);
+  onSlashCommandRef.current = onSlashCommand;
+
   // Create slash command extension
   const SlashCommands = Extension.create({
     name: 'slashCommands',
@@ -275,7 +293,7 @@ export function RichTextEditor({
                 editor.chain().focus().deleteRange(range).insertContent({
                   type: 'details',
                   content: [
-                    { type: 'detailsSummary', content: [{ type: 'text', text: 'Click to expand' }] },
+                    { type: 'detailsSummary', content: [{ type: 'text', text: 'Summary' }] },
                     { type: 'detailsContent', content: [{ type: 'paragraph' }] },
                   ],
                 }).run();
@@ -283,15 +301,15 @@ export function RichTextEditor({
               case 'latex':
                 editor.chain().focus().deleteRange(range).insertContent({
                   type: 'inlineMath',
-                  attrs: { latex: 'E = mc^2' },
+                  attrs: { latex: 'E = mc^2', display: 'yes' },
                 }).run();
                 break;
               default:
                 // For non-editor commands (AI, media, etc.), just delete the slash text
                 // and pass to parent handler
                 editor.chain().focus().deleteRange(range).run();
-                if (onSlashCommand) {
-                  onSlashCommand(commandId);
+                if (onSlashCommandRef.current) {
+                  onSlashCommandRef.current(commandId);
                 }
             }
           },
@@ -451,8 +469,40 @@ export function RichTextEditor({
         ),
       },
       handleClick: (view, pos, event) => {
-        // Check if clicked on a math node
+        // Check if clicked on a details summary to toggle collapse
         const target = event.target as HTMLElement;
+        const summaryEl = target.closest('summary');
+        if (summaryEl) {
+          const detailsEl = summaryEl.closest('details');
+          if (detailsEl) {
+            // Find the details node in the ProseMirror doc and toggle its open attribute
+            const { state } = view;
+            let detailsPos: number | null = null;
+            state.doc.descendants((node, nodePos) => {
+              if (detailsPos !== null) return false;
+              if (node.type.name === 'details') {
+                const dom = view.nodeDOM(nodePos);
+                if (dom === detailsEl) {
+                  detailsPos = nodePos;
+                  return false;
+                }
+              }
+            });
+            if (detailsPos !== null) {
+              const node = state.doc.nodeAt(detailsPos);
+              if (node) {
+                const tr = state.tr.setNodeMarkup(detailsPos, undefined, {
+                  ...node.attrs,
+                  open: !node.attrs.open,
+                });
+                view.dispatch(tr);
+                return true;
+              }
+            }
+          }
+        }
+
+        // Check if clicked on a math node
         const mathNode = target.closest('.tiptap-math.latex') as HTMLElement;
         if (mathNode) {
           // Find the node at this position
@@ -461,9 +511,12 @@ export function RichTextEditor({
           const node = $pos.nodeAfter || $pos.nodeBefore;
 
           if (node && node.type.name === 'inlineMath') {
+            // Display math uses the extension's built-in editor — don't replace with raw text
+            if (node.attrs.display === 'yes') {
+              return false;
+            }
+
             const latex = node.attrs.latex || '';
-            const isDisplay = node.attrs.display === 'yes';
-            const wrapper = isDisplay ? '$$' : '$';
 
             // Get the position of the math node
             let nodePos = pos;
@@ -471,12 +524,12 @@ export function RichTextEditor({
               nodePos = pos - $pos.nodeBefore.nodeSize;
             }
 
-            // Replace the node with editable text
+            // Replace inline math node with editable $...$ text
             const tr = state.tr;
             tr.delete(nodePos, nodePos + node.nodeSize);
-            tr.insertText(`${wrapper}${latex}${wrapper}`, nodePos);
+            tr.insertText(`$${latex}$`, nodePos);
             // Position cursor inside the LaTeX, selecting all the LaTeX content
-            const cursorPos = nodePos + wrapper.length;
+            const cursorPos = nodePos + 1;
             tr.setSelection(TextSelection.create(tr.doc, cursorPos, cursorPos + latex.length));
             view.dispatch(tr);
             return true;
@@ -488,7 +541,7 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const markdown = htmlToMarkdown(html);
-      onChange(markdown);
+      onChangeRef.current(markdown);
     },
     onSelectionUpdate: ({ editor }) => {
       // Check if there are any $...$ patterns in text nodes that need to be converted
@@ -909,12 +962,33 @@ export function RichTextEditor({
           display: flex;
           align-items: center;
           gap: 6px;
+          list-style: none;
+        }
+        .ProseMirror details summary::-webkit-details-marker {
+          display: none;
+        }
+        .ProseMirror details summary::before {
+          content: '';
+          display: inline-block;
+          width: 0;
+          height: 0;
+          border-left: 5px solid #9B8B78;
+          border-top: 4px solid transparent;
+          border-bottom: 4px solid transparent;
+          transition: transform 0.15s ease;
+          flex-shrink: 0;
+        }
+        .ProseMirror details[open] summary::before {
+          transform: rotate(90deg);
         }
         .ProseMirror details summary:hover {
           background: #E4D9BD;
         }
-        .ProseMirror details summary::marker {
-          color: #9B8B78;
+        .ProseMirror details:not([open]) summary {
+          border-bottom: none;
+        }
+        .ProseMirror details:not([open]) div[data-details-content] {
+          display: none;
         }
         .ProseMirror details div[data-details-content] {
           padding: 12px 14px;
@@ -1082,6 +1156,36 @@ export function RichTextEditor({
           display: block;
           text-align: center;
           margin: 1em 0;
+        }
+
+        /* Display math block card */
+        .tiptap-math.latex[data-display="yes"] {
+          display: block;
+          width: 100%;
+          background-color: #F6F4EC;
+          border-radius: 8px;
+          padding: 24px;
+          margin: 16px 0;
+          cursor: pointer;
+          text-align: center;
+          transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tiptap-math.latex[data-display="yes"]:hover {
+          background-color: #EDE8DA;
+          box-shadow: none;
+        }
+        .tiptap-math.latex[data-display="yes"] .Tiptap-mathematics-editor {
+          display: block;
+          width: 100%;
+          text-align: left;
+          font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, monospace;
+          font-size: 0.9em;
+          padding: 16px 20px;
+          background: #F6F4EC;
+          border: none;
+        }
+        .tiptap-math.latex[data-display="yes"] .katex {
+          font-size: 1.3em;
         }
 
         /* ==========================================

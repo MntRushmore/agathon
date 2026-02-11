@@ -135,8 +135,8 @@ class Lassooing extends StateNode {
     const lassoBounds = Box.FromPoints(this.points);
 
     for (const shape of shapes) {
-      // Skip non-draw shapes and AI-generated content
-      if (shape.type !== 'draw') continue;
+      // Skip shapes that aren't user-drawn or user-pasted images, and skip AI-generated content
+      if (shape.type !== 'draw' && shape.type !== 'image') continue;
       if (shape.meta?.aiGenerated) continue;
 
       const shapeBounds = this.editor.getShapePageBounds(shape);
