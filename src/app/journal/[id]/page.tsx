@@ -55,7 +55,6 @@ import {
 import {
   Dialog, DialogPanel, DialogTitle, DialogBackdrop,
   Switch,
-  RadioGroup, Radio,
   TabGroup, TabList, Tab, TabPanels, TabPanel,
 } from '@headlessui/react';
 import { debounce } from 'lodash';
@@ -64,6 +63,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
+import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
 import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
 
@@ -120,6 +120,11 @@ const InlineDesmos = dynamic(
   { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
 );
 
+const InlineChart = dynamic(
+  () => import('@/components/journal/InlineChart').then(mod => mod.InlineChart),
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
+);
+
 interface JournalData {
   id: string;
   user_id: string;
@@ -150,6 +155,8 @@ function ContentWithEmbeds({
   onSlashCommand,
   onDeleteWhiteboard,
   onDeleteDesmos,
+  onChartSave,
+  onDeleteChart,
 }: {
   content: string;
   onChange: (content: string) => void;
@@ -160,19 +167,33 @@ function ContentWithEmbeds({
   onSlashCommand?: (commandId: string) => void;
   onDeleteWhiteboard?: (id: string) => void;
   onDeleteDesmos?: (id: string) => void;
+  onChartSave?: (id: string, data: ChartConfig) => void;
+  onDeleteChart?: (id: string) => void;
 }) {
   // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
   const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
+  const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
+
+  // Build a unified, position-ordered list of all embeds
+  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
+  whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
+  desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
+  chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
+  allEmbeds.sort((a, b) => a.position - b.position);
 
   // Remove placeholders from the content for the editor (they'll be rendered separately)
   const editorContent = content
     .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
     .trim();
 
+  // Check if there are any embeds — shrink editor min-height when embeds exist
+  const hasEmbeds = allEmbeds.length > 0;
+
   return (
-    <div className="space-y-6">
+    <div className={hasEmbeds ? 'space-y-4' : 'space-y-6'}>
       {/* Main editor for text content */}
       <RichTextEditor
         content={editorContent}
@@ -180,15 +201,8 @@ function ContentWithEmbeds({
           // Preserve the embedded placeholders when content changes
           let fullContent = newContent;
 
-          // Re-add whiteboard placeholders at the end
-          whiteboardMatches.forEach(match => {
-            if (!fullContent.includes(match[0])) {
-              fullContent += `\n\n${match[0]}`;
-            }
-          });
-
-          // Re-add desmos placeholders at the end (just the placeholder, no label)
-          desmosMatches.forEach(match => {
+          // Re-add all embed placeholders at the end (in original order)
+          allEmbeds.forEach(({ match }) => {
             if (!fullContent.includes(match[0])) {
               fullContent += `\n\n${match[0]}`;
             }
@@ -198,63 +212,80 @@ function ContentWithEmbeds({
         }}
         placeholder={placeholder}
         onSlashCommand={onSlashCommand}
+        className={hasEmbeds ? '[&_.ProseMirror]:!min-h-[120px]' : ''}
       />
 
-      {/* Render embedded whiteboards */}
-      {whiteboardMatches.map((match) => {
-        const id = match[1];
-        const wb = embeddedWhiteboards.find(w => w.id === id);
-        return (
-          <div key={`wb-${id}`} className="my-4 group relative">
-            <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <PenNib className="h-4 w-4" />
-                <span>Whiteboard</span>
+      {/* Render all embeds in content order */}
+      {allEmbeds.map(({ type, match }) => {
+        if (type === 'whiteboard') {
+          const id = match[1];
+          const wb = embeddedWhiteboards.find(w => w.id === id);
+          return (
+            <div key={`wb-${id}`} className="my-2 group relative">
+              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PenNib className="h-4 w-4" />
+                  <span>Whiteboard</span>
+                </div>
+                {onDeleteWhiteboard && (
+                  <button
+                    onClick={() => onDeleteWhiteboard(id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    title="Delete whiteboard"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              {onDeleteWhiteboard && (
-                <button
-                  onClick={() => onDeleteWhiteboard(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                  title="Delete whiteboard"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+              <InlineWhiteboard
+                id={id}
+                initialData={wb?.data}
+                onSave={(data) => onWhiteboardSave(id, data)}
+                height={400}
+              />
             </div>
-            <InlineWhiteboard
-              id={id}
-              initialData={wb?.data}
-              onSave={(data) => onWhiteboardSave(id, data)}
-              height={400}
-            />
-          </div>
-        );
-      })}
+          );
+        }
 
-      {/* Render embedded Desmos graphs */}
-      {desmosMatches.map((match) => {
-        const id = match[1];
-        const expression = match[2];
-        return (
-          <div key={`desmos-${id}`} className="my-4 group relative">
-            <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ChartLine className="h-4 w-4" />
-                <span>Desmos Graph</span>
+        if (type === 'desmos') {
+          const id = match[1];
+          const expression = match[2];
+          return (
+            <div key={`desmos-${id}`} className="my-2 group relative">
+              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ChartLine className="h-4 w-4" />
+                  <span>Desmos Graph</span>
+                </div>
+                {onDeleteDesmos && (
+                  <button
+                    onClick={() => onDeleteDesmos(id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    title="Delete graph"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              {onDeleteDesmos && (
-                <button
-                  onClick={() => onDeleteDesmos(id)}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                  title="Delete graph"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+              <InlineDesmos
+                expression={expression}
+                height={400}
+              />
             </div>
-            <InlineDesmos
-              expression={expression}
-              height={400}
+          );
+        }
+
+        // chart
+        const id = match[1];
+        const encodedData = match[2];
+        const chartConfig = decodeChartData(encodedData);
+        return (
+          <div key={`chart-${id}`} className="my-2">
+            <InlineChart
+              id={id}
+              initialData={chartConfig}
+              onSave={(chartId, data) => onChartSave?.(chartId, data)}
+              onDelete={(chartId) => onDeleteChart?.(chartId)}
             />
           </div>
         );
@@ -360,9 +391,6 @@ export default function JournalEditorPage() {
   const [searchedJournals, setSearchedJournals] = useState<JournalData[]>([]);
   const [showDesmosModal, setShowDesmosModal] = useState(false);
   const [desmosExpression, setDesmosExpression] = useState('');
-  const [showChartModal, setShowChartModal] = useState(false);
-  const [chartData, setChartData] = useState('');
-  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
 
   // File input refs
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -378,6 +406,7 @@ export default function JournalEditorPage() {
   const [pendingMessageIndex, setPendingMessageIndex] = useState<number | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const hasAutoTitled = useRef(false);
 
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
@@ -529,7 +558,46 @@ export default function JournalEditorPage() {
     }
   }, [title, content, journal, loading, saveJournal]);
 
+  // Auto-generate title from content when title is still default
+  useEffect(() => {
+    if (hasAutoTitled.current) return;
+    if (title !== 'New Journal') {
+      hasAutoTitled.current = true;
+      return;
+    }
+    // Strip out embedded blocks like [WHITEBOARD:...], [DESMOS:...], etc.
+    const plainText = content.replace(/\[(?:WHITEBOARD|DESMOS|CHART|IMAGE|AUDIO|VIDEO|PDF|YOUTUBE|JOURNAL_LINK):[^\]]*\]/g, '').trim();
+    if (plainText.length < 30) return;
+
+    hasAutoTitled.current = true;
+
+    const generateTitle = async () => {
+      try {
+        const res = await fetch('/api/journal/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'chat',
+            content: '',
+            topic: `Generate a short, concise title (3-6 words, no quotes, no markdown) for a study journal with this content:\n\n${plainText.slice(0, 500)}`,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const generated = (data.content || '').replace(/^["']|["']$/g, '').replace(/^#+\s*/, '').trim();
+        if (generated && generated.length > 0 && generated.length < 60) {
+          setTitle(generated);
+        }
+      } catch {
+        // Silently fail — user can still type their own title
+      }
+    };
+
+    generateTitle();
+  }, [content, title]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    hasAutoTitled.current = true;
     setTitle(e.target.value);
   };
 
@@ -999,8 +1067,7 @@ export default function JournalEditorPage() {
         default:
           insertText = '';
       }
-      const newContent = content ? content + '\n\n' + insertText : insertText;
-      setContent(newContent);
+      setContent(prev => prev ? prev + '\n\n' + insertText : insertText);
     } else {
       // Handle other commands
       switch (commandId) {
@@ -1011,9 +1078,7 @@ export default function JournalEditorPage() {
           handleDesmosInsert();
           break;
         case 'chart':
-          setChartData('');
-          setChartType('bar');
-          setShowChartModal(true);
+          handleChartInsert();
           break;
         case 'subjournal':
           handleCreateSubjournal();
@@ -1057,10 +1122,9 @@ export default function JournalEditorPage() {
     // Add to embedded whiteboards
     setEmbeddedWhiteboards(prev => [...prev, { id: whiteboardId }]);
 
-    // Add a placeholder in the content
+    // Add a placeholder in the content (use functional setState to avoid stale closures)
     const whiteboardPlaceholder = `\n\n[WHITEBOARD:${whiteboardId}]\n`;
-    const newContent = content ? content + whiteboardPlaceholder : whiteboardPlaceholder;
-    setContent(newContent);
+    setContent(prev => prev ? prev + whiteboardPlaceholder : whiteboardPlaceholder);
     toast.success('Whiteboard added!');
   };
 
@@ -1068,16 +1132,12 @@ export default function JournalEditorPage() {
   const handleDesmosInsert = () => {
     const desmosId = `desmos-${Date.now()}`;
 
-    // Add a placeholder in the content (no need for separate state - rendered from content)
+    // Add a placeholder in the content (use functional setState to avoid stale closures)
     const desmosPlaceholder = `[DESMOS:${desmosId}:]`;
-
-    // Check if this exact placeholder already exists (prevent duplicates)
-    if (content.includes(desmosPlaceholder)) {
-      return;
-    }
-
-    const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
-    setContent(newContent);
+    setContent(prev => {
+      if (prev.includes(desmosPlaceholder)) return prev;
+      return prev ? prev + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
+    });
     toast.success('Graph added! Type equations directly in the calculator.');
   };
 
@@ -1187,17 +1247,15 @@ export default function JournalEditorPage() {
     toast.success('Desmos graph added!');
   };
 
-  // Handle chart creation
-  const handleChartCreate = () => {
-    if (!chartData.trim()) return;
-
-    // Parse simple CSV-like data: "Label1,Value1;Label2,Value2"
-    const chartEmoji = chartType === 'bar' ? '📊' : chartType === 'line' ? '📈' : '🥧';
-    const chartBlock = `\n\n${chartEmoji} **${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart**\n\n\`\`\`chart\ntype: ${chartType}\ndata: ${chartData}\n\`\`\`\n`;
-    const newContent = content ? content + chartBlock : chartBlock;
-    setContent(newContent);
-    setShowChartModal(false);
-    setChartData('');
+  // Handle chart insertion - adds an inline chart
+  const handleChartInsert = () => {
+    const chartId = `chart-${Date.now()}`;
+    const encodedData = encodeChartData(DEFAULT_CHART_DATA);
+    const chartPlaceholder = `[CHART:${chartId}:${encodedData}]`;
+    setContent(prev => {
+      if (prev.includes(chartPlaceholder)) return prev;
+      return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
+    });
     toast.success('Chart added!');
   };
 
@@ -1604,11 +1662,11 @@ export default function JournalEditorPage() {
                   }
                 }}
                 className={cn(
-                  'flex items-center gap-3 bg-foreground/10 border border-border px-3 py-2 cursor-pointer',
+                  'flex items-center gap-2.5 border border-border px-3 cursor-pointer',
                   'transition-all duration-300 ease-out',
                   searchExpanded
-                    ? 'min-w-[600px] bg-card shadow-lg border-b-0'
-                    : 'min-w-[420px] hover:bg-foreground/15'
+                    ? 'min-w-[560px] bg-card shadow-lg border-b-0 py-2'
+                    : 'min-w-[320px] bg-foreground/5 hover:bg-foreground/10 py-1.5'
                 )}
               >
                 {searchExpanded ? (
@@ -1684,43 +1742,27 @@ export default function JournalEditorPage() {
                   </>
                 ) : (
                   <>
-                    <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
-                      <Sparkle weight="duotone" className="h-4 w-4 text-foreground" />
-                    </div>
-                    <span className="flex-1 text-muted-foreground text-sm transition-opacity duration-500">
+                    <Sparkle weight="duotone" className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <span className="flex-1 text-muted-foreground text-xs transition-opacity duration-500">
                       {placeholderTexts[placeholderIndex]}
                     </span>
-                    <div className="w-7 h-7 bg-foreground text-background flex items-center justify-center flex-shrink-0">
-                      <ArrowUp className="h-4 w-4" />
+                    <div className="w-6 h-6 bg-foreground text-background flex items-center justify-center flex-shrink-0">
+                      <ArrowUp className="h-3 w-3" />
                     </div>
                   </>
                 )}
               </div>
-              {/* Chat label below the bar */}
-              {!searchExpanded && (
-                <div className="flex items-center justify-center gap-1 mt-1.5">
-                  <span className="text-muted-foreground text-xs font-medium">Chat with Agathon</span>
-                </div>
-              )}
+              {/* Chat label below the bar - only show when expanded */}
             </div>
 
-            {/* Chat conversation panel */}
-            {searchExpanded && !showSlashMenu && (
+            {/* Chat conversation panel - only show when there are messages */}
+            {searchExpanded && !showSlashMenu && chatMessages.length > 0 && (
               <div className="absolute top-full left-0 right-0 bg-card border border-t-0 border-border shadow-xl overflow-hidden z-[100]">
                 {/* Chat messages */}
                 <div
                   ref={chatContainerRef}
                   className="max-h-[350px] overflow-y-auto px-4 py-3 space-y-3"
                 >
-                  {chatMessages.length === 0 ? (
-                    <div className="text-center py-6">
-                      <div className="w-10 h-10 bg-foreground/10 flex items-center justify-center mx-auto mb-3">
-                        <Sparkle weight="duotone" className="h-5 w-5 text-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">No messages yet</p>
-                      <p className="text-xs text-muted-foreground/60">Ask a question or type &quot;/&quot; for commands</p>
-                    </div>
-                  ) : null}
                   {chatMessages.map((msg, idx) => (
                     <div key={idx}>
                       {msg.role === 'user' ? (
@@ -2315,6 +2357,19 @@ export default function JournalEditorPage() {
               setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
               toast.success('Graph deleted');
             }}
+            onChartSave={(id, data) => {
+              // Update the chart placeholder with new encoded data
+              setContent(prev => {
+                const regex = new RegExp(`\\[CHART:${id}:[^\\]]*\\]`);
+                const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
+                return prev.replace(regex, newPlaceholder);
+              });
+              toast.success('Chart saved!');
+            }}
+            onDeleteChart={(id) => {
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+              toast.success('Chart deleted');
+            }}
             onSlashCommand={executeCommand}
           />
 
@@ -2507,75 +2562,6 @@ export default function JournalEditorPage() {
               </button>
               <button onClick={handleDesmosEmbed} disabled={!desmosExpression.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Add Graph
-              </button>
-            </div>
-          </DialogPanel>
-        </div>
-      </Dialog>
-
-      {/* Chart Modal */}
-      <Dialog open={showChartModal} onClose={() => setShowChartModal(false)} className="relative z-50">
-        <DialogBackdrop className="fixed inset-0 bg-black/30" />
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <ChartBar className="h-5 w-5 text-muted-foreground" />
-                  Create Chart
-                </DialogTitle>
-                <button
-                  onClick={() => setShowChartModal(false)}
-                  className="p-1 hover:bg-muted transition-colors"
-                >
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground/80 mb-2 block">Chart Type</label>
-                  <RadioGroup value={chartType} onChange={setChartType} className="flex gap-2">
-                    {(['bar', 'line', 'pie'] as const).map((type) => (
-                      <Radio
-                        key={type}
-                        value={type}
-                        className={cn(
-                          'flex-1 px-3 py-2 text-sm font-medium transition-colors cursor-pointer text-center',
-                          'data-[checked]:bg-foreground data-[checked]:text-background',
-                          'bg-muted text-muted-foreground hover:bg-accent'
-                        )}
-                      >
-                        {type === 'bar' ? 'Bar' : type === 'line' ? 'Line' : 'Pie'}
-                      </Radio>
-                    ))}
-                  </RadioGroup>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground/80 mb-2 block">Data</label>
-                  <textarea
-                    value={chartData}
-                    onChange={(e) => setChartData(e.target.value)}
-                    placeholder="Label1,10;Label2,20;Label3,30"
-                    rows={3}
-                    className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all font-mono text-sm"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Format: Label,Value separated by semicolons</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-3 p-4 bg-muted border-t border-border">
-              <button
-                onClick={() => setShowChartModal(false)}
-                className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleChartCreate}
-                disabled={!chartData.trim()}
-                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create Chart
               </button>
             </div>
           </DialogPanel>

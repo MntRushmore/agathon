@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
   className?: string;
 }
@@ -13,6 +13,7 @@ const sizeConfig = {
   sm: { width: 32, height: 32 },
   md: { width: 40, height: 40 },
   lg: { width: 80, height: 80 },
+  xl: { width: 128, height: 128 },
 };
 
 export function Logo({ size = 'md', showText = false, className }: LogoProps) {
@@ -28,7 +29,7 @@ export function Logo({ size = 'md', showText = false, className }: LogoProps) {
           width={width * 3}
           height={height}
           className="h-auto"
-          style={{ width: 'auto', height: size === 'sm' ? 24 : size === 'md' ? 32 : 48 }}
+          style={{ width: 'auto', height: size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : 64 }}
           priority
         />
       </div>
@@ -37,14 +38,14 @@ export function Logo({ size = 'md', showText = false, className }: LogoProps) {
 
   // Use the square logo (agathon.png is light bg, agathon1.png is dark bg)
   return (
-    <div className={cn('flex items-center', className)}>
+    <div className={cn('inline-flex items-center overflow-hidden rounded-3xl', className)}>
       {/* Light mode: show dark logo (agathon1.png - white A on black) */}
       <Image
         src="/logo/agathon1.png"
         alt="Agathon"
         width={width}
         height={height}
-        className="dark:hidden rounded-lg"
+        className="dark:hidden block"
         style={{ width, height }}
         priority
       />
@@ -54,7 +55,7 @@ export function Logo({ size = 'md', showText = false, className }: LogoProps) {
         alt="Agathon"
         width={width}
         height={height}
-        className="hidden dark:block rounded-lg"
+        className="hidden dark:block"
         style={{ width, height }}
         priority
       />
