@@ -1936,8 +1936,8 @@ export default function JournalEditorPage() {
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
-                        proactiveAIEnabled ? "translate-x-0" : "translate-x-5"
+                        "absolute top-0.5 w-4 h-4 bg-[#F7F0E3] rounded-full shadow transition-transform",
+                        proactiveAIEnabled ? "translate-x-0" : "-translate-x-5"
                       )}
                     />
                   </Switch>
