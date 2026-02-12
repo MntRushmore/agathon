@@ -19,6 +19,7 @@ export default function TeacherSettingsPage() {
   const { profile } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [courses, setCourses] = useState<GCCourse[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
@@ -94,6 +95,30 @@ export default function TeacherSettingsPage() {
     }
   };
 
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const res = await fetch('/api/knowledge/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: 'google_classroom',
+          redirect: '/teacher/settings',
+        }),
+      });
+      const data = await res.json();
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      } else {
+        toast.error('Failed to start connection flow');
+        setConnecting(false);
+      }
+    } catch {
+      toast.error('Failed to connect to Google Classroom');
+      setConnecting(false);
+    }
+  };
+
   const importableCourses = courses.filter((c) => !c.importedClassId);
   const importedCourses = courses.filter((c) => c.importedClassId);
 
@@ -153,28 +178,28 @@ export default function TeacherSettingsPage() {
                     Google Classroom is not connected
                   </p>
                   <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                    Connect Google Classroom from your{' '}
-                    <Link href="/knowledge" className="underline font-medium hover:text-amber-900 dark:hover:text-amber-100">
-                      Knowledge Base
-                    </Link>{' '}
-                    to import courses and post assignments.
+                    Connect your Google account to import courses and post assignments directly from Agathon.
                   </p>
                   <Button
-                    variant="outline"
                     size="sm"
-                    className="mt-3 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                    onClick={() => router.push('/knowledge')}
+                    className="mt-3"
+                    onClick={handleConnect}
+                    disabled={connecting}
                   >
-                    Go to Knowledge Base
+                    {connecting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect Google Classroom'
+                    )}
                   </Button>
                 </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Connected via Knowledge Base. You can manage this connection from your{' '}
-                <Link href="/knowledge" className="underline hover:text-foreground">
-                  Knowledge Base
-                </Link>.
+                Google Classroom is connected and syncing your courses.
               </p>
             )}
           </CardContent>

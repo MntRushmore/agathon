@@ -130,6 +130,11 @@ export default function MathEditorPage() {
     [documentId, supabase]
   );
 
+  // Cancel debounced save on unmount to prevent writes after teardown
+  useEffect(() => {
+    return () => saveDocument.cancel();
+  }, [saveDocument]);
+
   // Save on changes
   useEffect(() => {
     if (documentId && !loading) {

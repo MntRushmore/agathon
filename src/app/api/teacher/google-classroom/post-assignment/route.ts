@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createClassroomCoursework } from '@/lib/composio';
+import { createClassroomCoursework, extractComposioData } from '@/lib/composio';
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Assignment already posted to Google Classroom' }, { status: 409 });
     }
 
-    // Build the Agathon link for the assignment
+    // Build the Agathon link for students to access the assignment
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const agathonLink = `${siteUrl}/teacher/classes/${classData.id}/assignments/${assignmentId}`;
+    const agathonLink = `${siteUrl}/board?assignmentId=${assignmentId}`;
 
     // Parse due date if set
     let dueDate: { year: number; month: number; day: number; hours?: number; minutes?: number } | undefined;
@@ -63,12 +63,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    console.log('Posting to GC:', {
-      userId: user.id,
-      courseId: classData.gc_course_id,
-      title: assignment.title,
-      link: agathonLink,
-    });
+    // Post to Google Classroom via Composio
 
     // Post to Google Classroom
     let result;
@@ -89,10 +84,8 @@ export async function POST(req: NextRequest) {
       }, { status: 502 });
     }
 
-    console.log('GC post result:', JSON.stringify(result, null, 2));
-
-    // Extract coursework ID from response — check various response shapes
-    const resultData = (result as any)?.data || (result as any)?.response_data || result;
+    // Extract coursework ID from response
+    const resultData = extractComposioData(result) as Record<string, unknown> | null;
     const gcCourseworkId = resultData?.id || resultData?.courseWorkId || resultData?.courseworkId || null;
 
     // Save the GC coursework ID
@@ -106,7 +99,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       gcCourseworkId: gcCourseworkId ? String(gcCourseworkId) : null,
-      rawResult: resultData, // Include raw result for debugging
     });
   } catch (error) {
     console.error('Error posting assignment to GC:', error);

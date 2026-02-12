@@ -133,10 +133,10 @@ export function AIHistoryTimeline({ submissionId, studentName, trigger }: AIHist
   const getEventBadge = (event: TimelineEvent) => {
     if (event.type === 'ai_usage') {
       const variants: Record<string, string> = {
-        feedback: 'bg-blue-100 text-blue-700 border-blue-200',
-        suggest: 'bg-amber-100 text-amber-700 border-amber-200',
-        answer: 'bg-red-100 text-red-700 border-red-200',
-        chat: 'bg-purple-100 text-purple-700 border-purple-200',
+        feedback: 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+        suggest: 'bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+        answer: 'bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
+        chat: 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
       };
       const labels: Record<string, string> = {
         feedback: 'Light Hint',
@@ -212,25 +212,25 @@ export function AIHistoryTimeline({ submissionId, studentName, trigger }: AIHist
             {summary && summary.totalAIInteractions > 0 && (
               <div className="flex flex-wrap gap-2 px-1">
                 {summary.feedbackCount > 0 && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                     <Lightbulb className="h-3 w-3 mr-1" />
                     {summary.feedbackCount} Light Hints
                   </Badge>
                 )}
                 {summary.suggestCount > 0 && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
                     <Brain className="h-3 w-3 mr-1" />
                     {summary.suggestCount} Guided Hints
                   </Badge>
                 )}
                 {summary.answerCount > 0 && (
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  <Badge variant="outline" className="bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800">
                     <BookOpen className="h-3 w-3 mr-1" />
                     {summary.answerCount} Solutions
                   </Badge>
                 )}
                 {summary.chatCount > 0 && (
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
                     <MessageSquare className="h-3 w-3 mr-1" />
                     {summary.chatCount} Chats
                   </Badge>
@@ -262,8 +262,8 @@ export function AIHistoryTimeline({ submissionId, studentName, trigger }: AIHist
                           <Collapsible open={isExpanded} onOpenChange={() => hasDetails && toggleExpand(index)}>
                             <div 
                               className={`p-3 rounded-lg border ${hasDetails ? 'cursor-pointer hover:bg-muted/50' : ''} ${
-                                event.type === 'struggle' ? 'border-amber-200 bg-amber-50/50' : 
-                                event.type === 'ai_usage' && event.mode === 'answer' ? 'border-red-200 bg-red-50/30' :
+                                event.type === 'struggle' ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30' :
+                                event.type === 'ai_usage' && event.mode === 'answer' ? 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/30' :
                                 'bg-card'
                               }`}
                             >

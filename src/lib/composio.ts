@@ -339,6 +339,30 @@ export async function createClassroomCoursework(
 }
 
 /**
+ * Extract the inner data payload from a Composio tool response.
+ * Composio wraps results in varying shapes — this normalizes them.
+ */
+export function extractComposioData(result: unknown): unknown {
+  return (result as any)?.data || (result as any)?.response_data || result;
+}
+
+/**
+ * Extract an array of items from a Composio tool response.
+ * Handles multiple known wrapper shapes.
+ */
+export function extractComposioItems<T = Record<string, unknown>>(result: unknown): T[] {
+  const data = extractComposioData(result);
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === 'object') {
+    for (const key of ['courses', 'results', 'items', 'courseWork', 'studentSubmissions', 'courseWorkMaterial']) {
+      const arr = (data as Record<string, unknown>)[key];
+      if (Array.isArray(arr)) return arr as T[];
+    }
+  }
+  return [];
+}
+
+/**
  * Extract plain text from Composio tool response
  * Handles different response shapes from Google Docs and Classroom
  */
