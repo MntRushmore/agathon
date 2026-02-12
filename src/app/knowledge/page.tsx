@@ -338,7 +338,7 @@ export default function KnowledgePage() {
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-foreground">Knowledge Base</h1>
-            <p className="text-xs text-muted-foreground">Connect your accounts so the AI tutor can reference your work</p>
+            <p className="text-xs text-muted-foreground">Connect your accounts so Agathon can reference your work</p>
           </div>
           {activeConnections.length > 0 && (
             <Button
@@ -368,7 +368,7 @@ export default function KnowledgePage() {
                   {totalDocs} document{totalDocs !== 1 ? 's' : ''} in your knowledge base
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  The AI tutor will automatically reference these when helping you
+                  Agathon will automatically reference these when helping you
                 </p>
               </div>
             </div>
@@ -760,7 +760,7 @@ export default function KnowledgePage() {
             <Books className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" weight="duotone" />
             <p className="text-sm font-medium text-foreground mb-1">No sources connected yet</p>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Connect Google Drive or Google Classroom above so the AI tutor can reference your notes and assignments
+              Connect Google Drive or Google Classroom above so Agathon can reference your notes and assignments
             </p>
           </div>
         )}
@@ -772,7 +772,7 @@ export default function KnowledgePage() {
             {[
               { step: '1', text: 'Connect your Google Drive or Google Classroom above' },
               { step: '2', text: 'Your documents, courses, and assignments are synced securely' },
-              { step: '3', text: 'When you ask the AI tutor for help, it searches your content for relevant context' },
+              { step: '3', text: 'When you ask Agathon for help, it searches your content for relevant context' },
               { step: '4', text: 'Get personalized answers based on your actual study materials' },
             ].map((item) => (
               <div key={item.step} className="px-4 py-2.5 flex items-center gap-3">
