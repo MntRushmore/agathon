@@ -224,7 +224,7 @@ export default function Dashboard() {
   const [classroomAssignments, setClassroomAssignments] = useState<any[]>([]);
   const [classroomConnected, setClassroomConnected] = useState(false);
   const [classroomExpired, setClassroomExpired] = useState(false);
-  const [classroomCourses, setClassroomCourses] = useState<string[]>([]);
+  const [classroomCourses, setClassroomCourses] = useState<{ id: string; name: string; assignmentCount: number; url?: string }[]>([]);
   const [classroomCourseFilter, setClassroomCourseFilter] = useState<string | null>(null);
   const [classroomStats, setClassroomStats] = useState<{ total: number; turned_in: number; graded: number; missing: number; upcoming: number }>({ total: 0, turned_in: 0, graded: 0, missing: 0, upcoming: 0 });
   const [classroomSyncing, setClassroomSyncing] = useState(false);
@@ -1673,16 +1673,16 @@ export default function Dashboard() {
                     </button>
                     {classroomCourses.map(course => (
                       <button
-                        key={course}
-                        onClick={() => { setClassroomCourseFilter(course); fetchClassroomAssignments(course); }}
+                        key={course.id}
+                        onClick={() => { setClassroomCourseFilter(course.id); fetchClassroomAssignments(course.id); }}
                         className={cn(
                           "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
-                          classroomCourseFilter === course
+                          classroomCourseFilter === course.id
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground hover:bg-muted/80"
                         )}
                       >
-                        {course}
+                        {course.name}
                       </button>
                     ))}
                   </div>
