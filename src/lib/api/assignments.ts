@@ -305,7 +305,7 @@ export async function getSubmissionByBoardId(boardId: string) {
       *,
       assignment:assignments(
         *,
-        class:classes(id, name)
+        class:classes(id, name, gc_course_id)
       )
     `)
     .eq('student_board_id', boardId)

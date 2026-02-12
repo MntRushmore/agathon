@@ -53,7 +53,7 @@ import { toast } from "sonner";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Check, Clock, FileText, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { BookOpen, Check, Clock, ExternalLink, FileText, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { formatDistance } from "date-fns";
 import { CustomToolbar } from "@/components/board/CustomToolbar";
 import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
@@ -852,6 +852,40 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
   );
 }
 
+/** Convert Google URLs to embeddable format (add /preview suffix) */
+function toEmbedUrl(url: string): string {
+  // Google Docs
+  if (url.includes('docs.google.com/document')) {
+    return url.replace(/\/(edit|view).*$/, '/preview');
+  }
+  // Google Slides
+  if (url.includes('docs.google.com/presentation')) {
+    return url.replace(/\/(edit|view).*$/, '/embed');
+  }
+  // Google Sheets
+  if (url.includes('docs.google.com/spreadsheets')) {
+    return url.replace(/\/(edit|view).*$/, '/htmlview');
+  }
+  // Google Drive file
+  const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch && url.includes('drive.google.com')) {
+    return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+  }
+  // Other Google Docs types
+  if (url.includes('docs.google.com/')) {
+    return url.replace(/\/(edit|view).*$/, '/preview');
+  }
+  return url;
+}
+
+/** Check if a URL is a Google service URL that can't be iframed directly */
+function isNonEmbeddableGoogleUrl(url: string): boolean {
+  return (
+    url.includes('classroom.google.com') ||
+    (url.includes('google.com') && !url.includes('/preview') && !url.includes('/embed') && !url.includes('/htmlview'))
+  );
+}
+
 function DocumentPanel({
   url,
   title,
@@ -893,6 +927,10 @@ function DocumentPanel({
 
   if (!isOpen) return null;
 
+  // Convert to embed-friendly URL for Google services
+  const embedUrl = toEmbedUrl(url);
+  const canEmbed = !isNonEmbeddableGoogleUrl(embedUrl);
+
   return (
     <div
       className="fixed right-0 top-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)] flex flex-col shadow-lg"
@@ -902,6 +940,15 @@ function DocumentPanel({
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-gray-50/80 shrink-0">
         <FileText className="h-4 w-4 text-gray-500 shrink-0" />
         <span className="text-sm font-medium text-gray-800 truncate flex-1">{title}</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
+          title="Open in new tab"
+        >
+          <ExternalLink className="h-4 w-4" />
+        </a>
         <button
           onClick={onClose}
           className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
@@ -910,15 +957,32 @@ function DocumentPanel({
           <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
-      {/* Iframe body */}
+      {/* Body */}
       <div className="flex-1 overflow-hidden relative">
-        <iframe
-          src={url}
-          className="w-full h-full border-0"
-          allow="autoplay"
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          title={title}
-        />
+        {canEmbed ? (
+          <iframe
+            src={embedUrl}
+            className="w-full h-full border-0"
+            allow="autoplay"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            title={title}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <FileText className="h-12 w-12 text-gray-300 mb-4" />
+            <p className="text-sm font-medium text-gray-700 mb-2">This document can&apos;t be previewed here</p>
+            <p className="text-xs text-gray-500 mb-4">Open it in a new tab to view the full content</p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open Document
+            </a>
+          </div>
+        )}
         {/* Overlay blocks iframe from stealing mouse events while resizing */}
         {dragging && <div className="absolute inset-0" />}
       </div>
@@ -3180,6 +3244,30 @@ export default function BoardPage() {
       });
       // Lock the board by disabling edit
       setCanEdit(false);
+
+      // Also submit to Google Classroom if this is a GC-linked assignment
+      const gcCourseId = (submissionData.assignment as any)?.class?.gc_course_id;
+      const gcCourseworkId = (submissionData.assignment as any)?.gc_coursework_id;
+      if (gcCourseId && gcCourseworkId) {
+        try {
+          const res = await fetch('/api/classroom/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              courseId: gcCourseId,
+              courseworkId: gcCourseworkId,
+              boardId: id,
+              boardTitle: boardTitle || 'Whiteboard',
+            }),
+          });
+          if (res.ok) {
+            toast.success('Also submitted to Google Classroom!');
+          }
+        } catch {
+          // GC submission is best-effort, don't block the main submit
+          console.error('Failed to submit to Google Classroom');
+        }
+      }
     } catch (error) {
       console.error('Error submitting assignment:', error);
       toast.error('Failed to submit assignment');
@@ -3282,8 +3370,8 @@ export default function BoardPage() {
         </div>
       )}
 
-      {/* Google Classroom submit button - shown for boards created from GC assignments */}
-      {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !submissionData && !isTeacherViewing && (
+      {/* Google Classroom submit button - shown for boards from GC assignments (fallback if metadata has GC info) */}
+      {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !gcSubmitted && !isTeacherViewing && (
         <div className="fixed bottom-4 left-4 z-[11000]">
           {gcSubmitted ? (
             <div className="bg-green-100 border border-green-300 rounded-full px-4 py-2 flex items-center gap-2 shadow-md">
