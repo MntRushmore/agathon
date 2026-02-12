@@ -1,5 +1,10 @@
 "use client";
 
+export const metadata = {
+  title: 'Billing | Agathon',
+  description: 'Agathon is an AI Socratic Whiteboard - Learn By Doing',
+};
+
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
