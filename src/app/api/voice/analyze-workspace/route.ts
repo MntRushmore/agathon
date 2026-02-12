@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
         if (data.usage) {
           const inputTokens = data.usage.prompt_tokens || 0;
           const outputTokens = data.usage.completion_tokens || 0;
-          const hackclubModel = process.env.HACKCLUB_AI_MODEL || 'google/gemini-3-flash-preview';
+          const { HACKCLUB_MODEL: hackclubModel } = await import('@/lib/ai/config');
 
           await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
             method: 'POST',

@@ -1,12 +1,11 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Class, ClassMember, Database } from '@/types/database';
 
-const supabase = createClient();
-
 /**
  * Get all classes for the current teacher
  */
 export async function getTeacherClasses() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('classes')
     .select('*')
@@ -21,6 +20,7 @@ export async function getTeacherClasses() {
  * Get all classes a student is enrolled in
  */
 export async function getStudentClasses() {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('class_members')
     .select(`
@@ -37,6 +37,7 @@ export async function getStudentClasses() {
  * Get a single class by ID
  */
 export async function getClass(classId: string) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('classes')
     .select('*')
@@ -52,6 +53,7 @@ export async function getClass(classId: string) {
  * Uses RPC function to bypass RLS since students can't see classes they're not enrolled in
  */
 export async function getClassByJoinCode(joinCode: string) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .rpc('get_class_by_join_code', { code: joinCode });
 
@@ -66,6 +68,7 @@ export async function getClassByJoinCode(joinCode: string) {
  * Create a new class (teacher only)
  */
 export async function createClass(classData: Database['public']['Tables']['classes']['Insert']) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('classes')
     .insert(classData)
@@ -80,6 +83,7 @@ export async function createClass(classData: Database['public']['Tables']['class
  * Update an existing class
  */
 export async function updateClass(classId: string, updates: Database['public']['Tables']['classes']['Update']) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('classes')
     .update(updates)
@@ -95,6 +99,7 @@ export async function updateClass(classId: string, updates: Database['public']['
  * Soft delete a class (set is_active to false)
  */
 export async function archiveClass(classId: string) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('classes')
     .update({ is_active: false })
@@ -110,6 +115,7 @@ export async function archiveClass(classId: string) {
  * Permanently delete a class
  */
 export async function deleteClass(classId: string) {
+  const supabase = createClient();
   const { error } = await supabase
     .from('classes')
     .delete()
@@ -122,6 +128,7 @@ export async function deleteClass(classId: string) {
  * Get all members of a class
  */
 export async function getClassMembers(classId: string) {
+  const supabase = createClient();
   const { data, error } = await supabase
     .from('class_members')
     .select(`
@@ -139,6 +146,7 @@ export async function getClassMembers(classId: string) {
  * Get member count for a class
  */
 export async function getClassMemberCount(classId: string) {
+  const supabase = createClient();
   const { count, error } = await supabase
     .from('class_members')
     .select('*', { count: 'exact', head: true })
@@ -152,6 +160,7 @@ export async function getClassMemberCount(classId: string) {
  * Join a class using a join code (student only)
  */
 export async function joinClass(joinCode: string) {
+  const supabase = createClient();
   // First, get the class by join code
   const classData = await getClassByJoinCode(joinCode);
 
@@ -189,6 +198,7 @@ export async function joinClass(joinCode: string) {
  * Leave a class (student removes themselves)
  */
 export async function leaveClass(classId: string) {
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -205,6 +215,7 @@ export async function leaveClass(classId: string) {
  * Remove a student from a class (teacher only)
  */
 export async function removeStudentFromClass(classId: string, studentId: string) {
+  const supabase = createClient();
   const { error } = await supabase
     .from('class_members')
     .delete()
@@ -218,6 +229,7 @@ export async function removeStudentFromClass(classId: string, studentId: string)
  * Check if a student is enrolled in a class
  */
 export async function isStudentEnrolled(classId: string, studentId?: string) {
+  const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const userId = studentId || user?.id;
 

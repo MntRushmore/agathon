@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { fetchClassroomCourses } from '@/lib/composio';
+import { fetchClassroomCourses, extractComposioItems } from '@/lib/composio';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,8 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch course details from GC to get names
     const result = await fetchClassroomCourses(user.id);
-    const data = (result as any)?.data || (result as any)?.response_data || result;
-    const courseList = data?.courses || data?.results || (Array.isArray(data) ? data : []);
+    const courseList = extractComposioItems<any>(result);
 
     const courseMap = new Map<string, { name: string; section?: string }>();
     for (const course of courseList) {
@@ -64,6 +63,9 @@ export async function POST(req: NextRequest) {
         ? `${courseInfo.name} - ${courseInfo.section}`
         : courseInfo.name;
 
+      // Generate a 6-character alphanumeric join code
+      const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
       const { data: newClass, error } = await supabase
         .from('classes')
         .insert({
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest) {
           gc_course_id: gcId,
           gc_course_name: courseInfo.name,
           is_active: true,
+          join_code: joinCode,
         })
         .select('id, name, gc_course_id')
         .single();

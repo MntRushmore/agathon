@@ -19,8 +19,14 @@ interface ActiveUser {
 export function useRealtimeBoard({ boardId, userId, onBoardUpdate }: UseRealtimeBoardProps) {
   const supabase = createClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const onBoardUpdateRef = useRef(onBoardUpdate);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Keep callback ref up to date without re-subscribing
+  useEffect(() => {
+    onBoardUpdateRef.current = onBoardUpdate;
+  }, [onBoardUpdate]);
 
   useEffect(() => {
     if (!boardId || !userId) return;
@@ -44,12 +50,8 @@ export function useRealtimeBoard({ boardId, userId, onBoardUpdate }: UseRealtime
         table: 'whiteboards',
         filter: `id=eq.${boardId}`,
       }, (payload) => {
-        console.log('Board updated remotely:', payload);
-
         // Only notify if update was from another user
-        if (onBoardUpdate) {
-          onBoardUpdate(payload.new);
-        }
+        onBoardUpdateRef.current?.(payload.new);
       })
       // Track presence (who's online)
       .on('presence', { event: 'sync' }, () => {
@@ -71,23 +73,31 @@ export function useRealtimeBoard({ boardId, userId, onBoardUpdate }: UseRealtime
         setActiveUsers(users);
       })
       .subscribe(async (status) => {
-        console.log('Realtime subscription status:', status);
         setIsConnected(status === 'SUBSCRIBED');
 
         if (status === 'SUBSCRIBED') {
           // Track our presence
-          const { data: { user } } = await supabase.auth.getUser();
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', userId)
-            .single();
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', userId)
+              .single();
 
-          await channel.track({
-            userId,
-            userName: profile?.full_name || user?.email || 'Anonymous',
-            lastSeen: new Date().toISOString(),
-          });
+            await channel.track({
+              userId,
+              userName: profile?.full_name || user?.email || 'Anonymous',
+              lastSeen: new Date().toISOString(),
+            });
+          } catch {
+            // Profile fetch failed — track with fallback name
+            await channel.track({
+              userId,
+              userName: 'Anonymous',
+              lastSeen: new Date().toISOString(),
+            });
+          }
         }
       });
 

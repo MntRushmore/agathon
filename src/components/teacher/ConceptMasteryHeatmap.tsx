@@ -110,16 +110,16 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
             <div className="text-2xl font-bold">{totalInteractions}</div>
             <div className="text-xs text-muted-foreground">Total AI Interactions</div>
           </div>
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{modeBreakdown.feedback || 0}</div>
+          <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{modeBreakdown.feedback || 0}</div>
             <div className="text-xs text-muted-foreground">Feedback</div>
           </div>
-          <div className="text-center p-3 bg-amber-50 rounded-lg">
-            <div className="text-2xl font-bold text-amber-600">{modeBreakdown.suggest || 0}</div>
+          <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg">
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{modeBreakdown.suggest || 0}</div>
             <div className="text-xs text-muted-foreground">Suggestions</div>
           </div>
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{modeBreakdown.answer || 0}</div>
+          <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{modeBreakdown.answer || 0}</div>
             <div className="text-xs text-muted-foreground">Solves</div>
           </div>
         </div>
@@ -197,7 +197,7 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
                 </div>
 
                 {concept.strugglingPercent >= 50 && (
-                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
+                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
                     <TrendingDown className="h-4 w-4" />
                     <span>
                       {concept.strugglingPercent}% of students need help with this concept. Consider reviewing in class.

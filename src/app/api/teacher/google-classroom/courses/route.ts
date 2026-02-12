@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { fetchClassroomCourses } from '@/lib/composio';
+import { fetchClassroomCourses, extractComposioItems } from '@/lib/composio';
 import type { GCCourse } from '@/types/google-classroom';
 
 export async function GET() {
@@ -48,10 +48,7 @@ export async function GET() {
 
     // Parse courses from Composio response
     const courses: GCCourse[] = [];
-    const data = (result as any)?.data || (result as any)?.response_data || result;
-
-    // Handle array of courses
-    const courseList = data?.courses || data?.results || (Array.isArray(data) ? data : []);
+    const courseList = extractComposioItems<any>(result);
     for (const course of courseList) {
       if (course?.id) {
         courses.push({
