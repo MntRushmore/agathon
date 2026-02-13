@@ -23,6 +23,8 @@ interface ConceptMasteryHeatmapProps {
   assignmentId: string;
 }
 
+const pct = (value: number, total: number) => total > 0 ? (value / total) * 100 : 0;
+
 const getMasteryColor = (strugglingPercent: number) => {
   if (strugglingPercent >= 70) return 'bg-red-500';
   if (strugglingPercent >= 50) return 'bg-orange-500';
@@ -152,28 +154,28 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
                   {concept.struggling > 0 && (
                     <div
                       className="bg-red-500 h-full"
-                      style={{ width: `${(concept.struggling / concept.totalStudents) * 100}%` }}
+                      style={{ width: `${pct(concept.struggling, concept.totalStudents)}%` }}
                       title={`${concept.struggling} struggling`}
                     />
                   )}
                   {concept.learning > 0 && (
                     <div
                       className="bg-amber-500 h-full"
-                      style={{ width: `${(concept.learning / concept.totalStudents) * 100}%` }}
+                      style={{ width: `${pct(concept.struggling, concept.totalStudents)}%` }}
                       title={`${concept.learning} learning`}
                     />
                   )}
                   {concept.proficient > 0 && (
                     <div
                       className="bg-blue-500 h-full"
-                      style={{ width: `${(concept.proficient / concept.totalStudents) * 100}%` }}
+                      style={{ width: `${pct(concept.struggling, concept.totalStudents)}%` }}
                       title={`${concept.proficient} proficient`}
                     />
                   )}
                   {concept.mastered > 0 && (
                     <div
                       className="bg-green-500 h-full"
-                      style={{ width: `${(concept.mastered / concept.totalStudents) * 100}%` }}
+                      style={{ width: `${pct(concept.struggling, concept.totalStudents)}%` }}
                       title={`${concept.mastered} mastered`}
                     />
                   )}
