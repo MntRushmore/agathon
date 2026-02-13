@@ -239,10 +239,7 @@ const webhookHandler = webhookSecret
 
 export async function POST(request: NextRequest) {
   if (!webhookHandler) {
-    return NextResponse.json(
-      { error: 'POLAR_WEBHOOK_SECRET is not configured' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   return webhookHandler(request);
