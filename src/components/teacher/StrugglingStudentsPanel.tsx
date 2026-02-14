@@ -264,7 +264,7 @@ export function StrugglingStudentsPanel({
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                  <span>{student.ai_help_count} AI helps</span>
+                  <span>AI help used {student.ai_help_count} times.</span>
                   <span>{student.solve_mode_count} solves used</span>
                   <span>{formatTime(student.time_spent_seconds || 0)} spent</span>
                 </div>
