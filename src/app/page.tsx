@@ -807,6 +807,7 @@ export default function Dashboard() {
       icon: <BookOpenText className="h-5 w-5" weight="duotone" />,
       color: 'green',
       onClick: () => { createJournal(); },
+      isPrimary: true,
     },
   ];
 
