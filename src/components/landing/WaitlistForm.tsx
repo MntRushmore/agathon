@@ -24,6 +24,13 @@ export function WaitlistForm({
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
+  // Sanitize text input to prevent XSS
+  const sanitize = (input: string): string =>
+    input.replace(/[<>"'&]/g, (char) => {
+      const entities: Record<string, string> = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;' };
+      return entities[char] || char;
+    });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || loading) return;
@@ -35,7 +42,7 @@ export function WaitlistForm({
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: sanitize(email.trim()) }),
       });
 
       const data = await res.json();
@@ -72,6 +79,7 @@ export function WaitlistForm({
         <Input
           type="email"
           placeholder="Enter your email"
+          aria-label="Email address for waitlist"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className={`h-12 text-[15px] ${
@@ -109,6 +117,7 @@ export function WaitlistForm({
       <Input
         type="email"
         placeholder="Enter your email"
+        aria-label="Email address for waitlist"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className={`flex-1 h-11 text-[14px] ${

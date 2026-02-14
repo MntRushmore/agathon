@@ -45,7 +45,7 @@ export function AdminPlanToggle() {
       onClick={toggle}
       disabled={updating}
       className={cn(
-        'fixed top-3 right-3 z-[1000] px-2.5 py-1 rounded text-[11px] font-medium',
+        'no-enlarge px-2.5 py-1 rounded text-[11px] font-medium',
         'border transition-colors disabled:opacity-50',
         isPremium
           ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'

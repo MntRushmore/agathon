@@ -28,11 +28,11 @@ const cormorantGaramond = Cormorant_Garamond({
 
 export const metadata: Metadata = {
   title: {
-    default: "Agathon",
+    default: "Agathon — AI Socratic Whiteboard for Math & Learning",
     template: "%s | Agathon",
   },
-  description: "The AI-powered learning companion that helps you understand, not just answer. Draw problems, get hints, and learn by doing.",
-  keywords: ["AI tutor", "learning", "education", "math help", "homework help", "study assistant", "whiteboard"],
+  description: "Unlock your learning potential with Agathon, the AI-powered Socratic whiteboard. Draw problems, receive personalized hints, and build real understanding — not just answers.",
+  keywords: ["AI tutor", "learning", "education", "math help", "homework help", "study assistant", "whiteboard", "Socratic method", "AI learning companion"],
   authors: [{ name: "Agathon" }],
   creator: "Agathon",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://agathon.app"),
@@ -40,21 +40,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Agathon",
-    title: "Agathon - AI Learning Companion",
-    description: "The AI-powered learning companion that helps you understand, not just answer. Draw problems, get hints, and learn by doing.",
+    title: "Agathon — Transform Your Learning Experience Today",
+    description: "Unlock your learning potential with Agathon, the AI-powered Socratic whiteboard. Draw problems, receive personalized hints, and build real understanding — not just answers.",
     images: [
       {
         url: "/logo/agathonwide.png",
         width: 1200,
         height: 630,
-        alt: "Agathon - AI Learning Companion",
+        alt: "Agathon — AI Socratic whiteboard for math and learning, featuring natural handwriting recognition and guided hints",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agathon - AI Learning Companion",
-    description: "The AI-powered learning companion that helps you understand, not just answer.",
+    title: "Agathon — Transform Your Learning Experience Today",
+    description: "Unlock your learning potential with Agathon, the AI-powered Socratic whiteboard. Draw problems, receive personalized hints, and build real understanding.",
     images: ["/logo/agathonwide.png"],
   },
   robots: {

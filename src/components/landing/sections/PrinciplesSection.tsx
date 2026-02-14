@@ -31,7 +31,7 @@ export function PrinciplesSection() {
             </h2>
           </div>
           <div className="flex items-end">
-            <p className="text-[17px] text-gray-500 leading-relaxed max-w-md">
+            <p className="text-[17px] text-gray-600 leading-relaxed max-w-md">
               These aren't marketing copy. They're the rules we follow when
               building every feature. When in doubt, we choose learning over convenience.
             </p>
@@ -46,7 +46,7 @@ export function PrinciplesSection() {
               className="grid lg:grid-cols-12 gap-8 py-12 border-t border-gray-300"
             >
               <div className="lg:col-span-1">
-                <span className="text-[14px] text-gray-400 font-medium">
+                <span className="text-[14px] text-gray-500 font-medium">
                   0{index + 1}
                 </span>
               </div>
@@ -56,7 +56,7 @@ export function PrinciplesSection() {
                 </h3>
               </div>
               <div className="lg:col-span-7">
-                <p className="text-[17px] text-gray-500 leading-relaxed">
+                <p className="text-[17px] text-gray-600 leading-relaxed">
                   {principle.description}
                 </p>
               </div>

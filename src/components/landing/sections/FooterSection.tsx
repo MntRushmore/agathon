@@ -1,8 +1,10 @@
 'use client';
 
+import Image from 'next/image';
+
 const footerLinks = {
   product: [
-    { label: 'How it works', href: '#how-it-works' },
+    { label: 'Discover How We Can Help You', href: '#how-it-works' },
     { label: 'Features', href: '#features' },
     { label: 'Use cases', href: '#use-cases' },
   ],
@@ -31,12 +33,14 @@ export function FooterSection() {
         <div className="grid grid-cols-2 md:grid-cols-12 gap-12 mb-20">
           {/* Logo & tagline */}
           <div className="col-span-2 md:col-span-6">
-            <img
+            <Image
               src="/logo/agathonwide.png"
-              alt="Agathon"
-              className="h-6 mb-6"
+              alt="Agathon — AI Socratic whiteboard logo"
+              width={160}
+              height={24}
+              className="h-6 w-auto mb-6"
             />
-            <p className="text-[15px] text-white/50 max-w-sm leading-relaxed">
+            <p className="text-[15px] text-white/70 max-w-sm leading-relaxed">
               The AI that teaches you how to think,<br />
               not just what to write.
             </p>
@@ -44,13 +48,13 @@ export function FooterSection() {
 
           {/* Product */}
           <div className="md:col-span-2">
-            <p className="text-[13px] text-white/30 mb-5">Product</p>
+            <p className="text-[13px] text-white/50 mb-5">Product</p>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.label}>
                   <button
                     onClick={() => scrollToSection(link.href)}
-                    className="text-[14px] text-white/60 hover:text-white transition-colors"
+                    className="text-[14px] text-white/75 hover:text-white transition-colors"
                   >
                     {link.label}
                   </button>
@@ -61,21 +65,21 @@ export function FooterSection() {
 
           {/* Company */}
           <div className="md:col-span-2">
-            <p className="text-[13px] text-white/30 mb-5">Company</p>
+            <p className="text-[13px] text-white/50 mb-5">Company</p>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   {link.href.startsWith('mailto:') ? (
                     <a
                       href={link.href}
-                      className="text-[14px] text-white/60 hover:text-white transition-colors"
+                      className="text-[14px] text-white/75 hover:text-white transition-colors"
                     >
                       {link.label}
                     </a>
                   ) : (
                     <button
                       onClick={() => scrollToSection(link.href)}
-                      className="text-[14px] text-white/60 hover:text-white transition-colors"
+                      className="text-[14px] text-white/75 hover:text-white transition-colors"
                     >
                       {link.label}
                     </button>
@@ -87,13 +91,13 @@ export function FooterSection() {
 
           {/* Legal */}
           <div className="md:col-span-2">
-            <p className="text-[13px] text-white/30 mb-5">Legal</p>
+            <p className="text-[13px] text-white/50 mb-5">Legal</p>
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    className="text-[14px] text-white/60 hover:text-white transition-colors"
+                    className="text-[14px] text-white/75 hover:text-white transition-colors"
                   >
                     {link.label}
                   </a>
@@ -104,11 +108,11 @@ export function FooterSection() {
         </div>
 
         {/* Bottom */}
-        <div className="pt-10 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <p className="text-[13px] text-white/30">
+        <div className="pt-10 border-t border-white/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <p className="text-[13px] text-white/50">
             © {new Date().getFullYear()} Agathon
           </p>
-          <p className="text-[13px] text-white/30">
+          <p className="text-[13px] text-white/50">
             Built for learners, by learners.
           </p>
         </div>

@@ -15,13 +15,13 @@ export function HintButton({ onClick, isLoading, className }: HintButtonProps) {
       onClick={onClick}
       disabled={isLoading}
       className={cn(
-        "flex items-center gap-1.5 px-4 py-3 sm:px-3 sm:py-2 min-h-[44px] sm:min-h-0",
-        "bg-white hover:bg-amber-50 active:bg-amber-100",
-        "border border-gray-200 hover:border-amber-300",
-        "rounded-lg text-sm text-gray-700 font-medium",
+        "no-enlarge flex items-center gap-1.5 px-3 py-2 min-h-[44px] sm:min-h-0",
+        "bg-white hover:bg-gray-50",
+        "border border-gray-200",
+        "rounded-lg text-sm text-gray-600 font-medium",
         "shadow-sm transition-all duration-150",
         "disabled:opacity-60 disabled:cursor-not-allowed",
-        isLoading && "bg-amber-50 border-amber-300 text-amber-700",
+        isLoading && "bg-amber-50 border-amber-200 text-amber-700",
         className
       )}
     >

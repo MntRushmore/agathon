@@ -28,11 +28,11 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
               </h3>
             </div>
             <div className="lg:col-span-5">
-              <p className="text-[17px] text-gray-500 leading-relaxed mb-6">
+              <p className="text-[17px] text-gray-600 leading-relaxed mb-6">
                 Homework help that actually teaches. Get unstuck at 2am without copying answers.
                 Build the understanding that shows up on test day.
               </p>
-              <ul className="space-y-3 text-[15px] text-gray-500">
+              <ul className="space-y-3 text-[15px] text-gray-600">
                 <li>— Homework help that teaches, not tells</li>
                 <li>— Available 24/7 when you're stuck</li>
                 <li>— Exam prep without shortcuts</li>
@@ -57,11 +57,11 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
               </h3>
             </div>
             <div className="lg:col-span-5">
-              <p className="text-[17px] text-gray-500 leading-relaxed mb-6">
+              <p className="text-[17px] text-gray-600 leading-relaxed mb-6">
                 See inside the learning process. Know which concepts are landing and which
                 need more class time. Assign work that generates real understanding.
               </p>
-              <ul className="space-y-3 text-[15px] text-gray-500">
+              <ul className="space-y-3 text-[15px] text-gray-600">
                 <li>— Create Socratic assignments</li>
                 <li>— Track progress in real-time</li>
                 <li>— See exactly where students struggle</li>
@@ -86,11 +86,11 @@ export function UseCasesSection({ onJoinWaitlist }: UseCasesSectionProps) {
               </h3>
             </div>
             <div className="lg:col-span-5">
-              <p className="text-[17px] text-gray-500 leading-relaxed mb-6">
+              <p className="text-[17px] text-gray-600 leading-relaxed mb-6">
                 Screen time that's actually worth it. Know your kids are learning, not
                 just getting answers handed to them. Peace of mind during homework time.
               </p>
-              <ul className="space-y-3 text-[15px] text-gray-500">
+              <ul className="space-y-3 text-[15px] text-gray-600">
                 <li>— Know they're learning, not cheating</li>
                 <li>— Progress updates without nagging</li>
                 <li>— Confidence they're building real skills</li>

@@ -9,6 +9,35 @@ interface WhiteboardOnboardingProps {
   onDismiss: () => void;
 }
 
+// Hand-drawn style curved arrow pointing up (towards top bar)
+function CurvedArrowUp({ className }: { className?: string }) {
+  return (
+    <svg
+      width="50"
+      height="70"
+      viewBox="0 0 50 70"
+      fill="none"
+      className={className}
+    >
+      <path
+        d="M25 65 Q 22 50, 24 35 Q 26 20, 27 10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d="M20 16 L 27 4 L 34 15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 // Hand-drawn style curved arrow pointing down
 function CurvedArrowDown({ className }: { className?: string }) {
   return (
@@ -28,35 +57,6 @@ function CurvedArrowDown({ className }: { className?: string }) {
       />
       <path
         d="M20 54 L 27 66 L 34 55"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
-
-// Hand-drawn style curved arrow pointing to top-left (for back button)
-function CurvedArrowTopLeft({ className }: { className?: string }) {
-  return (
-    <svg
-      width="70"
-      height="50"
-      viewBox="0 0 70 50"
-      fill="none"
-      className={className}
-    >
-      <path
-        d="M65 40 Q 50 35, 35 28 Q 20 20, 12 12"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M8 20 L 10 8 L 20 12"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
@@ -159,18 +159,18 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
         </p>
       </div>
 
-      {/* Toolbar hint - pointing down to bottom toolbar */}
-      <div data-hint className="absolute bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
-        <p className="text-gray-400 text-sm italic text-center whitespace-nowrap mb-1">
+      {/* Toolbar hint - pointing UP to the top bar tools */}
+      <div data-hint className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
+        <CurvedArrowUp className="text-gray-400/70" />
+        <p className="text-gray-400 text-sm italic text-center whitespace-nowrap mt-1">
           Pick a tool &<br />Start drawing!
         </p>
-        <CurvedArrowDown className="text-gray-400/70" />
       </div>
 
-      {/* Back button hint - top left, closer to the actual button */}
-      <div data-hint className="absolute top-8 left-16 flex items-end gap-1 pointer-events-none opacity-0">
-        <CurvedArrowTopLeft className="text-gray-400/70" />
-        <p className="text-gray-400 text-sm italic whitespace-nowrap mb-1">
+      {/* Back button hint - top left, pointing up to back button in top bar */}
+      <div data-hint className="absolute top-20 left-6 flex flex-col items-start pointer-events-none opacity-0">
+        <CurvedArrowUp className="text-gray-400/70" />
+        <p className="text-gray-400 text-sm italic whitespace-nowrap mt-1">
           Back to<br />dashboard
         </p>
       </div>

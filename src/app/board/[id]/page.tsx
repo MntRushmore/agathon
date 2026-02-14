@@ -73,6 +73,7 @@ import { useAITutor } from "@/hooks/useAITutor";
 import { HintButton } from "@/components/board/HintButton";
 import { FeedbackCard } from "@/components/board/FeedbackCard";
 import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
+import { TopBar } from "@/components/board/TopBar";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -139,66 +140,7 @@ const hugeIconsOverrides: TLUiOverrides = {
   },
 };
 
-function ModeInfoDialog() {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="How the help modes work"
-        >
-          <Info className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Help modes</DialogTitle>
-          <DialogDescription>
-            Choose how strongly the tutor helps on your canvas. Quick mode is a fast on-canvas calculator that only runs when selected.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex gap-6">
-          <div className="flex-1 flex flex-col items-start">
-            <img
-              src="/modes/feedback.png"
-              alt="Feedback mode example"
-              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
-            />
-            <p className="text-sm font-medium mb-1">Feedback</p>
-            <p className="text-sm text-muted-foreground">
-              Light annotations pointing out mistakes without giving away answers.
-            </p>
-          </div>
-
-          <div className="flex-1 flex flex-col items-start">
-            <img
-              src="/modes/suggest.png"
-              alt="Suggest mode example"
-              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
-            />
-            <p className="text-sm font-medium mb-1">Suggest</p>
-            <p className="text-sm text-muted-foreground">
-              Hints and partial steps to nudge you in the right direction.
-            </p>
-          </div>
-
-          <div className="flex-1 flex flex-col items-start">
-            <img
-              src="/modes/solve.png"
-              alt="Solve mode example"
-              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
-            />
-            <p className="text-sm font-medium mb-1">Solve</p>
-            <p className="text-sm text-muted-foreground">
-              Full worked solution overlaid on your canvas for comparison.
-            </p>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+// ModeInfoDialog moved to TopBar component
 
 function ImageActionButtons({
   pendingImageIds,
@@ -779,7 +721,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
   if (aiShapes.length === 0 && !showLegend) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[11000]">
+    <div className="fixed bottom-4 right-4 z-[var(--z-controls)]">
       {cssRules && (
         <style dangerouslySetInnerHTML={{ __html: cssRules }} />
       )}
@@ -2453,143 +2395,36 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         </div>
       )}
 
-      {/* Tabs at top left */}
-      {!isVoiceSessionActive && (
-        <>
-            {/* Back button - stays on left, higher z-index to stay above assignment card */}
-            <div
-              className={
-                isLandscape
-                  ? `fixed left-4 ${hasBanner ? 'top-14' : 'top-4'} z-[11000] ios-safe-left ios-safe-top`
-                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-4 z-[11000] ios-safe-top ios-safe-left`
-              }
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => router.back()}
-                className="touch-target bg-background/80 backdrop-blur-sm shadow-sm border"
-              >
-                <ArrowLeft01Icon size={20} strokeWidth={2} />
-              </Button>
-            </div>
+      {/* Unified Top Bar */}
+      <TopBar
+        onBack={() => router.back()}
+        assignmentTitle={boardTitle || (isAssignmentBoard ? 'Assignment' : undefined)}
+        assignmentSubject={assignmentMeta?.subject}
+        assignmentGradeLevel={assignmentMeta?.gradeLevel}
+        assignmentInstructions={assignmentMeta?.instructions}
+        submissionStatus={submissionId ? (isSubmitted ? 'submitted' : 'in_progress') : null}
+        isAssignmentBoard={isAssignmentBoard}
+        assistanceMode={assistanceMode}
+        onModeChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
+        aiAllowed={aiAllowed}
+        isModeAllowed={isModeAllowed}
+        status={status}
+        statusMessage={statusMessage}
+        errorMessage={errorMessage}
+        hintLimit={hintLimit}
+        hintsRemaining={hintsRemaining}
+        isTeacherViewing={isTeacherViewing ?? false}
+        isVoiceSessionActive={isVoiceSessionActive}
+        bannerOffset={hasBanner ? 40 : 0}
+        isDocPanelOpen={docPanelOpen}
+      />
 
-          {/* Mode tabs and status - horizontal at top center in landscape */}
-          {/* Hide AI controls when teacher is viewing student board */}
-          {!isTeacherViewing && (
-            <div
-              className={
-                isLandscape
-                  ? `fixed ${hasBanner ? 'top-14' : 'top-4'} left-1/2 -translate-x-1/2 z-[11000] flex flex-col items-center gap-2 ios-safe-top`
-                  : `fixed ${hasBanner ? 'top-14' : 'top-4'} left-20 z-[11000] flex flex-col items-start gap-2 ios-safe-top ios-safe-left`
-              }
-            >
-              <div className="flex items-center gap-2">
-                {/* Show AI disabled message if AI is completely blocked */}
-                {!aiAllowed ? (
-                  <div className="px-4 py-2 bg-amber-100 border border-amber-300 rounded-lg text-amber-800 text-sm font-medium">
-                    AI assistance disabled
-                  </div>
-                ) : (
-                  <Tabs
-                    value={assistanceMode}
-                    onValueChange={(value) => {
-                      if (isModeAllowed(value)) {
-                        setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer");
-                      }
-                    }}
-                    className="w-auto rounded-xl"
-                    data-tutorial="ai-mode-selector"
-                  >
-                    <TabsList className="gap-1 p-1.5 bg-muted/50 backdrop-blur-sm border shadow-md">
-                      <TabsTrigger value="off" className="touch-target min-w-[60px] rounded-lg">Off</TabsTrigger>
-                      {isModeAllowed('feedback') && (
-                        <TabsTrigger value="feedback" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Feedback</TabsTrigger>
-                      )}
-                      {isModeAllowed('suggest') && (
-                        <TabsTrigger value="suggest" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Suggest</TabsTrigger>
-                      )}
-                      {isModeAllowed('answer') && (
-                        <TabsTrigger value="answer" className="touch-target min-w-[60px] rounded-lg text-xs md:text-sm">Solve</TabsTrigger>
-                      )}
-                    </TabsList>
-                  </Tabs>
-                )}
-                <ModeInfoDialog />
-              </div>
-
-              {/* Status and Step-by-step controls grouped together */}
-              <div className="flex items-center gap-2 flex-wrap justify-center">
-                {hintLimit !== null && (
-                  <div className="px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold shadow-sm">
-                    {hintsRemaining} hint{hintsRemaining === 1 ? '' : 's'} left
-                  </div>
-                )}
-                <StatusIndicator
-                  status={status}
-                  errorMessage={errorMessage}
-                  customMessage={statusMessage}
-                  disableAbsolute
-                />
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Removed the separate StatusIndicator as it's now grouped above */}
-
-      {/* Show assignment info card on the left side (avoiding tldraw tool panels on the right) */}
-      {isAssignmentBoard && (assignmentMeta || helpCheckReason) && (
-        <div
-          className={
-            isLandscape
-              ? "fixed left-4 top-24 z-[var(--z-overlay)] max-w-xs ios-safe-left"
-              : "fixed top-24 left-4 z-[var(--z-overlay)] max-w-sm ios-safe-left"
-          }
-        >
-          <div className="bg-card border rounded-lg shadow-sm p-4 space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground">Assignment</p>
-            <p className="font-semibold leading-tight">{boardTitle || 'Class board'}</p>
-            <p className="text-sm text-muted-foreground leading-tight">
-              {(assignmentMeta?.subject || 'Subject')}{assignmentMeta?.gradeLevel ? ` - ${assignmentMeta.gradeLevel}` : ''}{assignmentMeta?.templateId ? ` - ${assignmentMeta.templateId.replace(/-/g, ' ')}` : ''}
-            </p>
-            {assignmentMeta?.instructions && (
-              <p className="text-sm leading-relaxed mt-2">
-                {assignmentMeta.instructions}
-              </p>
-            )}
-            {helpCheckReason && helpCheckStatus === "idle" && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
-                Tutor note: {helpCheckReason}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
       <ImageActionButtons
         pendingImageIds={pendingImageIds}
         isVoiceSessionActive={isVoiceSessionActive}
         onAccept={handleAccept}
         onReject={handleReject}
       />
-
-      {/* Voice mode hidden for now */}
-      {/* <VoiceAgentControls
-        onSessionChange={setIsVoiceSessionActive}
-        onSolveWithPrompt={async (mode, instructions) => {
-          const success = await generateSolution({
-            modeOverride: mode,
-            promptOverride: instructions,
-            force: true,
-            source: "voice",
-          });
-          return success;
-        }}
-      /> */}
-
-          {/* Admin Plan Toggle */}
-          <AdminPlanToggle />
 
           {/* Document Panel — shows when board was created from a KB document with a URL */}
           {assignmentMeta?.documentUrl && (
@@ -2603,7 +2438,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               {!docPanelOpen && (
                 <button
                   onClick={() => setDocPanelOpen?.(true)}
-                  className="fixed right-3 top-4 z-[var(--z-panel)] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-md p-2 hover:bg-muted transition-colors"
+                  className="fixed right-3 top-16 z-[var(--z-panel)] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-md p-2 hover:bg-muted transition-colors"
                   title="Show document"
                 >
                   <FileText className="h-4 w-4 text-muted-foreground" />
@@ -3292,18 +3127,20 @@ export default function BoardPage() {
   const hasSubmittedBanner = !canEdit && submissionData?.status === 'submitted' && !isTeacherViewing;
   const hasTeacherBanner = isTeacherViewing;
 
-  // Only the warning banners push down the canvas - assignment info is now a floating overlay
+  // Banners + top bar push down the canvas
   const TOP_NOTICE_HEIGHT = 40; // py-2 banner
-  const topOffset =
+  const TOP_BAR_HEIGHT = 48; // h-12 top bar
+  const bannerHeight =
     (hasViewOnlyBanner ? TOP_NOTICE_HEIGHT : 0) +
     (hasSubmittedBanner ? TOP_NOTICE_HEIGHT : 0) +
     (hasTeacherBanner ? TOP_NOTICE_HEIGHT : 0);
+  const topOffset = bannerHeight + TOP_BAR_HEIGHT;
 
   return (
     <div style={{ position: "fixed", inset: 0, top: topOffset }}>
       {/* View-only banner */}
       {!canEdit && !submissionData && (
-        <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Eye className="w-4 h-4" />
           View Only - You don't have permission to edit this board
         </div>
@@ -3311,7 +3148,7 @@ export default function BoardPage() {
 
       {/* Submitted assignment banner */}
       {!canEdit && submissionData?.status === 'submitted' && !isTeacherViewing && (
-        <div className="fixed top-0 left-0 right-0 z-[10000] bg-green-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-green-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Check className="w-4 h-4" />
           Assignment Submitted - Your work has been locked
         </div>
@@ -3319,60 +3156,17 @@ export default function BoardPage() {
 
       {/* Teacher viewing student board banner */}
       {isTeacherViewing && (
-        <div className="fixed top-0 left-0 right-0 z-[10000] bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
           <Eye className="w-4 h-4" />
           Viewing {studentName}'s submission - AI-generated content is highlighted in blue
         </div>
       )}
 
-      {/* Assignment banner - compact pill at top left (next to back button) */}
-      {submissionData && !isTeacherViewing && (
-        <div className={`fixed left-14 z-[11000] ios-safe-left ${submissionData.status === 'submitted' ? 'top-14' : 'top-4'}`}>
-          <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
-            <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-            <span className="font-medium text-xs max-w-[120px] truncate">{submissionData.assignment.title}</span>
-            <Badge variant={
-              submissionData.status === 'submitted' ? 'default' :
-              submissionData.status === 'in_progress' ? 'secondary' :
-              'outline'
-            } className="text-[10px] px-1.5 py-0">
-              {submissionData.status === 'submitted' ? 'Submitted' :
-               submissionData.status === 'in_progress' ? 'In Progress' :
-               'Not Started'}
-            </Badge>
-            {submissionData.status !== 'submitted' ? (
-              <Button size="sm" onClick={handleSubmit} disabled={submitting} className="h-5 text-[10px] rounded-full px-2">
-                {submitting ? '...' : 'Submit'}
-              </Button>
-            ) : (
-              <Check className="h-3.5 w-3.5 text-green-600" />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Teacher viewing assignment info - show assignment details */}
-      {submissionData && isTeacherViewing && (
-        <div className="fixed left-14 top-14 z-[11000] ios-safe-left">
-          <div className="bg-card/95 backdrop-blur-sm border rounded-full shadow-md px-3 py-1.5 flex items-center gap-2">
-            <BookOpen className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-            <span className="font-medium text-xs max-w-[180px] truncate">{submissionData.assignment.title}</span>
-            <Badge variant={
-              submissionData.status === 'submitted' ? 'default' :
-              submissionData.status === 'in_progress' ? 'secondary' :
-              'outline'
-            } className="text-[10px] px-1.5 py-0">
-              {submissionData.status === 'submitted' ? 'Submitted' :
-               submissionData.status === 'in_progress' ? 'In Progress' :
-               'Not Started'}
-            </Badge>
-          </div>
-        </div>
-      )}
+      {/* Assignment pill is now in TopBar */}
 
       {/* Google Classroom submit button - shown for boards from GC assignments */}
       {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !isTeacherViewing && (
-        <div className="fixed bottom-4 left-4 z-[11000]" style={{ pointerEvents: 'auto' }}>
+        <div className="fixed bottom-4 left-4 z-[var(--z-controls)]" style={{ pointerEvents: 'auto' }}>
           {gcSubmitted ? (
             <div className="bg-green-100 border border-green-300 rounded-full px-4 py-2 flex items-center gap-2 shadow-md">
               <Check className="w-4 h-4 text-green-600" />
@@ -3480,7 +3274,7 @@ export default function BoardPage() {
               isAssignmentBoard={!!submissionData}
               assignmentRestrictions={submissionData?.assignment?.metadata}
               isTeacherViewing={isTeacherViewing}
-              hasBanner={!!topOffset}
+              hasBanner={bannerHeight > 0}
               submissionId={submissionData?.id}
               assignmentId={submissionData?.assignment_id}
               initialHintCount={submissionData?.ai_help_count ?? 0}

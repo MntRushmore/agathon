@@ -34,7 +34,7 @@ export function TestimonialsSection() {
             </div>
             <div>
               <p className="text-[15px] text-foreground font-medium">Dr. Rebecca Chen</p>
-              <p className="text-[14px] text-gray-400">Math Department Chair, Lincoln High School</p>
+              <p className="text-[14px] text-gray-500">Math Department Chair, Lincoln High School</p>
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@ export function TestimonialsSection() {
                 <p className="text-[15px] text-foreground font-medium">
                   {testimonial.author}
                 </p>
-                <p className="text-[14px] text-gray-400">
+                <p className="text-[14px] text-gray-500">
                   {testimonial.context}
                 </p>
               </div>
@@ -64,7 +64,7 @@ export function TestimonialsSection() {
             <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               2,500+
             </p>
-            <p className="text-[15px] text-gray-400 mt-2">
+            <p className="text-[15px] text-gray-500 mt-2">
               Students in beta
             </p>
           </div>
@@ -72,7 +72,7 @@ export function TestimonialsSection() {
             <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               50+
             </p>
-            <p className="text-[15px] text-gray-400 mt-2">
+            <p className="text-[15px] text-gray-500 mt-2">
               Schools piloting
             </p>
           </div>
@@ -80,7 +80,7 @@ export function TestimonialsSection() {
             <p className="text-[clamp(3rem,6vw,5rem)] font-light text-foreground tracking-[-0.03em]">
               94%
             </p>
-            <p className="text-[15px] text-gray-400 mt-2">
+            <p className="text-[15px] text-gray-500 mt-2">
               Report better understanding
             </p>
           </div>

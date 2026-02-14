@@ -37,7 +37,7 @@ const TUTORIAL_STEPS = [
     title: 'Drawing tools',
     description: 'Use these tools to add shapes, text, sticky notes, and images to your canvas.',
     targetSelector: '.tlui-toolbar',
-    position: 'right' as const,
+    position: 'bottom' as const,
   },
   {
     id: 'complete',
