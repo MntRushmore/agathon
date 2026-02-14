@@ -14,8 +14,8 @@ export function CTASection() {
           </div>
 
           <div className="flex flex-col justify-center">
-            <p className="text-[17px] text-gray-500 leading-relaxed mb-10 max-w-md">
-              Join the waitlist for early access. We're opening spots gradually
+            <p className="text-[17px] text-gray-600 leading-relaxed mb-10 max-w-md">
+              Join the waitlist for early access. We&apos;re opening spots gradually
               to ensure everyone gets the attention they deserve.
             </p>
 
@@ -23,12 +23,12 @@ export function CTASection() {
             <div className="mb-8">
               <WaitlistForm
                 variant="inline"
-                buttonText="Get Early Access"
+                buttonText="Start Your Free Session"
               />
             </div>
 
             {/* Trust points */}
-            <div className="flex flex-wrap gap-x-8 gap-y-2 text-[14px] text-gray-400">
+            <div className="flex flex-wrap gap-x-8 gap-y-2 text-[14px] text-gray-500">
               <span>No credit card</span>
               <span>Free tier forever</span>
               <span>Cancel anytime</span>

@@ -57,6 +57,13 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
     }
   }, [open, defaultRole]);
 
+  // Sanitize text input to prevent XSS
+  const sanitize = (input: string): string =>
+    input.replace(/[<>"'&]/g, (char) => {
+      const entities: Record<string, string> = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;' };
+      return entities[char] || char;
+    });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || loading) return;
@@ -68,7 +75,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, role }),
+        body: JSON.stringify({ email: sanitize(email.trim()), name: sanitize(name.trim()), role }),
       });
 
       const data = await res.json();

@@ -17,10 +17,10 @@ export function AITutorButton({ onClick, isOpen, messageCount = 0, className }: 
     <button
       onClick={onClick}
       className={cn(
-        'h-11 sm:h-9 rounded-full px-3.5',
+        'no-enlarge h-9 rounded-lg px-3',
         'inline-flex items-center gap-1.5',
-        'bg-white text-gray-700 border border-gray-200',
-        'shadow-sm hover:shadow hover:border-gray-300',
+        'bg-white text-gray-600 border border-gray-200',
+        'shadow-sm hover:bg-gray-50',
         'transition-colors duration-150',
         className
       )}
@@ -28,7 +28,7 @@ export function AITutorButton({ onClick, isOpen, messageCount = 0, className }: 
       data-tutorial="chat-button"
     >
       <MessageCircle className="h-4 w-4 text-[#007ba5]" />
-      <span className="text-sm font-medium">AI Tutor</span>
+      <span className="text-sm font-medium hidden sm:inline">AI Tutor</span>
       {messageCount > 0 && (
         <span className="ml-0.5 h-4 min-w-[16px] rounded-full bg-[#007ba5] text-white text-[10px] font-medium flex items-center justify-center px-1">
           {messageCount > 9 ? '9+' : messageCount}

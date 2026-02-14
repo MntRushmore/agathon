@@ -1,7 +1,8 @@
 'use client';
 
 import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle, createShapeId } from 'tldraw';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import {
   Undo2,
@@ -16,6 +17,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 import { useDocumentPanelOpen } from '@/lib/contexts/document-panel-context';
 
 interface ToolButtonProps {
@@ -35,33 +41,41 @@ function ToolButton({ icon, shortcut, isActive, onClick, label, hasDropdown, cla
   };
 
   return (
-    <button
-      onClick={onClick}
-      onPointerDown={handlePointerDown}
-      onTouchStart={(e) => e.stopPropagation()}
-      className={cn(
-        'relative flex items-center justify-center',
-        'rounded-lg transition-all duration-150',
-        'hover:bg-gray-100 active:scale-[0.92]',
-        'touch-manipulation select-none',
-        vertical ? 'w-10 h-10' : 'h-10 w-10',
-        isActive && 'bg-blue-50/80 text-blue-600 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]',
-        !isActive && 'text-gray-500',
-        className
-      )}
-      title={`${label}${shortcut ? ` (${shortcut})` : ''}`}
-    >
-      <div className="flex items-center justify-center">
-        {icon}
-      </div>
-      {hasDropdown && (
-        vertical ? (
-          <ChevronRight className="absolute right-0.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gray-400" />
-        ) : (
-          <ChevronDown className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-gray-400" />
-        )
-      )}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          onPointerDown={handlePointerDown}
+          onTouchStart={(e) => e.stopPropagation()}
+          className={cn(
+            'no-enlarge relative flex items-center justify-center',
+            'rounded-md transition-all duration-150',
+            'hover:bg-gray-50 active:scale-[0.92]',
+            'touch-manipulation select-none',
+            vertical ? 'w-10 h-10' : 'h-9 w-9',
+            isActive && 'bg-[#007ba5]/10 text-[#007ba5]',
+            !isActive && 'text-gray-500',
+            className
+          )}
+          aria-label={label}
+        >
+          <div className="flex items-center justify-center">
+            {icon}
+          </div>
+          {hasDropdown && (
+            vertical ? (
+              <ChevronRight className="absolute right-0.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gray-400" />
+            ) : (
+              <ChevronDown className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-gray-400" />
+            )
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side={vertical ? 'right' : 'bottom'} sideOffset={8}>
+        <span>{label}</span>
+        {shortcut && <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">{shortcut}</kbd>}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -86,7 +100,7 @@ const COLORS = [
 ];
 
 // Custom styled icons
-function SelectIcon({ size = 18 }: { size?: number }) {
+function SelectIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 4L10 20L12 14L18 12L4 4Z" strokeLinejoin="round" />
@@ -94,7 +108,7 @@ function SelectIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function HandIcon({ size = 18 }: { size?: number }) {
+function HandIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M18 11V6a2 2 0 0 0-4 0v1M14 10V5a2 2 0 0 0-4 0v5M10 10V6a2 2 0 0 0-4 0v8a8 8 0 0 0 16 0v-4a2 2 0 0 0-4 0" strokeLinecap="round" strokeLinejoin="round" />
@@ -102,7 +116,7 @@ function HandIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function DrawIcon({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+function DrawIcon({ size = 17, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M3 21L5 14L16 3L21 8L10 19L3 21Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -111,7 +125,7 @@ function DrawIcon({ size = 18, color = 'currentColor' }: { size?: number; color?
   );
 }
 
-function RectangleIcon({ size = 18 }: { size?: number }) {
+function RectangleIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="4" y="6" width="16" height="12" rx="2" />
@@ -119,7 +133,7 @@ function RectangleIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function ArrowIcon({ size = 18 }: { size?: number }) {
+function ArrowIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M5 19L19 5M19 5H9M19 5V15" strokeLinecap="round" strokeLinejoin="round" />
@@ -127,7 +141,7 @@ function ArrowIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function NoteIcon({ size = 18 }: { size?: number }) {
+function NoteIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="4" y="4" width="16" height="16" rx="2" fill="#fcd34d" />
@@ -136,7 +150,7 @@ function NoteIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function TextIcon({ size = 18 }: { size?: number }) {
+function TextIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 7V5H20V7" strokeLinecap="round" strokeLinejoin="round" />
@@ -146,7 +160,7 @@ function TextIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function ImageIcon({ size = 18 }: { size?: number }) {
+function ImageIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -156,7 +170,7 @@ function ImageIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function EraserIcon({ size = 18 }: { size?: number }) {
+function EraserIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M20 20H9L4 15L14 5L20 11L13 18H20V20Z" strokeLinecap="round" strokeLinejoin="round" />
@@ -164,7 +178,7 @@ function EraserIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function LassoIcon({ size = 18 }: { size?: number }) {
+function LassoIcon({ size = 17 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M7 15C4.5 15 3 13 3 10.5C3 7 6 4 10.5 4C15 4 18 6.5 18 9.5C18 12 16.5 14 14 15" strokeLinecap="round" strokeLinejoin="round" />
@@ -177,7 +191,254 @@ function LassoIcon({ size = 18 }: { size?: number }) {
 function Separator({ vertical }: { vertical: boolean }) {
   return vertical
     ? <div className="h-px w-7 bg-gray-200/80 mx-auto my-0.5" />
-    : <div className="w-px h-7 bg-gray-200/80 mx-0.5" />;
+    : <div className="w-px h-6 bg-gray-200 mx-1" />;
+}
+
+/** The tool buttons rendered as an inline flex row (no wrapper container) */
+function ToolButtonsInline({
+  editor,
+  currentToolId,
+  currentColor,
+  currentSize,
+  currentColorHex,
+  canUndo,
+  canRedo,
+  penSettingsOpen,
+  setPenSettingsOpen,
+  mathKeyboardOpen,
+  setMathKeyboardOpen,
+  setColor,
+  setSize,
+  handleInsertMath,
+}: {
+  editor: ReturnType<typeof useEditor>;
+  currentToolId: string;
+  currentColor: string;
+  currentSize: string;
+  currentColorHex: string;
+  canUndo: boolean;
+  canRedo: boolean;
+  penSettingsOpen: boolean;
+  setPenSettingsOpen: (open: boolean) => void;
+  mathKeyboardOpen: boolean;
+  setMathKeyboardOpen: (open: boolean) => void;
+  setColor: (color: string) => void;
+  setSize: (size: string) => void;
+  handleInsertMath: (latex: string) => void;
+}) {
+  const tools = [
+    { id: 'select', icon: <SelectIcon />, shortcut: 'V', label: 'Select' },
+    { id: 'hand', icon: <HandIcon />, shortcut: 'H', label: 'Pan' },
+    { id: 'lasso-solve', icon: <LassoIcon />, shortcut: 'L', label: 'Lasso Solve' },
+  ];
+
+  const drawingTools = [
+    { id: 'draw', icon: <DrawIcon color={currentColorHex} />, shortcut: 'D', label: 'Pen', hasDropdown: true },
+    { id: 'geo', icon: <RectangleIcon />, shortcut: 'R', label: 'Shape' },
+    { id: 'arrow', icon: <ArrowIcon />, shortcut: 'A', label: 'Arrow' },
+    { id: 'note', icon: <NoteIcon />, shortcut: 'N', label: 'Note' },
+    { id: 'text', icon: <TextIcon />, shortcut: 'T', label: 'Text' },
+    { id: 'asset', icon: <ImageIcon />, label: 'Image' },
+    { id: 'eraser', icon: <EraserIcon />, shortcut: 'E', label: 'Eraser' },
+  ];
+
+  return (
+    <>
+      {/* Selection tools */}
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        {tools.map((tool) => (
+          <ToolButton
+            key={tool.id}
+            icon={tool.icon}
+            shortcut={tool.shortcut}
+            isActive={currentToolId === tool.id}
+            onClick={() => editor.setCurrentTool(tool.id)}
+            label={tool.label}
+          />
+        ))}
+      </div>
+
+      <Separator vertical={false} />
+
+      {/* Drawing tools */}
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        {drawingTools.map((tool) => (
+          tool.id === 'draw' ? (
+            <Popover key={tool.id} open={penSettingsOpen} onOpenChange={setPenSettingsOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <ToolButton
+                    icon={tool.icon}
+                    shortcut={tool.shortcut}
+                    isActive={currentToolId === tool.id}
+                    onClick={() => {
+                      editor.setCurrentTool(tool.id);
+                      if (currentToolId === tool.id) {
+                        setPenSettingsOpen(!penSettingsOpen);
+                      }
+                    }}
+                    label={tool.label}
+                    hasDropdown
+                  />
+                  {/* Color indicator dot */}
+                  <div
+                    className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full border border-white shadow-sm"
+                    style={{ backgroundColor: currentColorHex }}
+                  />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent
+                side="bottom"
+                sideOffset={12}
+                className="w-56 p-3.5 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-gray-200/50"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className="space-y-3.5">
+                  {/* Pen Size */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
+                      Size
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {PEN_SIZES.map((size) => (
+                        <button
+                          key={size.label}
+                          onClick={() => setSize(size.label.toLowerCase())}
+                          className={cn(
+                            'no-enlarge flex-1 h-9 rounded-md flex items-center justify-center transition-all duration-150',
+                            'hover:bg-gray-50',
+                            currentSize === size.label.toLowerCase()
+                              ? 'bg-[#007ba5]/10 ring-1.5 ring-[#007ba5]/50'
+                              : 'bg-gray-50/50'
+                          )}
+                        >
+                          <div
+                            className="rounded-full"
+                            style={{
+                              width: size.preview,
+                              height: size.preview,
+                              backgroundColor: currentColorHex
+                            }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-gray-100" />
+
+                  {/* Colors */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
+                      Color
+                    </label>
+                    <div className="grid grid-cols-8 gap-1.5">
+                      {COLORS.map((color) => (
+                        <button
+                          key={color.value}
+                          onClick={() => setColor(color.value)}
+                          className={cn(
+                            'no-enlarge w-6 h-6 rounded-full transition-all duration-150',
+                            'hover:scale-110 active:scale-95',
+                            currentColor === color.value && 'ring-2 ring-[#007ba5] ring-offset-2'
+                          )}
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          ) : (
+            <ToolButton
+              key={tool.id}
+              icon={tool.icon}
+              shortcut={tool.shortcut}
+              isActive={currentToolId === tool.id || (tool.id === 'geo' && currentToolId === 'rectangle')}
+              onClick={() => editor.setCurrentTool(tool.id === 'geo' ? 'rectangle' : tool.id)}
+              label={tool.label}
+            />
+          )
+        ))}
+      </div>
+
+      <Separator vertical={false} />
+
+      {/* Math Keyboard Button */}
+      <ToolButton
+        icon={<Pi className="w-[17px] h-[17px]" />}
+        shortcut="M"
+        isActive={mathKeyboardOpen}
+        onClick={() => setMathKeyboardOpen(!mathKeyboardOpen)}
+        label="Math Symbols"
+      />
+
+      <Separator vertical={false} />
+
+      {/* Undo/Redo */}
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => editor.undo()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              disabled={!canUndo}
+              className={cn(
+                'no-enlarge w-9 h-9 flex items-center justify-center rounded-md transition-all duration-150',
+                'active:scale-[0.92] touch-manipulation',
+                canUndo
+                  ? 'text-gray-500 hover:bg-gray-50'
+                  : 'text-gray-300 cursor-not-allowed'
+              )}
+              aria-label="Undo"
+            >
+              <Undo2 className="w-[17px] h-[17px]" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>
+            Undo <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">Ctrl+Z</kbd>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => editor.redo()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              disabled={!canRedo}
+              className={cn(
+                'no-enlarge w-9 h-9 flex items-center justify-center rounded-md transition-all duration-150',
+                'active:scale-[0.92] touch-manipulation',
+                canRedo
+                  ? 'text-gray-500 hover:bg-gray-50'
+                  : 'text-gray-300 cursor-not-allowed'
+              )}
+              aria-label="Redo"
+            >
+              <Redo2 className="w-[17px] h-[17px]" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>
+            Redo <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">Ctrl+Shift+Z</kbd>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Math Keyboard - positioned below the top bar */}
+      {mathKeyboardOpen && (
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[var(--z-keyboard)]">
+          <MathKeyboard
+            isOpen={mathKeyboardOpen}
+            onClose={() => setMathKeyboardOpen(false)}
+            onInsert={handleInsertMath}
+          />
+        </div>
+      )}
+    </>
+  );
 }
 
 export function CustomToolbar() {
@@ -248,6 +509,58 @@ export function CustomToolbar() {
 
   const currentColorHex = COLORS.find(c => c.value === currentColor)?.hex ?? '#1a1a1a';
 
+  const sharedProps = {
+    editor,
+    currentToolId,
+    currentColor,
+    currentSize,
+    currentColorHex,
+    canUndo,
+    canRedo,
+    penSettingsOpen,
+    setPenSettingsOpen,
+    mathKeyboardOpen,
+    setMathKeyboardOpen,
+    setColor,
+    setSize,
+    handleInsertMath,
+  };
+
+  // Find the TopBar's portal target for inline mode
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!vertical) {
+      // Find the portal target in the TopBar (may not be mounted yet)
+      const find = () => document.querySelector('[data-topbar-tools]') as HTMLElement | null;
+      const target = find();
+      if (target) {
+        setPortalTarget(target);
+      } else {
+        // Retry after a short delay if TopBar hasn't mounted yet
+        const timer = setTimeout(() => setPortalTarget(find()), 100);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      setPortalTarget(null);
+    }
+  }, [vertical]);
+
+  // When NOT in vertical mode, portal the tools into the TopBar
+  if (!vertical) {
+    if (!portalTarget) return null;
+    return createPortal(
+      <div
+        className="flex items-center gap-0.5 pointer-events-auto"
+        onPointerDown={handleContainerPointerDown}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
+        <ToolButtonsInline {...sharedProps} />
+      </div>,
+      portalTarget
+    );
+  }
+
+  // Vertical mode (document panel open): floating toolbar on left side
   const tools = [
     { id: 'select', icon: <SelectIcon />, shortcut: 'V', label: 'Select' },
     { id: 'hand', icon: <HandIcon />, shortcut: 'H', label: 'Pan' },
@@ -264,30 +577,15 @@ export function CustomToolbar() {
     { id: 'eraser', icon: <EraserIcon />, shortcut: 'E', label: 'Eraser' },
   ];
 
-  const popoverSide = vertical ? 'right' as const : 'top' as const;
-
   return (
     <div
-      className={cn(
-        'fixed z-[var(--z-toolbar)] pointer-events-auto',
-        vertical
-          ? 'left-3 top-1/2 -translate-y-1/2'
-          : 'bottom-4 left-1/2 -translate-x-1/2 max-w-[calc(100vw-2rem)]'
-      )}
+      className="fixed z-[var(--z-toolbar)] pointer-events-auto left-3 top-1/2 -translate-y-1/2"
       onPointerDown={handleContainerPointerDown}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      <div className={cn(
-        'bg-white/95 backdrop-blur-xl shadow-[0_2px_20px_rgba(0,0,0,0.08)] border border-gray-200/50 overflow-auto scrollbar-hide',
-        vertical
-          ? 'flex flex-col items-center gap-0.5 rounded-2xl px-1.5 py-2 max-h-[calc(100vh-4rem)]'
-          : 'flex items-center gap-0.5 rounded-2xl px-2 py-1.5'
-      )}>
+      <div className="bg-white shadow-[0_2px_16px_rgba(0,0,0,0.08)] border border-gray-200/60 overflow-auto scrollbar-hide flex flex-col items-center gap-0.5 rounded-xl px-1.5 py-2 max-h-[calc(100vh-4rem)]">
         {/* Selection tools */}
-        <div className={cn(
-          'flex gap-0.5 flex-shrink-0',
-          vertical ? 'flex-col items-center' : 'items-center'
-        )}>
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
           {tools.map((tool) => (
             <ToolButton
               key={tool.id}
@@ -296,18 +594,15 @@ export function CustomToolbar() {
               isActive={currentToolId === tool.id}
               onClick={() => editor.setCurrentTool(tool.id)}
               label={tool.label}
-              vertical={vertical}
+              vertical
             />
           ))}
         </div>
 
-        <Separator vertical={vertical} />
+        <Separator vertical />
 
         {/* Drawing tools */}
-        <div className={cn(
-          'flex gap-0.5 flex-shrink-0',
-          vertical ? 'flex-col items-center' : 'items-center'
-        )}>
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
           {drawingTools.map((tool) => (
             tool.id === 'draw' ? (
               <Popover key={tool.id} open={penSettingsOpen} onOpenChange={setPenSettingsOpen}>
@@ -325,28 +620,22 @@ export function CustomToolbar() {
                       }}
                       label={tool.label}
                       hasDropdown
-                      vertical={vertical}
+                      vertical
                     />
                     {/* Color indicator dot */}
                     <div
-                      className={cn(
-                        'absolute w-2 h-2 rounded-full border border-white shadow-sm',
-                        vertical
-                          ? 'bottom-1 right-1'
-                          : 'bottom-1 left-1/2 -translate-x-1/2'
-                      )}
+                      className="absolute bottom-1 right-1 w-2 h-2 rounded-full border border-white shadow-sm"
                       style={{ backgroundColor: currentColorHex }}
                     />
                   </div>
                 </PopoverTrigger>
                 <PopoverContent
-                  side={popoverSide}
+                  side="right"
                   sideOffset={12}
-                  className="w-56 p-3.5 bg-white/95 backdrop-blur-xl rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-gray-200/50"
+                  className="w-56 p-3.5 bg-white rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.12)] border border-gray-200/50"
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <div className="space-y-3.5">
-                    {/* Pen Size */}
                     <div>
                       <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
                         Size
@@ -357,10 +646,10 @@ export function CustomToolbar() {
                             key={size.label}
                             onClick={() => setSize(size.label.toLowerCase())}
                             className={cn(
-                              'flex-1 h-10 rounded-lg flex items-center justify-center transition-all duration-150',
+                              'no-enlarge flex-1 h-9 rounded-md flex items-center justify-center transition-all duration-150',
                               'hover:bg-gray-50',
                               currentSize === size.label.toLowerCase()
-                                ? 'bg-blue-50/80 ring-1.5 ring-blue-500/50'
+                                ? 'bg-[#007ba5]/10 ring-1.5 ring-[#007ba5]/50'
                                 : 'bg-gray-50/50'
                             )}
                           >
@@ -376,10 +665,7 @@ export function CustomToolbar() {
                         ))}
                       </div>
                     </div>
-
                     <div className="h-px bg-gray-100" />
-
-                    {/* Colors */}
                     <div>
                       <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">
                         Color
@@ -390,9 +676,9 @@ export function CustomToolbar() {
                             key={color.value}
                             onClick={() => setColor(color.value)}
                             className={cn(
-                              'w-6 h-6 rounded-full transition-all duration-150',
+                              'no-enlarge w-6 h-6 rounded-full transition-all duration-150',
                               'hover:scale-110 active:scale-95',
-                              currentColor === color.value && 'ring-2 ring-blue-500 ring-offset-2'
+                              currentColor === color.value && 'ring-2 ring-[#007ba5] ring-offset-2'
                             )}
                             style={{ backgroundColor: color.hex }}
                             title={color.name}
@@ -411,67 +697,74 @@ export function CustomToolbar() {
                 isActive={currentToolId === tool.id || (tool.id === 'geo' && currentToolId === 'rectangle')}
                 onClick={() => editor.setCurrentTool(tool.id === 'geo' ? 'rectangle' : tool.id)}
                 label={tool.label}
-                vertical={vertical}
+                vertical
               />
             )
           ))}
         </div>
 
-        <Separator vertical={vertical} />
+        <Separator vertical />
 
         {/* Math Keyboard Button */}
         <ToolButton
-          icon={<Pi className="w-[18px] h-[18px]" />}
+          icon={<Pi className="w-[17px] h-[17px]" />}
           shortcut="M"
           isActive={mathKeyboardOpen}
           onClick={() => setMathKeyboardOpen(!mathKeyboardOpen)}
           label="Math Symbols"
-          vertical={vertical}
+          vertical
         />
 
-        <Separator vertical={vertical} />
+        <Separator vertical />
 
         {/* Undo/Redo */}
-        <div className={cn(
-          'flex gap-0.5 flex-shrink-0',
-          vertical ? 'flex-col items-center' : 'items-center'
-        )}>
-          <button
-            onClick={() => editor.undo()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            disabled={!canUndo}
-            className={cn(
-              'w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-150',
-              'active:scale-[0.92] touch-manipulation',
-              canUndo
-                ? 'text-gray-500 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
-            )}
-            title="Undo (Ctrl+Z)"
-          >
-            <Undo2 className="w-[18px] h-[18px]" />
-          </button>
-          <button
-            onClick={() => editor.redo()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            disabled={!canRedo}
-            className={cn(
-              'w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-150',
-              'active:scale-[0.92] touch-manipulation',
-              canRedo
-                ? 'text-gray-500 hover:bg-gray-100'
-                : 'text-gray-300 cursor-not-allowed'
-            )}
-            title="Redo (Ctrl+Shift+Z)"
-          >
-            <Redo2 className="w-[18px] h-[18px]" />
-          </button>
+        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => editor.undo()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                disabled={!canUndo}
+                className={cn(
+                  'no-enlarge w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150',
+                  'active:scale-[0.92] touch-manipulation',
+                  canUndo
+                    ? 'text-gray-500 hover:bg-gray-50'
+                    : 'text-gray-300 cursor-not-allowed'
+                )}
+                aria-label="Undo"
+              >
+                <Undo2 className="w-[17px] h-[17px]" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>Undo</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => editor.redo()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                disabled={!canRedo}
+                className={cn(
+                  'no-enlarge w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150',
+                  'active:scale-[0.92] touch-manipulation',
+                  canRedo
+                    ? 'text-gray-500 hover:bg-gray-50'
+                    : 'text-gray-300 cursor-not-allowed'
+                )}
+                aria-label="Redo"
+              >
+                <Redo2 className="w-[17px] h-[17px]" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={8}>Redo</TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
-      {/* Math Keyboard */}
+      {/* Math Keyboard - vertical mode */}
       {mathKeyboardOpen && (
         <MathKeyboard
           isOpen={mathKeyboardOpen}

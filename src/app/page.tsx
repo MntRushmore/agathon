@@ -476,7 +476,6 @@ export default function Dashboard() {
   }, [creating, user, router, supabase, isAdmin, whiteboards.length]);
 
   const createWhiteboard = useCallback(() => {
-    console.log('createWhiteboard called', { creating, user: !!user, isAdmin, whiteboardsLength: whiteboards.length });
     if (creating) return;
 
     if (!user) {

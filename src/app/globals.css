@@ -58,6 +58,8 @@
   --z-panel: 1050;
   --z-overlay: 1100;
   --z-keyboard: 1200;
+  --z-topbar: 2000;
+  --z-banner: 2100;
   --z-status: 12000;
 
   /* Modern minimalist font sizes */
@@ -317,6 +319,27 @@
     min-height: 52px;
     padding: 16px;
   }
+}
+
+/* Hide tldraw's toolbar wrapper when tools are portaled into the TopBar */
+.tlui-toolbar {
+  position: fixed !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Top bar responsive rules */
+@media (pointer: coarse) {
+  .top-bar { height: 56px; }
+  .top-bar button.no-enlarge { min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 640px) {
+  .top-bar .label-text { display: none; }
+  .top-bar .hide-mobile { display: none; }
 }
 
 /* iOS-specific fixes */

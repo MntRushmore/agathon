@@ -7,7 +7,7 @@ const features = [
   },
   {
     title: 'Guided thinking',
-    description: 'Get nudges that move you forward without spoiling the answer. Just the right hint at the right time.',
+    description: 'Get tailored guidance for math, homework, and study challenges. Just the right hint at the right time.',
   },
   {
     title: 'Real understanding',
@@ -42,13 +42,13 @@ export function FeaturesSection() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-16 gap-y-16">
           {features.map((feature, index) => (
             <div key={feature.title} className="group">
-              <div className="text-[13px] text-gray-400 font-medium mb-4 tracking-wider">
+              <div className="text-[13px] text-gray-500 font-medium mb-4 tracking-wider">
                 {String(index + 1).padStart(2, '0')}
               </div>
               <h3 className="text-[20px] font-normal text-foreground mb-3 tracking-[-0.01em]">
                 {feature.title}
               </h3>
-              <p className="text-[16px] text-gray-500 leading-relaxed">
+              <p className="text-[16px] text-gray-600 leading-relaxed">
                 {feature.description}
               </p>
             </div>
