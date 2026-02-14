@@ -18,14 +18,14 @@ import {
   GraduationCap,
 } from '@phosphor-icons/react';
 import {
-  CommandDialog,
+  CommandMenu,
   CommandInput,
   CommandList,
   CommandEmpty,
   CommandGroup,
   CommandItem,
   CommandShortcut,
-} from '@/components/ui/command';
+} from 'better-cmdk';
 import { useAuth } from '@/components/auth/auth-provider';
 
 interface Board {
@@ -51,7 +51,6 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
 
   const role = userRole ?? profile?.role;
 
-  // Listen for Cmd+K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -64,35 +63,33 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const runCommand = useCallback(
-    (command: () => void) => {
-      setOpen(false);
-      command();
-    },
-    []
-  );
-
   const navigate = useCallback(
     (path: string) => {
-      runCommand(() => router.push(path));
+      setOpen(false);
+      router.push(path);
     },
-    [router, runCommand]
+    [router]
   );
 
   const hasRecentItems = (boards && boards.length > 0) || (journals && journals.length > 0);
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Type a command or search..." />
+    <CommandMenu
+      open={open}
+      onOpenChange={setOpen}
+      chatEndpoint="/api/command-chat"
+      askAILabel="Ask Agathon"
+    >
+      <CommandInput placeholder="Type a command or search..." showSendButton />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty />
 
-        {/* Recent boards & journals */}
         {hasRecentItems && (
           <CommandGroup heading="Recent">
             {boards?.map((board) => (
               <CommandItem
                 key={`board-${board.id}`}
+                value={`board-${board.id}`}
                 onSelect={() => navigate(`/board/${board.id}`)}
               >
                 <FolderOpen className="mr-2 size-4" />
@@ -102,6 +99,7 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
             {journals?.map((journal) => (
               <CommandItem
                 key={`journal-${journal.id}`}
+                value={`journal-${journal.id}`}
                 onSelect={() => navigate(`/journal/${journal.id}`)}
               >
                 <BookOpenText className="mr-2 size-4" />
@@ -111,93 +109,89 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
           </CommandGroup>
         )}
 
-        {/* Navigation */}
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => navigate('/')}>
+          <CommandItem value="home" onSelect={() => navigate('/')}>
             <House className="mr-2 size-4" />
             <span>Home</span>
             <CommandShortcut>G H</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/')}>
+          <CommandItem value="my-boards" onSelect={() => navigate('/')}>
             <FolderOpen className="mr-2 size-4" />
             <span>My Boards</span>
             <CommandShortcut>G B</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/journal')}>
+          <CommandItem value="my-journals" onSelect={() => navigate('/journal')}>
             <BookOpenText className="mr-2 size-4" />
             <span>My Journals</span>
             <CommandShortcut>G J</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/profile')}>
+          <CommandItem value="profile" onSelect={() => navigate('/profile')}>
             <User className="mr-2 size-4" />
             <span>Profile</span>
             <CommandShortcut>G P</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/settings')}>
+          <CommandItem value="settings" onSelect={() => navigate('/settings')}>
             <GearSix className="mr-2 size-4" />
             <span>Settings</span>
             <CommandShortcut>G S</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/billing')}>
+          <CommandItem value="billing" onSelect={() => navigate('/billing')}>
             <CreditCard className="mr-2 size-4" />
             <span>Billing</span>
           </CommandItem>
         </CommandGroup>
 
-        {/* Create */}
         <CommandGroup heading="Create">
-          <CommandItem onSelect={() => navigate(`/board/temp-${Date.now()}`)}>
+          <CommandItem value="new-board" onSelect={() => navigate(`/board/temp-${Date.now()}`)}>
             <Plus className="mr-2 size-4" />
             <span>New Board</span>
             <CommandShortcut>C B</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => navigate('/journal')}>
+          <CommandItem value="new-journal" onSelect={() => navigate('/journal')}>
             <PencilLine className="mr-2 size-4" />
             <span>New Journal</span>
             <CommandShortcut>C J</CommandShortcut>
           </CommandItem>
         </CommandGroup>
 
-        {/* Admin (conditional) */}
         {role === 'admin' && (
           <CommandGroup heading="Admin">
-            <CommandItem onSelect={() => navigate('/admin')}>
+            <CommandItem value="admin-console" onSelect={() => navigate('/admin')}>
               <ShieldCheck className="mr-2 size-4" />
               <span>Admin Console</span>
             </CommandItem>
-            <CommandItem onSelect={() => navigate('/admin/users')}>
+            <CommandItem value="user-management" onSelect={() => navigate('/admin/users')}>
               <UsersThree className="mr-2 size-4" />
               <span>User Management</span>
             </CommandItem>
-            <CommandItem onSelect={() => navigate('/admin/analytics')}>
+            <CommandItem value="analytics" onSelect={() => navigate('/admin/analytics')}>
               <ChartBar className="mr-2 size-4" />
               <span>Analytics</span>
             </CommandItem>
-            <CommandItem onSelect={() => navigate('/admin/logs')}>
+            <CommandItem value="audit-logs" onSelect={() => navigate('/admin/logs')}>
               <ClipboardText className="mr-2 size-4" />
               <span>Audit Logs</span>
             </CommandItem>
           </CommandGroup>
         )}
 
-        {/* Teacher (conditional) */}
         {role === 'teacher' && (
           <CommandGroup heading="Teacher">
-            <CommandItem onSelect={() => navigate('/teacher')}>
+            <CommandItem value="teacher-dashboard" onSelect={() => navigate('/teacher')}>
               <GraduationCap className="mr-2 size-4" />
               <span>Teacher Dashboard</span>
             </CommandItem>
-            <CommandItem onSelect={() => navigate('/teacher/classes')}>
+            <CommandItem value="my-classes" onSelect={() => navigate('/teacher/classes')}>
               <UsersThree className="mr-2 size-4" />
               <span>My Classes</span>
             </CommandItem>
-            <CommandItem onSelect={() => navigate('/teacher/assignments/create')}>
+            <CommandItem value="create-assignment" onSelect={() => navigate('/teacher/assignments/create')}>
               <ClipboardText className="mr-2 size-4" />
               <span>Create Assignment</span>
             </CommandItem>
           </CommandGroup>
         )}
       </CommandList>
-    </CommandDialog>
+    </CommandMenu>
   );
 }

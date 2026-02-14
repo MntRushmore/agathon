@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../node_modules/better-cmdk";
 @plugin "tailwindcss-animate";
 @import "tldraw/tldraw.css";
 @import "tw-animate-css";

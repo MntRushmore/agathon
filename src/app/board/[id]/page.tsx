@@ -3370,9 +3370,9 @@ export default function BoardPage() {
         </div>
       )}
 
-      {/* Google Classroom submit button - shown for boards from GC assignments (fallback if metadata has GC info) */}
-      {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !gcSubmitted && !isTeacherViewing && (
-        <div className="fixed bottom-4 left-4 z-[11000]">
+      {/* Google Classroom submit button - shown for boards from GC assignments */}
+      {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !isTeacherViewing && (
+        <div className="fixed bottom-4 left-4 z-[11000]" style={{ pointerEvents: 'auto' }}>
           {gcSubmitted ? (
             <div className="bg-green-100 border border-green-300 rounded-full px-4 py-2 flex items-center gap-2 shadow-md">
               <Check className="w-4 h-4 text-green-600" />
