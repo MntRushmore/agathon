@@ -132,6 +132,7 @@ export type AnnotatorAction =
   | { type: 'DELETE_SELECTED'; pageIndex: number }
   | { type: 'ADD_ANNOTATION'; pageIndex: number; annotation: Annotation }
   | { type: 'REMOVE_ANNOTATION'; pageIndex: number; annotationId: string }
+  | { type: 'RESTORE_ANNOTATIONS'; annotations: PageAnnotations }
   | { type: 'UNDO' }
   | { type: 'REDO' }
   | { type: 'SET_TEXT_INPUT'; position: { x: number; y: number } | null }

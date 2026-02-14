@@ -12,7 +12,7 @@ import type {
 } from '@/lib/annotate/types';
 import { moveAnnotation } from '@/lib/annotate/drawing';
 import { exportAnnotatedPDF } from '@/lib/annotate/export';
-import { saveAnnotationFile, fetchAnnotationFile, downloadFile } from '@/lib/annotate/storage';
+import { createAnnotationFile, updateAnnotations, fetchAnnotationFile, downloadFile } from '@/lib/annotate/storage';
 import { createEmptyHistory, pushAction, undo, redo } from '@/lib/annotate/history';
 import { FileUploadZone } from './FileUploadZone';
 import { PDFRenderer } from './PDFRenderer';
@@ -203,6 +203,10 @@ function reducer(state: AnnotatorState, action: AnnotatorAction): AnnotatorState
       return { ...state, annotations: newAnnotations, history: newHistory };
     }
 
+    case 'RESTORE_ANNOTATIONS':
+      // Bulk-set annotations without touching history (used when loading saved files)
+      return { ...state, annotations: action.annotations };
+
     case 'UNDO': {
       const result = undo(state.history);
       if (!result.action) return state;
@@ -271,6 +275,8 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
   const [loadingFile, setLoadingFile] = useState(!!fileId);
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false);
+  const skipNextSaveRef = useRef(!!fileId); // Skip the auto-save triggered by initial load
 
   // Load an existing saved file
   useEffect(() => {
@@ -280,15 +286,13 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
     async function loadSavedFile() {
       setLoadingFile(true);
       try {
+        // Fetch metadata + annotations from DB, and file from storage in parallel
         const file = await fetchAnnotationFile(fileId!);
         if (cancelled || !file) {
           if (!cancelled) toast.error('Failed to load annotation file');
           setLoadingFile(false);
           return;
         }
-
-        setFileName(file.file_name);
-        setSavedFileId(file.id);
 
         // Download the actual file from storage
         let dataUrl: string | null = null;
@@ -299,6 +303,10 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
         if (cancelled) return;
 
         if (dataUrl) {
+          setFileName(file.file_name);
+          setSavedFileId(file.id);
+          skipNextSaveRef.current = true; // Don't auto-save what we just loaded
+
           dispatch({
             type: 'SET_FILE',
             dataUrl,
@@ -306,14 +314,9 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
             totalPages: file.page_count,
           });
 
-          // Restore annotations
+          // Restore all annotations in one shot — no history, no per-annotation re-renders
           if (file.annotations && Object.keys(file.annotations).length > 0) {
-            for (const [pageIdx, anns] of Object.entries(file.annotations)) {
-              const annotations = anns as Annotation[];
-              for (const ann of annotations) {
-                dispatch({ type: 'ADD_ANNOTATION', pageIndex: parseInt(pageIdx), annotation: ann });
-              }
-            }
+            dispatch({ type: 'RESTORE_ANNOTATIONS', annotations: file.annotations });
           }
         } else {
           toast.error('Could not load the original file');
@@ -334,25 +337,42 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
   useEffect(() => {
     if (!userId || !state.fileDataUrl || !state.fileType || loadingFile) return;
 
+    // Skip the save triggered by loading existing annotations
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
+      // Prevent concurrent saves
+      if (isSavingRef.current) return;
+      isSavingRef.current = true;
+
       try {
-        const result = await saveAnnotationFile(
-          userId,
-          state.fileDataUrl!,
-          fileName,
-          state.fileType!,
-          state.totalPages,
-          state.annotations,
-          savedFileId || undefined,
-        );
-        if (result && !savedFileId) {
-          setSavedFileId(result.id);
+        if (savedFileId) {
+          // Lightweight: only update annotations JSON + count
+          await updateAnnotations(savedFileId, state.annotations);
+        } else {
+          // First save: upload file + generate thumbnail + create row
+          const result = await createAnnotationFile(
+            userId,
+            state.fileDataUrl!,
+            fileName,
+            state.fileType!,
+            state.totalPages,
+            state.annotations,
+          );
+          if (result) {
+            setSavedFileId(result.id);
+          }
         }
       } catch (err) {
         console.error('Auto-save failed:', err);
+      } finally {
+        isSavingRef.current = false;
       }
-    }, 2000);
+    }, 1500);
 
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);

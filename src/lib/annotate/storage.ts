@@ -118,30 +118,25 @@ function countAnnotations(annotations: PageAnnotations): number {
 }
 
 /**
- * Save a new annotation file or update an existing one.
+ * First-time save: uploads file, generates thumbnail, creates DB row.
+ * This is the heavy operation — only called once per file.
  */
-export async function saveAnnotationFile(
+export async function createAnnotationFile(
   userId: string,
   fileDataUrl: string,
   fileName: string,
   fileType: 'pdf' | 'image',
   pageCount: number,
   annotations: PageAnnotations,
-  existingId?: string,
 ): Promise<AnnotationFile | null> {
   const supabase = createClient();
+  const id = crypto.randomUUID();
 
-  const id = existingId || crypto.randomUUID();
-
-  // Upload file to storage (only on first save)
-  let storagePath: string | null = null;
-  if (!existingId) {
-    storagePath = await uploadFile(userId, id, fileDataUrl, fileType);
-  }
-
-  // Generate thumbnail
-  const thumbnail = await generateThumbnail(fileDataUrl, fileType);
-  const annotationCount = countAnnotations(annotations);
+  // Run file upload and thumbnail generation in parallel
+  const [storagePath, thumbnail] = await Promise.all([
+    uploadFile(userId, id, fileDataUrl, fileType),
+    generateThumbnail(fileDataUrl, fileType),
+  ]);
 
   const record = {
     id,
@@ -149,22 +144,22 @@ export async function saveAnnotationFile(
     file_name: fileName,
     file_type: fileType,
     page_count: pageCount,
-    annotation_count: annotationCount,
+    annotation_count: countAnnotations(annotations),
     thumbnail,
+    file_storage_path: storagePath,
     annotations,
-    ...(storagePath ? { file_storage_path: storagePath } : {}),
+    created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    ...(!existingId ? { created_at: new Date().toISOString() } : {}),
   };
 
   const { data, error } = await supabase
     .from(TABLE)
-    .upsert(record, { onConflict: 'id' })
+    .insert(record)
     .select()
     .single();
 
   if (error) {
-    console.error('Failed to save annotation file:', error);
+    console.error('Failed to create annotation file:', error);
     return null;
   }
 
@@ -172,7 +167,34 @@ export async function saveAnnotationFile(
 }
 
 /**
- * Fetch all annotation files for a user.
+ * Lightweight update: only writes annotations JSON + count + timestamp.
+ * No file re-upload, no thumbnail regeneration.
+ */
+export async function updateAnnotations(
+  fileId: string,
+  annotations: PageAnnotations,
+): Promise<boolean> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from(TABLE)
+    .update({
+      annotations,
+      annotation_count: countAnnotations(annotations),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', fileId);
+
+  if (error) {
+    console.error('Failed to update annotations:', error);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Fetch all annotation files for a user (listing page — no annotations blob).
  */
 export async function fetchAnnotationFiles(userId: string): Promise<AnnotationFile[]> {
   const supabase = createClient();
