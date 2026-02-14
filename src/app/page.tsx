@@ -52,6 +52,7 @@ import {
   CheckCircle,
   Eye,
   ClockCountdown,
+  HighlighterCircle,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from "sonner";
@@ -790,14 +791,13 @@ export default function Dashboard() {
       isPrimary: true,
     },
     {
-      id: 'math',
-      title: 'Math Document',
-      description: 'Type equations with instant solving',
-      detail: 'LaTeX support & step-by-step',
-      icon: <Calculator className="h-5 w-5" weight="duotone" />,
+      id: 'annotate',
+      title: 'PDF Annotator',
+      description: 'Mark up PDFs and images with ease',
+      detail: 'Draw, highlight & add text',
+      icon: <HighlighterCircle className="h-5 w-5" weight="duotone" />,
       color: 'purple',
-      onClick: () => { toast.info('Math Document is coming soon!'); },
-      comingSoon: true,
+      onClick: () => { router.push('/annotate'); },
     },
     {
       id: 'journal',
@@ -1001,6 +1001,13 @@ export default function Dashboard() {
             >
               <BookOpenText className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
               {!sidebarCollapsed && <span className="text-sm">My Journals</span>}
+            </button>
+            <button
+              onClick={() => router.push('/annotate/files')}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+            >
+              <HighlighterCircle className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+              {!sidebarCollapsed && <span className="text-sm">My Annotations</span>}
             </button>
             <button
               onClick={() => router.push('/knowledge')}

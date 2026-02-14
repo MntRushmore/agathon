@@ -246,6 +246,24 @@ export default function KnowledgePage() {
   const openInBoard = async (doc: { title: string; content?: string; metadata?: Record<string, unknown> }) => {
     if (!user) return;
     try {
+      const courseworkId = doc.metadata?.coursework_id as string | undefined;
+
+      // If this is a GC assignment, check if a board already exists for it
+      if (courseworkId) {
+        const { data: existing } = await supabase
+          .from('whiteboards')
+          .select('id')
+          .eq('user_id', user.id)
+          .filter('metadata->>gcCourseworkId', 'eq', courseworkId)
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          router.push(`/board/${existing.id}`);
+          return;
+        }
+      }
+
       const docUrl = doc.metadata?.url as string | undefined;
       const { data, error } = await supabase
         .from('whiteboards')
@@ -260,7 +278,7 @@ export default function KnowledgePage() {
             instructions: doc.content || '',
             ...(docUrl ? { documentUrl: toEmbedUrl(docUrl), documentTitle: doc.title || 'Document' } : {}),
             ...(doc.metadata?.course_id ? { gcCourseId: doc.metadata.course_id as string } : {}),
-            ...(doc.metadata?.coursework_id ? { gcCourseworkId: doc.metadata.coursework_id as string } : {}),
+            ...(courseworkId ? { gcCourseworkId: courseworkId } : {}),
           },
         }])
         .select()
