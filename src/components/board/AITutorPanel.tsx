@@ -200,13 +200,13 @@ export function AITutorPanel({
       <div
         onMouseDown={handleDragStart}
         className={cn(
-          'absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize',
-          'hover:bg-sky-400 transition-colors',
+          'absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize',
+          'bg-gray-200 hover:bg-sky-400 transition-colors',
           isDragging && 'bg-sky-500'
         )}
       >
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-8 flex items-center justify-center -translate-x-1/2 bg-white border border-gray-200 rounded-l shadow-sm opacity-0 hover:opacity-100 transition-opacity">
-          <GripVertical className="w-2.5 h-2.5 text-gray-400" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-10 flex items-center justify-center -translate-x-1/2 bg-white border border-gray-200 rounded-l shadow-sm">
+          <GripVertical className="w-3 h-3 text-gray-400" />
         </div>
       </div>
 
