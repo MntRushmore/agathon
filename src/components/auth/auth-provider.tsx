@@ -71,11 +71,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.error({ error }, 'Error fetching profile');
         setProfile(null);
       } else if (data && data.invite_redeemed === false) {
-        // User signed up but invite redemption didn't complete — let them through
-        // The invite code was already validated at signup time, so they're legitimate
-        logger.warn('User has not redeemed invite code yet, allowing sign-in');
+        // User hasn't redeemed an invite code — redirect to complete signup
+        // Middleware enforces this server-side; this is defense-in-depth
+        logger.warn('User has not redeemed invite code, redirecting to complete-signup');
         setProfile(data);
-        // Redirect to complete-signup if not already there, so redemption can finish
         if (window.location.pathname !== '/auth/complete-signup') {
           window.location.href = '/auth/complete-signup';
         }
