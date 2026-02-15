@@ -8,7 +8,7 @@ import { animate, stagger } from 'animejs';
 
 interface LassoActionPromptProps {
   position: { x: number; y: number };
-  onAction: (action: 'feedback' | 'suggest' | 'answer' | 'chat') => void;
+  onAction: (action: /* 'feedback' | */ 'suggest' | 'answer' | 'chat') => void;
   onDismiss: () => void;
   isClosing?: boolean;
 }
@@ -64,6 +64,7 @@ export function LassoActionPrompt({ position, onAction, onDismiss, isClosing }: 
       style={{ left: position.x, top: position.y, transform: 'translate(-50%, 8px)' }}
     >
       <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-md px-1 py-1">
+        {/* Feedback button disabled — kept for potential re-enable
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -76,6 +77,7 @@ export function LassoActionPrompt({ position, onAction, onDismiss, isClosing }: 
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={8}>Get feedback without answers</TooltipContent>
         </Tooltip>
+        */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button

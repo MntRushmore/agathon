@@ -77,6 +77,7 @@ function ModeInfoDialog() {
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-6">
+          {/* Feedback mode disabled — kept for potential re-enable
           <div className="flex-1 flex flex-col items-start">
             <img
               src="/modes/feedback.png"
@@ -88,6 +89,7 @@ function ModeInfoDialog() {
               Light annotations pointing out mistakes without giving away answers.
             </p>
           </div>
+          */}
           <div className="flex-1 flex flex-col items-start">
             <img
               src="/modes/suggest.png"
@@ -262,9 +264,11 @@ export function TopBar({
             >
               <TabsList className="h-8 gap-0.5 p-0.5 bg-gray-100/80 border border-gray-200/50 shadow-none">
                 <TabsTrigger value="off" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm">Off</TabsTrigger>
+                {/* Feedback tab disabled — kept for potential re-enable
                 {isModeAllowed('feedback') && (
                   <TabsTrigger value="feedback" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm hide-mobile">Feedback</TabsTrigger>
                 )}
+                */}
                 {isModeAllowed('suggest') && (
                   <TabsTrigger value="suggest" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm hide-mobile">Suggest</TabsTrigger>
                 )}
