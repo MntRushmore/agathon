@@ -522,17 +522,19 @@ export function AITutorPanel({
 
       {/* Input Area */}
       <div className="border-t border-gray-100 p-3">
-        {/* Next Step button — above Socratic toggle */}
-        {activeTab === 'chat' && messages.length > 0 && (
-          <button
-            onClick={() => sendMessage('Next Step')}
-            disabled={isChatLoading}
-            className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ArrowRight className="w-3 h-3" />
-            Next Step
-          </button>
-        )}
+        {/* Next Step button — always visible above input */}
+        <button
+          onClick={() =>
+            activeTab === 'chat'
+              ? sendMessage('Next Step')
+              : sendAnalysisFollowUp('Next Step')
+          }
+          disabled={activeTab === 'chat' ? isChatLoading : isAnalysisStreaming}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ArrowRight className="w-3 h-3" />
+          Next Step
+        </button>
         {/* Socratic toggle + clear — subtle row above input */}
         <div className="flex items-center justify-between mb-2">
           {activeTab === 'chat' ? (
