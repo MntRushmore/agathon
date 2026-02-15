@@ -10,7 +10,7 @@ import { getTeacherClasses, getClassMemberCount } from '@/lib/api/classes';
 import { Class } from '@/types/database';
 import { Grid3x3, List, Search, ArrowLeft, Download, Loader2, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import type { GCCourse } from '@/types/google-classroom';
 
 type ViewMode = 'grid' | 'list';
@@ -86,10 +86,10 @@ export default function TeacherClassesPage() {
       const data = await res.json();
 
       if (data.imported > 0) {
-        toast.success(`Imported ${data.imported} course${data.imported > 1 ? 's' : ''} from Google Classroom`);
+        sileo.success({ title: `Imported ${data.imported} course${data.imported > 1 ? 's' : ''} from Google Classroom` });
       }
       if (data.skipped > 0) {
-        toast.info(`${data.skipped} course${data.skipped > 1 ? 's were' : ' was'} already imported`);
+        sileo.info({ title: `${data.skipped} course${data.skipped > 1 ? 's were' : ' was'} already imported` });
       }
 
       setSelectedGcIds(new Set());
@@ -97,7 +97,7 @@ export default function TeacherClassesPage() {
       // Refresh both lists
       await Promise.all([loadClasses(), loadGcCourses()]);
     } catch {
-      toast.error('Failed to import courses');
+      sileo.error({ title: 'Failed to import courses' });
     } finally {
       setImporting(false);
     }

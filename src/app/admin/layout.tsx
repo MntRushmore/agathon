@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import {
   ShieldCheck,
   UsersThree,
@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       }
 
       if (profile?.role !== 'admin') {
-        toast.error('Access denied. Admin privileges required.');
+        sileo.error({ title: 'Access denied. Admin privileges required.' });
         router.push('/?error=admin_only');
       }
 

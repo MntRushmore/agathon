@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sparkles, MessageCircle, Lightbulb, CheckCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 export type AIHelpMode = 'feedback' | 'suggest' | 'answer';
 
@@ -58,7 +58,7 @@ export function AIHelpButton({
 
   const handleModeSelect = useCallback(async (mode: AIHelpMode) => {
     if (hintLimit !== undefined && currentHintCount >= hintLimit) {
-      toast.error(`You've reached the hint limit (${hintLimit}) for this assignment`);
+      sileo.error({ title: `You've reached the hint limit (${hintLimit}) for this assignment` });
       return;
     }
 
@@ -68,11 +68,11 @@ export function AIHelpButton({
     try {
       const success = await onRequestHelp(mode);
       if (success) {
-        toast.success(`${modeConfig[mode].label} added to canvas`);
+        sileo.success({ title: `${modeConfig[mode].label} added to canvas` });
       }
     } catch (error) {
       console.error('AI help error:', error);
-      toast.error('Failed to get AI help');
+      sileo.error({ title: 'Failed to get AI help' });
     } finally {
       setIsLoading(false);
       setLoadingMode(null);

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sparkle, VideoCamera, Stack, ClipboardText } from '@phosphor-icons/react';
 import { QuickActionPill } from './QuickActionPill';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 
 interface JournalEditorProps {
@@ -29,7 +29,7 @@ export function JournalEditor({
   }, [content]);
 
   const handleQuickAction = (action: string) => {
-    toast.info(`${action} is coming soon!`);
+    sileo.info({ title: `${action} is coming soon!` });
   };
 
   const quickActions = [

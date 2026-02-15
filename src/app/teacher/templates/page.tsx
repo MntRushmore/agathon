@@ -45,7 +45,7 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { formatDistance } from 'date-fns';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface AssignmentTemplate {
   id: string;
@@ -134,7 +134,7 @@ export default function TemplatesPage() {
 
   const handleSave = async () => {
     if (!formName.trim()) {
-      toast.error('Template name is required');
+      sileo.error({ title: 'Template name is required' });
       return;
     }
 
@@ -165,7 +165,7 @@ export default function TemplatesPage() {
           .eq('id', editingTemplate.id);
 
         if (error) throw error;
-        toast.success('Template updated');
+        sileo.success({ title: 'Template updated' });
       } else {
         const { error } = await supabase
           .from('assignment_templates')
@@ -175,7 +175,7 @@ export default function TemplatesPage() {
           });
 
         if (error) throw error;
-        toast.success('Template created');
+        sileo.success({ title: 'Template created' });
       }
 
       setIsCreateOpen(false);
@@ -183,7 +183,7 @@ export default function TemplatesPage() {
       loadTemplates();
     } catch (error) {
       console.error('Error saving template:', error);
-      toast.error('Failed to save template');
+      sileo.error({ title: 'Failed to save template' });
     } finally {
       setSaving(false);
     }
@@ -197,11 +197,11 @@ export default function TemplatesPage() {
         .eq('id', templateId);
 
       if (error) throw error;
-      toast.success('Template deleted');
+      sileo.success({ title: 'Template deleted' });
       loadTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
-      toast.error('Failed to delete template');
+      sileo.error({ title: 'Failed to delete template' });
     }
   };
 
@@ -236,11 +236,11 @@ export default function TemplatesPage() {
         });
 
       if (error) throw error;
-      toast.success('Template duplicated');
+      sileo.success({ title: 'Template duplicated' });
       loadTemplates();
     } catch (error) {
       console.error('Error duplicating template:', error);
-      toast.error('Failed to duplicate template');
+      sileo.error({ title: 'Failed to duplicate template' });
     }
   };
 

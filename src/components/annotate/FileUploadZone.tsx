@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback } from 'react';
 import { Upload, FileText, Image } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 
 interface FileUploadZoneProps {
@@ -33,7 +33,7 @@ export function FileUploadZone({ onFileLoaded }: FileUploadZoneProps) {
   const processFile = useCallback(async (file: File) => {
     const error = validateFile(file);
     if (error) {
-      toast.error(error);
+      sileo.error({ title: error });
       return;
     }
 
@@ -51,7 +51,7 @@ export function FileUploadZone({ onFileLoaded }: FileUploadZoneProps) {
             const pdf = await pdfjsLib.getDocument(dataUrl).promise;
             onFileLoaded(dataUrl, 'pdf', pdf.numPages, file.name);
           } catch {
-            toast.error('Failed to process PDF');
+            sileo.error({ title: 'Failed to process PDF' });
           }
         } else {
           onFileLoaded(dataUrl, 'image', 1, file.name);
@@ -61,13 +61,13 @@ export function FileUploadZone({ onFileLoaded }: FileUploadZoneProps) {
       };
 
       reader.onerror = () => {
-        toast.error('Failed to read file');
+        sileo.error({ title: 'Failed to read file' });
         setLoading(false);
       };
 
       reader.readAsDataURL(file);
     } catch {
-      toast.error('Failed to upload file');
+      sileo.error({ title: 'Failed to upload file' });
       setLoading(false);
     }
   }, [onFileLoaded]);

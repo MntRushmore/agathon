@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { CheckCircle, XCircle, CircleNotch } from '@phosphor-icons/react';
 
 interface SignUpFormProps {
@@ -81,7 +81,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     e.preventDefault();
 
     if (codeStatus !== 'valid') {
-      toast.error('Please enter a valid invite code');
+      sileo.error({ title: 'Please enter a valid invite code' });
       return;
     }
 
@@ -112,13 +112,13 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
         onSuccess?.();
         router.push('/auth/complete-signup');
       } else {
-        toast.success('Account created! Please check your email to verify your account.');
+        sileo.success({ title: 'Account created! Please check your email to verify your account.' });
         onSuccess?.();
       }
     } catch (error) {
       localStorage.removeItem('agathon_pending_invite_code');
       const message = error instanceof Error ? error.message : 'Failed to sign up';
-      toast.error(message);
+      sileo.error({ title: message });
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
   const handleGoogleSignUp = async () => {
     if (codeStatus !== 'valid') {
-      toast.error('Please enter a valid invite code first');
+      sileo.error({ title: 'Please enter a valid invite code first' });
       return;
     }
 
@@ -152,7 +152,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     } catch (error) {
       localStorage.removeItem('agathon_pending_invite_code');
       const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
-      toast.error(message);
+      sileo.error({ title: message });
       setLoading(false);
     }
   };

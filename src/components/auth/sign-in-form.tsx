@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface SignInFormProps {
   onSuccess?: () => void;
@@ -29,11 +29,11 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
 
       if (error) throw error;
 
-      toast.success('Signed in successfully!');
+      sileo.success({ title: 'Signed in successfully!' });
       onSuccess?.();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to sign in';
-      toast.error(message);
+      sileo.error({ title: message });
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
       if (error) throw error;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
-      toast.error(message);
+      sileo.error({ title: message });
       setLoading(false);
     }
   };

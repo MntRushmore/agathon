@@ -7,7 +7,7 @@ import {
   Pulse, UsersThree, Sparkle, SquaresFour, FileText, BookOpenText,
   TrendUp, ArrowsClockwise, ArrowUp, ArrowDown, Minus,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface AnalyticsData {
   growth: {
@@ -43,7 +43,7 @@ export default function AdminAnalyticsPage() {
       const json = await res.json();
       setData(json);
     } catch {
-      toast.error('Failed to load analytics');
+      sileo.error({ title: 'Failed to load analytics' });
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function AdminAnalyticsPage() {
     setRefreshing(true);
     await loadAnalytics();
     setRefreshing(false);
-    toast.success('Analytics refreshed');
+    sileo.success({ title: 'Analytics refreshed' });
   };
 
   if (loading) {

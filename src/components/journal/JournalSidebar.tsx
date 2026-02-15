@@ -29,7 +29,7 @@ import {
   PencilSimple,
   Lightning,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { TemplateSelectionDialog } from '@/components/board/TemplateSelectionDialog';
 
 interface SidebarJournal {
@@ -155,7 +155,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     if (!user) return;
 
     if (!isAdmin && journals.length >= FREE_JOURNAL_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.` });
       return;
     }
 
@@ -166,7 +166,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
       .single();
 
     if (error) {
-      toast.error('Failed to create journal');
+      sileo.error({ title: 'Failed to create journal' });
       return;
     }
 
@@ -211,7 +211,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     if (creating) return;
 
     if (!user) {
-      toast.info('Creating temporary board');
+      sileo.info({ title: 'Creating temporary board' });
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
       setTemplateDialogOpen(false);
@@ -219,7 +219,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
       setTemplateDialogOpen(false);
       return;
     }
@@ -244,7 +244,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
 
       if (error) throw error;
 
-      toast.success('Board created');
+      sileo.success({ title: 'Board created' });
 
       // Store file data in sessionStorage if present (too large for URL)
       if (fileData) {
@@ -255,7 +255,7 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
       }
     } catch (error: unknown) {
       console.error('Error creating whiteboard:', error);
-      toast.error('Failed to create whiteboard');
+      sileo.error({ title: 'Failed to create whiteboard' });
     } finally {
       setCreating(false);
       setTemplateDialogOpen(false);
@@ -267,14 +267,14 @@ export function JournalSidebar({ activeJournalId, onCollapseChange }: JournalSid
     if (creating) return;
 
     if (!user) {
-      toast.info('Creating temporary board');
+      sileo.info({ title: 'Creating temporary board' });
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
       return;
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
       return;
     }
 

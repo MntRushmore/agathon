@@ -1,9 +1,9 @@
 /**
- * Toast hook wrapper for sonner
- * Provides a shadcn/ui compatible interface using sonner toasts
+ * Toast hook wrapper for sileo
+ * Provides a shadcn/ui compatible interface using sileo toasts
  */
 
-import { toast as sonnerToast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface ToastOptions {
   title?: string;
@@ -13,24 +13,21 @@ interface ToastOptions {
 
 export function useToast() {
   const toast = (options: ToastOptions) => {
-    const message = options.title || options.description || '';
+    const title = options.title || options.description || '';
+    const description = options.title && options.description ? options.description : undefined;
 
     if (options.variant === 'destructive') {
-      sonnerToast.error(message, {
-        description: options.title && options.description ? options.description : undefined,
-      });
+      sileo.error({ title, description });
     } else {
-      sonnerToast(message, {
-        description: options.title && options.description ? options.description : undefined,
-      });
+      sileo.show({ title, description });
     }
   };
 
   // Add convenience methods
-  toast.success = (message: string) => sonnerToast.success(message);
-  toast.error = (message: string) => sonnerToast.error(message);
-  toast.info = (message: string) => sonnerToast.info(message);
-  toast.warning = (message: string) => sonnerToast.warning(message);
+  toast.success = (message: string) => sileo.success({ title: message });
+  toast.error = (message: string) => sileo.error({ title: message });
+  toast.info = (message: string) => sileo.info({ title: message });
+  toast.warning = (message: string) => sileo.warning({ title: message });
 
   return { toast };
 }

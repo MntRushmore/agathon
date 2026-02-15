@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TutorialTooltip } from './TutorialTooltip';
 import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface FirstBoardTutorialProps {
   onComplete: () => void;
@@ -100,7 +100,7 @@ export function FirstBoardTutorial({ onComplete, onSkip }: FirstBoardTutorialPro
         // Also store in localStorage
         localStorage.setItem('board_tutorial_completed', 'true');
 
-        toast.success('Tutorial completed! 🎉');
+        sileo.success({ title: 'Tutorial completed! 🎉' });
       }
     } catch (error) {
       console.error('Error marking tutorial complete:', error);

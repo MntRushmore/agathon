@@ -2,7 +2,7 @@
 
 import { useReducer, useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import type {
   AnnotatorState,
   AnnotatorAction,
@@ -289,7 +289,7 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
         // Fetch metadata + annotations from DB, and file from storage in parallel
         const file = await fetchAnnotationFile(fileId!);
         if (cancelled || !file) {
-          if (!cancelled) toast.error('Failed to load annotation file');
+          if (!cancelled) sileo.error({ title: 'Failed to load annotation file' });
           setLoadingFile(false);
           return;
         }
@@ -319,11 +319,11 @@ export function PDFAnnotator({ userId, fileId }: PDFAnnotatorProps) {
             dispatch({ type: 'RESTORE_ANNOTATIONS', annotations: file.annotations });
           }
         } else {
-          toast.error('Could not load the original file');
+          sileo.error({ title: 'Could not load the original file' });
         }
       } catch (err) {
         console.error('Error loading file:', err);
-        if (!cancelled) toast.error('Failed to load annotation file');
+        if (!cancelled) sileo.error({ title: 'Failed to load annotation file' });
       } finally {
         if (!cancelled) setLoadingFile(false);
       }

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, FileText, ArrowLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface MathEquation {
   id: string;
@@ -44,7 +44,7 @@ export default function MathDocumentsPage() {
 
       if (error) {
         console.error('Failed to load math whiteboards:', error);
-        toast.error('Failed to load math whiteboards');
+        sileo.error({ title: 'Failed to load math whiteboards' });
         setLoading(false);
         return;
       }
@@ -73,7 +73,7 @@ export default function MathDocumentsPage() {
 
     if (error) {
       console.error('Failed to create math whiteboard:', error);
-      toast.error('Failed to create math whiteboard');
+      sileo.error({ title: 'Failed to create math whiteboard' });
       return;
     }
 

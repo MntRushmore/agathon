@@ -22,7 +22,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface WelcomeDialogProps {
   open: boolean;
@@ -71,11 +71,11 @@ export function WelcomeDialog({
             .from('profiles')
             .update({ role })
             .eq('id', user.id);
-          toast.success(`Role updated to ${role}`);
+          sileo.success({ title: `Role updated to ${role}` });
         }
       } catch (error) {
         console.error('Error updating role:', error);
-        toast.error('Failed to update role');
+        sileo.error({ title: 'Failed to update role' });
       }
     }
     handleNext();
@@ -92,7 +92,7 @@ export function WelcomeDialog({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Please sign in to create a board');
+        sileo.error({ title: 'Please sign in to create a board' });
         return;
       }
 
@@ -109,12 +109,12 @@ export function WelcomeDialog({
       if (error) throw error;
 
       if (newBoard) {
-        toast.success('Practice board created! 🎨');
+        sileo.success({ title: 'Practice board created!' });
         router.push(`/board/${newBoard.id}`);
       }
     } catch (error) {
       console.error('Error creating board:', error);
-      toast.error('Failed to create board');
+      sileo.error({ title: 'Failed to create board' });
     }
   };
 

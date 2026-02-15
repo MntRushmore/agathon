@@ -49,7 +49,7 @@ import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { sileo } from "sileo";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
 import { Badge } from "@/components/ui/badge";
@@ -1082,11 +1082,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     if (!hintLimit || hintLimit <= 0) return;
     const remaining = hintLimit - nextCount;
     if (remaining >= 0 && remaining <= 2) {
-      toast.warning(
-        remaining === 0
+      sileo.warning({
+        title: remaining === 0
           ? 'You have reached the hint limit for this assignment.'
-          : `${remaining} hint${remaining === 1 ? '' : 's'} remaining—use them wisely.`
-      );
+          : `${remaining} hint${remaining === 1 ? '' : 's'} remaining—use them wisely.`,
+      });
     }
   }, [hintLimit]);
 
@@ -1182,10 +1182,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       if (!editor || !shouldEnableRealtime) return;
 
       // Show notification
-      toast.info("Board updated by another user", {
-        description: "Reloading canvas...",
-        duration: 2000,
-      });
+      sileo.info({ title: "Board updated by another user", description: "Reloading canvas...", duration: 2000 });
 
       try {
         if (updatedBoard.data && Object.keys(updatedBoard.data).length > 0) {
@@ -1194,7 +1191,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }
       } catch (error) {
         console.error("Failed to reload canvas from remote update:", error);
-        toast.error("Failed to sync changes");
+        sileo.error({ title: "Failed to sync changes" });
       }
     }, [editor, id, shouldEnableRealtime]),
   });
@@ -1342,7 +1339,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           mode = "off";
         } else if (!isModeAllowed(mode)) {
           logger.info({ mode }, 'This AI mode is not allowed for this assignment');
-          toast.error(`${mode} mode is not allowed for this assignment`);
+          sileo.error({ title: `${mode} mode is not allowed for this assignment` });
           mode = "off";
         }
       }
@@ -1748,11 +1745,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
       // Enforce AI restrictions
       if (!aiAllowed) {
-        toast.error('AI assistance is disabled for this assignment');
+        sileo.error({ title: 'AI assistance is disabled for this assignment' });
         return;
       }
       if (!isModeAllowed(mode)) {
-        toast.error(`${mode} mode is not allowed for this assignment`);
+        sileo.error({ title: `${mode} mode is not allowed for this assignment` });
         return;
       }
 
@@ -1825,7 +1822,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         if (!hasFeedbackContent) {
           setStatus('idle');
           setStatusMessage('');
-          toast.info('No solution needed for this selection');
+          sileo.info({ title: 'No solution needed for this selection' });
           return;
         }
 
@@ -1909,7 +1906,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         setStatus('idle');
         setStatusMessage('');
-        toast.success('Solution generated!');
+        sileo.success({ title: 'Solution generated!' });
 
       } catch (error) {
         console.error('[LassoSolve] Error:', error);
@@ -2488,7 +2485,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   if (isHintLoading) return;
                   const shapeIds = editor.getCurrentPageShapeIds();
                   if (shapeIds.size === 0) {
-                    toast.info('Draw something first to get a hint!');
+                    sileo.info({ title: 'Draw something first to get a hint!' });
                     return;
                   }
                   setIsHintLoading(true);
@@ -2616,21 +2613,21 @@ export default function BoardPage() {
 
       if (!res.ok) {
         if (data.needsReconnect) {
-          toast.error('Google Classroom connection expired. Please reconnect in Knowledge Base.');
+          sileo.error({ title: 'Google Classroom connection expired. Please reconnect in Knowledge Base.' });
         } else if (data.alreadySubmitted) {
-          toast.info('This assignment was already turned in on Google Classroom.');
+          sileo.info({ title: 'This assignment was already turned in on Google Classroom.' });
           setGcSubmitted(true);
         } else {
-          toast.error(data.error || 'Failed to submit to Google Classroom');
+          sileo.error({ title: data.error || 'Failed to submit to Google Classroom' });
         }
         return;
       }
 
-      toast.success('Submitted to Google Classroom!');
+      sileo.success({ title: 'Submitted to Google Classroom!' });
       setGcSubmitted(true);
     } catch (error) {
       console.error('Google Classroom submission error:', error);
-      toast.error('Failed to submit to Google Classroom');
+      sileo.error({ title: 'Failed to submit to Google Classroom' });
     } finally {
       setGcSubmitting(false);
     }
@@ -2954,7 +2951,7 @@ export default function BoardPage() {
         console.log('[Upload Effect] Max attempts reached, giving up');
         clearInterval(intervalId);
         if (!hasLoaded) {
-          toast.error('Failed to initialize editor');
+          sileo.error({ title: 'Failed to initialize editor' });
         }
       }
     }, 100);
@@ -3036,7 +3033,7 @@ export default function BoardPage() {
             };
 
             img.onerror = () => {
-              toast.error('Failed to load uploaded image');
+              sileo.error({ title: 'Failed to load uploaded image' });
               resolve();
             };
 
@@ -3048,7 +3045,7 @@ export default function BoardPage() {
         editor.zoomToFit();
       } catch (error) {
         console.error('Error loading uploaded files:', error);
-        toast.error('Failed to load uploaded files');
+        sileo.error({ title: 'Failed to load uploaded files' });
       }
     };
 
@@ -3067,7 +3064,7 @@ export default function BoardPage() {
     setSubmitting(true);
     try {
       await updateSubmissionStatus(submissionData.id, 'submitted');
-      toast.success('Assignment submitted! Your work is now locked.');
+      sileo.success({ title: 'Assignment submitted! Your work is now locked.' });
       setSubmissionData({
         ...submissionData,
         status: 'submitted',
@@ -3092,7 +3089,7 @@ export default function BoardPage() {
             }),
           });
           if (res.ok) {
-            toast.success('Also submitted to Google Classroom!');
+            sileo.success({ title: 'Also submitted to Google Classroom!' });
           }
         } catch {
           // GC submission is best-effort, don't block the main submit
@@ -3101,7 +3098,7 @@ export default function BoardPage() {
       }
     } catch (error) {
       console.error('Error submitting assignment:', error);
-      toast.error('Failed to submit assignment');
+      sileo.error({ title: 'Failed to submit assignment' });
     } finally {
       setSubmitting(false);
     }
@@ -3234,7 +3231,7 @@ export default function BoardPage() {
                 loadSnapshot(editor.store, initialData);
               } catch (e) {
                 console.error("Failed to load snapshot:", e);
-                toast.error("Failed to restore canvas state");
+                sileo.error({ title: "Failed to restore canvas state" });
               }
             }
 

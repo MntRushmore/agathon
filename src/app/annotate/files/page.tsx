@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { fetchAnnotationFiles, deleteAnnotationFile, renameAnnotationFile } from '@/lib/annotate/storage';
 import type { AnnotationFile } from '@/lib/annotate/types';
 import { getFriendlyTimestamp } from '@/components/dashboard/study-tips';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ export default function AnnotationFilesPage() {
       setFiles(data);
     } catch (err) {
       console.error('Error loading files:', err);
-      toast.error('Failed to load annotation files');
+      sileo.error({ title: 'Failed to load annotation files' });
     } finally {
       setLoading(false);
     }
@@ -80,9 +80,9 @@ export default function AnnotationFilesPage() {
     const success = await deleteAnnotationFile(id, storagePath);
     if (success) {
       setFiles(prev => prev.filter(f => f.id !== id));
-      toast.success('File deleted');
+      sileo.success({ title: 'File deleted' });
     } else {
-      toast.error('Failed to delete file');
+      sileo.error({ title: 'Failed to delete file' });
     }
   }, []);
 
@@ -93,9 +93,9 @@ export default function AnnotationFilesPage() {
       setFiles(prev => prev.map(f =>
         f.id === renameId ? { ...f, file_name: renameValue.trim() } : f
       ));
-      toast.success('File renamed');
+      sileo.success({ title: 'File renamed' });
     } else {
-      toast.error('Failed to rename file');
+      sileo.error({ title: 'Failed to rename file' });
     }
     setRenameId(null);
   }, [renameId, renameValue]);

@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { createClient } from '@/lib/supabase';
 import {
   ArrowLeft,
@@ -145,12 +145,12 @@ export default function KnowledgePage() {
     const error = searchParams.get('error');
 
     if (connected) {
-      toast.success(`${PROVIDER_CONFIG[connected as Provider]?.label || connected} connected! Syncing content...`);
+      sileo.success({ title: `${PROVIDER_CONFIG[connected as Provider]?.label || connected} connected! Syncing content...` });
       handleSync(connected as Provider);
       router.replace('/knowledge');
     }
     if (error) {
-      toast.error('Connection failed. Please try again.');
+      sileo.error({ title: 'Connection failed. Please try again.' });
       router.replace('/knowledge');
     }
   }, [searchParams, router]);
@@ -173,10 +173,10 @@ export default function KnowledgePage() {
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
-        toast.error('Failed to start connection');
+        sileo.error({ title: 'Failed to start connection' });
       }
     } catch {
-      toast.error('Failed to connect');
+      sileo.error({ title: 'Failed to connect' });
     } finally {
       setConnecting(null);
     }
@@ -192,14 +192,14 @@ export default function KnowledgePage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`Synced ${data.synced} documents`);
+        sileo.success({ title: `Synced ${data.synced} documents` });
         fetchStatus();
         fetchClassroomData();
       } else {
-        toast.error(data.error || 'Sync failed');
+        sileo.error({ title: data.error || 'Sync failed' });
       }
     } catch {
-      toast.error('Sync failed');
+      sileo.error({ title: 'Sync failed' });
     } finally {
       setSyncing(null);
     }
@@ -215,7 +215,7 @@ export default function KnowledgePage() {
       });
       const data = await res.json();
       if (data.success) {
-        toast.success(`${PROVIDER_CONFIG[provider].label} disconnected`);
+        sileo.success({ title: `${PROVIDER_CONFIG[provider].label} disconnected` });
         fetchStatus();
         if (provider === 'google_classroom') {
           setCourses([]);
@@ -223,10 +223,10 @@ export default function KnowledgePage() {
           setClassroomConnected(false);
         }
       } else {
-        toast.error('Failed to disconnect');
+        sileo.error({ title: 'Failed to disconnect' });
       }
     } catch {
-      toast.error('Failed to disconnect');
+      sileo.error({ title: 'Failed to disconnect' });
     } finally {
       setDisconnecting(null);
     }
@@ -284,10 +284,10 @@ export default function KnowledgePage() {
         .select()
         .single();
       if (error) throw error;
-      toast.success('Board created');
+      sileo.success({ title: 'Board created' });
       router.push(`/board/${data.id}`);
     } catch {
-      toast.error('Failed to create board');
+      sileo.error({ title: 'Failed to create board' });
     }
   };
 
@@ -307,10 +307,10 @@ export default function KnowledgePage() {
         .select()
         .single();
       if (error) throw error;
-      toast.success('Journal created');
+      sileo.success({ title: 'Journal created' });
       router.push(`/journal/${data.id}`);
     } catch {
-      toast.error('Failed to create journal');
+      sileo.error({ title: 'Failed to create journal' });
     }
   };
 

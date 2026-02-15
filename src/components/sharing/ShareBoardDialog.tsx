@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { Search, Trash2, Eye, Edit3, UserIcon } from 'lucide-react';
 import type { Profile, BoardShare } from '@/types/database';
 
@@ -85,7 +85,7 @@ export function ShareBoardDialog({
       setExistingShares((data as ShareWithProfile[]) || []);
     } catch (error) {
       console.error('Error fetching shares:', error);
-      toast.error('Failed to load existing shares');
+      sileo.error({ title: 'Failed to load existing shares' });
     }
   }
 
@@ -113,7 +113,7 @@ export function ShareBoardDialog({
       setSearchResults(filteredResults);
     } catch (error) {
       console.error('Error searching users:', error);
-      toast.error('Failed to search users');
+      sileo.error({ title: 'Failed to search users' });
     } finally {
       setSearching(false);
     }
@@ -135,7 +135,7 @@ export function ShareBoardDialog({
 
       if (error) throw error;
 
-      toast.success(`Board shared with ${selectedPermission} permission`);
+      sileo.success({ title: `Board shared with ${selectedPermission} permission` });
 
       // Refresh shares list
       await fetchExistingShares();
@@ -146,9 +146,9 @@ export function ShareBoardDialog({
     } catch (error: any) {
       console.error('Error sharing board:', error);
       if (error.code === '23505') {
-        toast.error('This board is already shared with this user');
+        sileo.error({ title: 'This board is already shared with this user' });
       } else {
-        toast.error('Failed to share board');
+        sileo.error({ title: 'Failed to share board' });
       }
     } finally {
       setLoading(false);
@@ -165,13 +165,13 @@ export function ShareBoardDialog({
 
       if (error) throw error;
 
-      toast.success('Access removed');
+      sileo.success({ title: 'Access removed' });
 
       // Refresh shares list
       await fetchExistingShares();
     } catch (error) {
       console.error('Error removing share:', error);
-      toast.error('Failed to remove access');
+      sileo.error({ title: 'Failed to remove access' });
     } finally {
       setLoading(false);
     }

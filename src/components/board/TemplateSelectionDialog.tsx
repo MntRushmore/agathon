@@ -3,7 +3,7 @@
 import { useState, useRef, ChangeEvent } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Pencil, FileText, Grid3x3, Upload } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface TemplateSelectionDialogProps {
   open: boolean;
@@ -128,7 +128,7 @@ export function TemplateSelectionDialog({
     // Validate file
     const error = validateFile(file);
     if (error) {
-      toast.error(error);
+      sileo.error({ title: error });
       e.target.value = ''; // Reset input
       return;
     }
@@ -149,7 +149,7 @@ export function TemplateSelectionDialog({
             const images = await convertPdfToImages(dataUrl);
             console.log(`PDF converted to ${images.length} images`);
             if (images.length === 0) {
-              toast.error('PDF appears to be empty');
+              sileo.error({ title: 'PDF appears to be empty' });
               setUploading(false);
               return;
             }
@@ -157,7 +157,7 @@ export function TemplateSelectionDialog({
             onTemplateSelect('file-upload', images);
           } catch (error) {
             console.error('Error converting PDF:', error);
-            toast.error('Failed to process PDF');
+            sileo.error({ title: 'Failed to process PDF' });
             setUploading(false);
           }
         } else {
@@ -168,14 +168,14 @@ export function TemplateSelectionDialog({
       };
 
       reader.onerror = () => {
-        toast.error('Failed to read file');
+        sileo.error({ title: 'Failed to read file' });
         setUploading(false);
       };
 
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload file');
+      sileo.error({ title: 'Failed to upload file' });
       setUploading(false);
     } finally {
       // Reset file input

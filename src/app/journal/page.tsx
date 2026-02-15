@@ -7,7 +7,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Plus, BookOpen, ChevronLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { Logo } from '@/components/ui/logo';
 
 interface Journal {
@@ -37,7 +37,7 @@ export default function JournalsPage() {
 
       if (error) {
         console.error('Failed to load journals:', error);
-        toast.error('Failed to load journals');
+        sileo.error({ title: 'Failed to load journals' });
         setLoading(false);
         return;
       }
@@ -55,7 +55,7 @@ export default function JournalsPage() {
     if (!user) return;
 
     if (profile?.role !== 'admin' && journals.length >= FREE_JOURNAL_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.` });
       return;
     }
 
@@ -71,7 +71,7 @@ export default function JournalsPage() {
 
     if (error) {
       console.error('Failed to create journal:', error);
-      toast.error('Failed to create journal');
+      sileo.error({ title: 'Failed to create journal' });
       return;
     }
 

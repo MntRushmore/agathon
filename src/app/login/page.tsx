@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 import { useAuth } from '@/components/auth/auth-provider';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { mapSupabaseError } from '@/lib/error-utils';
 import { logger } from '@/lib/logger';
 import { Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
@@ -46,7 +46,7 @@ export default function LoginPage() {
     } catch (error) {
       logger.error({ error }, 'Google sign-in failed');
       const message = mapSupabaseError(error);
-      toast.error(message);
+      sileo.error({ title: message });
       setLoading(false);
     }
   };
@@ -63,12 +63,12 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      toast.success('Signed in successfully!');
+      sileo.success({ title: 'Signed in successfully!' });
       router.push('/');
     } catch (error) {
       logger.error({ error }, 'Email sign-in failed');
       const message = mapSupabaseError(error);
-      toast.error(message);
+      sileo.error({ title: message });
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast.error('Please enter your email address');
+      sileo.error({ title: 'Please enter your email address' });
       return;
     }
 
@@ -88,11 +88,11 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      toast.success('Password reset link sent to your email!');
+      sileo.success({ title: 'Password reset link sent to your email!' });
     } catch (error) {
       logger.error({ error }, 'Password reset failed');
       const message = mapSupabaseError(error);
-      toast.error(message);
+      sileo.error({ title: message });
     } finally {
       setLoading(false);
     }
