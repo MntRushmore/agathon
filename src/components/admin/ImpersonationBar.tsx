@@ -169,7 +169,7 @@ export function ImpersonationBar() {
   // When not switched: show the floating trigger button
   if (!switcherOpen) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 left-4 z-50">
         <Button
           size="sm"
           variant="outline"
