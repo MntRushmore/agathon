@@ -942,7 +942,7 @@ type AssignmentMeta = {
   subject?: string;
   gradeLevel?: string;
   instructions?: string;
-  defaultMode?: "off" | "feedback" | "suggest" | "answer";
+  defaultMode?: "off" | /* "feedback" | */ "suggest" | "answer";
   // AI restriction settings from teacher
   allowAI?: boolean;
   allowedModes?: string[];
@@ -991,7 +991,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off" | "feedback" | "suggest" | "answer">("off");
+  const [assistanceMode, setAssistanceMode] = useState<"off" | /* "feedback" | */ "suggest" | "answer">("suggest");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -1152,7 +1152,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
-  const allowedModes = assignmentRestrictions?.allowedModes || ['feedback', 'suggest', 'answer'];
+  const allowedModes = assignmentRestrictions?.allowedModes || [/* 'feedback', */ 'suggest', 'answer'];
 
   // Check if a specific mode is allowed
   const isModeAllowed = (mode: string) => {
@@ -1242,13 +1242,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
 
   // Helper function to get mode-aware status messages
-  const getStatusMessage = useCallback((mode: "off" | "feedback" | "suggest" | "answer", statusType: "generating" | "success") => {
+  const getStatusMessage = useCallback((mode: "off" | /* "feedback" | */ "suggest" | "answer", statusType: "generating" | "success") => {
     if (statusType === "generating") {
       switch (mode) {
         case "off":
           return "";
-        case "feedback":
-          return "Adding feedback...";
+        // case "feedback":
+        //   return "Adding feedback...";
         case "suggest":
           return "Generating suggestion...";
         case "answer":
@@ -1258,8 +1258,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       switch (mode) {
         case "off":
           return "";
-        case "feedback":
-          return "Feedback added";
+        // case "feedback":
+        //   return "Feedback added";
         case "suggest":
           return "Suggestion added";
         case "answer":
@@ -1275,7 +1275,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     } else {
       // Fall back to user's preferred AI mode from settings
       const stored = localStorage.getItem('agathon_pref_ai_mode');
-      if (stored === 'feedback' || stored === 'suggest' || stored === 'answer') {
+      if (/* stored === 'feedback' || */ stored === 'suggest' || stored === 'answer') {
         setAssistanceMode(stored);
       }
     }
@@ -1317,7 +1317,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   const generateSolution = useCallback(
     async (options?: {
-      modeOverride?: "feedback" | "suggest" | "answer";
+      modeOverride?: /* "feedback" | */ "suggest" | "answer";
       promptOverride?: string;
       force?: boolean;
       source?: "auto" | "voice";
@@ -1510,7 +1510,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         // In "feedback" mode, show at full opacity without accept/reject
         // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
-        const isFeedbackMode = mode === "feedback";
+        const isFeedbackMode = false; // mode === "feedback" — feedback mode disabled
 
         // Create feedback shapes
         if (isPremium && imageUrl) {
@@ -1740,7 +1740,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Generate solution for specific lassoed shapes
   const generateSolutionForShapes = useCallback(
-    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }, modeOverride?: 'feedback' | 'suggest' | 'answer') => {
+    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }, modeOverride?: /* 'feedback' | */ 'suggest' | 'answer') => {
       if (!editor || shapeIds.length === 0 || isProcessingRef.current) return;
 
       // Use explicit modeOverride from lasso prompt, fall back to current assistanceMode
@@ -1960,7 +1960,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Handle lasso action prompt selection — all actions open AI chat
   const handleLassoAction = useCallback(
-    async (action: 'feedback' | 'suggest' | 'answer' | 'chat') => {
+    async (action: /* 'feedback' | */ 'suggest' | 'answer' | 'chat') => {
       if (!lassoPrompt || !editor) return;
       const { shapeIds, bounds } = lassoPrompt;
       setLassoPrompt(null);
@@ -2401,7 +2401,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         submissionStatus={submissionId ? (isSubmitted ? 'submitted' : 'in_progress') : null}
         isAssignmentBoard={isAssignmentBoard}
         assistanceMode={assistanceMode}
-        onModeChange={(value) => setAssistanceMode(value as "off" | "feedback" | "suggest" | "answer")}
+        onModeChange={(value) => setAssistanceMode(value as "off" | /* "feedback" | */ "suggest" | "answer")}
         aiAllowed={aiAllowed}
         isModeAllowed={isModeAllowed}
         status={status}

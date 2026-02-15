@@ -22,7 +22,7 @@ const PREF_KEYS = {
   BOARD_TEMPLATE: 'agathon_pref_board_template',
 } as const;
 
-type AiMode = 'feedback' | 'suggest' | 'answer';
+type AiMode = /* 'feedback' | */ 'suggest' | 'answer';
 type BoardTemplate = 'blank' | 'lined' | 'graph';
 
 function useLocalPref<T extends string>(key: string, fallback: T): [T, (v: T) => void] {
@@ -49,7 +49,7 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut] = useState(false);
 
   // Local preferences
-  const [aiMode, setAiMode] = useLocalPref<AiMode>(PREF_KEYS.AI_MODE, 'feedback');
+  const [aiMode, setAiMode] = useLocalPref<AiMode>(PREF_KEYS.AI_MODE, 'suggest');
   const [animations, setAnimations] = useLocalPref<'on' | 'off'>(PREF_KEYS.ANIMATIONS, 'on');
   const [boardTemplate, setBoardTemplate] = useLocalPref<BoardTemplate>(PREF_KEYS.BOARD_TEMPLATE, 'blank');
 
@@ -227,7 +227,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex gap-1.5">
                 {([
-                  { value: 'feedback' as AiMode, label: 'Feedback', desc: 'Hints & guidance' },
+                  // { value: 'feedback' as AiMode, label: 'Feedback', desc: 'Hints & guidance' },
                   { value: 'suggest' as AiMode, label: 'Suggest', desc: 'Step-by-step help' },
                   { value: 'answer' as AiMode, label: 'Answer', desc: 'Direct solutions' },
                 ] as const).map((opt) => (
