@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Sparkles, Send, Edit2, Loader2, Clock, HelpCircle, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface AIFeedbackPanelProps {
   submissionId: string;
@@ -65,7 +65,7 @@ export function AIFeedbackPanel({
       });
     } catch (error) {
       console.error('Generate feedback error:', error);
-      toast.error('Failed to generate feedback');
+      sileo.error({ title: 'Failed to generate feedback' });
     } finally {
       setIsGenerating(false);
     }
@@ -86,12 +86,12 @@ export function AIFeedbackPanel({
 
       if (!res.ok) throw new Error('Failed to save feedback');
 
-      toast.success(sendToStudent ? 'Feedback sent to student!' : 'Feedback saved');
+      sileo.success({ title: sendToStudent ? 'Feedback sent to student!' : 'Feedback saved' });
       setIsOpen(false);
       onFeedbackSent?.();
     } catch (error) {
       console.error('Save feedback error:', error);
-      toast.error('Failed to save feedback');
+      sileo.error({ title: 'Failed to save feedback' });
     } finally {
       setIsSaving(false);
     }

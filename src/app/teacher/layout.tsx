@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 export default function TeacherLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
 
       // Now we have both user and profile loaded
       if (profile?.role !== 'teacher') {
-        toast.error('Access denied. Only teachers can access the teacher dashboard.');
+        sileo.error({ title: 'Access denied. Only teachers can access the teacher dashboard.' });
         router.push('/?error=teacher_only');
       }
 

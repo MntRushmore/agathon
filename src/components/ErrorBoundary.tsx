@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { logger } from '@/lib/logger';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 type Props = { children: React.ReactNode };
 
@@ -21,7 +21,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: unknown, info: unknown) {
     logger.error({ error, info }, 'Unhandled React error');
     try {
-      toast.error('Something went wrong. Reload to continue.');
+      sileo.error({ title: 'Something went wrong. Reload to continue.' });
     } catch (e) {
       // ignore toast failures
     }

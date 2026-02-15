@@ -11,7 +11,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Plus, Copy, DotsThree, Ticket, CheckCircle, XCircle, CircleNotch,
@@ -45,7 +45,7 @@ export default function AdminInviteCodesPage() {
         setCodes(data.codes || []);
       }
     } catch {
-      toast.error('Failed to load invite codes');
+      sileo.error({ title: 'Failed to load invite codes' });
     } finally {
       setLoading(false);
     }
@@ -72,9 +72,9 @@ export default function AdminInviteCodesPage() {
       const data = await res.json();
       setGeneratedCode(data.code.code);
       setCodes((prev) => [data.code, ...prev]);
-      toast.success('Invite code generated');
+      sileo.success({ title: 'Invite code generated' });
     } catch {
-      toast.error('Failed to generate invite code');
+      sileo.error({ title: 'Failed to generate invite code' });
     } finally {
       setGenerating(false);
     }
@@ -89,15 +89,15 @@ export default function AdminInviteCodesPage() {
       });
       if (!res.ok) throw new Error('Failed to update');
       setCodes((prev) => prev.map((c) => (c.id === code.id ? { ...c, is_active: !c.is_active } : c)));
-      toast.success(code.is_active ? 'Code deactivated' : 'Code activated');
+      sileo.success({ title: code.is_active ? 'Code deactivated' : 'Code activated' });
     } catch {
-      toast.error('Failed to update code');
+      sileo.error({ title: 'Failed to update code' });
     }
   };
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(formatCode(code));
-    toast.success('Copied to clipboard');
+    sileo.success({ title: 'Copied to clipboard' });
   };
 
   const resetDialog = () => {

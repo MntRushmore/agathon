@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +60,7 @@ export default function CompleteSignupPage() {
 
       if (data.success) {
         setStatus('success');
-        toast.success('Account created successfully!');
+        sileo.success({ title: 'Account created successfully!' });
         setTimeout(() => window.location.href = '/', 1500);
       } else {
         setStatus('need_code');

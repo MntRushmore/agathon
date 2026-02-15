@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '@/lib/logger';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
 // Card components no longer needed — using plain divs for a lighter, less "AI template" feel
@@ -113,7 +113,7 @@ export default function BillingPage() {
         }
       } catch (err) {
         logger.error({ err }, 'Failed to load usage');
-        try { toast.error('Failed to load usage. Please try again.'); } catch (e) {}
+        try { sileo.error({ title: 'Failed to load usage. Please try again.' }); } catch (e) {}
       } finally {
         setLoadingUsage(false);
       }

@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import confetti from 'canvas-confetti';
 
 interface MilestoneConfig {
@@ -100,11 +100,7 @@ export function celebrateMilestone(milestoneKey: string) {
   }
 
   // Show toast notification
-  toast.success(`${milestone.icon} ${milestone.title}`, {
-    description: milestone.message,
-    duration: 4000,
-    className: 'border-2 border-green-500/20',
-  });
+  sileo.success({ title: `${milestone.icon} ${milestone.title}`, description: milestone.message, duration: 4000 });
 
   // Fire confetti for major milestones
   if (milestone.showConfetti) {

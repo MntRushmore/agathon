@@ -59,7 +59,7 @@ import {
 } from '@headlessui/react';
 import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
@@ -504,7 +504,7 @@ export default function JournalEditorPage() {
 
       if (error) {
         console.error('Failed to load journal:', error);
-        toast.error('Failed to load journal');
+        sileo.error({ title: 'Failed to load journal' });
         router.push('/journal');
         return;
       }
@@ -611,7 +611,7 @@ export default function JournalEditorPage() {
       image: 'image',
     };
     const typeLabel = typeLabels[type] || 'content';
-    const toastId = toast.loading(`Generating ${typeLabel}...`);
+    const loadingId = sileo.show({ title: `Generating ${typeLabel}...` });
 
     try {
       const response = await fetch('/api/journal/generate', {
@@ -634,10 +634,12 @@ export default function JournalEditorPage() {
       const newContent = content ? content + '\n\n' + data.content : data.content;
       setContent(newContent);
 
-      toast.success(`${typeLabel} generated!`, { id: toastId });
+      sileo.dismiss(loadingId);
+      sileo.success({ title: `${typeLabel} generated!` });
     } catch (error) {
       console.error('Generation error:', error);
-      toast.error('Failed to generate content', { id: toastId });
+      sileo.dismiss(loadingId);
+      sileo.error({ title: 'Failed to generate content' });
     } finally {
       setIsGenerating(false);
     }
@@ -726,7 +728,7 @@ export default function JournalEditorPage() {
         setTitle(topic);
       } catch (error) {
         console.error('Flashcard generation error:', error);
-        toast.error('Failed to generate flashcards');
+        sileo.error({ title: 'Failed to generate flashcards' });
         setActiveInlineInput(null);
       } finally {
         setIsGeneratingFlashcards(false);
@@ -924,7 +926,7 @@ export default function JournalEditorPage() {
     const newContent = content ? content + '\n\n' + proactiveSuggestion : proactiveSuggestion;
     setContent(newContent);
     setProactiveSuggestion(null);
-    toast.success('Suggestion applied!');
+    sileo.success({ title: 'Suggestion applied!' });
   };
 
   // Dismiss proactive suggestion
@@ -1090,7 +1092,7 @@ export default function JournalEditorPage() {
           searchJournals('');
           break;
         case 'video-library':
-          toast.info('Video Library - Browse your saved educational videos', { duration: 3000 });
+          sileo.info({ title: 'Video Library - Browse your saved educational videos', duration: 3000 });
           // For now, just show a message. Full implementation would need a video library system
           break;
         case 'image':
@@ -1110,7 +1112,7 @@ export default function JournalEditorPage() {
           pdfInputRef.current?.click();
           break;
         default:
-          toast.info('This feature is coming soon!');
+          sileo.info({ title: 'This feature is coming soon!' });
       }
     }
   };
@@ -1125,7 +1127,7 @@ export default function JournalEditorPage() {
     // Add a placeholder in the content (use functional setState to avoid stale closures)
     const whiteboardPlaceholder = `\n\n[WHITEBOARD:${whiteboardId}]\n`;
     setContent(prev => prev ? prev + whiteboardPlaceholder : whiteboardPlaceholder);
-    toast.success('Whiteboard added!');
+    sileo.success({ title: 'Whiteboard added!' });
   };
 
   // Handle Desmos insertion - adds an inline Desmos graph directly
@@ -1138,14 +1140,14 @@ export default function JournalEditorPage() {
       if (prev.includes(desmosPlaceholder)) return prev;
       return prev ? prev + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
     });
-    toast.success('Graph added! Type equations directly in the calculator.');
+    sileo.success({ title: 'Graph added! Type equations directly in the calculator.' });
   };
 
   // Handle subjournal creation
   const handleCreateSubjournal = async () => {
     if (!user || !journal) return;
 
-    const toastId = toast.loading('Creating subjournal...');
+    const loadingId = sileo.show({ title: 'Creating subjournal...' });
     try {
       const { data, error } = await supabase
         .from('journals')
@@ -1163,10 +1165,12 @@ export default function JournalEditorPage() {
       const subjournalLink = `\n\n[📓 Subjournal: ${data.title}](/journal/${data.id})\n`;
       const newContent = content ? content + subjournalLink : subjournalLink;
       setContent(newContent);
-      toast.success('Subjournal created!', { id: toastId });
+      sileo.dismiss(loadingId);
+      sileo.success({ title: 'Subjournal created!' });
     } catch (error) {
       console.error('Failed to create subjournal:', error);
-      toast.error('Failed to create subjournal', { id: toastId });
+      sileo.dismiss(loadingId);
+      sileo.error({ title: 'Failed to create subjournal' });
     }
   };
 
@@ -1202,7 +1206,7 @@ export default function JournalEditorPage() {
     const newContent = content ? content + journalLink : journalLink;
     setContent(newContent);
     setShowJournalLinkModal(false);
-    toast.success('Journal linked!');
+    sileo.success({ title: 'Journal linked!' });
   };
 
   // Handle YouTube embed
@@ -1222,9 +1226,9 @@ export default function JournalEditorPage() {
       setContent(newContent);
       setShowYoutubeModal(false);
       setYoutubeUrl('');
-      toast.success('YouTube video embedded!');
+      sileo.success({ title: 'YouTube video embedded!' });
     } else {
-      toast.error('Invalid YouTube URL');
+      sileo.error({ title: 'Invalid YouTube URL' });
     }
   };
 
@@ -1244,7 +1248,7 @@ export default function JournalEditorPage() {
     setContent(newContent);
     setShowDesmosModal(false);
     setDesmosExpression('');
-    toast.success('Desmos graph added!');
+    sileo.success({ title: 'Desmos graph added!' });
   };
 
   // Handle chart insertion - adds an inline chart
@@ -1256,7 +1260,7 @@ export default function JournalEditorPage() {
       if (prev.includes(chartPlaceholder)) return prev;
       return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
     });
-    toast.success('Chart added!');
+    sileo.success({ title: 'Chart added!' });
   };
 
   // Handle file upload (converts to base64 and embeds)
@@ -1267,11 +1271,11 @@ export default function JournalEditorPage() {
     // Check file size (limit to 5MB for images, 10MB for others)
     const maxSize = fileType === 'image' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`File too large. Maximum size is ${fileType === 'image' ? '5MB' : '10MB'}`);
+      sileo.error({ title: `File too large. Maximum size is ${fileType === 'image' ? '5MB' : '10MB'}` });
       return;
     }
 
-    const toastId = toast.loading(`Uploading ${fileType}...`);
+    const loadingId = sileo.show({ title: `Uploading ${fileType}...` });
 
     try {
       const reader = new FileReader();
@@ -1296,15 +1300,18 @@ export default function JournalEditorPage() {
 
         const newContent = content ? content + embedCode : embedCode;
         setContent(newContent);
-        toast.success(`${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded!`, { id: toastId });
+        sileo.dismiss(loadingId);
+        sileo.success({ title: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded!` });
       };
       reader.onerror = () => {
-        toast.error(`Failed to upload ${fileType}`, { id: toastId });
+        sileo.dismiss(loadingId);
+        sileo.error({ title: `Failed to upload ${fileType}` });
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error(`Failed to upload ${fileType}:`, error);
-      toast.error(`Failed to upload ${fileType}`, { id: toastId });
+      sileo.dismiss(loadingId);
+      sileo.error({ title: `Failed to upload ${fileType}` });
     }
 
     // Reset the input
@@ -1375,7 +1382,7 @@ export default function JournalEditorPage() {
         }]);
       } catch (error) {
         console.error('Flashcard generation error:', error);
-        toast.error('Failed to generate flashcards');
+        sileo.error({ title: 'Failed to generate flashcards' });
         setChatMessages(prev => [...prev, {
           role: 'assistant',
           content: 'Sorry, I had trouble creating flashcards. Please try again.'
@@ -1452,23 +1459,23 @@ export default function JournalEditorPage() {
     ));
     setPendingContent(null);
     setPendingMessageIndex(null);
-    toast.success('Content added to journal!');
+    sileo.success({ title: 'Content added to journal!' });
   };
 
   // Reapply content (re-add content from a written message)
   const handleReapplyContent = (messageContent: string, messageIndex: number) => {
     const newContent = content ? content + '\n\n' + messageContent : messageContent;
     setContent(newContent);
-    toast.success('Content reapplied to journal!');
+    sileo.success({ title: 'Content reapplied to journal!' });
   };
 
   // Copy message content to clipboard
   const handleCopyMessage = async (messageContent: string) => {
     try {
       await navigator.clipboard.writeText(messageContent);
-      toast.success('Copied to clipboard!');
+      sileo.success({ title: 'Copied to clipboard!' });
     } catch (error) {
-      toast.error('Failed to copy');
+      sileo.error({ title: 'Failed to copy' });
     }
   };
 
@@ -1496,7 +1503,7 @@ export default function JournalEditorPage() {
 
     // Remove the block from pending
     setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
-    toast.success('Section added!');
+    sileo.success({ title: 'Section added!' });
   };
 
   // Deny a single pending block
@@ -1517,7 +1524,7 @@ export default function JournalEditorPage() {
 
     // Clear all pending blocks to remove the UI
     setPendingBlocks([]);
-    toast.success('All sections added!');
+    sileo.success({ title: 'All sections added!' });
   };
 
   // Deny all pending blocks
@@ -1952,18 +1959,18 @@ export default function JournalEditorPage() {
           </div>
           <button
             className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => toast.info('Timer feature coming soon!')}
+            onClick={() => sileo.info({ title: 'Timer feature coming soon!' })}
           >
             <Timer weight="duotone" className="h-5 w-5" />
           </button>
           <button
             className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => toast.info('More options coming soon!')}
+            onClick={() => sileo.info({ title: 'More options coming soon!' })}
           >
             <DotsThree weight="duotone" className="h-5 w-5" />
           </button>
           <button
-            onClick={() => toast.info('Sharing is coming soon!')}
+            onClick={() => sileo.info({ title: 'Sharing is coming soon!' })}
             className="ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
           >
             Share
@@ -2350,12 +2357,12 @@ export default function JournalEditorPage() {
               setEmbeddedWhiteboards(prev => prev.filter(wb => wb.id !== id));
               // Remove placeholder from content
               setContent(prev => prev.replace(new RegExp(`\\n*\\[WHITEBOARD:${id}\\]\\n*`, 'g'), '\n'));
-              toast.success('Whiteboard deleted');
+              sileo.success({ title: 'Whiteboard deleted' });
             }}
             onDeleteDesmos={(id) => {
               // Remove placeholder from content
               setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              toast.success('Graph deleted');
+              sileo.success({ title: 'Graph deleted' });
             }}
             onChartSave={(id, data) => {
               // Update the chart placeholder with new encoded data
@@ -2364,11 +2371,11 @@ export default function JournalEditorPage() {
                 const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
                 return prev.replace(regex, newPlaceholder);
               });
-              toast.success('Chart saved!');
+              sileo.success({ title: 'Chart saved!' });
             }}
             onDeleteChart={(id) => {
               setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              toast.success('Chart deleted');
+              sileo.success({ title: 'Chart deleted' });
             }}
             onSlashCommand={executeCommand}
           />

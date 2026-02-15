@@ -11,7 +11,7 @@ import {
   Scroll, ArrowsClockwise, CaretLeft, CaretRight, Clock,
   User, Trash, ShieldCheck, Key, Eye, FileText,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { formatDistanceToNow, format } from 'date-fns';
 
 // Simple sanitizer: strip any HTML tags from untrusted strings
@@ -70,7 +70,7 @@ export default function AdminLogsPage() {
       setTotalPages(data.totalPages || 1);
       setTotalCount(data.total || 0);
     } catch {
-      toast.error('Failed to load logs');
+      sileo.error({ title: 'Failed to load logs' });
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,7 @@ export default function AdminLogsPage() {
     setRefreshing(true);
     await loadLogs(currentPage, actionFilter);
     setRefreshing(false);
-    toast.success('Logs refreshed');
+    sileo.success({ title: 'Logs refreshed' });
   };
 
   const handleFilterChange = (value: string) => {

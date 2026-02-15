@@ -6,7 +6,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import {
   ArrowLeft,
   CaretRight,
@@ -76,9 +76,9 @@ export default function SettingsPage() {
       if (error) throw error;
       await refreshProfile();
       setNameChanged(false);
-      toast.success('Name updated');
+      sileo.success({ title: 'Name updated' });
     } catch {
-      toast.error('Failed to save');
+      sileo.error({ title: 'Failed to save' });
     } finally {
       setSaving(false);
     }
@@ -90,7 +90,7 @@ export default function SettingsPage() {
       await supabase.auth.signOut();
       router.push('/');
     } catch {
-      toast.error('Failed to sign out');
+      sileo.error({ title: 'Failed to sign out' });
       setSigningOut(false);
     }
   };

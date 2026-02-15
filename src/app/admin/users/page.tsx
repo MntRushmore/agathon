@@ -26,7 +26,7 @@ import {
   UsersThree, ArrowCounterClockwise, CaretLeft, CaretRight,
   Coins, Plus, ArrowsClockwise,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { formatDistance } from 'date-fns';
 
 const PAGE_SIZE = 25;
@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
       if (error) throw error;
       setUsers(data || []);
     } catch {
-      toast.error('Failed to load users');
+      sileo.error({ title: 'Failed to load users' });
     } finally {
       setLoading(false);
     }
@@ -80,15 +80,15 @@ export default function AdminUsersPage() {
         admin_id: user?.id, action_type: 'user_role_change', target_type: 'user', target_id: userId,
         target_details: { previous_role: targetUser?.role, new_role: newRole, email: targetUser?.email },
       });
-      toast.success('Role updated');
+      sileo.success({ title: 'Role updated' });
       loadUsers();
     } catch {
-      toast.error('Failed to update role');
+      sileo.error({ title: 'Failed to update role' });
     }
   };
 
   const handleDeleteUser = async (userId: string, email: string) => {
-    if (userId === user?.id) { toast.error('Cannot delete yourself'); return; }
+    if (userId === user?.id) { sileo.error({ title: 'Cannot delete yourself' }); return; }
     if (!confirm(`Delete ${email}? This cannot be undone.`)) return;
     try {
       const { error } = await supabase.from('profiles').delete().eq('id', userId);
@@ -97,17 +97,17 @@ export default function AdminUsersPage() {
         admin_id: user?.id, action_type: 'user_delete', target_type: 'user', target_id: userId,
         target_details: { email },
       });
-      toast.success('User deleted');
+      sileo.success({ title: 'User deleted' });
       loadUsers();
     } catch {
-      toast.error('Failed to delete user');
+      sileo.error({ title: 'Failed to delete user' });
     }
   };
 
   const handleImpersonate = async (userId: string) => {
-    if (userId === user?.id) { toast.error('Cannot impersonate yourself'); return; }
+    if (userId === user?.id) { sileo.error({ title: 'Cannot impersonate yourself' }); return; }
     await startImpersonation(userId);
-    toast.success('Impersonating user. Use banner to stop.');
+    sileo.success({ title: 'Impersonating user. Use banner to stop.' });
   };
 
   const handleResetOnboarding = async (userId: string, email: string) => {
@@ -122,16 +122,16 @@ export default function AdminUsersPage() {
         admin_id: user?.id, action_type: 'user_onboarding_reset' as any, target_type: 'user', target_id: userId,
         target_details: { email },
       });
-      toast.success('Onboarding reset');
+      sileo.success({ title: 'Onboarding reset' });
       loadUsers();
     } catch {
-      toast.error('Failed to reset onboarding');
+      sileo.error({ title: 'Failed to reset onboarding' });
     }
   };
 
   const handleAddCredits = async () => {
     const amount = parseInt(creditAmount);
-    if (isNaN(amount) || amount === 0) { toast.error('Enter a valid amount'); return; }
+    if (isNaN(amount) || amount === 0) { sileo.error({ title: 'Enter a valid amount' }); return; }
     setUpdatingCredits(true);
     try {
       const newCredits = creditDialog.currentCredits + amount;
@@ -144,11 +144,11 @@ export default function AdminUsersPage() {
         target_id: creditDialog.userId,
         target_details: { email: creditDialog.email, amount, previous: creditDialog.currentCredits, new: newCredits },
       });
-      toast.success(`${amount > 0 ? 'Added' : 'Removed'} ${Math.abs(amount)} credits`);
+      sileo.success({ title: `${amount > 0 ? 'Added' : 'Removed'} ${Math.abs(amount)} credits` });
       setCreditDialog({ open: false, userId: '', email: '', currentCredits: 0 });
       loadUsers();
     } catch {
-      toast.error('Failed to update credits');
+      sileo.error({ title: 'Failed to update credits' });
     } finally {
       setUpdatingCredits(false);
     }

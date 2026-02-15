@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase';
 import { Profile } from '@/types/database';
 import { logger } from '@/lib/logger';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { mapSupabaseError } from '@/lib/error-utils';
 
 interface AuthContextType {
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error({ error }, 'Error fetching profile');
       setProfile(null);
       try {
-        toast.error('Failed to load profile');
+        sileo.error({ title: 'Failed to load profile' });
       } catch (e) {}
     }
   };
@@ -197,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logger.error({ error }, 'Failed to start impersonation');
       const message = mapSupabaseError(error);
       try {
-        toast.error(message);
+        sileo.error({ title: message });
       } catch (e) {}
     }
   };

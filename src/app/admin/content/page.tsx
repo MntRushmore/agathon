@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   MagnifyingGlass, DotsThreeVertical, Eye, Trash, BookOpenText, FileText, SquaresFour, PencilSimple, ArrowsClockwise,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { formatDistance } from 'date-fns';
 
 type ContentTab = 'classes' | 'assignments' | 'boards' | 'documents';
@@ -54,7 +54,7 @@ export default function AdminContentPage() {
       if (boardsRes.status === 'fulfilled' && !boardsRes.value.error) setBoards(boardsRes.value.data || []);
       if (documentsRes.status === 'fulfilled' && !documentsRes.value.error) setDocuments(documentsRes.value.data || []);
     } catch {
-      toast.error('Failed to load content');
+      sileo.error({ title: 'Failed to load content' });
     } finally {
       setLoading(false);
     }
@@ -72,10 +72,10 @@ export default function AdminContentPage() {
         admin_id: user?.id, action_type: `${type}_delete` as any, target_type: type as any, target_id: id,
         target_details: { name },
       });
-      toast.success(`Deleted ${type}`);
+      sileo.success({ title: `Deleted ${type}` });
       loadAllContent();
     } catch {
-      toast.error('Failed to delete');
+      sileo.error({ title: 'Failed to delete' });
     }
   };
 

@@ -21,8 +21,9 @@ import {
   Plus,
   Clock,
   ArrowRight,
+  Bell,
 } from '@phosphor-icons/react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -137,7 +138,7 @@ export default function AdminDashboardPage() {
     setRefreshing(true);
     await loadDashboard();
     setRefreshing(false);
-    toast.success('Dashboard refreshed');
+    sileo.success({ title: 'Dashboard refreshed' });
   };
 
   const exportToCSV = () => {
@@ -176,9 +177,9 @@ New Users (Month),${stats.newUsersMonth}`;
         .eq('id', profile.id);
       if (error) throw error;
       await refreshProfile();
-      toast.success(`Added ${amount} credits`);
+      sileo.success({ title: `Added ${amount} credits` });
     } catch {
-      toast.error('Failed to add credits');
+      sileo.error({ title: 'Failed to add credits' });
     } finally {
       setUpdatingAccount(false);
     }
@@ -200,9 +201,9 @@ New Users (Month),${stats.newUsersMonth}`;
         .eq('id', profile.id);
       if (error) throw error;
       await refreshProfile();
-      toast.success(tier === 'premium' ? 'Upgraded to Premium' : 'Switched to Free');
+      sileo.success({ title: tier === 'premium' ? 'Upgraded to Premium' : 'Switched to Free' });
     } catch {
-      toast.error('Failed to update plan');
+      sileo.error({ title: 'Failed to update plan' });
     } finally {
       setUpdatingAccount(false);
     }
@@ -274,6 +275,33 @@ New Users (Month),${stats.newUsersMonth}`;
               Make Premium
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Test Notifications */}
+      <div className="bg-card border border-border p-4">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Test Notifications
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => sileo.success({ title: 'Success notification', description: 'This is a test success message.' })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Success
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => sileo.error({ title: 'Error notification', description: 'This is a test error message.' })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Error
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => sileo.warning({ title: 'Warning notification', description: 'This is a test warning message.' })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Warning
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => sileo.info({ title: 'Info notification', description: 'This is a test info message.' })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Info
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => sileo.action({ title: 'Action notification', description: 'This is a test action message.', button: { title: 'Undo', onClick: () => sileo.info({ title: 'Undo clicked!' }) } })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Action
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => sileo.show({ title: 'Default notification', description: 'This is a plain test message.' })} className="rounded-none h-7 text-xs">
+            <Bell className="w-3 h-3 mr-1" /> Default
+          </Button>
         </div>
       </div>
 

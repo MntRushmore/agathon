@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { mapSupabaseError } from '@/lib/error-utils';
 import { logger } from '@/lib/logger';
 import {
@@ -57,11 +57,11 @@ export default function ProfilePage() {
       if (error) throw error;
 
       await refreshProfile();
-      toast.success('Profile updated successfully!');
+      sileo.success({ title: 'Profile updated successfully!' });
     } catch (error) {
       logger.error({ error }, 'Failed to update profile');
       const message = mapSupabaseError(error);
-      toast.error(message);
+      sileo.error({ title: message });
     } finally {
       setSaving(false);
     }
@@ -72,7 +72,7 @@ export default function ProfilePage() {
     try {
       await signOut();
     } catch (error) {
-      toast.error('Failed to sign out');
+      sileo.error({ title: 'Failed to sign out' });
       setSigningOut(false);
     }
   };

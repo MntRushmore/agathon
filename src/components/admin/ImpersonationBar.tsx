@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Profile } from '@/types/database';
 import { X, Search, ArrowLeftRight, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 const ADMIN_SESSION_KEY = 'agathon_admin_session';
 const SWITCH_ACTIVE_KEY = 'agathon_switch_active';
@@ -86,7 +86,7 @@ export function ImpersonationBar() {
       window.location.reload();
     } catch (err) {
       console.error('Switch error:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to switch user');
+      sileo.error({ title: err instanceof Error ? err.message : 'Failed to switch user' });
     } finally {
       setSwitching(false);
     }
@@ -95,7 +95,7 @@ export function ImpersonationBar() {
   const handleExit = async () => {
     const saved = getSavedAdminSession();
     if (!saved) {
-      toast.error('No admin session saved');
+      sileo.error({ title: 'No admin session saved' });
       return;
     }
 
@@ -118,7 +118,7 @@ export function ImpersonationBar() {
       window.location.reload();
     } catch (err) {
       console.error('Exit error:', err);
-      toast.error('Failed to restore admin session. Try signing in again.');
+      sileo.error({ title: 'Failed to restore admin session. Try signing in again.' });
       sessionStorage.removeItem(ADMIN_SESSION_KEY);
       sessionStorage.removeItem(SWITCH_ACTIVE_KEY);
     }

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { AuthProvider } from './auth/auth-provider';
-import { Toaster } from './ui/sonner';
+import { Toaster } from 'sileo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CommandPalette } from './CommandPalette';
 import { ImpersonationBar } from './admin/ImpersonationBar';
@@ -32,7 +32,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <ImpersonationBar />
         {children}
-        <Toaster />
+        <Toaster options={{ fill: '#1a1a1a', duration: 2000 }} />
         <CommandPalette />
       </AuthProvider>
     </ErrorBoundary>

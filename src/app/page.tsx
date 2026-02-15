@@ -55,7 +55,7 @@ import {
   HighlighterCircle,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
-import { toast } from "sonner";
+import { sileo } from "sileo";
 import { cn } from "@/lib/utils";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -256,11 +256,11 @@ export default function Dashboard() {
       setPomodoroActive(false);
       setPomodoroPaused(false);
       if (pomodoroMode === 'work') {
-        toast.success('Work session complete! Take a 5-minute break.');
+        sileo.success({ title: 'Work session complete! Take a 5-minute break.' });
         setPomodoroTime(5 * 60);
         setPomodoroMode('break');
       } else {
-        toast.success('Break over! Ready for another session?');
+        sileo.success({ title: 'Break over! Ready for another session?' });
         setPomodoroTime(25 * 60);
         setPomodoroMode('work');
       }
@@ -272,10 +272,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (searchParams.get('auth') === 'required') {
       router.push('/login');
-      toast.info('Please sign in to continue');
+      sileo.info({ title: 'Please sign in to continue' });
     }
     if (searchParams.get('error') === 'teacher_only') {
-      toast.error('Access denied. Only teachers can access the teacher dashboard.');
+      sileo.error({ title: 'Access denied. Only teachers can access the teacher dashboard.' });
     }
   }, [searchParams, router]);
 
@@ -323,7 +323,7 @@ export default function Dashboard() {
     } catch (error: any) {
       console.error('Error fetching whiteboards:', error);
       if (error.code !== 'PGRST116') {
-        toast.error('Failed to fetch whiteboards');
+        sileo.error({ title: 'Failed to fetch whiteboards' });
       }
     } finally {
       setLoading(false);
@@ -423,7 +423,7 @@ export default function Dashboard() {
     if (creating) return;
 
     if (!user) {
-      toast.info('Creating temporary board');
+      sileo.info({ title: 'Creating temporary board' });
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
       setTemplateDialogOpen(false);
@@ -431,7 +431,7 @@ export default function Dashboard() {
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
       setTemplateDialogOpen(false);
       return;
     }
@@ -456,7 +456,7 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      toast.success('Board created');
+      sileo.success({ title: 'Board created' });
 
       // Store file data in sessionStorage if present (too large for URL)
       if (fileData) {
@@ -468,7 +468,7 @@ export default function Dashboard() {
       }
     } catch (error: unknown) {
       console.error('Error creating whiteboard:', error);
-      toast.error('Failed to create whiteboard');
+      sileo.error({ title: 'Failed to create whiteboard' });
     } finally {
       setCreating(false);
       setTemplateDialogOpen(false);
@@ -479,14 +479,14 @@ export default function Dashboard() {
     if (creating) return;
 
     if (!user) {
-      toast.info('Creating temporary board');
+      sileo.info({ title: 'Creating temporary board' });
       const tempId = `temp-${Date.now()}`;
       router.push(`/board/${tempId}`);
       return;
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
       return;
     }
 
@@ -535,7 +535,7 @@ export default function Dashboard() {
       return;
     }
     if (!isAdmin && journals.length >= FREE_JOURNAL_LIMIT) {
-      toast.error(`You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.`);
+      sileo.error({ title: `You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.` });
       return;
     }
     try {
@@ -545,11 +545,11 @@ export default function Dashboard() {
         .select()
         .single();
       if (error) throw error;
-      toast.success('Journal created');
+      sileo.success({ title: 'Journal created' });
       router.push(`/journal/${data.id}`);
     } catch (error) {
       console.error('Error creating journal:', error);
-      toast.error('Failed to create journal');
+      sileo.error({ title: 'Failed to create journal' });
     }
   }, [user, router, supabase, isAdmin, journals.length]);
 
@@ -576,11 +576,11 @@ export default function Dashboard() {
         .select()
         .single();
       if (error) throw error;
-      toast.success('Board created from assignment');
+      sileo.success({ title: 'Board created from assignment' });
       router.push(`/board/${data.id}`);
     } catch (error) {
       console.error('Error creating board from assignment:', error);
-      toast.error('Failed to create board');
+      sileo.error({ title: 'Failed to create board' });
     }
   }
 
@@ -600,11 +600,11 @@ export default function Dashboard() {
         .select()
         .single();
       if (error) throw error;
-      toast.success('Journal created from assignment');
+      sileo.success({ title: 'Journal created from assignment' });
       router.push(`/journal/${data.id}`);
     } catch (error) {
       console.error('Error creating journal from assignment:', error);
-      toast.error('Failed to create journal');
+      sileo.error({ title: 'Failed to create journal' });
     }
   }
 
@@ -616,10 +616,10 @@ export default function Dashboard() {
         .eq('id', id);
       if (error) throw error;
       setJournals(journals.filter(j => j.id !== id));
-      toast.success('Journal deleted');
+      sileo.success({ title: 'Journal deleted' });
     } catch (error) {
       console.error('Error deleting journal:', error);
-      toast.error('Failed to delete journal');
+      sileo.error({ title: 'Failed to delete journal' });
     }
   }
 
@@ -632,10 +632,10 @@ export default function Dashboard() {
 
       if (error) throw error;
       setWhiteboards(whiteboards.filter(w => w.id !== id));
-      toast.success('Whiteboard deleted');
+      sileo.success({ title: 'Whiteboard deleted' });
     } catch (error) {
       console.error('Error deleting whiteboard:', error);
-      toast.error('Failed to delete whiteboard');
+      sileo.error({ title: 'Failed to delete whiteboard' });
     }
   }
 
@@ -656,11 +656,11 @@ export default function Dashboard() {
         .single();
 
       if (error) throw error;
-      toast.success('Board duplicated');
+      sileo.success({ title: 'Board duplicated' });
       fetchWhiteboards();
     } catch (error) {
       console.error('Error duplicating whiteboard:', error);
-      toast.error('Failed to duplicate whiteboard');
+      sileo.error({ title: 'Failed to duplicate whiteboard' });
     }
   }
 
@@ -676,10 +676,10 @@ export default function Dashboard() {
       setWhiteboards(whiteboards.map(w =>
         w.id === id ? { ...w, is_favorite: !isFavorite } : w
       ));
-      toast.success(isFavorite ? 'Removed from favorites' : 'Added to favorites');
+      sileo.success({ title: isFavorite ? 'Removed from favorites' : 'Added to favorites' });
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      toast.error('Failed to update favorite');
+      sileo.error({ title: 'Failed to update favorite' });
     }
   }
 
@@ -697,11 +697,11 @@ export default function Dashboard() {
       setWhiteboards(whiteboards.map(w =>
         w.id === renameId ? { ...w, title: renameTitle } : w
       ));
-      toast.success('Whiteboard renamed');
+      sileo.success({ title: 'Whiteboard renamed' });
       setRenameId(null);
     } catch (error) {
       console.error('Error renaming whiteboard:', error);
-      toast.error('Failed to rename whiteboard');
+      sileo.error({ title: 'Failed to rename whiteboard' });
     }
   }
 
@@ -1065,7 +1065,7 @@ export default function Dashboard() {
                   <span className="text-sm">Preferences</span>
                 </button>
                 <button
-                  onClick={() => toast.info('Help center coming soon!')}
+                  onClick={() => sileo.info({ title: 'Help center coming soon!' })}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                 >
                   <Question className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
@@ -1587,8 +1587,8 @@ export default function Dashboard() {
                         try {
                           await fetch('/api/knowledge/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'google_classroom' }) });
                           await fetchClassroomAssignments(classroomCourseFilter);
-                          toast.success('Classroom synced');
-                        } catch { toast.error('Sync failed'); }
+                          sileo.success({ title: 'Classroom synced' });
+                        } catch { sileo.error({ title: 'Sync failed' }); }
                         setClassroomSyncing(false);
                       }}
                       disabled={classroomSyncing}
@@ -2110,7 +2110,7 @@ export default function Dashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setQuickNoteOpen(false)}>Cancel</Button>
             <Button onClick={() => {
-              toast.success('Note saved!');
+              sileo.success({ title: 'Note saved!' });
               setQuickNoteContent('');
               setQuickNoteOpen(false);
             }}>Save Note</Button>

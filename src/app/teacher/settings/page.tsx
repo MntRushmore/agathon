@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/components/auth/auth-provider';
 import { ArrowLeft, CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { Check, ExternalLink, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import Link from 'next/link';
 import type { GCCourse } from '@/types/google-classroom';
 
@@ -29,11 +29,11 @@ export default function TeacherSettingsPage() {
     // Show success toast if redirected after OAuth
     const connectedParam = searchParams.get('connected');
     if (connectedParam === 'google_classroom') {
-      toast.success('Google Classroom connected successfully');
+      sileo.success({ title: 'Google Classroom connected successfully' });
     }
     const errorParam = searchParams.get('error');
     if (errorParam) {
-      toast.error('Failed to connect Google Classroom');
+      sileo.error({ title: 'Failed to connect Google Classroom' });
     }
   }, [searchParams]);
 
@@ -49,7 +49,7 @@ export default function TeacherSettingsPage() {
       setConnected(data.connected);
       setCourses(data.courses || []);
     } catch {
-      toast.error('Failed to load Google Classroom data');
+      sileo.error({ title: 'Failed to load Google Classroom data' });
     } finally {
       setLoading(false);
     }
@@ -80,16 +80,16 @@ export default function TeacherSettingsPage() {
       const data = await res.json();
 
       if (data.imported > 0) {
-        toast.success(`Imported ${data.imported} course${data.imported > 1 ? 's' : ''} as Agathon classes`);
+        sileo.success({ title: `Imported ${data.imported} course${data.imported > 1 ? 's' : ''} as Agathon classes` });
       }
       if (data.skipped > 0) {
-        toast.info(`${data.skipped} course${data.skipped > 1 ? 's were' : ' was'} already imported`);
+        sileo.info({ title: `${data.skipped} course${data.skipped > 1 ? 's were' : ' was'} already imported` });
       }
 
       setSelectedCourseIds(new Set());
       await fetchCourses();
     } catch {
-      toast.error('Failed to import courses');
+      sileo.error({ title: 'Failed to import courses' });
     } finally {
       setImporting(false);
     }
@@ -110,11 +110,11 @@ export default function TeacherSettingsPage() {
       if (data.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
-        toast.error('Failed to start connection flow');
+        sileo.error({ title: 'Failed to start connection flow' });
         setConnecting(false);
       }
     } catch {
-      toast.error('Failed to connect to Google Classroom');
+      sileo.error({ title: 'Failed to connect to Google Classroom' });
       setConnecting(false);
     }
   };

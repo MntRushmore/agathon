@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
 import { createClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 
 export function AdminPlanToggle() {
@@ -32,9 +32,9 @@ export function AdminPlanToggle() {
         .eq('id', profile.id);
       if (error) throw error;
       await refreshProfile();
-      toast.success(nextTier === 'premium' ? 'Switched to Enterprise' : 'Switched to Free');
+      sileo.success({ title: nextTier === 'premium' ? 'Switched to Enterprise' : 'Switched to Free' });
     } catch {
-      toast.error('Failed to update plan');
+      sileo.error({ title: 'Failed to update plan' });
     } finally {
       setUpdating(false);
     }
