@@ -1928,7 +1928,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     [editor, assistanceMode, aiAllowed, isModeAllowed, assignmentRestrictions, trackAIUsage],
   );
 
-  // Listen for lasso solve events — show action prompt instead of auto-solving
+  // Listen for lasso solve events — show action prompt
   useEffect(() => {
     const handleLassoSolve = (event: Event) => {
       const customEvent = event as CustomEvent<LassoSolveCompleteEvent>;
@@ -1958,46 +1958,42 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     return () => window.removeEventListener('lasso-solve-complete', handleLassoSolve);
   }, [editor]);
 
-  // Handle lasso action prompt selection
+  // Handle lasso action prompt selection — all actions open AI chat
   const handleLassoAction = useCallback(
     async (action: 'feedback' | 'suggest' | 'answer' | 'chat') => {
       if (!lassoPrompt || !editor) return;
       const { shapeIds, bounds } = lassoPrompt;
       setLassoPrompt(null);
 
-      if (action === 'chat') {
-        // Capture lassoed shapes as image and open AI Tutor
-        try {
-          const captureBounds = new Box(
-            bounds.x - 20,
-            bounds.y - 20,
-            bounds.width + 40,
-            bounds.height + 40,
-          );
-          const result = await editor.toImage(shapeIds, {
-            format: 'png',
-            bounds: captureBounds,
-            background: true,
-            scale: 1,
-            padding: 0,
+      // All actions now open the AI Tutor chat (sticky note generation disabled)
+      try {
+        const captureBounds = new Box(
+          bounds.x - 20,
+          bounds.y - 20,
+          bounds.width + 40,
+          bounds.height + 40,
+        );
+        const result = await editor.toImage(shapeIds, {
+          format: 'png',
+          bounds: captureBounds,
+          background: true,
+          scale: 1,
+          padding: 0,
+        });
+        if (result.blob) {
+          const base64 = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(result.blob);
           });
-          if (result.blob) {
-            const base64 = await new Promise<string>((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(result.blob);
-            });
-            setAiTutorImage(base64);
-            setAiTutorOpen(true);
-          }
-        } catch (err) {
-          logger.error({ err }, 'Failed to capture lasso shapes for AI Tutor');
+          setAiTutorImage(base64);
+          setAiTutorOpen(true);
         }
-      } else {
-        void generateSolutionForShapes(shapeIds, bounds, action);
+      } catch (err) {
+        logger.error({ err }, 'Failed to capture lasso shapes for AI Tutor');
       }
     },
-    [lassoPrompt, editor, generateSolutionForShapes],
+    [lassoPrompt, editor],
   );
 
   // Cancel in-flight requests when user edits the canvas
@@ -2511,7 +2507,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             </div>
           )}
 
-          {/* Lasso Action Prompt */}
+          {/* Lasso Action Prompt — all actions now open AI chat */}
           {lassoPrompt && (
             <LassoActionPrompt
               position={lassoPrompt.screenPos}
