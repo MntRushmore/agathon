@@ -526,8 +526,8 @@ export function AITutorPanel({
         <button
           onClick={() =>
             activeTab === 'chat'
-              ? sendMessage('Next Step')
-              : sendAnalysisFollowUp('Next Step')
+              ? sendMessage('Help with the next step')
+              : sendAnalysisFollowUp('Help with the next step')
           }
           disabled={activeTab === 'chat' ? isChatLoading : isAnalysisStreaming}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
