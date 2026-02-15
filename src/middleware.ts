@@ -100,6 +100,20 @@ export async function middleware(request: NextRequest) {
   const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/terms', '/privacy', '/demo', '/pitch'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
 
+  // Enforce invite code redemption for authenticated users on protected routes
+  if (user && !isPublicPath) {
+    const { data: inviteProfile } = await supabase
+      .from('profiles')
+      .select('invite_redeemed')
+      .eq('id', user.id)
+      .single();
+
+    if (inviteProfile && inviteProfile.invite_redeemed === false) {
+      const redirectUrl = new URL('/auth/complete-signup', request.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
   // Protect board routes - require authentication
   if (request.nextUrl.pathname.startsWith('/board/') && !user) {
     const redirectUrl = new URL('/', request.url);
