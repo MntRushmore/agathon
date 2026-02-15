@@ -23,7 +23,7 @@ export function CTASection() {
             <div className="mb-8">
               <WaitlistForm
                 variant="inline"
-                buttonText="Start Your Free Session"
+                buttonText="Join Waitlist Now!"
               />
             </div>
 

@@ -201,7 +201,7 @@ export function AgoraLandingPage() {
                     style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
                     onClick={() => openWaitlist()}
                   >
-                    Start Your Free Session
+                    Join Waitlist Now!
                     <ArrowRight className="w-4 h-4 ml-2" aria-hidden="true" />
                   </Button>
                 </div>
