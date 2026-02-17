@@ -1505,10 +1505,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const leftXPosition = viewportBounds.x + padding;
         const rightXPosition = viewportBounds.x + viewportBounds.width - noteWidth - padding;
 
-        // In "feedback" mode, show at full opacity without accept/reject
-        // In "suggest" and "answer" modes, show at reduced opacity with accept/reject
-        const isFeedbackMode = false; // mode === "feedback" — feedback mode disabled
-
         // Create feedback shapes
         if (isPremium && imageUrl) {
           // Premium: Paste a hand-drawn image of the feedback
@@ -1553,7 +1549,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             type: "image",
             x: viewportBounds.x + (viewportBounds.width - w) / 2,
             y: viewportBounds.y + (viewportBounds.height - h) / 2,
-            opacity: isFeedbackMode ? 1.0 : 0.8,
+            opacity: 0.8,
             isLocked: true,
             props: {
               w,
@@ -1593,8 +1589,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           setAiTutorAnswer(feedback.summary || textContent);
         }
 
-        // Only add to pending list if not in feedback mode
-        if (!isFeedbackMode) {
+        // Add premium shapes to pending list for accept/reject
+        if (createdShapeIds.length > 0) {
           setPendingImageIds((prev) => [...prev, ...createdShapeIds]);
         }
 
