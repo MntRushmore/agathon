@@ -33,12 +33,36 @@ export async function POST() {
       return NextResponse.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    // Fetch all waitlist entries
     const serviceClient = createServiceRoleClient();
-    const { data: entries, error } = await serviceClient
+
+    // Try to fetch with referral_email_sent column, fall back without it
+    let entries: { id: string; email: string; name: string | null; referral_code: string; referral_email_sent?: boolean }[] | null = null;
+    let hasTrackingColumn = true;
+
+    const { data, error } = await serviceClient
       .from('waitlist')
-      .select('id, email, name, referral_code')
+      .select('id, email, name, referral_code, referral_email_sent')
       .order('created_at', { ascending: true });
+
+    if (error && error.message?.includes('referral_email_sent')) {
+      // Column doesn't exist yet — fetch without it
+      hasTrackingColumn = false;
+      const { data: fallbackData, error: fallbackError } = await serviceClient
+        .from('waitlist')
+        .select('id, email, name, referral_code')
+        .order('created_at', { ascending: true });
+
+      if (fallbackError) {
+        console.error('Failed to fetch waitlist:', fallbackError);
+        return NextResponse.json({ error: 'Failed to fetch waitlist' }, { status: 500 });
+      }
+      entries = fallbackData;
+    } else if (error) {
+      console.error('Failed to fetch waitlist:', error);
+      return NextResponse.json({ error: 'Failed to fetch waitlist' }, { status: 500 });
+    } else {
+      entries = data;
+    }
 
     if (error) {
       console.error('Failed to fetch waitlist:', error);
@@ -49,8 +73,15 @@ export async function POST() {
       return NextResponse.json({ message: 'No waitlist entries found', sent: 0 });
     }
 
+    // Filter to only unsent entries
+    const unsent = entries.filter((e) => !e.referral_email_sent);
+
+    if (unsent.length === 0) {
+      return NextResponse.json({ message: 'All emails already sent!', sent: 0, skipped: entries.length });
+    }
+
     // Backfill referral codes for any entries missing them
-    for (const entry of entries) {
+    for (const entry of unsent) {
       if (!entry.referral_code) {
         const code = generateReferralCode();
         await serviceClient
@@ -66,8 +97,8 @@ export async function POST() {
     const errors: string[] = [];
 
     // Send emails one at a time with 3s delay to avoid rate limits
-    for (let i = 0; i < entries.length; i++) {
-      const entry = entries[i];
+    for (let i = 0; i < unsent.length; i++) {
+      const entry = unsent[i];
 
       try {
         const { error: emailError } = await resend.emails.send({
@@ -85,6 +116,13 @@ export async function POST() {
           errors.push(`${entry.email}: ${emailError.message}`);
           failed++;
         } else {
+          // Mark as sent so we don't send again
+          if (hasTrackingColumn) {
+            await serviceClient
+              .from('waitlist')
+              .update({ referral_email_sent: true } as Record<string, unknown>)
+              .eq('id', entry.id);
+          }
           sent++;
         }
       } catch (err) {
@@ -93,15 +131,16 @@ export async function POST() {
       }
 
       // 3 second delay between each email
-      if (i < entries.length - 1) {
+      if (i < unsent.length - 1) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
 
     return NextResponse.json({
-      message: `Sent ${sent} emails, ${failed} failed`,
+      message: `Sent ${sent} emails, ${failed} failed, ${entries.length - unsent.length} skipped (already sent)`,
       sent,
       failed,
+      skipped: entries.length - unsent.length,
       total: entries.length,
       errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
     });
