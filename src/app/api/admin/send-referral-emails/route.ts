@@ -4,6 +4,15 @@ import { resend } from '@/lib/resend';
 import { NextResponse } from 'next/server';
 import ReferralAnnouncement from '@/emails/ReferralAnnouncement';
 
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export async function POST() {
   try {
     // Verify admin
@@ -24,12 +33,11 @@ export async function POST() {
       return NextResponse.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    // Fetch all waitlist entries with referral codes
+    // Fetch all waitlist entries
     const serviceClient = createServiceRoleClient();
     const { data: entries, error } = await serviceClient
       .from('waitlist')
       .select('id, email, name, referral_code')
-      .not('referral_code', 'is', null)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -41,45 +49,52 @@ export async function POST() {
       return NextResponse.json({ message: 'No waitlist entries found', sent: 0 });
     }
 
+    // Backfill referral codes for any entries missing them
+    for (const entry of entries) {
+      if (!entry.referral_code) {
+        const code = generateReferralCode();
+        await serviceClient
+          .from('waitlist')
+          .update({ referral_code: code })
+          .eq('id', entry.id);
+        entry.referral_code = code;
+      }
+    }
+
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
 
-    // Send emails in batches of 10 to avoid rate limits
-    for (let i = 0; i < entries.length; i += 10) {
-      const batch = entries.slice(i, i + 10);
+    // Send emails one at a time with 3s delay to avoid rate limits
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
 
-      const results = await Promise.allSettled(
-        batch.map(async (entry) => {
-          const { error: emailError } = await resend.emails.send({
-            from: 'Agathon <send@mail.agathon.app>',
-            replyTo: 'rushil@agathon.app',
-            to: entry.email,
-            subject: "You now have a referral link — share it, earn cash",
-            react: ReferralAnnouncement({
-              name: entry.name || undefined,
-              referralCode: entry.referral_code,
-            }),
-          });
+      try {
+        const { error: emailError } = await resend.emails.send({
+          from: 'Agathon <send@mail.agathon.app>',
+          replyTo: 'rushil@agathon.app',
+          to: entry.email,
+          subject: "Progress update + your personal referral link",
+          react: ReferralAnnouncement({
+            name: entry.name || undefined,
+            referralCode: entry.referral_code,
+          }),
+        });
 
-          if (emailError) {
-            throw new Error(`${entry.email}: ${emailError.message}`);
-          }
-        })
-      );
-
-      for (const result of results) {
-        if (result.status === 'fulfilled') {
-          sent++;
-        } else {
+        if (emailError) {
+          errors.push(`${entry.email}: ${emailError.message}`);
           failed++;
-          errors.push(result.reason?.message || 'Unknown error');
+        } else {
+          sent++;
         }
+      } catch (err) {
+        errors.push(`${entry.email}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        failed++;
       }
 
-      // Small delay between batches
-      if (i + 10 < entries.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      // 3 second delay between each email
+      if (i < entries.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     }
 

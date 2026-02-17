@@ -24,7 +24,7 @@ export default function ReferralAnnouncement({ name, referralCode }: ReferralAnn
   return (
     <Html>
       <Head />
-      <Preview>You now have a referral link — share it and earn cash rewards.</Preview>
+      <Preview>Progress is going well — plus you now have a referral link to earn cash rewards.</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Logo */}
@@ -44,8 +44,13 @@ export default function ReferralAnnouncement({ name, referralCode }: ReferralAnn
             <Heading style={heading}>{greeting}</Heading>
 
             <Text style={paragraph}>
-              We just launched something new for everyone on the waitlist:{' '}
-              <strong>referral rewards</strong>.
+              Quick update from the Agathon team — progress is going really well.
+              We&apos;re building fast and can&apos;t wait to get this into your hands.
+            </Text>
+
+            <Text style={paragraph}>
+              In the meantime, we just launched something for everyone on the
+              waitlist: <strong>referral rewards</strong>.
             </Text>
 
             <Text style={paragraph}>
@@ -95,6 +100,15 @@ export default function ReferralAnnouncement({ name, referralCode }: ReferralAnn
             </Link>
 
             <Text style={paragraph} />
+
+            <Heading as="h2" style={subheading}>
+              Want a personalized demo?
+            </Heading>
+
+            <Text style={paragraph}>
+              If you&apos;d like to see Agathon in action before launch, just reply
+              to this email and we&apos;ll set up a personalized demo for you.
+            </Text>
 
             <Text style={paragraph}>
               The leaderboard is live now. Go claim your spot.
