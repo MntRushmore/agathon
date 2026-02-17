@@ -12,19 +12,19 @@ import {
   Text,
 } from '@react-email/components';
 
-interface WaitlistTeacherProps {
+interface ReferralAnnouncementProps {
   name?: string;
-  referralCode?: string;
+  referralCode: string;
 }
 
-export default function WaitlistTeacher({ name, referralCode }: WaitlistTeacherProps) {
+export default function ReferralAnnouncement({ name, referralCode }: ReferralAnnouncementProps) {
   const greeting = name ? `Hey ${name}!` : 'Hey!';
-  const referralLink = referralCode ? `https://agathon.app?ref=${referralCode}` : null;
+  const referralLink = `https://agathon.app?ref=${referralCode}`;
 
   return (
     <Html>
       <Head />
-      <Preview>You&apos;re on the Agathon waitlist — built for educators like you.</Preview>
+      <Preview>You now have a referral link — share it and earn cash rewards.</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Logo */}
@@ -44,91 +44,61 @@ export default function WaitlistTeacher({ name, referralCode }: WaitlistTeacherP
             <Heading style={heading}>{greeting}</Heading>
 
             <Text style={paragraph}>
-              Thanks for signing up — we&apos;re glad to have an educator on the list.
+              We just launched something new for everyone on the waitlist:{' '}
+              <strong>referral rewards</strong>.
             </Text>
 
             <Text style={paragraph}>
-              We&apos;re building <strong>Agathon</strong> to give teachers real
-              superpowers. Not more paperwork, not another dashboard to check — actual
-              insight into how your students think and where they get stuck. Our AI
-              doesn&apos;t replace you. It gives you the visibility you&apos;ve always
-              wanted.
+              You now have a personal referral link. Every time someone joins the
+              Agathon waitlist through your link, it counts as a referral. The more
+              people you bring in, the higher you climb on our public leaderboard —
+              and <strong>top referrers earn cash rewards</strong>.
             </Text>
 
+            <Section style={referralBox}>
+              <Text style={referralLabel}>Your referral link:</Text>
+              <Link href={referralLink} style={referralLinkStyle}>
+                {referralLink}
+              </Link>
+            </Section>
+
             <Heading as="h2" style={subheading}>
-              What you&apos;ll get:
+              How it works:
             </Heading>
 
             <Text style={listItem}>
-              <span style={bullet}>—</span> Live insight into student thinking as they
-              work through problems
+              <span style={bullet}>1.</span> Share your link with friends,
+              classmates, or anyone who&apos;d love Agathon
             </Text>
             <Text style={listItem}>
-              <span style={bullet}>—</span> AI-generated feedback you can review and
-              send in seconds, not hours
+              <span style={bullet}>2.</span> When they join the waitlist through
+              your link, you get credit
             </Text>
             <Text style={listItem}>
-              <span style={bullet}>—</span> Google Classroom integration so it fits
-              into your existing workflow
+              <span style={bullet}>3.</span> Check the{' '}
+              <Link href="https://agathon.app/referral/leaderboard" style={inlineLink}>
+                leaderboard
+              </Link>{' '}
+              to see where you rank
             </Text>
             <Text style={listItem}>
-              <span style={bullet}>—</span> Early access with free credits when we
-              launch
-            </Text>
-
-            <Heading as="h2" style={subheading}>
-              What&apos;s next:
-            </Heading>
-
-            <Text style={listItem}>
-              <span style={bullet}>—</span> We&apos;ll reach out when your spot is
-              ready
-            </Text>
-            <Text style={listItem}>
-              <span style={bullet}>—</span> Teachers get priority access — you&apos;re
-              at the front of the line
-            </Text>
-            <Text style={listItem}>
-              <span style={bullet}>—</span> We&apos;ll share what we&apos;re building
-              and ask for your input along the way
+              <span style={bullet}>4.</span> Top referrers get paid — real cash,
+              not credits
             </Text>
 
             <Text style={paragraph}>
-              Hit reply if you want to tell us about your classroom — what subjects you
-              teach, what grade levels, what drives you crazy. We actually read every
-              reply, and it directly shapes what we build.
+              You can track your referrals anytime:
             </Text>
 
-            {referralLink && (
-              <>
-                <Hr style={divider} />
+            <Link href={`https://agathon.app/referral/${referralCode}`} style={referralStatsLink}>
+              View your referral stats &rarr;
+            </Link>
 
-                <Heading as="h2" style={subheading}>
-                  Skip the line
-                </Heading>
+            <Text style={paragraph} />
 
-                <Text style={paragraph}>
-                  Want faster access? Share your personal referral link with fellow
-                  educators and students. The more people you refer, the higher you climb
-                  on the{' '}
-                  <Link href="https://agathon.app/referral/leaderboard" style={inlineLink}>
-                    leaderboard
-                  </Link>
-                  {' '}— and top referrers earn cash rewards.
-                </Text>
-
-                <Section style={referralBox}>
-                  <Text style={referralLabel}>Your referral link:</Text>
-                  <Link href={referralLink} style={referralLinkStyle}>
-                    {referralLink}
-                  </Link>
-                </Section>
-
-                <Link href={`https://agathon.app/referral/${referralCode}`} style={referralStatsLink}>
-                  View your referral stats &rarr;
-                </Link>
-              </>
-            )}
+            <Text style={paragraph}>
+              The leaderboard is live now. Go claim your spot.
+            </Text>
 
             <Text style={signoff}>
               — The Agathon Team
@@ -233,6 +203,43 @@ const bullet: React.CSSProperties = {
   marginRight: '8px',
 };
 
+const inlineLink: React.CSSProperties = {
+  color: '#007ba5',
+  textDecoration: 'underline',
+};
+
+const referralBox: React.CSSProperties = {
+  backgroundColor: '#f0f9fc',
+  border: '1px solid #d1ecf5',
+  borderRadius: '8px',
+  padding: '16px 20px',
+  margin: '16px 0 24px',
+};
+
+const referralLabel: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: '600',
+  color: '#666666',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  margin: '0 0 8px',
+};
+
+const referralLinkStyle: React.CSSProperties = {
+  fontSize: '15px',
+  fontFamily: 'monospace',
+  color: '#007ba5',
+  textDecoration: 'none',
+  wordBreak: 'break-all' as const,
+};
+
+const referralStatsLink: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#007ba5',
+  textDecoration: 'none',
+  fontWeight: '600',
+};
+
 const signoff: React.CSSProperties = {
   fontSize: '16px',
   lineHeight: '1.6',
@@ -269,41 +276,4 @@ const footerLinks: React.CSSProperties = {
 const footerLink: React.CSSProperties = {
   color: '#007ba5',
   textDecoration: 'none',
-};
-
-const inlineLink: React.CSSProperties = {
-  color: '#007ba5',
-  textDecoration: 'underline',
-};
-
-const referralBox: React.CSSProperties = {
-  backgroundColor: '#f0f9fc',
-  border: '1px solid #d1ecf5',
-  borderRadius: '8px',
-  padding: '16px 20px',
-  margin: '16px 0',
-};
-
-const referralLabel: React.CSSProperties = {
-  fontSize: '12px',
-  fontWeight: '600',
-  color: '#666666',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.5px',
-  margin: '0 0 8px',
-};
-
-const referralLinkStyle: React.CSSProperties = {
-  fontSize: '15px',
-  fontFamily: 'monospace',
-  color: '#007ba5',
-  textDecoration: 'none',
-  wordBreak: 'break-all' as const,
-};
-
-const referralStatsLink: React.CSSProperties = {
-  fontSize: '14px',
-  color: '#007ba5',
-  textDecoration: 'none',
-  fontWeight: '600',
 };

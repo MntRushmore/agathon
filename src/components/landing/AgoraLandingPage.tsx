@@ -68,6 +68,14 @@ export function AgoraLandingPage() {
     }
   }, []);
 
+  // Persist referral code from URL so it survives navigation
+  useEffect(() => {
+    const ref = searchParams.get('ref');
+    if (ref) {
+      localStorage.setItem('agathon_referral_code', ref);
+    }
+  }, [searchParams]);
+
   // Open waitlist dialog if ?waitlist=true is in URL
   useEffect(() => {
     if (searchParams.get('waitlist') === 'true') {

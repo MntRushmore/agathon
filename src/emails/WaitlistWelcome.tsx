@@ -14,10 +14,12 @@ import {
 
 interface WaitlistWelcomeProps {
   name?: string;
+  referralCode?: string;
 }
 
-export default function WaitlistWelcome({ name }: WaitlistWelcomeProps) {
+export default function WaitlistWelcome({ name, referralCode }: WaitlistWelcomeProps) {
   const greeting = name ? `Hey ${name}!` : 'Hey!';
+  const referralLink = referralCode ? `https://agathon.app?ref=${referralCode}` : null;
 
   return (
     <Html>
@@ -72,6 +74,36 @@ export default function WaitlistWelcome({ name }: WaitlistWelcomeProps) {
               Hit reply if you want to say hi or tell us what you&apos;re working on. We
               actually read these.
             </Text>
+
+            {referralLink && (
+              <>
+                <Hr style={divider} />
+
+                <Heading as="h2" style={subheading}>
+                  Skip the line
+                </Heading>
+
+                <Text style={paragraph}>
+                  Want faster access? Share your personal referral link with friends.
+                  The more people you refer, the higher you climb on the{' '}
+                  <Link href="https://agathon.app/referral/leaderboard" style={inlineLink}>
+                    leaderboard
+                  </Link>
+                  {' '}— and top referrers earn cash rewards.
+                </Text>
+
+                <Section style={referralBox}>
+                  <Text style={referralLabel}>Your referral link:</Text>
+                  <Link href={referralLink} style={referralLinkStyle}>
+                    {referralLink}
+                  </Link>
+                </Section>
+
+                <Link href={`https://agathon.app/referral/${referralCode}`} style={referralStatsLink}>
+                  View your referral stats &rarr;
+                </Link>
+              </>
+            )}
 
             <Text style={signoff}>
               — The Agathon Team
@@ -212,4 +244,41 @@ const footerLinks: React.CSSProperties = {
 const footerLink: React.CSSProperties = {
   color: '#007ba5',
   textDecoration: 'none',
+};
+
+const inlineLink: React.CSSProperties = {
+  color: '#007ba5',
+  textDecoration: 'underline',
+};
+
+const referralBox: React.CSSProperties = {
+  backgroundColor: '#f0f9fc',
+  border: '1px solid #d1ecf5',
+  borderRadius: '8px',
+  padding: '16px 20px',
+  margin: '16px 0',
+};
+
+const referralLabel: React.CSSProperties = {
+  fontSize: '12px',
+  fontWeight: '600',
+  color: '#666666',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.5px',
+  margin: '0 0 8px',
+};
+
+const referralLinkStyle: React.CSSProperties = {
+  fontSize: '15px',
+  fontFamily: 'monospace',
+  color: '#007ba5',
+  textDecoration: 'none',
+  wordBreak: 'break-all' as const,
+};
+
+const referralStatsLink: React.CSSProperties = {
+  fontSize: '14px',
+  color: '#007ba5',
+  textDecoration: 'none',
+  fontWeight: '600',
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Check, Loader2, GraduationCap, Users, BookOpen } from 'lucide-react';
+import { ArrowRight, Check, Loader2, GraduationCap, Users, BookOpen, Copy, Link } from 'lucide-react';
 
 type Role = 'student' | 'teacher' | 'parent';
 
@@ -49,6 +50,9 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const searchParams = useSearchParams();
 
   // Update role when defaultRole changes (e.g., when opening dialog from use cases section)
   useEffect(() => {
@@ -64,34 +68,41 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
       return entities[char] || char;
     });
 
+  const getReferralLink = (code: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${baseUrl}?ref=${code}`;
+  };
+
+  const copyReferralLink = () => {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(getReferralLink(referralCode));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || loading) return;
+    if (!email || !name.trim() || loading) return;
 
     setLoading(true);
     setError('');
 
     try {
+      const ref = searchParams.get('ref') || localStorage.getItem('agathon_referral_code') || undefined;
+
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: sanitize(email.trim()), name: sanitize(name.trim()), role }),
+        body: JSON.stringify({ email: sanitize(email.trim()), name: sanitize(name.trim()), role, ref }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
         setSuccess(true);
-        setTimeout(() => {
-          onOpenChange(false);
-          // Reset form after close
-          setTimeout(() => {
-            setSuccess(false);
-            setEmail('');
-            setName('');
-            setRole('student');
-          }, 300);
-        }, 2000);
+        if (data.referralCode) {
+          setReferralCode(data.referralCode);
+        }
       } else {
         setError(data.error || 'Something went wrong');
       }
@@ -102,20 +113,68 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
     }
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+    // Reset form after close
+    setTimeout(() => {
+      setSuccess(false);
+      setEmail('');
+      setName('');
+      setRole('student');
+      setReferralCode(null);
+      setCopied(false);
+    }, 300);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
         {success ? (
-          <div className="py-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
+          <div className="py-6 space-y-5">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                You&apos;re on the list!
+              </h3>
+              <p className="text-gray-500 text-sm">
+                We&apos;ll notify you when Agathon is ready. Get excited!
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              You're on the list!
-            </h3>
-            <p className="text-gray-500 text-sm">
-              We'll notify you when Agathon is ready. Get excited!
-            </p>
+
+            {referralCode && (
+              <div className="p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-3">
+                <p className="text-sm font-medium text-gray-700">
+                  Want to move up the list? Share your referral link:
+                </p>
+                <div className="flex gap-2">
+                  <div className="flex-1 text-xs px-3 py-2.5 rounded bg-white text-gray-600 border border-gray-200 font-mono truncate">
+                    {getReferralLink(referralCode)}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyReferralLink}
+                    className="flex-shrink-0 h-9 px-3"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+                <a
+                  href="/referral/leaderboard"
+                  className="inline-flex items-center gap-1 text-xs text-gray-500 font-medium hover:underline"
+                >
+                  <Link className="w-3 h-3" />
+                  View Leaderboard
+                </a>
+              </div>
+            )}
+
+            <Button className="w-full" onClick={handleClose}>
+              Done
+            </Button>
           </div>
         ) : (
           <>
@@ -149,10 +208,10 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
                 </div>
               </div>
 
-              {/* Name (optional) */}
+              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium">
-                  Name <span className="text-gray-400">(optional)</span>
+                  Name
                 </Label>
                 <Input
                   id="name"
@@ -161,6 +220,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="h-11"
+                  required
                 />
               </div>
 
@@ -186,7 +246,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
 
               <Button
                 type="submit"
-                disabled={loading || !email}
+                disabled={loading || !email || !name.trim()}
                 className="w-full h-11 text-[14px] font-medium"
               >
                 {loading ? (
@@ -200,7 +260,7 @@ export function WaitlistDialog({ open, onOpenChange, defaultRole = 'student' }: 
               </Button>
 
               <p className="text-xs text-gray-400 text-center">
-                No spam, ever. We'll only email you about launch updates.
+                No spam, ever. We&apos;ll only email you about launch updates.
               </p>
             </form>
           </>

@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public paths that don't require invite verification
-  const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/terms', '/privacy', '/demo', '/pitch'];
+  const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/api/referral/', '/referral/', '/terms', '/privacy', '/demo', '/pitch'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
 
   // Enforce invite code redemption for authenticated users on protected routes
