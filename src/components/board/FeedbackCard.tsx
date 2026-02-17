@@ -77,8 +77,10 @@ export function FeedbackCard({
     });
   }, [showSolution]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('button')) return;
+    // Capture pointer so move/up events fire even outside the element
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragging.current = true;
     setIsDragging(true);
     offset.current = {
@@ -87,28 +89,20 @@ export function FeedbackCard({
     };
   }, []);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragging.current || !cardRef.current) return;
-      const newX = e.clientX - offset.current.x;
-      const newY = e.clientY - offset.current.y;
-      pos.current = { x: newX, y: newY };
-      cardRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
-    };
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current || !cardRef.current) return;
+    const newX = e.clientX - offset.current.x;
+    const newY = e.clientY - offset.current.y;
+    pos.current = { x: newX, y: newY };
+    cardRef.current.style.transform = `translate(${newX}px, ${newY}px)`;
+  }, []);
 
-    const handleMouseUp = () => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      setIsDragging(false);
-      onDragEnd?.(pos.current.x, pos.current.y);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    dragging.current = false;
+    setIsDragging(false);
+    onDragEnd?.(pos.current.x, pos.current.y);
   }, [onDragEnd]);
 
   const getTypeIcon = (type: string) => {
@@ -150,7 +144,7 @@ export function FeedbackCard({
       ref={cardRef}
       className={cn(
         "fixed top-0 left-0 z-[var(--z-overlay)] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
-        "select-none will-change-transform",
+        "select-none will-change-transform touch-none",
         isClosing
           ? "animate-out fade-out zoom-out-95 duration-200"
           : "animate-in zoom-in-95 fade-in duration-200",
@@ -159,7 +153,10 @@ export function FeedbackCard({
       style={{
         transform: `translate(${position.x}px, ${position.y}px)`,
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 cursor-grab">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits } from '@/lib/ai/credits';
+import { checkAndDeductCredits, CREDIT_COSTS } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import sharp from 'sharp';
 
@@ -21,19 +21,57 @@ interface StructuredFeedback {
 }
 
 /**
- * Generates a transparent PNG image of text that looks like handwriting
+ * Generates a transparent PNG image of text that looks like handwriting.
+ * Accepts either structured annotations or a plain text string as fallback.
  */
-async function generateHandwrittenImage(annotations: FeedbackAnnotation[]): Promise<string> {
-  const width = 800;
-  const height = 600;
-  
-  // Combine all annotations into a single block of text for the image
-  const textContent = annotations.map(a => a.content).join('\n\n');
-  
-  // Create an SVG with handwriting style
-  // We use a wobbly filter to make it look more hand-drawn
+async function generateHandwrittenImage(text: string | FeedbackAnnotation[]): Promise<string> {
+  const fontSize = 28;
+  const lineHeight = 36;
+  const padding = 40;
+  const maxLineChars = 45; // approximate chars per line at 28px in the chosen font
+  const svgWidth = 800;
+
+  // Normalise input to a single string
+  const rawText = Array.isArray(text)
+    ? text.map(a => a.content).join('\n\n')
+    : text;
+
+  // Word-wrap each logical line so text doesn't overflow horizontally
+  const wrappedLines: string[] = [];
+  for (const paragraph of rawText.split('\n')) {
+    if (paragraph.trim() === '') {
+      wrappedLines.push(''); // preserve paragraph gaps
+      continue;
+    }
+    const words = paragraph.split(/\s+/);
+    let current = '';
+    for (const word of words) {
+      if (current.length + word.length + 1 > maxLineChars && current.length > 0) {
+        wrappedLines.push(current);
+        current = word;
+      } else {
+        current = current ? `${current} ${word}` : word;
+      }
+    }
+    if (current) wrappedLines.push(current);
+  }
+
+  // Compute SVG height dynamically so text is never clipped
+  const textHeight = wrappedLines.length * lineHeight;
+  const svgHeight = Math.max(200, textHeight + padding * 2);
+
+  const tspans = wrappedLines
+    .map((line, i) => {
+      const escaped = line
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      return `<tspan x="${padding}" dy="${i === 0 ? 0 : lineHeight}">${escaped}</tspan>`;
+    })
+    .join('');
+
   const svg = `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <filter id="pencil">
           <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
@@ -41,13 +79,13 @@ async function generateHandwrittenImage(annotations: FeedbackAnnotation[]): Prom
         </filter>
       </defs>
       <rect width="100%" height="100%" fill="none" />
-      <text 
-        x="40" 
-        y="60" 
-        fill="#2563eb" 
-        style="font-family: 'Comic Sans MS', 'cursive', 'Chalkboard SE', 'Marker Felt', sans-serif; font-size: 28px; filter: url(#pencil);"
+      <text
+        x="${padding}"
+        y="${padding + fontSize}"
+        fill="#2563eb"
+        style="font-family: 'Comic Sans MS', 'cursive', 'Chalkboard SE', 'Marker Felt', sans-serif; font-size: ${fontSize}px; filter: url(#pencil);"
       >
-        ${textContent.split('\n').map((line, i) => `<tspan x="40" dy="${i === 0 ? 0 : 40}">${line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</tspan>`).join('')}
+        ${tspans}
       </text>
     </svg>
   `;
@@ -56,7 +94,7 @@ async function generateHandwrittenImage(annotations: FeedbackAnnotation[]): Prom
     const buffer = await sharp(Buffer.from(svg))
       .png()
       .toBuffer();
-    
+
     return `data:image/png;base64,${buffer.toString('base64')}`;
   } catch (error) {
     solutionLogger.error({ error }, 'Failed to generate handwritten image');
@@ -119,21 +157,18 @@ export async function POST(req: NextRequest) {
     // Check plan tier — only enterprise users get handwritten visual feedback
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan_tier, plan_status')
+      .select('plan_tier, plan_status, credits')
       .eq('id', user.id)
       .single();
 
     const isEnterprisePlan = (profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise')
       && profile?.plan_status === 'active';
 
-    // Only attempt credit deduction for enterprise users
-    let shouldShowPremiumHandwriting = false;
-    let creditBalance = 0;
-    if (isEnterprisePlan) {
-      const result = await checkAndDeductCredits(user.id, 'generate-solution');
-      shouldShowPremiumHandwriting = result.usePremium;
-      creditBalance = result.creditBalance;
-    }
+    // Check if the user has enough credits (but don't deduct yet — wait for success)
+    const enterpriseCredits = profile?.credits ?? 0;
+    const creditCost = CREDIT_COSTS['generate-solution'];
+    let shouldShowPremiumHandwriting = isEnterprisePlan && enterpriseCredits >= creditCost;
+    let creditBalance = enterpriseCredits;
 
     // Generate mode-specific prompt
     const getModePrompt = (
@@ -425,17 +460,29 @@ No text before or after the JSON object.`;
     const duration = Date.now() - startTime;
     solutionLogger.info({ requestId, duration, provider, mode: effectiveMode, isSocratic }, 'Solution generation completed');
 
-    // For premium users, we already have the imageUrl from the AI model (if successful)
-    // For free users, we might want to generate a simple one if needed, but the current logic
-    // only does it for premium. However, since we now use the AI's image for premium,
-    // we should only call generateHandwrittenImage if we don't already have an imageUrl.
-    
-    if (shouldShowPremiumHandwriting && !imageUrl && feedback && feedback.annotations.length > 0) {
-      imageUrl = await generateHandwrittenImage(feedback.annotations);
+    // For premium users, if the AI model didn't return an image, generate a
+    // fallback handwritten image from whatever text content is available.
+    if (shouldShowPremiumHandwriting && !imageUrl) {
+      const fallbackText =
+        (feedback && feedback.annotations.length > 0)
+          ? feedback.annotations
+          : textContent || feedback?.summary || '';
+
+      if (fallbackText && (typeof fallbackText === 'string' ? fallbackText.length > 0 : fallbackText.length > 0)) {
+        imageUrl = await generateHandwrittenImage(fallbackText);
+      }
+    }
+
+    const generationSucceeded = !!imageUrl || (feedback && feedback.annotations.length > 0);
+
+    // Deduct credits only after a successful premium generation
+    if (shouldShowPremiumHandwriting && generationSucceeded) {
+      const result = await checkAndDeductCredits(user.id, 'generate-solution');
+      creditBalance = result.creditBalance;
     }
 
     return NextResponse.json({
-      success: !!imageUrl || (feedback && feedback.annotations.length > 0),
+      success: generationSucceeded,
       feedback,
       textContent: textContent || (feedback ? feedback.summary : ''),
       provider,
