@@ -9,6 +9,7 @@ import {
 } from 'tldraw';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import DOMPurify from 'dompurify';
 
 // Define the shape type
 export type LaTeXShape = TLBaseShape<
@@ -61,6 +62,8 @@ export class LaTeXShapeUtil extends BaseBoxShapeUtil<LaTeXShape> {
       html = `<span style="color: red;">Invalid LaTeX: ${shape.props.latex}</span>`;
     }
 
+    const safeHtml = DOMPurify.sanitize(html);
+
     return (
       <HTMLContainer
         style={{
@@ -79,7 +82,7 @@ export class LaTeXShapeUtil extends BaseBoxShapeUtil<LaTeXShape> {
             fontSize: shape.props.fontSize,
             lineHeight: 1.4,
           }}
-          dangerouslySetInnerHTML={{ __html: html }}
+          dangerouslySetInnerHTML={{ __html: safeHtml }}
         />
       </HTMLContainer>
     );

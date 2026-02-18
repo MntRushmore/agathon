@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { toLatex } from '@/lib/plain-to-latex';
 import 'katex/dist/katex.min.css';
+import DOMPurify from 'dompurify';
 
 interface MathSegmentProps {
   content: string;
@@ -33,7 +34,6 @@ export function MathSegment({
         throwOnError: false,
         displayMode: false,
         strict: false,
-        trust: true,
         macros: {
           '\\N': '\\mathbb{N}',
           '\\Z': '\\mathbb{Z}',
@@ -43,7 +43,9 @@ export function MathSegment({
         },
       });
 
-      return { html: rendered, error: null };
+      const safe = DOMPurify.sanitize(rendered);
+
+      return { html: safe, error: null };
     } catch (err) {
       console.error('KaTeX render error:', err);
       return { html: null, error: err };
@@ -93,10 +95,11 @@ export function InlineMath({ content, className }: { content: string; className?
     try {
       const katex = require('katex');
       const latex = toLatex(content);
-      return katex.renderToString(latex, {
+      const rendered = katex.renderToString(latex, {
         throwOnError: false,
         displayMode: false,
       });
+      return DOMPurify.sanitize(rendered);
     } catch {
       return null;
     }

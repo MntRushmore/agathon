@@ -3,6 +3,7 @@
 import React from 'react';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
+import DOMPurify from 'dompurify';
 
 interface LatexRendererProps {
   content: string;
@@ -36,11 +37,12 @@ export function LatexRenderer({ content, className = '' }: LatexRendererProps) {
             displayMode: true,
             throwOnError: false,
           });
+          const safeHtml = DOMPurify.sanitize(html);
           parts.push(
             <div
               key={`block-${key++}`}
               className="my-2 overflow-x-auto"
-              dangerouslySetInnerHTML={{ __html: html }}
+              dangerouslySetInnerHTML={{ __html: safeHtml }}
             />
           );
         } catch {
@@ -127,19 +129,20 @@ export function LatexRenderer({ content, className = '' }: LatexRendererProps) {
 
       // Extract and render inline math
       const mathContent = remaining.slice(startIdx + 1, endIdx);
-      try {
-        const html = katex.renderToString(mathContent.trim(), {
-          displayMode: false,
-          throwOnError: false,
-        });
-        parts.push(
-          <span
-            key={`inline-${key++}`}
-            className="inline-block align-middle"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        );
-      } catch {
+        try {
+          const html = katex.renderToString(mathContent.trim(), {
+            displayMode: false,
+            throwOnError: false,
+          });
+          const safeHtml = DOMPurify.sanitize(html);
+          parts.push(
+            <span
+              key={`inline-${key++}`}
+              className="inline-block align-middle"
+              dangerouslySetInnerHTML={{ __html: safeHtml }}
+            />
+          );
+        } catch {
         parts.push(
           <span key={`inline-err-${key++}`} className="text-red-500">
             ${mathContent}$
