@@ -3,6 +3,7 @@
 import React from 'react';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 
 interface MarkdownRendererProps {
@@ -246,20 +247,21 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
       // Render the match
       switch (earliest.type) {
         case 'math':
-          try {
-            const mathContent = earliest.match[1].trim();
-            const html = katex.renderToString(mathContent, {
-              displayMode: false,
-              throwOnError: false,
-            });
-            parts.push(
-              <span
-                key={`math-${key++}`}
-                className="mx-0.5"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
-            );
-          } catch {
+            try {
+              const mathContent = earliest.match[1].trim();
+              const html = katex.renderToString(mathContent, {
+                displayMode: false,
+                throwOnError: false,
+              });
+              const safeHtml = DOMPurify.sanitize(html);
+              parts.push(
+                <span
+                  key={`math-${key++}`}
+                  className="mx-0.5"
+                  dangerouslySetInnerHTML={{ __html: safeHtml }}
+                />
+              );
+            } catch {
             parts.push(<span key={`math-err-${key++}`}>{earliest.match[0]}</span>);
           }
           break;

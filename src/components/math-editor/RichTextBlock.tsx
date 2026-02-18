@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { detectMathSegments } from '@/lib/math-detection';
 import { toLatex } from '@/lib/plain-to-latex';
 import 'katex/dist/katex.min.css';
+import DOMPurify from 'dompurify';
 
 export interface RichBlock {
   id: string;
@@ -72,8 +73,9 @@ function renderKatex(content: string): string | null {
       displayMode: false,
       strict: false,
     });
-    katexCache.set(cacheKey, html);
-    return html;
+    const safe = DOMPurify.sanitize(html);
+    katexCache.set(cacheKey, safe);
+    return safe;
   } catch {
     return null;
   }
