@@ -3,7 +3,6 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, CREDIT_COSTS } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-import sharp from 'sharp';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -18,88 +17,6 @@ interface StructuredFeedback {
   nextStep?: string;
   isCorrect?: boolean;
   solution?: string;
-}
-
-/**
- * Generates a transparent PNG image of text that looks like handwriting.
- * Accepts either structured annotations or a plain text string as fallback.
- */
-async function generateHandwrittenImage(text: string | FeedbackAnnotation[]): Promise<string> {
-  const fontSize = 28;
-  const lineHeight = 36;
-  const padding = 40;
-  const maxLineChars = 45; // approximate chars per line at 28px in the chosen font
-  const svgWidth = 800;
-
-  // Normalise input to a single string
-  const rawText = Array.isArray(text)
-    ? text.map(a => a.content).join('\n\n')
-    : text;
-
-  // Word-wrap each logical line so text doesn't overflow horizontally
-  const wrappedLines: string[] = [];
-  for (const paragraph of rawText.split('\n')) {
-    if (paragraph.trim() === '') {
-      wrappedLines.push(''); // preserve paragraph gaps
-      continue;
-    }
-    const words = paragraph.split(/\s+/);
-    let current = '';
-    for (const word of words) {
-      if (current.length + word.length + 1 > maxLineChars && current.length > 0) {
-        wrappedLines.push(current);
-        current = word;
-      } else {
-        current = current ? `${current} ${word}` : word;
-      }
-    }
-    if (current) wrappedLines.push(current);
-  }
-
-  // Compute SVG height dynamically so text is never clipped
-  const textHeight = wrappedLines.length * lineHeight;
-  const svgHeight = Math.max(200, textHeight + padding * 2);
-
-  const tspans = wrappedLines
-    .map((line, i) => {
-      const escaped = line
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-      return `<tspan x="${padding}" dy="${i === 0 ? 0 : lineHeight}">${escaped}</tspan>`;
-    })
-    .join('');
-
-  const svg = `
-    <svg width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="pencil">
-          <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
-        </filter>
-      </defs>
-      <rect width="100%" height="100%" fill="none" />
-      <text
-        x="${padding}"
-        y="${padding + fontSize}"
-        fill="#2563eb"
-        style="font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', 'Helvetica', sans-serif; font-size: ${fontSize}px; filter: url(#pencil);"
-      >
-        ${tspans}
-      </text>
-    </svg>
-  `;
-
-  try {
-    const buffer = await sharp(Buffer.from(svg))
-      .png()
-      .toBuffer();
-
-    return `data:image/png;base64,${buffer.toString('base64')}`;
-  } catch (error) {
-    solutionLogger.error({ error }, 'Failed to generate handwritten image');
-    return '';
-  }
 }
 
 export const maxDuration = 120; // Allow up to 120s for image generation models
@@ -462,23 +379,13 @@ No text before or after the JSON object.`;
     const duration = Date.now() - startTime;
     solutionLogger.info({ requestId, duration, provider, mode: effectiveMode, isSocratic }, 'Solution generation completed');
 
-    // For premium users, if the AI model didn't return an image, generate a
-    // fallback handwritten image from whatever text content is available.
-    if (shouldShowPremiumHandwriting && !imageUrl) {
-      const fallbackText =
-        (feedback && feedback.annotations.length > 0)
-          ? feedback.annotations
-          : textContent || feedback?.summary || '';
-
-      if (fallbackText && (typeof fallbackText === 'string' ? fallbackText.length > 0 : fallbackText.length > 0)) {
-        imageUrl = await generateHandwrittenImage(fallbackText);
-      }
-    }
-
+    // If premium and Gemini didn't return an image, don't fall back to the
+    // SVG text renderer — just return the text content and let the frontend
+    // handle it gracefully (like Reed's version does).
     const generationSucceeded = !!imageUrl || (feedback && feedback.annotations.length > 0);
 
-    // Deduct credits only after a successful premium generation
-    if (shouldShowPremiumHandwriting && generationSucceeded) {
+    // Deduct credits only after a successful premium image generation
+    if (shouldShowPremiumHandwriting && imageUrl) {
       const result = await checkAndDeductCredits(user.id, 'generate-solution');
       creditBalance = result.creditBalance;
     }
