@@ -15,8 +15,8 @@ export default function BlogPage() {
 
         <section className="space-y-6">
           <article className="p-4 border rounded-lg">
-            <h2 className="text-xl font-semibold">Getting started</h2>
-            <p className="text-sm text-muted-foreground">No posts yet. Check back soon.</p>
+            <h2 className="text-xl font-semibold">No posts yet</h2>
+            <p className="text-sm text-muted-foreground">Check back soon.</p>
             <div className="mt-3">
               <Link href="/about" className="text-primary hover:underline">About Agathon</Link>
             </div>
