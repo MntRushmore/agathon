@@ -1,6 +1,6 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { resend } from '@/lib/resend';
+import { getResend } from '@/lib/resend';
 import { NextResponse } from 'next/server';
 import ReferralAnnouncement from '@/emails/ReferralAnnouncement';
 
@@ -101,6 +101,7 @@ export async function POST() {
       const entry = unsent[i];
 
       try {
+        const resend = getResend();
         const { error: emailError } = await resend.emails.send({
           from: 'Agathon <send@mail.agathon.app>',
           replyTo: 'rushil@agathon.app',

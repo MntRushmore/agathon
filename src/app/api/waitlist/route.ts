@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { resend } from '@/lib/resend';
+import { getResend } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';
 import WaitlistWelcome from '@/emails/WaitlistWelcome';
 import WaitlistTeacher from '@/emails/WaitlistTeacher';
@@ -189,6 +189,7 @@ export async function POST(request: NextRequest) {
     const userRole = role || 'student';
     const { subject, react } = getEmailForRole(userRole, name.trim(), referralCode);
 
+    const resend = getResend();
     const { error: emailError } = await resend.emails.send({
       from: 'Agathon <send@mail.agathon.app>',
       replyTo: 'rushil@agathon.app',
