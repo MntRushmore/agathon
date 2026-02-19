@@ -83,7 +83,7 @@ async function generateHandwrittenImage(text: string | FeedbackAnnotation[]): Pr
         x="${padding}"
         y="${padding + fontSize}"
         fill="#2563eb"
-        style="font-family: 'Comic Sans MS', 'cursive', 'Chalkboard SE', 'Marker Felt', sans-serif; font-size: ${fontSize}px; filter: url(#pencil);"
+        style="font-family: 'DejaVu Sans', 'Liberation Sans', 'Arial', 'Helvetica', sans-serif; font-size: ${fontSize}px; filter: url(#pencil);"
       >
         ${tspans}
       </text>
@@ -101,6 +101,8 @@ async function generateHandwrittenImage(text: string | FeedbackAnnotation[]): Pr
     return '';
   }
 }
+
+export const maxDuration = 120; // Allow up to 120s for image generation models
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -236,7 +238,7 @@ export async function POST(req: NextRequest) {
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for image gen
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for image gen
 
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
