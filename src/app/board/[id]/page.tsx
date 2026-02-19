@@ -74,6 +74,7 @@ import { HintButton } from "@/components/board/HintButton";
 import { FeedbackCard } from "@/components/board/FeedbackCard";
 import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
 import { TopBar } from "@/components/board/TopBar";
+import { useAuth } from "@/components/auth/auth-provider";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
 DefaultColorThemePalette.lightMode.background = "#FFFFFF";
@@ -988,6 +989,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   const editor = useEditor();
   const router = useRouter();
+  const { profile } = useAuth();
+  const isEnterprise = profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise';
   const [pendingImageIds, setPendingImageIds] = useState<TLShapeId[]>([]);
   const [status, setStatus] = useState<StatusIndicatorState>("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -1953,14 +1956,22 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     return () => window.removeEventListener('lasso-solve-complete', handleLassoSolve);
   }, [editor]);
 
-  // Handle lasso action prompt selection — all actions open AI chat
+  // Handle lasso action prompt selection
+  // Enterprise: Suggest/Solve generate handwritten AI writing on canvas; Chat opens AI tutor
+  // Free: all actions open the AI Tutor chat sidebar
   const handleLassoAction = useCallback(
     async (action: /* 'feedback' | */ 'suggest' | 'answer' | 'chat') => {
       if (!lassoPrompt || !editor) return;
       const { shapeIds, bounds } = lassoPrompt;
       setLassoPrompt(null);
 
-      // All actions now open the AI Tutor chat (sticky note generation disabled)
+      // Enterprise users: Suggest/Solve bypass chat and go straight to canvas AI writing
+      if (isEnterprise && action !== 'chat') {
+        generateSolutionForShapes(shapeIds, bounds, action);
+        return;
+      }
+
+      // Free users (or enterprise 'chat' action): open the AI Tutor chat sidebar
       try {
         const captureBounds = new Box(
           bounds.x - 20,
@@ -1988,7 +1999,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         logger.error({ err }, 'Failed to capture lasso shapes for AI Tutor');
       }
     },
-    [lassoPrompt, editor],
+    [lassoPrompt, editor, isEnterprise, generateSolutionForShapes],
   );
 
   // Cancel in-flight requests when user edits the canvas
@@ -2102,9 +2113,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     let saveTimeout: ReturnType<typeof setTimeout>;
 
     const handleChange = () => {
-      // Don't save during image updates
-      if (isUpdatingImageRef.current) return;
-
       // Skip auto-save for temporary boards (no auth)
       if (id.startsWith('temp-')) {
         console.log('Skipping auto-save for temporary board');
@@ -2329,7 +2337,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     };
 
     const dispose = editor.store.listen(handleChange, {
-      source: 'user',
+      source: 'all',
       scope: 'document'
     });
 
@@ -2502,7 +2510,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             </div>
           )}
 
-          {/* Lasso Action Prompt — all actions now open AI chat */}
+          {/* Lasso Action Prompt — enterprise: Suggest/Solve use canvas AI writing; free/chat: AI tutor sidebar */}
           {lassoPrompt && (
             <LassoActionPrompt
               position={lassoPrompt.screenPos}
