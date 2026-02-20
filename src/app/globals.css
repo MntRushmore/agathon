@@ -217,8 +217,8 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    /* Improve touch responsiveness */
-    touch-action: none;
+    /* Improve touch responsiveness but allow scroll and pinch gestures */
+    touch-action: manipulation;
   }
 
   /* Clean headings — use sans-serif by default, opt-in to serif where appropriate */

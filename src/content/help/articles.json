@@ -1,0 +1,23 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Getting started with Agathon",
+    "excerpt": "Quick steps to get your first board, invite students, and run a session.",
+    "tags": ["getting-started", "onboarding"],
+    "content": "# Getting started with Agathon\n\nWelcome! This guide helps you set up a board, invite collaborators, and run your first session.\n\n1. Create a board from the dashboard.\n2. Invite students via email or share a public link.\n3. Use the Math Editor to create problems.\n4. Start a live session and use the tutor tools.\n\nIf you run into issues, use the contact form on the Help Center home."
+  },
+  {
+    "id": "faq-billing",
+    "title": "Billing & Credits FAQ",
+    "excerpt": "Common questions about subscriptions, credits, and refunds.",
+    "tags": ["billing", "payments"],
+    "content": "# Billing & Credits FAQ\n\n- How do credits work?\nCredits are consumed by AI tutoring minutes and exports.\n\n- Can I get a refund?\nContact support with your order details — we evaluate refunds case-by-case."
+  },
+  {
+    "id": "math-editor-tips",
+    "title": "Math Editor tips & shortcuts",
+    "excerpt": "Faster ways to author equations, use the CAS, and format answers.",
+    "tags": ["math-editor", "tips"],
+    "content": "# Math Editor tips & shortcuts\n\n- Use keyboard shortcuts for fractions and exponents.\n- Press Ctrl+Space to trigger suggestions.\n- Use the CAS button to simplify expressions."
+  }
+]
