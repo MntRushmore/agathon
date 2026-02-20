@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { getResend } from '@/lib/resend'
 
 export const runtime = 'nodejs'
 
@@ -21,14 +20,21 @@ export async function POST(req: Request) {
       </div>
     `
 
-    // If Resend API key is not configured, gracefully log and return success
-    try {
-      const resend = getResend()
-      await resend.emails.send({ from, to, subject, html })
-      console.log('[Help request] sent to', to, { email, page })
-    } catch (sendErr) {
-      console.warn('Resend not configured or failed to send. Falling back to server log.', sendErr)
-      console.log('[Help request]', { email, page, message })
+    // Only attempt to import/send if the API key is present. Dynamic import
+    // avoids bundling the `resend` package into environments that don't
+    // support it at build time.
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const { getResend } = await import('@/lib/resend')
+        const resend = await getResend()
+        await resend.emails.send({ from, to, subject, html })
+        console.log('[Help request] sent to', to, { email, page })
+      } catch (sendErr) {
+        console.error('Failed to send help email via Resend', sendErr)
+        console.log('[Help request]', { email, page, message })
+      }
+    } else {
+      console.log('RESEND_API_KEY not configured; logging help request instead.', { email, page, message })
     }
 
     return NextResponse.json({ ok: true })
