@@ -180,11 +180,11 @@ export function AgoraLandingPage() {
               {/* Left side */}
               <div className="space-y-5">
                 <div className="flex items-center gap-5 text-[13px] font-medium text-white/80">
-                  <span data-tagline-word className="opacity-0">Draw freely</span>
-                  <span data-tagline-word className="opacity-0">Think visually</span>
-                  <span data-tagline-word className="opacity-0">Learn deeply</span>
+                  <span data-tagline-word>Draw freely</span>
+                  <span data-tagline-word>Think visually</span>
+                  <span data-tagline-word>Learn deeply</span>
                 </div>
-                <h1 data-hero-heading className="text-[clamp(2.5rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white opacity-0">
+                <h1 data-hero-heading className="text-[clamp(2.5rem,6vw,4.5rem)] font-light leading-[1.05] tracking-[-0.02em] text-white">
                   Transform Your Learning
                   <br />
                   Experience Today
@@ -193,7 +193,7 @@ export function AgoraLandingPage() {
 
               {/* Right side */}
               <div className="lg:max-w-[380px] space-y-5">
-                <div data-hero-right className="space-y-2 opacity-0">
+                <div data-hero-right className="space-y-2">
                   <p className="text-[15px] text-white">
                     <span className="font-semibold">Agathon</span> is an AI Socratic whiteboard.
                   </p>
@@ -203,7 +203,7 @@ export function AgoraLandingPage() {
                     questions — helping you discover answers yourself.
                   </p>
                 </div>
-                <div data-hero-cta className="flex items-center gap-4 opacity-0">
+                <div data-hero-cta className="flex items-center gap-4">
                   <Button
                     className="rounded-full px-6 h-11 text-[14px] font-medium bg-white text-black hover:bg-white/90 shadow-lg hover:scale-[1.02] transition-transform"
                     style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
