@@ -852,54 +852,49 @@ export default function Dashboard() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Show loading state while checking auth
-  // If visiting via referral link or waitlist link, show landing page immediately
-  // instead of the dashboard skeleton (which confuses unauthenticated visitors)
-  if (authLoading) {
-    if (searchParams.get('ref') || searchParams.get('waitlist')) {
-      return <AgoraLandingPage />;
-    }
-    return (
-      <div className="min-h-screen bg-background flex">
-        {/* Skeleton sidebar */}
-        <div className="w-56 h-screen border-r border-border bg-card p-4 flex flex-col gap-4">
-          <Skeleton className="h-8 w-24" />
-          <div className="space-y-2 mt-4">
-            <Skeleton className="h-9 w-full rounded-lg" />
-            <Skeleton className="h-9 w-full rounded-lg" />
-            <Skeleton className="h-9 w-full rounded-lg" />
-          </div>
-          <div className="mt-auto space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-8 w-full rounded-lg" />
-          </div>
-        </div>
-        {/* Skeleton main content */}
-        <div className="flex-1 flex items-start justify-center pt-[12vh] px-8">
-          <div className="w-full max-w-4xl space-y-6">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-7 w-64" />
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <Skeleton key={i} className="h-24 rounded-lg" />
-              ))}
-            </div>
-            <div className="space-y-2 mt-6">
-              <Skeleton className="h-4 w-20" />
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-lg" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show landing page for non-authenticated users
+  // Show landing page for non-authenticated users (or while still checking auth with a referral/waitlist link).
+  // Unified into a single code path so the component instance persists through auth loading,
+  // preventing state resets (e.g., waitlist dialog closing) when authLoading transitions to false.
   if (!user) {
+    if (authLoading && !searchParams.get('ref') && !searchParams.get('waitlist')) {
+      return (
+        <div className="min-h-screen bg-background flex">
+          {/* Skeleton sidebar */}
+          <div className="w-56 h-screen border-r border-border bg-card p-4 flex flex-col gap-4">
+            <Skeleton className="h-8 w-24" />
+            <div className="space-y-2 mt-4">
+              <Skeleton className="h-9 w-full rounded-lg" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+            </div>
+            <div className="mt-auto space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-8 w-full rounded-lg" />
+            </div>
+          </div>
+          {/* Skeleton main content */}
+          <div className="flex-1 flex items-start justify-center pt-[12vh] px-8">
+            <div className="w-full max-w-4xl space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-7 w-64" />
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <Skeleton key={i} className="h-24 rounded-lg" />
+                ))}
+              </div>
+              <div className="space-y-2 mt-6">
+                <Skeleton className="h-4 w-20" />
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return <AgoraLandingPage />;
   }
 
