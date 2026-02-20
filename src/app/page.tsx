@@ -853,7 +853,12 @@ export default function Dashboard() {
   };
 
   // Show loading state while checking auth
+  // If visiting via referral link or waitlist link, show landing page immediately
+  // instead of the dashboard skeleton (which confuses unauthenticated visitors)
   if (authLoading) {
+    if (searchParams.get('ref') || searchParams.get('waitlist')) {
+      return <AgoraLandingPage />;
+    }
     return (
       <div className="min-h-screen bg-background flex">
         {/* Skeleton sidebar */}
