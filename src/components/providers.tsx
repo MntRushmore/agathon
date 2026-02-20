@@ -6,6 +6,7 @@ import { Toaster } from 'sileo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CommandPalette } from './CommandPalette';
 import { ImpersonationBar } from './admin/ImpersonationBar';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 function useAnimationPreference() {
   useEffect(() => {
@@ -64,6 +65,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ErrorBoundary>
       <AuthProvider>
+        <ThemeToggle />
         <ImpersonationBar />
         {children}
         <Toaster options={{ fill: '#1a1a1a', duration: 2000 }} />

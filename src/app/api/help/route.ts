@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getResend } from '@/lib/resend'
 
+export const runtime = 'nodejs'
+
 export async function POST(req: Request) {
   try {
     const body = await req.json()
@@ -19,10 +21,16 @@ export async function POST(req: Request) {
       </div>
     `
 
-    const resend = getResend()
-    await resend.emails.send({ from, to, subject, html })
+    // If Resend API key is not configured, gracefully log and return success
+    try {
+      const resend = getResend()
+      await resend.emails.send({ from, to, subject, html })
+      console.log('[Help request] sent to', to, { email, page })
+    } catch (sendErr) {
+      console.warn('Resend not configured or failed to send. Falling back to server log.', sendErr)
+      console.log('[Help request]', { email, page, message })
+    }
 
-    console.log('[Help request] sent to', to, { email, page })
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('Error in /api/help', err)
