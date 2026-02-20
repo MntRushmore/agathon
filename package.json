@@ -65,7 +65,7 @@
     "expo-updates": "~29.0.16",
     "hugeicons-react": "^0.3.0",
     "iink-ts": "^3.2.1",
-    "jspdf": "^4.1.0",
+    "jspdf": "^4.2.0",
     "katex": "^0.16.27",
     "lodash": "^4.17.23",
     "lowlight": "^3.3.0",
