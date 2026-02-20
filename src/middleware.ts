@@ -7,9 +7,9 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      // Avoid allowing inline scripts and eval to reduce XSS risk. If your app
-      // requires inline scripts, prefer using nonces or hashes for those scripts.
-      "script-src 'self' https://vercel.live https://*.vercel.app",
+      // Next.js requires 'unsafe-inline' for hydration bootstrap scripts.
+      // TODO: migrate to CSP nonces (next.config.ts headers + middleware nonce) to drop 'unsafe-inline'.
+      "script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.app",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com https://cdn.tldraw.com",
