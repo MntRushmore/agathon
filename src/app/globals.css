@@ -268,6 +268,10 @@
   background-color: #ffffff !important;
 }
 
+/* Hide global theme toggle on board pages — it's integrated into the board's floating controls */
+body:has(.tldraw__editor) [data-theme-toggle] {
+  display: none;
+}
 
 /* ============================================
    iPad & Touch Device Optimizations

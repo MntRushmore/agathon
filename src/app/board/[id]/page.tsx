@@ -48,7 +48,7 @@ import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusI
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles, Sun, Moon } from "lucide-react";
 import { sileo } from "sileo";
 import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
 import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
@@ -1004,6 +1004,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const [aiTutorImage, setAiTutorImage] = useState<string | null>(null);
     const [aiTutorAnswer, setAiTutorAnswer] = useState<string>("");
     const [isHintLoading, setIsHintLoading] = useState(false);
+    const [boardTheme, setBoardTheme] = useState<'light' | 'dark'>(() => {
+      try {
+        const pref = localStorage.getItem('agathon_theme') || 'system';
+        if (pref === 'dark') return 'dark';
+        if (pref === 'light') return 'light';
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } catch { return 'light'; }
+    });
     const [feedbackCard, setFeedbackCard] = useState<{
       summary: string;
       annotations: { type: string; content: string }[];
@@ -2482,9 +2490,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <WhiteboardOnboarding onDismiss={() => setShowOnboarding(false)} />
           )}
 
-          {/* Grouped floating controls — bottom-right */}
+          {/* Grouped floating controls — bottom-right, shifts when AI tutor panel is open */}
           {!isTeacherViewing && editor && (
-            <div className="fixed bottom-4 right-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2">
+            <div
+              className="fixed bottom-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2 transition-[right] duration-250 ease-out"
+              style={{ right: aiTutorOpen ? 396 : 16 }}
+            >
               <HintButton
                 isLoading={isHintLoading}
                 onClick={async () => {
@@ -2502,11 +2513,25 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   }
                 }}
               />
-              <AITutorButton
-                onClick={() => setAiTutorOpen(true)}
-                isOpen={aiTutorOpen}
-                messageCount={aiTutor.messages.length}
-              />
+              <div className="flex items-center gap-2">
+                <AITutorButton
+                  onClick={() => setAiTutorOpen(true)}
+                  isOpen={aiTutorOpen}
+                  messageCount={aiTutor.messages.length}
+                />
+                <button
+                  aria-label="Toggle theme"
+                  onClick={() => {
+                    const next = boardTheme === 'dark' ? 'light' : 'dark';
+                    localStorage.setItem('agathon_theme', next);
+                    try { window.dispatchEvent(new Event('agathon-pref-change')); } catch {}
+                    setBoardTheme(next);
+                  }}
+                  className="no-enlarge h-9 w-9 rounded-lg inline-flex items-center justify-center bg-white text-gray-600 border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors duration-150"
+                >
+                  {boardTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           )}
 

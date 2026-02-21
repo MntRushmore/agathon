@@ -49,6 +49,7 @@ export default function ThemeToggle() {
     <button
       aria-label="Toggle theme"
       onClick={toggle}
+      data-theme-toggle
       className="fixed bottom-6 right-6 z-[9999] p-2 rounded-md bg-card border border-border shadow-md hover:scale-105 transform transition-transform"
     >
       {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
