@@ -3207,16 +3207,15 @@ export default function BoardPage() {
             // Store editor ref for later use
             (window as any).__tldrawEditor = editor;
 
-            // Completely disable all animations for immediate, responsive controls
+            // Disable animations for responsive controls, but keep camera smooth
             editor.user.updateUserPreferences({
               animationSpeed: 0,
               isWrapMode: false,
             });
 
-            // Disable camera inertia by setting it to stop immediately
+            // Camera options — use default friction for smooth panning with momentum
             (editor as any).cameraOptions = {
               ...((editor as any).cameraOptions || {}),
-              friction: 1,
               isLocked: false,
               panSpeed: 1,
               zoomSpeed: 1,

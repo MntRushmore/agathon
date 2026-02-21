@@ -196,9 +196,9 @@
 }
 
 @layer base {
-  *:not([data-sileo-toast] *):not([data-sileo-toast]):not([data-sileo-viewport]):not([data-sileo-viewport] *) {
+  *:not([data-sileo-toast] *):not([data-sileo-toast]):not([data-sileo-viewport]):not([data-sileo-viewport] *):not(.tl-canvas *):not(.tl-canvas):not(.tldraw__editor *):not(.tldraw__editor) {
     @apply border-border outline-ring/50;
-    /* Smooth transitions for all interactive elements */
+    /* Smooth transitions for all interactive elements (excluding tldraw) */
     transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
@@ -266,13 +266,8 @@
 
 .tl-canvas {
   background-color: #ffffff !important;
-  will-change: auto !important;
 }
 
-/* Disable momentum scrolling */
-* {
-  -webkit-overflow-scrolling: auto !important;
-}
 
 /* ============================================
    iPad & Touch Device Optimizations
