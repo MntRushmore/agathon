@@ -101,7 +101,7 @@ export async function POST() {
       const entry = unsent[i];
 
       try {
-        const resend = getResend();
+        const resend = await getResend();
         const { error: emailError } = await resend.emails.send({
           from: 'Agathon <send@mail.agathon.app>',
           replyTo: 'rushil@agathon.app',

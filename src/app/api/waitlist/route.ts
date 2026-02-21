@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     const userRole = role || 'student';
     const { subject, react } = getEmailForRole(userRole, name.trim(), referralCode);
 
-    const resend = getResend();
+    const resend = await getResend();
     const { error: emailError } = await resend.emails.send({
       from: 'Agathon <send@mail.agathon.app>',
       replyTo: 'rushil@agathon.app',

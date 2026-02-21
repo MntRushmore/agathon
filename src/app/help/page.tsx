@@ -1,5 +1,5 @@
-import HelpCenter from '../../../components/help/HelpCenter'
-import articles from '../../../content/help/articles.json'
+import HelpCenter from '../../components/help/HelpCenter'
+import articles from '../../content/help/articles.json'
 
 export const metadata = {
   title: 'Help Center — Agathon',
