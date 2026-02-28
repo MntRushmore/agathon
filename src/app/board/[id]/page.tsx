@@ -997,7 +997,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
   const [assistanceMode, setAssistanceMode] = useState<"off" | /* "feedback" | */ "suggest" | "answer">("suggest");
-  const [imageModel, setImageModel] = useState<"pro" | "flash">("pro");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -1438,7 +1437,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             image: base64,
             mode,
             isSocratic: assignmentRestrictions?.socraticMode ?? false,
-            modelOverride: imageModel === 'flash' ? 'flash' : undefined,
           };
 
 
@@ -1815,7 +1813,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             mode,
             isSocratic: assignmentRestrictions?.socraticMode ?? false,
             source: 'lasso',
-            modelOverride: imageModel === 'flash' ? 'flash' : undefined,
           }),
         });
 
@@ -2427,8 +2424,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         isVoiceSessionActive={isVoiceSessionActive}
         bannerOffset={hasBanner ? 40 : 0}
         isDocPanelOpen={docPanelOpen}
-        imageModel={imageModel}
-        onImageModelChange={setImageModel}
       />
 
       <ImageActionButtons
