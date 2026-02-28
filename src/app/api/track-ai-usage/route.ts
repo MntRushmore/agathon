@@ -31,16 +31,19 @@ export async function POST(req: NextRequest) {
         modelUsed,
       } = body;
 
-      if (!mode) {
-        return NextResponse.json({ error: 'Missing required field: mode' }, { status: 400 });
+      const VALID_MODES = ['feedback', 'suggest', 'answer', 'chat', 'voice_analysis'];
+      if (!mode || !VALID_MODES.includes(mode)) {
+        return NextResponse.json({ error: `Invalid mode. Must be one of: ${VALID_MODES.join(', ')}` }, { status: 400 });
       }
 
       const summaryText = responseSummary || (aiResponse ? aiResponse.slice(0, 500) : null);
+      // Truncate prompt to prevent storing excessively large payloads
+      const truncatedPrompt = typeof prompt === 'string' ? prompt.slice(0, 2000) : prompt;
 
       const usageData: Record<string, unknown> = {
         student_id: user.id,
         mode,
-        prompt,
+        prompt: truncatedPrompt,
         response_summary: summaryText,
         concept_tags: conceptTags,
         input_tokens: inputTokens || 0,

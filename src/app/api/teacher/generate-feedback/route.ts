@@ -80,8 +80,12 @@ ${submission.assignment?.instructions ? `Assignment instructions: ${submission.a
 Please write constructive feedback for this student. Focus on effort and learning process, not just the final answer.`;
 
     // Check if we have an image to analyze
-    const hasImage = boardImage || submission.student_board?.preview;
-    const imageUrl = boardImage || submission.student_board?.preview;
+    // Validate boardImage is a data URL to prevent SSRF (client could pass an arbitrary URL)
+    const safeBoardImage = boardImage && typeof boardImage === 'string' && boardImage.startsWith('data:')
+      ? boardImage
+      : null;
+    const hasImage = safeBoardImage || submission.student_board?.preview;
+    const imageUrl = safeBoardImage || submission.student_board?.preview;
 
     let aiDraft = '';
 

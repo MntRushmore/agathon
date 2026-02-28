@@ -87,8 +87,11 @@ export async function POST(req: NextRequest) {
 
     helpCheckLogger.info({ requestId }, 'Calling OpenRouter GPT-4.1-mini API');
 
-    // Call GPT-4.1-mini via OpenRouter
+    // Call GPT-4.1-mini via OpenRouter (with timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      signal: controller.signal,
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -107,6 +110,8 @@ export async function POST(req: NextRequest) {
         response_format: { type: 'json_object' },
       }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json();

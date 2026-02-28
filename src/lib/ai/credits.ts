@@ -1,12 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import type { CreditTransaction, CreditTransactionType } from '@/types/database';
 
-export interface CreditCheckResult {
-  hasCredits: boolean;
-  currentBalance: number;
-  shouldUsePremium: boolean;
-}
-
 export interface CreditDeductionResult {
   success: boolean;
   newBalance: number;
@@ -19,32 +13,6 @@ export const CREDIT_COSTS = {
 } as const;
 
 export type AIRouteKey = keyof typeof CREDIT_COSTS;
-
-/**
- * Check if user has enough credits for a specific AI operation
- */
-export async function checkUserCredits(userId: string, route?: AIRouteKey): Promise<CreditCheckResult> {
-  const supabase = await createServerSupabaseClient();
-
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('credits')
-    .eq('id', userId)
-    .single();
-
-  if (error || !profile) {
-    return { hasCredits: false, currentBalance: 0, shouldUsePremium: false };
-  }
-
-  const credits = profile.credits ?? 0;
-  const requiredCredits = route ? CREDIT_COSTS[route] : 1;
-
-  return {
-    hasCredits: credits >= requiredCredits,
-    currentBalance: credits,
-    shouldUsePremium: credits >= requiredCredits,
-  };
-}
 
 /**
  * Deduct credits for an AI operation

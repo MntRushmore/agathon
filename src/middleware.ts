@@ -102,16 +102,31 @@ export async function middleware(request: NextRequest) {
   const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/api/referral/', '/referral/', '/terms', '/privacy', '/demo', '/pitch'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
 
-  // Enforce invite code redemption for authenticated users on protected routes
+  // For authenticated users on protected routes, fetch profile once for all checks
   if (user && !isPublicPath) {
-    const { data: inviteProfile } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('invite_redeemed')
+      .select('invite_redeemed, role')
       .eq('id', user.id)
       .single();
 
-    if (inviteProfile && inviteProfile.invite_redeemed === false) {
+    // Enforce invite code redemption
+    if (profile && profile.invite_redeemed === false) {
       const redirectUrl = new URL('/auth/complete-signup', request.url);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Protect teacher routes - require teacher role
+    if (request.nextUrl.pathname.startsWith('/teacher/') && profile?.role !== 'teacher') {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('error', 'teacher_only');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Protect admin routes - require admin role
+    if (request.nextUrl.pathname.startsWith('/admin') && profile?.role !== 'admin') {
+      const redirectUrl = new URL('/', request.url);
+      redirectUrl.searchParams.set('error', 'admin_only');
       return NextResponse.redirect(redirectUrl);
     }
   }
@@ -123,46 +138,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Protect teacher routes - require authentication and teacher role
-  if (request.nextUrl.pathname.startsWith('/teacher/')) {
-    if (!user) {
-      const redirectUrl = new URL('/', request.url);
-      redirectUrl.searchParams.set('auth', 'required');
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'teacher') {
-      const redirectUrl = new URL('/', request.url);
-      redirectUrl.searchParams.set('error', 'teacher_only');
-      return NextResponse.redirect(redirectUrl);
-    }
-  }
-
-  // Protect admin routes - require authentication and admin role
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      const redirectUrl = new URL('/', request.url);
-      redirectUrl.searchParams.set('auth', 'required');
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.role !== 'admin') {
-      const redirectUrl = new URL('/', request.url);
-      redirectUrl.searchParams.set('error', 'admin_only');
-      return NextResponse.redirect(redirectUrl);
-    }
+  // Protect teacher/admin routes - require authentication
+  if ((request.nextUrl.pathname.startsWith('/teacher/') || request.nextUrl.pathname.startsWith('/admin')) && !user) {
+    const redirectUrl = new URL('/', request.url);
+    redirectUrl.searchParams.set('auth', 'required');
+    return NextResponse.redirect(redirectUrl);
   }
 
   return applySecurityHeaders(supabaseResponse);

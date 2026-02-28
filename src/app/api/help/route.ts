@@ -10,13 +10,15 @@ export async function POST(req: Request) {
     // Compose an email to the support inbox
     const to = 'joel@agathon.app'
     const from = process.env.SUPPORT_FROM_EMAIL || 'support@agathon.app'
+    // Escape HTML to prevent injection via user-supplied fields
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     const subject = `Agathon help request from ${email || 'unknown'}`
     const html = `
       <div>
-        <p><strong>From:</strong> ${email || 'unknown'}</p>
-        <p><strong>Page:</strong> ${page || 'n/a'}</p>
+        <p><strong>From:</strong> ${esc(String(email || 'unknown'))}</p>
+        <p><strong>Page:</strong> ${esc(String(page || 'n/a'))}</p>
         <p><strong>Message:</strong></p>
-        <div>${(message || '').replace(/\n/g, '<br/>')}</div>
+        <div>${esc(String(message || '')).replace(/\n/g, '<br/>')}</div>
       </div>
     `
 

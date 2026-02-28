@@ -1,5 +1,6 @@
 import { HACKCLUB_MODEL } from '@/lib/ai/config';
 import { callHackClubAI, type HackClubMessage } from '@/lib/ai/hackclub';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const SYSTEM_PROMPT = `You are the Agathon assistant — a helpful AI built into an educational learning platform called Agathon.
 
@@ -20,6 +21,17 @@ When answering questions:
 - Use markdown for formatting`;
 
 export async function POST(req: Request) {
+  // Auth check - require login for all AI features
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const { messages } = await req.json();
 
   const hackclubMessages: HackClubMessage[] = [

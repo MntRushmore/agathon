@@ -139,8 +139,10 @@ If the student replies, next step, move on to the next step of the problem witho
     }
 
     // Build messages with image content for vision model
+    // Attach canvas image to the LAST user message so the model always sees the current state
+    const lastUserIndex = messages.reduce((last: number, m: ChatMessage, i: number) => m.role === 'user' ? i : last, -1);
     const userMessages: APIMessage[] = messages.map((m, index) => {
-      if (m.role === 'user' && index === 0 && canvasContext.imageBase64) {
+      if (m.role === 'user' && index === lastUserIndex && canvasContext.imageBase64) {
         return {
           role: m.role,
           content: [

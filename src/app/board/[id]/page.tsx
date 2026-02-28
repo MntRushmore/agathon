@@ -1082,6 +1082,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastCanvasImageRef = useRef<string | null>(null);
   const isUpdatingImageRef = useRef(false);
+  const firstAiMilestoneCheckedRef = useRef(false);
 
   useEffect(() => {
     setHintLimit(assignmentRestrictions?.hintLimit ?? null);
@@ -1132,30 +1133,35 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         });
       }
 
-      // Check for first AI usage milestone
-      const supabaseClient = createClient();
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      // Check for first AI usage milestone (skip if already checked this session)
+      if (!firstAiMilestoneCheckedRef.current) {
+        const supabaseClient = createClient();
+        const { data: { user } } = await supabaseClient.auth.getUser();
 
-      if (user) {
-        const { data: profile } = await supabaseClient
-          .from('profiles')
-          .select('milestones_achieved')
-          .eq('id', user.id)
-          .single();
-
-        const milestones = profile?.milestones_achieved || [];
-
-        if (!milestones.includes('first_ai_used')) {
-          // Track the milestone
-          await supabaseClient
+        if (user) {
+          const { data: profile } = await supabaseClient
             .from('profiles')
-            .update({
-              milestones_achieved: [...milestones, 'first_ai_used']
-            })
-            .eq('id', user.id);
+            .select('milestones_achieved')
+            .eq('id', user.id)
+            .single();
 
-          // Celebrate!
-          celebrateMilestone('first_ai_used');
+          const milestones = profile?.milestones_achieved || [];
+
+          if (milestones.includes('first_ai_used')) {
+            // Already achieved — skip future checks
+            firstAiMilestoneCheckedRef.current = true;
+          } else {
+            // Track the milestone
+            await supabaseClient
+              .from('profiles')
+              .update({
+                milestones_achieved: [...milestones, 'first_ai_used']
+              })
+              .eq('id', user.id);
+
+            firstAiMilestoneCheckedRef.current = true;
+            celebrateMilestone('first_ai_used');
+          }
         }
       }
     } catch (error) {
