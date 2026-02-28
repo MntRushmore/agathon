@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { StatusIndicator, type StatusIndicatorState } from '@/components/StatusIndicator';
 import { AdminPlanToggle } from './AdminPlanToggle';
+import { AdminModelToggle, type ImageModel } from './AdminModelToggle';
 
 interface TopBarProps {
   // Navigation
@@ -56,6 +57,10 @@ interface TopBarProps {
   isVoiceSessionActive: boolean;
   bannerOffset: number;
   isDocPanelOpen: boolean;
+
+  // Admin model toggle
+  imageModel: ImageModel;
+  onImageModelChange: (model: ImageModel) => void;
 }
 
 function ModeInfoDialog() {
@@ -141,6 +146,8 @@ export function TopBar({
   isVoiceSessionActive,
   bannerOffset,
   isDocPanelOpen,
+  imageModel,
+  onImageModelChange,
 }: TopBarProps) {
   if (isVoiceSessionActive) return null;
 
@@ -297,7 +304,8 @@ export function TopBar({
             </div>
           )}
 
-          {/* Admin toggle */}
+          {/* Admin toggles */}
+          <AdminModelToggle model={imageModel} onModelChange={onImageModelChange} />
           <AdminPlanToggle />
         </div>
       )}

@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       mode = 'suggest',
       source = 'auto',
       isSocratic = false,
+      modelOverride,
     } = await req.json();
 
     if (!image) {
@@ -140,34 +141,17 @@ export async function POST(req: NextRequest) {
     let textContent = '';
 
     if (shouldShowPremiumHandwriting) {
-      // Premium: Use OpenRouter with image generation model
-      solutionLogger.info({ requestId, mode: effectiveMode, isSocratic, source: effectiveSource }, 'Using OpenRouter (Premium) for image-based solution');
+      const useFlash = modelOverride === 'flash';
 
-      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-      const { OPENROUTER_IMAGE_MODEL: model } = await import('@/lib/ai/config');
+      if (useFlash) {
+        // Flash path: Use Hack Club AI with gemini-3.1-flash-image-preview (free, faster)
+        solutionLogger.info({ requestId, mode: effectiveMode, isSocratic, source: effectiveSource }, 'Using Hack Club AI Flash for image-based solution');
 
-      if (!openrouterApiKey) {
-        solutionLogger.error({ requestId }, 'OpenRouter API key missing');
-        return NextResponse.json(
-          { error: 'OPENROUTER_API_KEY not configured' },
-          { status: 500 }
-        );
-      }
+        const { HACKCLUB_IMAGE_MODEL } = await import('@/lib/ai/config');
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for image gen
-
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openrouterApiKey}`,
-            'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-            'X-Title': 'Madhacks AI Canvas',
-          },
-          body: JSON.stringify({
-            model,
+        try {
+          const hackclubResponse = await callHackClubAI({
+            model: HACKCLUB_IMAGE_MODEL,
             messages: [
               {
                 role: 'user',
@@ -177,75 +161,173 @@ export async function POST(req: NextRequest) {
                 ],
               },
             ],
+            stream: false,
             modalities: ['image', 'text'],
-            reasoning_effort: 'minimal',
-          }),
-          signal: controller.signal,
-        });
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          solutionLogger.error({ requestId, status: response.status, error: errorData }, 'OpenRouter API error');
-          throw new Error(errorData.error?.message || `OpenRouter API error: ${response.status}`);
-        }
+          const data = await hackclubResponse.json();
+          const message = data.choices?.[0]?.message;
 
-        const data = await response.json();
-        const message = data.choices?.[0]?.message;
-
-        // Extract text content — handle both string and array (multimodal) responses
-        const rawContent = message?.content;
-        if (typeof rawContent === 'string') {
-          textContent = rawContent;
-        } else if (Array.isArray(rawContent)) {
-          textContent = rawContent
-            .filter((part: any) => part?.type === 'text' && part.text)
-            .map((part: any) => part.text)
-            .join('\n');
-        } else {
-          textContent = '';
-        }
-
-        // Extract image from response (flexible extraction logic from snippet)
-        let aiImageUrl: string | null = null;
-
-        // 1) Legacy / hypothetical format
-        const legacyImages = (message as any)?.images;
-        if (Array.isArray(legacyImages) && legacyImages.length > 0) {
-          const first = legacyImages[0];
-          aiImageUrl = first?.image_url?.url ?? first?.url ?? null;
-        }
-
-        // 2) Content array
-        if (!aiImageUrl) {
-          const content = (message as any)?.content;
-          if (Array.isArray(content)) {
-            for (const part of content) {
-              if ((part?.type === 'image_url' || part?.type === 'output_image') && (part.url || part.image_url?.url)) {
-                aiImageUrl = part.url || part.image_url?.url;
-                break;
-              }
-            }
-          } else if (typeof content === 'string') {
-            // 3) Fallback scan
-            const dataUrlMatch = content.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
-            const httpUrlMatch = content.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
-            if (dataUrlMatch) aiImageUrl = dataUrlMatch[0];
-            else if (httpUrlMatch) aiImageUrl = httpUrlMatch[0];
+          // Extract text + image using shared logic below
+          const rawContent = message?.content;
+          if (typeof rawContent === 'string') {
+            textContent = rawContent;
+          } else if (Array.isArray(rawContent)) {
+            textContent = rawContent
+              .filter((part: any) => part?.type === 'text' && part.text)
+              .map((part: any) => part.text)
+              .join('\n');
+          } else {
+            textContent = '';
           }
+
+          let aiImageUrl: string | null = null;
+          const legacyImages = (message as any)?.images;
+          if (Array.isArray(legacyImages) && legacyImages.length > 0) {
+            const first = legacyImages[0];
+            aiImageUrl = first?.image_url?.url ?? first?.url ?? null;
+          }
+          if (!aiImageUrl) {
+            const content = (message as any)?.content;
+            if (Array.isArray(content)) {
+              for (const part of content) {
+                if ((part?.type === 'image_url' || part?.type === 'output_image') && (part.url || part.image_url?.url)) {
+                  aiImageUrl = part.url || part.image_url?.url;
+                  break;
+                }
+              }
+            } else if (typeof content === 'string') {
+              const dataUrlMatch = content.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
+              const httpUrlMatch = content.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
+              if (dataUrlMatch) aiImageUrl = dataUrlMatch[0];
+              else if (httpUrlMatch) aiImageUrl = httpUrlMatch[0];
+            }
+          }
+
+          imageUrl = aiImageUrl || '';
+          provider = 'hackclub-flash';
+
+          if (imageUrl) {
+            feedback = {
+              summary: textContent || 'Handwritten feedback generated (Flash)',
+              annotations: [],
+            };
+          }
+        } catch (flashError) {
+          solutionLogger.error({ requestId, error: flashError }, 'Hack Club AI Flash error');
+          return NextResponse.json(
+            { error: 'Flash model failed', details: flashError instanceof Error ? flashError.message : 'Unknown error' },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Pro path: Use OpenRouter with gemini-3-pro-image-preview (paid, higher quality)
+        solutionLogger.info({ requestId, mode: effectiveMode, isSocratic, source: effectiveSource }, 'Using OpenRouter (Premium) for image-based solution');
+
+        const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+        const { OPENROUTER_IMAGE_MODEL: model } = await import('@/lib/ai/config');
+
+        if (!openrouterApiKey) {
+          solutionLogger.error({ requestId }, 'OpenRouter API key missing');
+          return NextResponse.json(
+            { error: 'OPENROUTER_API_KEY not configured' },
+            { status: 500 }
+          );
         }
 
-        imageUrl = aiImageUrl || '';
-        provider = 'openrouter';
-        
-        // Mock feedback object for compatibility if image returned
-        if (imageUrl) {
-          feedback = {
-            summary: textContent || 'Handwritten feedback generated',
-            annotations: [],
-          };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout for image gen
+
+        try {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${openrouterApiKey}`,
+              'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+              'X-Title': 'Madhacks AI Canvas',
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    { type: 'image_url', image_url: { url: image } },
+                    { type: 'text', text: finalPrompt },
+                  ],
+                },
+              ],
+              modalities: ['image', 'text'],
+              reasoning_effort: 'minimal',
+            }),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            solutionLogger.error({ requestId, status: response.status, error: errorData }, 'OpenRouter API error');
+            throw new Error(errorData.error?.message || `OpenRouter API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const message = data.choices?.[0]?.message;
+
+          // Extract text content — handle both string and array (multimodal) responses
+          const rawContent = message?.content;
+          if (typeof rawContent === 'string') {
+            textContent = rawContent;
+          } else if (Array.isArray(rawContent)) {
+            textContent = rawContent
+              .filter((part: any) => part?.type === 'text' && part.text)
+              .map((part: any) => part.text)
+              .join('\n');
+          } else {
+            textContent = '';
+          }
+
+          // Extract image from response (flexible extraction logic from snippet)
+          let aiImageUrl: string | null = null;
+
+          // 1) Legacy / hypothetical format
+          const legacyImages = (message as any)?.images;
+          if (Array.isArray(legacyImages) && legacyImages.length > 0) {
+            const first = legacyImages[0];
+            aiImageUrl = first?.image_url?.url ?? first?.url ?? null;
+          }
+
+          // 2) Content array
+          if (!aiImageUrl) {
+            const content = (message as any)?.content;
+            if (Array.isArray(content)) {
+              for (const part of content) {
+                if ((part?.type === 'image_url' || part?.type === 'output_image') && (part.url || part.image_url?.url)) {
+                  aiImageUrl = part.url || part.image_url?.url;
+                  break;
+                }
+              }
+            } else if (typeof content === 'string') {
+              // 3) Fallback scan
+              const dataUrlMatch = content.match(/data:image\/[a-zA-Z+]+;base64,[^\s")'}]+/);
+              const httpUrlMatch = content.match(/https?:\/\/[^\s")'}]+?\.(?:png|jpg|jpeg|gif|webp)/i);
+              if (dataUrlMatch) aiImageUrl = dataUrlMatch[0];
+              else if (httpUrlMatch) aiImageUrl = httpUrlMatch[0];
+            }
+          }
+
+          imageUrl = aiImageUrl || '';
+          provider = 'openrouter';
+
+          // Mock feedback object for compatibility if image returned
+          if (imageUrl) {
+            feedback = {
+              summary: textContent || 'Handwritten feedback generated',
+              annotations: [],
+            };
+          }
+        } finally {
+          clearTimeout(timeoutId);
         }
-      } finally {
-        clearTimeout(timeoutId);
       }
     } else {
       // Free tier: Use Hack Club AI with helpful math feedback

@@ -14,6 +14,7 @@ export interface HackClubCompletionOptions {
   max_tokens?: number;
   model?: string;
   temperature?: number;
+  modalities?: string[];
 }
 
 // Use the proxy endpoint for model selection and vision support
@@ -44,6 +45,7 @@ export async function callHackClubAI(options: HackClubCompletionOptions): Promis
       stream: options.stream ?? true,
       ...(options.max_tokens && { max_tokens: options.max_tokens }),
       ...(options.temperature !== undefined && { temperature: options.temperature }),
+      ...(options.modalities && { modalities: options.modalities }),
     }),
   });
 
