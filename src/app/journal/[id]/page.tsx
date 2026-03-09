@@ -157,6 +157,7 @@ function ContentWithEmbeds({
   onDeleteDesmos,
   onChartSave,
   onDeleteChart,
+  documentId,
 }: {
   content: string;
   onChange: (content: string) => void;
@@ -169,6 +170,7 @@ function ContentWithEmbeds({
   onDeleteDesmos?: (id: string) => void;
   onChartSave?: (id: string, data: ChartConfig) => void;
   onDeleteChart?: (id: string) => void;
+  documentId?: string;
 }) {
   // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
@@ -212,6 +214,7 @@ function ContentWithEmbeds({
         }}
         placeholder={placeholder}
         onSlashCommand={onSlashCommand}
+        documentId={documentId}
         className={hasEmbeds ? '[&_.ProseMirror]:!min-h-[120px]' : ''}
       />
 
@@ -2378,6 +2381,7 @@ export default function JournalEditorPage() {
               sileo.success({ title: 'Chart deleted' });
             }}
             onSlashCommand={executeCommand}
+            documentId={params.id as string}
           />
 
           {/* Proactive AI Suggestion Display */}

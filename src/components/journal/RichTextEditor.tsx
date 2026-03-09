@@ -12,10 +12,14 @@ import { Table as TiptapTable } from '@tiptap/extension-table';
 import { TableRow as TiptapTableRow } from '@tiptap/extension-table-row';
 import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
 import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Collaboration from '@tiptap/extension-collaboration';
 import { Extension, Node } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
-import { useEffect, useState, useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import 'katex/dist/katex.min.css';
 import katex from 'katex';
@@ -26,11 +30,19 @@ import {
   FileText, Link as LinkIcon, Image, Waveform, VideoCamera, YoutubeLogo, FileDoc,
   TextB, TextItalic, TextUnderline, TextStrikethrough, LinkSimple,
   SpeakerHigh, Stop as StopIcon, CircleNotch,
+  DotsSixVertical, Plus, CheckSquare, ArrowsOutCardinal,
+  Robot, Eraser, TextAa, Translate, ListChecks,
 } from '@phosphor-icons/react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
+import * as Y from 'yjs';
+import { HocuspocusProvider } from '@hocuspocus/provider';
 
-// Custom TipTap node: Details (collapsible section)
+// ============================================================
+// Custom TipTap Nodes
+// ============================================================
+
+// Details (collapsible section)
 const DetailsNode = Node.create({
   name: 'details',
   group: 'block',
@@ -80,23 +92,31 @@ const DetailsContentNode = Node.create({
   },
 });
 
-// Slash command item type
+// ============================================================
+// Slash Command Items
+// ============================================================
+
 interface SlashCommandItem {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<any>;
   category: string;
   description?: string;
 }
 
-// All available slash commands
 const slashCommandItems: SlashCommandItem[] = [
   // Build with Feynman
   { id: 'notes', label: 'Generate notes', icon: Sparkle, category: 'Build with Feynman', description: 'AI-generated study notes' },
   { id: 'practice', label: 'Generate practice problems', icon: ClipboardText, category: 'Build with Feynman', description: 'AI-generated practice problems' },
   { id: 'flashcards', label: 'Generate flashcards', icon: Stack, category: 'Build with Feynman', description: 'AI-generated flashcards' },
   { id: 'generate-image', label: 'Generate image', icon: ImageSquare, category: 'Build with Feynman', description: 'AI-generated diagram' },
+  // AI Actions
+  { id: 'ai-continue', label: 'Continue writing', icon: Robot, category: 'AI Actions', description: 'AI continues your text' },
+  { id: 'ai-summarize', label: 'Summarize', icon: TextAa, category: 'AI Actions', description: 'Summarize selected content' },
+  { id: 'ai-fix-grammar', label: 'Fix grammar', icon: Eraser, category: 'AI Actions', description: 'Fix spelling & grammar' },
+  { id: 'ai-translate', label: 'Translate', icon: Translate, category: 'AI Actions', description: 'Translate to another language' },
   // Advanced editing
+  { id: 'task-list', label: 'To-do list', icon: ListChecks, category: 'Advanced editing', description: 'Checkbox task list' },
   { id: 'table', label: 'Table', icon: Table, category: 'Advanced editing', description: 'Data table' },
   { id: 'details', label: 'Details', icon: CaretDown, category: 'Advanced editing', description: 'Collapsible section' },
   { id: 'code', label: 'Code block', icon: Code, category: 'Advanced editing', description: 'Code snippet' },
@@ -116,15 +136,10 @@ const slashCommandItems: SlashCommandItem[] = [
   { id: 'pdf', label: 'PDF', icon: FileDoc, category: 'Media', description: 'Upload PDF' },
 ];
 
-interface RichTextEditorProps {
-  content: string;
-  onChange: (content: string) => void;
-  placeholder?: string;
-  className?: string;
-  onSlashCommand?: (commandId: string) => void;
-}
+// ============================================================
+// Slash Command Menu Component
+// ============================================================
 
-// Slash command menu component
 interface SlashCommandMenuProps {
   items: SlashCommandItem[];
   command: (item: SlashCommandItem) => void;
@@ -138,10 +153,21 @@ interface SlashCommandMenuRef {
 const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
   ({ items, command, selectedIndex }, ref) => {
     const [localSelectedIndex, setLocalSelectedIndex] = useState(selectedIndex);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
       setLocalSelectedIndex(selectedIndex);
     }, [selectedIndex]);
+
+    // Auto-scroll selected item into view
+    useEffect(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const selected = container.querySelector(`[data-slash-index="${localSelectedIndex}"]`) as HTMLElement;
+      if (selected) {
+        selected.scrollIntoView({ block: 'nearest' });
+      }
+    }, [localSelectedIndex]);
 
     const selectItem = useCallback((index: number) => {
       const item = items[index];
@@ -180,7 +206,10 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
     let globalIndex = 0;
 
     return (
-      <div className="bg-white rounded-xl shadow-2xl border border-[#e2e4e8] py-2 max-h-[400px] overflow-y-auto min-w-[280px]">
+      <div
+        ref={scrollContainerRef}
+        className="bg-white rounded-xl shadow-2xl border border-[#e2e4e8] py-2 max-h-[400px] overflow-y-auto min-w-[280px]"
+      >
         {Object.entries(groupedItems).map(([category, categoryItems]) => (
           <div key={category}>
             <div className="px-3 py-1.5 text-xs font-medium text-[#9096a2] uppercase tracking-wider">
@@ -192,16 +221,21 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
               return (
                 <button
                   key={item.id}
+                  data-slash-index={currentIndex}
                   onClick={() => selectItem(currentIndex)}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
                     currentIndex === localSelectedIndex ? 'bg-[#f0f1f3]' : 'hover:bg-[#f5f6f8]'
                   )}
                 >
-                  <Icon className={cn(
-                    'h-5 w-5 flex-shrink-0',
-                    currentIndex === localSelectedIndex ? 'text-[#007ba5]' : 'text-[#9096a2]'
-                  )} />
+                  <div className={cn(
+                    'flex items-center justify-center w-8 h-8 rounded-lg border',
+                    currentIndex === localSelectedIndex
+                      ? 'bg-[#e0f2f7] border-[#007ba5]/20 text-[#007ba5]'
+                      : 'bg-white border-[#e2e4e8] text-[#9096a2]'
+                  )}>
+                    <Icon className="h-4 w-4" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className={cn(
                       'text-sm font-medium',
@@ -232,12 +266,170 @@ const SlashCommandMenu = forwardRef<SlashCommandMenuRef, SlashCommandMenuProps>(
 
 SlashCommandMenu.displayName = 'SlashCommandMenu';
 
+// ============================================================
+// Block Handle / Drag Handle Component (Notion-style)
+// ============================================================
+
+function BlockDragHandle({
+  editor,
+  onAddBlock,
+}: {
+  editor: any;
+  onAddBlock: (pos: number) => void;
+}) {
+  const [handlePos, setHandlePos] = useState<{ top: number; left: number; nodePos: number } | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const editorRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const editorElement = editor.view.dom as HTMLElement;
+    editorRef.current = editorElement;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const editorRect = editorElement.getBoundingClientRect();
+      // Only show when hovering near the left edge of the editor
+      if (e.clientX < editorRect.left - 60 || e.clientX > editorRect.left + 20) {
+        setHandlePos(null);
+        setShowMenu(false);
+        return;
+      }
+
+      // Find the block node at the current y position
+      const y = e.clientY;
+      const pos = editor.view.posAtCoords({ left: editorRect.left + 10, top: y });
+      if (!pos) {
+        setHandlePos(null);
+        return;
+      }
+
+      // Resolve to the top-level block
+      const $pos = editor.state.doc.resolve(pos.pos);
+      const depth = $pos.depth;
+      if (depth === 0) {
+        setHandlePos(null);
+        return;
+      }
+
+      const topLevelNode = $pos.node(1);
+      const topLevelPos = $pos.before(1);
+      const dom = editor.view.nodeDOM(topLevelPos) as HTMLElement;
+
+      if (!dom || !dom.getBoundingClientRect) {
+        setHandlePos(null);
+        return;
+      }
+
+      const domRect = dom.getBoundingClientRect();
+      const scrollContainer = editorElement.closest('.overflow-y-auto') || editorElement.parentElement;
+      const containerRect = scrollContainer?.getBoundingClientRect() || editorRect;
+
+      setHandlePos({
+        top: domRect.top - containerRect.top + (scrollContainer?.scrollTop || 0),
+        left: -44,
+        nodePos: topLevelPos,
+      });
+    };
+
+    const handleMouseLeave = () => {
+      // Small delay to allow clicking the handle
+      setTimeout(() => {
+        setHandlePos(null);
+        setShowMenu(false);
+      }, 200);
+    };
+
+    // Listen on a wrapper that includes the gutter area
+    const wrapper = editorElement.parentElement;
+    if (wrapper) {
+      wrapper.addEventListener('mousemove', handleMouseMove);
+      wrapper.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    return () => {
+      if (wrapper) {
+        wrapper.removeEventListener('mousemove', handleMouseMove);
+        wrapper.removeEventListener('mouseleave', handleMouseLeave);
+      }
+    };
+  }, [editor]);
+
+  if (!handlePos) return null;
+
+  return (
+    <div
+      className="absolute flex items-center gap-0.5 z-30 transition-opacity duration-100"
+      style={{
+        top: handlePos.top,
+        left: handlePos.left,
+      }}
+      onMouseEnter={() => setHandlePos(handlePos)} // Keep visible
+    >
+      {/* Plus button - add block below */}
+      <button
+        className="p-0.5 rounded hover:bg-[#f0f1f3] text-[#9096a2] hover:text-[#4a4f5c] transition-colors"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          // Insert a new paragraph after this block
+          const endOfBlock = handlePos.nodePos + editor.state.doc.nodeAt(handlePos.nodePos)!.nodeSize;
+          editor.chain().focus().insertContentAt(endOfBlock, { type: 'paragraph' }).run();
+        }}
+        title="Add block below"
+      >
+        <Plus className="h-4 w-4" weight="bold" />
+      </button>
+      {/* Drag handle */}
+      <button
+        className="p-0.5 rounded hover:bg-[#f0f1f3] text-[#9096a2] hover:text-[#4a4f5c] cursor-grab active:cursor-grabbing transition-colors"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', String(handlePos.nodePos));
+          e.dataTransfer.effectAllowed = 'move';
+          // Select the node for visual feedback
+          const node = editor.state.doc.nodeAt(handlePos.nodePos);
+          if (node) {
+            editor.commands.setNodeSelection(handlePos.nodePos);
+          }
+        }}
+        title="Drag to reorder"
+      >
+        <DotsSixVertical className="h-4 w-4" weight="bold" />
+      </button>
+    </div>
+  );
+}
+
+// ============================================================
+// Main Editor Props
+// ============================================================
+
+export interface RichTextEditorProps {
+  content: string;
+  onChange: (content: string) => void;
+  placeholder?: string;
+  className?: string;
+  onSlashCommand?: (commandId: string) => void;
+  // Collaboration props
+  documentId?: string;
+  userName?: string;
+  userColor?: string;
+}
+
+// ============================================================
+// Main RichTextEditor Component
+// ============================================================
+
 export function RichTextEditor({
   content,
   onChange,
-  placeholder = 'Start writing...',
+  placeholder = 'Press \'/\' for commands...',
   className,
-  onSlashCommand
+  onSlashCommand,
+  documentId,
+  userName,
+  userColor,
 }: RichTextEditorProps) {
   // Use refs to avoid stale closures in Tiptap editor callbacks
   const onChangeRef = useRef(onChange);
@@ -245,8 +437,140 @@ export function RichTextEditor({
   const onSlashCommandRef = useRef(onSlashCommand);
   onSlashCommandRef.current = onSlashCommand;
 
-  // Create slash command extension
-  const SlashCommands = Extension.create({
+  // Collaboration setup
+  const ydocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<HocuspocusProvider | null>(null);
+
+  const collabEnabled = Boolean(
+    documentId &&
+    process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID &&
+    process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID !== 'your-tiptap-collab-app-id'
+  );
+
+  // Initialize Yjs doc and Hocuspocus provider for collaboration
+  useEffect(() => {
+    if (!collabEnabled || !documentId) return;
+
+    const ydoc = new Y.Doc();
+    ydocRef.current = ydoc;
+
+    const docPrefix = process.env.NEXT_PUBLIC_TIPTAP_COLLAB_DOC_PREFIX || 'agathon-journal-';
+
+    const provider = new HocuspocusProvider({
+      url: `wss://${process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID}.collab.tiptap.cloud`,
+      name: `${docPrefix}${documentId}`,
+      document: ydoc,
+      token: 'notoken', // Will be replaced via the API route when real tokens are set
+    });
+
+    providerRef.current = provider;
+
+    return () => {
+      provider.destroy();
+      ydoc.destroy();
+    };
+  }, [collabEnabled, documentId]);
+
+  // Build the extensions list
+  const extensions = useMemo(() => {
+    const exts: any[] = [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: { HTMLAttributes: { class: '' } },
+        code: {
+          HTMLAttributes: {
+            class: 'bg-[#f0f1f3] rounded px-1.5 py-0.5 font-mono text-sm',
+          },
+        },
+        bulletList: {
+          HTMLAttributes: {
+            class: 'list-disc ml-6 my-2 space-y-1',
+          },
+        },
+        orderedList: {
+          HTMLAttributes: {
+            class: 'list-decimal ml-6 my-2 space-y-1',
+          },
+        },
+        blockquote: {
+          HTMLAttributes: { class: '' },
+        },
+        // Disable history when collaboration is enabled (Yjs handles undo/redo)
+        ...(collabEnabled ? { history: false } : {}),
+      }),
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading') {
+            const level = node.attrs.level;
+            return `Heading ${level}`;
+          }
+          return placeholder;
+        },
+        emptyEditorClass: 'is-editor-empty',
+        emptyNodeClass: 'is-empty',
+      }),
+      Typography,
+      Underline,
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-[#007ba5] underline decoration-[#007ba5]/40 hover:decoration-[#007ba5]',
+        },
+      }),
+      MathExtension.configure({
+        evaluation: false,
+        katexOptions: { throwOnError: false },
+      }),
+      TiptapTable.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full my-4',
+        },
+      }),
+      TiptapTableRow.configure({
+        HTMLAttributes: { class: '' },
+      }),
+      TiptapTableHeader.configure({
+        HTMLAttributes: {
+          class: 'border border-[#e2e4e8] bg-[#f0f1f3] px-4 py-2 text-left font-semibold',
+        },
+      }),
+      TiptapTableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-[#e2e4e8] px-4 py-2',
+        },
+      }),
+      TaskList.configure({
+        HTMLAttributes: {
+          class: 'not-prose pl-0 space-y-1 my-2',
+        },
+      }),
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start gap-2',
+        },
+      }),
+      DetailsNode,
+      DetailsSummaryNode,
+      DetailsContentNode,
+    ];
+
+    // Add collaboration extension if enabled
+    if (collabEnabled && ydocRef.current) {
+      exts.push(
+        Collaboration.configure({
+          document: ydocRef.current,
+        })
+      );
+    }
+
+    return exts;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collabEnabled, placeholder]);
+
+  // Create slash command extension (separate to avoid recreation)
+  const SlashCommands = useMemo(() => Extension.create({
     name: 'slashCommands',
     addOptions() {
       return {
@@ -255,9 +579,6 @@ export function RichTextEditor({
           command: ({ editor, range, props }: { editor: any; range: any; props: SlashCommandItem }) => {
             const commandId = props.id;
 
-            // All block-type commands must be chained with deleteRange in a single
-            // transaction to avoid race conditions where the block type command
-            // runs before the deletion has settled.
             switch (commandId) {
               case 'text':
                 editor.chain().focus().deleteRange(range).clearNodes().run();
@@ -289,6 +610,9 @@ export function RichTextEditor({
               case 'table':
                 editor.chain().focus().deleteRange(range).insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
                 break;
+              case 'task-list':
+                editor.chain().focus().deleteRange(range).toggleTaskList().run();
+                break;
               case 'details':
                 editor.chain().focus().deleteRange(range).insertContent({
                   type: 'details',
@@ -305,8 +629,7 @@ export function RichTextEditor({
                 }).run();
                 break;
               default:
-                // For non-editor commands (AI, media, etc.), just delete the slash text
-                // and pass to parent handler
+                // For non-editor commands (AI, media, etc.), delete slash text and pass to parent
                 editor.chain().focus().deleteRange(range).run();
                 if (onSlashCommandRef.current) {
                   onSlashCommandRef.current(commandId);
@@ -323,7 +646,8 @@ export function RichTextEditor({
           ...this.options.suggestion,
           items: ({ query }: { query: string }) => {
             return slashCommandItems.filter(item =>
-              item.label.toLowerCase().includes(query.toLowerCase())
+              item.label.toLowerCase().includes(query.toLowerCase()) ||
+              (item.description || '').toLowerCase().includes(query.toLowerCase())
             );
           },
           render: () => {
@@ -333,10 +657,7 @@ export function RichTextEditor({
             return {
               onStart: (props: SuggestionProps<SlashCommandItem>) => {
                 component = new ReactRenderer(SlashCommandMenu, {
-                  props: {
-                    ...props,
-                    selectedIndex: 0,
-                  },
+                  props: { ...props, selectedIndex: 0 },
                   editor: props.editor,
                 });
 
@@ -354,9 +675,7 @@ export function RichTextEditor({
               },
               onUpdate: (props: SuggestionProps<SlashCommandItem>) => {
                 component?.updateProps(props);
-
                 if (!props.clientRect || !popup) return;
-
                 popup[0]?.setProps({
                   getReferenceClientRect: props.clientRect as () => DOMRect,
                 });
@@ -366,7 +685,6 @@ export function RichTextEditor({
                   popup?.[0]?.hide();
                   return true;
                 }
-
                 const ref = component?.ref as SlashCommandMenuRef | null;
                 return ref?.onKeyDown?.(props) ?? false;
               },
@@ -379,82 +697,12 @@ export function RichTextEditor({
         }),
       ];
     },
-  });
+  }), []);
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-        codeBlock: {
-          HTMLAttributes: { class: '' },
-        },
-        code: {
-          HTMLAttributes: {
-            class: 'bg-[#f0f1f3] rounded px-1.5 py-0.5 font-mono text-sm',
-          },
-        },
-        bulletList: {
-          HTMLAttributes: {
-            class: 'list-disc ml-6 my-2 space-y-1',
-          },
-        },
-        orderedList: {
-          HTMLAttributes: {
-            class: 'list-decimal ml-6 my-2 space-y-1',
-          },
-        },
-        blockquote: {
-          HTMLAttributes: { class: '' },
-        },
-      }),
-      Placeholder.configure({
-        placeholder,
-        emptyEditorClass: 'is-editor-empty',
-      }),
-      Typography,
-      Underline,
-      LinkExtension.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-[#007ba5] underline decoration-[#007ba5]/40 hover:decoration-[#007ba5]',
-        },
-      }),
-      MathExtension.configure({
-        evaluation: false,
-        katexOptions: {
-          throwOnError: false,
-        },
-      }),
-      TiptapTable.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: 'border-collapse table-auto w-full my-4',
-        },
-      }),
-      TiptapTableRow.configure({
-        HTMLAttributes: {
-          class: '',
-        },
-      }),
-      TiptapTableHeader.configure({
-        HTMLAttributes: {
-          class: 'border border-[#e2e4e8] bg-[#f0f1f3] px-4 py-2 text-left font-semibold',
-        },
-      }),
-      TiptapTableCell.configure({
-        HTMLAttributes: {
-          class: 'border border-[#e2e4e8] px-4 py-2',
-        },
-      }),
-      DetailsNode,
-      DetailsSummaryNode,
-      DetailsContentNode,
-      SlashCommands,
-    ],
-    content: parseContentToHTML(content),
+    extensions: [...extensions, SlashCommands],
+    content: collabEnabled ? undefined : parseContentToHTML(content),
     editorProps: {
       attributes: {
         class: cn(
@@ -475,7 +723,6 @@ export function RichTextEditor({
         if (summaryEl) {
           const detailsEl = summaryEl.closest('details');
           if (detailsEl) {
-            // Find the details node in the ProseMirror doc and toggle its open attribute
             const { state } = view;
             let detailsPos: number | null = null;
             state.doc.descendants((node, nodePos) => {
@@ -505,30 +752,24 @@ export function RichTextEditor({
         // Check if clicked on a math node
         const mathNode = target.closest('.tiptap-math.latex') as HTMLElement;
         if (mathNode) {
-          // Find the node at this position
           const { state } = view;
           const $pos = state.doc.resolve(pos);
           const node = $pos.nodeAfter || $pos.nodeBefore;
 
           if (node && node.type.name === 'inlineMath') {
-            // Display math uses the extension's built-in editor — don't replace with raw text
             if (node.attrs.display === 'yes') {
               return false;
             }
 
             const latex = node.attrs.latex || '';
-
-            // Get the position of the math node
             let nodePos = pos;
             if ($pos.nodeBefore && $pos.nodeBefore.type.name === 'inlineMath') {
               nodePos = pos - $pos.nodeBefore.nodeSize;
             }
 
-            // Replace inline math node with editable $...$ text
             const tr = state.tr;
             tr.delete(nodePos, nodePos + node.nodeSize);
             tr.insertText(`$${latex}$`, nodePos);
-            // Position cursor inside the LaTeX, selecting all the LaTeX content
             const cursorPos = nodePos + 1;
             tr.setSelection(TextSelection.create(tr.doc, cursorPos, cursorPos + latex.length));
             view.dispatch(tr);
@@ -536,6 +777,45 @@ export function RichTextEditor({
           }
         }
         return false;
+      },
+      // Handle drop for drag-and-drop reordering
+      handleDrop: (view, event, slice, moved) => {
+        if (!moved || !event.dataTransfer) return false;
+        const fromPosStr = event.dataTransfer.getData('text/plain');
+        if (!fromPosStr) return false;
+
+        const fromPos = parseInt(fromPosStr, 10);
+        if (isNaN(fromPos)) return false;
+
+        const coords = { left: event.clientX, top: event.clientY };
+        const dropPos = view.posAtCoords(coords);
+        if (!dropPos) return false;
+
+        const { state } = view;
+        const fromNode = state.doc.nodeAt(fromPos);
+        if (!fromNode) return false;
+
+        // Resolve drop target to top-level position
+        const $dropPos = state.doc.resolve(dropPos.pos);
+        let targetPos = $dropPos.before(1);
+
+        const tr = state.tr;
+        const nodeContent = fromNode.toJSON();
+
+        // Delete source first
+        tr.delete(fromPos, fromPos + fromNode.nodeSize);
+
+        // Adjust target position after deletion
+        if (targetPos > fromPos) {
+          targetPos -= fromNode.nodeSize;
+        }
+
+        // Insert at target
+        const insertPos = Math.min(targetPos, tr.doc.content.size);
+        tr.insert(insertPos, state.schema.nodeFromJSON(nodeContent));
+
+        view.dispatch(tr);
+        return true;
       },
     },
     onUpdate: ({ editor }) => {
@@ -549,36 +829,25 @@ export function RichTextEditor({
       const { doc, selection } = state;
       const cursorPos = selection.from;
 
-      // Find text nodes with $...$ patterns
-      let foundMatch = false;
       doc.descendants((node, pos) => {
         if (node.isText && node.text) {
           const text = node.text;
-          // Match $...$ but not $$...$$
           const regex = /(?<!\$)\$([^$]+)\$(?!\$)/g;
           let match;
           while ((match = regex.exec(text)) !== null) {
             const matchStart = pos + match.index;
             const matchEnd = matchStart + match[0].length;
 
-            // Only convert if cursor is NOT inside this match
             if (cursorPos < matchStart || cursorPos > matchEnd) {
-              // Found a match that needs converting - do it after this iteration
               const latex = match[1];
-              foundMatch = true;
 
-              // Use setTimeout to avoid modifying during iteration
               setTimeout(() => {
                 const { state: newState } = editor;
                 const tr = newState.tr;
-
-                // Verify the text is still there
                 const $pos = newState.doc.resolve(matchStart);
                 const textNode = $pos.nodeAfter;
                 if (textNode?.isText && textNode.text?.includes(match![0])) {
-                  // Delete the $...$ text
                   tr.delete(matchStart, matchEnd);
-                  // Insert a math node
                   const mathNodeType = newState.schema.nodes.inlineMath;
                   if (mathNodeType) {
                     tr.insert(matchStart, mathNodeType.create({ latex }));
@@ -586,14 +855,13 @@ export function RichTextEditor({
                   }
                 }
               }, 0);
-              return false; // Stop searching
+              return false;
             }
           }
         }
       });
     },
   });
-
 
   // Bubble menu ref and plugin setup
   const bubbleMenuRef = useRef<HTMLDivElement>(null);
@@ -611,7 +879,6 @@ export function RichTextEditor({
       shouldShow: ({ editor: ed, state }) => {
         const { selection } = state;
         const { empty } = selection;
-        // Don't show for empty selections or code blocks
         if (empty || ed.isActive('codeBlock')) return false;
         return true;
       },
@@ -632,7 +899,6 @@ export function RichTextEditor({
   const handleReadAloud = useCallback(async () => {
     if (!editor) return;
 
-    // If already playing, stop
     if (ttsPlaying && ttsAudioRef.current) {
       ttsAudioRef.current.pause();
       ttsAudioRef.current.currentTime = 0;
@@ -640,7 +906,6 @@ export function RichTextEditor({
       return;
     }
 
-    // Get selected text
     const { from, to } = editor.state.selection;
     const selectedText = editor.state.doc.textBetween(from, to, ' ');
     if (!selectedText.trim()) return;
@@ -653,14 +918,11 @@ export function RichTextEditor({
         body: JSON.stringify({ text: selectedText }),
       });
 
-      if (!res.ok) {
-        throw new Error('TTS request failed');
-      }
+      if (!res.ok) throw new Error('TTS request failed');
 
       const audioBlob = await res.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
 
-      // Clean up previous audio
       if (ttsAudioRef.current) {
         ttsAudioRef.current.pause();
         URL.revokeObjectURL(ttsAudioRef.current.src);
@@ -697,236 +959,172 @@ export function RichTextEditor({
     };
   }, []);
 
-  // Update editor content when prop changes externally
+  // Update editor content when prop changes externally (non-collab mode only)
   useEffect(() => {
-    if (editor && content) {
+    if (editor && content && !collabEnabled) {
       const currentHTML = editor.getHTML();
       const newHTML = parseContentToHTML(content);
-      // Only update if content is significantly different
       if (currentHTML !== newHTML && !editor.isFocused) {
         editor.commands.setContent(newHTML);
       }
     }
-  }, [content, editor]);
+  }, [content, editor, collabEnabled]);
 
   if (!editor) {
     return null;
   }
 
   return (
-    <div className={cn('relative flex gap-4', className)}>
-      {/* Left Sidebar Toolbar - sticky within editor */}
-      <div className="sticky top-24 self-start z-40 flex-shrink-0">
-        <div className="flex flex-col items-center gap-1 bg-white rounded-xl shadow-lg border border-[#e2e4e8] p-1.5">
+    <div className={cn('relative', className)}>
+      {/* Notion-style editor wrapper with drag handles */}
+      <div className="relative pl-12">
+        {/* Block drag handle */}
+        <BlockDragHandle editor={editor} onAddBlock={() => {}} />
+
+        {/* Bubble Menu - floating toolbar on text selection */}
+        <div
+          ref={bubbleMenuRef}
+          className="flex items-center gap-0.5 bg-white rounded-xl shadow-xl border border-[#e2e4e8] px-1.5 py-1 z-50"
+          style={{ visibility: 'hidden', opacity: 0, transition: 'opacity 0.15s ease', position: 'absolute' }}
+        >
+          {/* Bold */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleBold().run();
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('heading', { level: 1 }) && 'bg-[#e0f2f7] text-[#007ba5]'
+              'p-1.5 rounded-lg transition-colors',
+              editor.isActive('bold')
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Heading 1"
+            title="Bold"
           >
-            <TextHOne className="h-4 w-4" weight="duotone" />
+            <TextB className="h-4 w-4" weight="bold" />
           </button>
+
+          {/* Italic */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleItalic().run();
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('heading', { level: 2 }) && 'bg-[#e0f2f7] text-[#007ba5]'
+              'p-1.5 rounded-lg transition-colors',
+              editor.isActive('italic')
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Heading 2"
+            title="Italic"
           >
-            <TextHTwo className="h-4 w-4" weight="duotone" />
+            <TextItalic className="h-4 w-4" weight="duotone" />
           </button>
+
+          {/* Underline */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleUnderline().run();
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('heading', { level: 3 }) && 'bg-[#e0f2f7] text-[#007ba5]'
+              'p-1.5 rounded-lg transition-colors',
+              editor.isActive('underline')
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Heading 3"
+            title="Underline"
           >
-            <TextHThree className="h-4 w-4" weight="duotone" />
+            <TextUnderline className="h-4 w-4" weight="duotone" />
           </button>
-          <div className="w-5 h-px bg-[#e2e4e8] my-1" />
+
+          {/* Strikethrough */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.chain().focus().toggleStrike().run();
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('bulletList') && 'bg-[#e0f2f7] text-[#007ba5]'
+              'p-1.5 rounded-lg transition-colors',
+              editor.isActive('strike')
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Bullet List"
+            title="Strikethrough"
           >
-            <ListBullets className="h-4 w-4" weight="duotone" />
+            <TextStrikethrough className="h-4 w-4" weight="duotone" />
           </button>
+
+          {/* Link */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (editor.isActive('link')) {
+                editor.chain().focus().unsetLink().run();
+              } else {
+                const url = window.prompt('Enter URL:');
+                if (url) {
+                  editor.chain().focus().setLink({ href: url }).run();
+                }
+              }
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('orderedList') && 'bg-[#e0f2f7] text-[#007ba5]'
+              'p-1.5 rounded-lg transition-colors',
+              editor.isActive('link')
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Numbered List"
+            title="Link"
           >
-            <ListNumbers className="h-4 w-4" weight="duotone" />
+            <LinkSimple className="h-4 w-4" weight="duotone" />
           </button>
+
+          <div className="w-px h-5 bg-[#e2e4e8] mx-1" />
+
+          {/* Read Aloud (ElevenLabs TTS) */}
           <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleReadAloud();
+            }}
             className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('blockquote') && 'bg-[#e0f2f7] text-[#007ba5]'
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors',
+              ttsPlaying
+                ? 'bg-[#e0f2f7] text-[#007ba5]'
+                : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
             )}
-            title="Quote"
+            title={ttsPlaying ? 'Stop reading' : 'Read aloud'}
+            disabled={ttsLoading}
           >
-            <Quotes className="h-4 w-4" weight="duotone" />
-          </button>
-          <button
-            onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run(); }}
-            className={cn(
-              'p-2 rounded-lg hover:bg-[#f0f1f3] transition-colors text-[#5a5f6b] hover:text-[#1a1d2b]',
-              editor.isActive('codeBlock') && 'bg-[#e0f2f7] text-[#007ba5]'
+            {ttsLoading ? (
+              <CircleNotch className="h-4 w-4 animate-spin" />
+            ) : ttsPlaying ? (
+              <StopIcon className="h-3.5 w-3.5" weight="fill" />
+            ) : (
+              <SpeakerHigh className="h-4 w-4" weight="duotone" />
             )}
-            title="Code Block"
-          >
-            <Code className="h-4 w-4" weight="duotone" />
+            <span className="text-xs font-medium">
+              {ttsLoading ? 'Loading...' : ttsPlaying ? 'Stop' : 'Read'}
+            </span>
           </button>
         </div>
+
+        {/* Editor Content */}
+        <EditorContent editor={editor} />
       </div>
-
-      {/* Editor area */}
-      <div className="flex-1 min-w-0 relative">
-      {/* Bubble Menu - floating toolbar on text selection */}
-      <div
-        ref={bubbleMenuRef}
-        className="flex items-center gap-0.5 bg-white rounded-xl shadow-xl border border-[#e2e4e8] px-1.5 py-1 z-50"
-        style={{ visibility: 'hidden', opacity: 0, transition: 'opacity 0.15s ease', position: 'absolute' }}
-      >
-        {/* Bold */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            editor.chain().focus().toggleBold().run();
-          }}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            editor.isActive('bold')
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title="Bold"
-        >
-          <TextB className="h-4 w-4" weight="bold" />
-        </button>
-
-        {/* Italic */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            editor.chain().focus().toggleItalic().run();
-          }}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            editor.isActive('italic')
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title="Italic"
-        >
-          <TextItalic className="h-4 w-4" weight="duotone" />
-        </button>
-
-        {/* Underline */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            editor.chain().focus().toggleUnderline().run();
-          }}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            editor.isActive('underline')
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title="Underline"
-        >
-          <TextUnderline className="h-4 w-4" weight="duotone" />
-        </button>
-
-        {/* Strikethrough */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            editor.chain().focus().toggleStrike().run();
-          }}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            editor.isActive('strike')
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title="Strikethrough"
-        >
-          <TextStrikethrough className="h-4 w-4" weight="duotone" />
-        </button>
-
-        {/* Link */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            if (editor.isActive('link')) {
-              editor.chain().focus().unsetLink().run();
-            } else {
-              const url = window.prompt('Enter URL:');
-              if (url) {
-                editor.chain().focus().setLink({ href: url }).run();
-              }
-            }
-          }}
-          className={cn(
-            'p-1.5 rounded-lg transition-colors',
-            editor.isActive('link')
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title="Link"
-        >
-          <LinkSimple className="h-4 w-4" weight="duotone" />
-        </button>
-
-        <div className="w-px h-5 bg-[#e2e4e8] mx-1" />
-
-        {/* Read Aloud (ElevenLabs TTS) */}
-        <button
-          onMouseDown={(e) => {
-            e.preventDefault();
-            handleReadAloud();
-          }}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors',
-            ttsPlaying
-              ? 'bg-[#e0f2f7] text-[#007ba5]'
-              : 'text-[#4a4f5c] hover:bg-[#f0f1f3]'
-          )}
-          title={ttsPlaying ? 'Stop reading' : 'Read aloud'}
-          disabled={ttsLoading}
-        >
-          {ttsLoading ? (
-            <CircleNotch className="h-4 w-4 animate-spin" />
-          ) : ttsPlaying ? (
-            <StopIcon className="h-3.5 w-3.5" weight="fill" />
-          ) : (
-            <SpeakerHigh className="h-4 w-4" weight="duotone" />
-          )}
-          <span className="text-xs font-medium">
-            {ttsLoading ? 'Loading...' : ttsPlaying ? 'Stop' : 'Read'}
-          </span>
-        </button>
-      </div>
-
-      {/* Editor Content */}
-      <EditorContent editor={editor} />
 
       <style jsx global>{`
+        /* ==========================================
+           Notion-style placeholder for every block
+           ========================================== */
         .ProseMirror p.is-editor-empty:first-child::before {
+          color: #9096a2;
+          content: attr(data-placeholder);
+          float: left;
+          height: 0;
+          pointer-events: none;
+        }
+        .ProseMirror .is-empty::before {
           color: #9096a2;
           content: attr(data-placeholder);
           float: left;
@@ -937,9 +1135,78 @@ export function RichTextEditor({
           outline: none;
         }
 
+        /* Notion-style block hover effect */
+        .ProseMirror > * {
+          transition: background-color 0.1s ease;
+          border-radius: 4px;
+          position: relative;
+        }
+        .ProseMirror > *:hover {
+          background-color: rgba(0, 0, 0, 0.01);
+        }
+        .ProseMirror > .ProseMirror-selectednode {
+          background-color: rgba(0, 123, 165, 0.06);
+          outline: 2px solid rgba(0, 123, 165, 0.2);
+          border-radius: 4px;
+        }
+
+        /* ==========================================
+           Task List (To-Do) Styling - Notion-style
+           ========================================== */
+        .ProseMirror ul[data-type="taskList"] {
+          list-style: none;
+          padding: 0;
+          margin: 0.5em 0;
+        }
+        .ProseMirror ul[data-type="taskList"] li {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          padding: 4px 0;
+        }
+        .ProseMirror ul[data-type="taskList"] li > label {
+          flex-shrink: 0;
+          margin-top: 3px;
+        }
+        .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 18px;
+          height: 18px;
+          border: 2px solid #d1d5db;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          position: relative;
+          background: white;
+        }
+        .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:hover {
+          border-color: #007ba5;
+          background-color: #f0fafe;
+        }
+        .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked {
+          background-color: #007ba5;
+          border-color: #007ba5;
+        }
+        .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"]:checked::after {
+          content: '';
+          position: absolute;
+          left: 4px;
+          top: 1px;
+          width: 6px;
+          height: 10px;
+          border: solid white;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+        .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p {
+          text-decoration: line-through;
+          color: #9096a2;
+        }
+
         /* ==========================================
            Block cards – every non-text block is a
-           distinct bordered card (OpenNote-style)
+           distinct bordered card
            ========================================== */
 
         /* Details / collapsible section card */
@@ -1203,12 +1470,14 @@ export function RichTextEditor({
           display: none !important;
         }
       `}</style>
-      </div>
     </div>
   );
 }
 
-// Convert markdown to HTML for TipTap
+// ============================================================
+// Markdown <-> HTML Conversion
+// ============================================================
+
 function parseContentToHTML(markdown: string): string {
   if (!markdown) return '';
 
@@ -1282,29 +1551,22 @@ function parseContentToHTML(markdown: string): string {
   let inOrderedList = false;
   let inBlockquote = false;
 
-  // Helper function to close open block-level elements
   const closeOpenBlocks = () => {
     if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
     if (inOrderedList) { processedLines.push('</ol>'); inOrderedList = false; }
     if (inBlockquote) { processedLines.push('</blockquote>'); inBlockquote = false; }
   };
 
-  // Helper function to process inline formatting
   const processInline = (text: string): string => {
-    // First restore any display math placeholders that might be inline
     text = text.replace(/__DISPLAY_MATH_(\d+)__/g, (_, idx) => {
       return displayMathBlocks[parseInt(idx)] || '';
     });
-    // Convert LaTeX math $...$ to TipTap math nodes
     text = text.replace(/\$([^$]+)\$/g, (_, latex) => {
       const escapedLatex = latex.trim().replace(/"/g, '&quot;');
       return `<span data-type="inlineMath" data-latex="${escapedLatex}"></span>`;
     });
-    // Convert bold (before italic)
     text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    // Convert italic
     text = text.replace(/(?<![*\w])\*([^*]+)\*(?![*\w])/g, '<em>$1</em>');
-    // Convert inline code
     text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
     return text;
   };
@@ -1312,7 +1574,6 @@ function parseContentToHTML(markdown: string): string {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Skip HTML embed placeholders
     if (line.match(/__HTML_EMBED_\d+__/)) {
       const idx = parseInt(line.match(/__HTML_EMBED_(\d+)__/)?.[1] || '0');
       closeOpenBlocks();
@@ -1320,7 +1581,6 @@ function parseContentToHTML(markdown: string): string {
       continue;
     }
 
-    // Skip code block placeholders
     if (line.match(/__CODE_BLOCK_\d+__/)) {
       const idx = parseInt(line.match(/__CODE_BLOCK_(\d+)__/)?.[1] || '0');
       closeOpenBlocks();
@@ -1328,7 +1588,6 @@ function parseContentToHTML(markdown: string): string {
       continue;
     }
 
-    // Skip display math placeholders
     if (line.match(/__DISPLAY_MATH_\d+__/)) {
       const idx = parseInt(line.match(/__DISPLAY_MATH_(\d+)__/)?.[1] || '0');
       closeOpenBlocks();
@@ -1336,7 +1595,6 @@ function parseContentToHTML(markdown: string): string {
       continue;
     }
 
-    // Skip table placeholders
     if (line.match(/__TABLE_\d+__/)) {
       const idx = parseInt(line.match(/__TABLE_(\d+)__/)?.[1] || '0');
       closeOpenBlocks();
@@ -1344,7 +1602,17 @@ function parseContentToHTML(markdown: string): string {
       continue;
     }
 
-    // Check for block-level patterns
+    // Task list items: - [ ] or - [x]
+    const taskMatch = line.match(/^[-*] \[([ xX])\] (.+)$/);
+    if (taskMatch) {
+      if (!inBulletList || inOrderedList || inBlockquote) {
+        closeOpenBlocks();
+      }
+      const checked = taskMatch[1] !== ' ';
+      processedLines.push(`<ul data-type="taskList"><li data-type="taskItem" data-checked="${checked}"><label><input type="checkbox" ${checked ? 'checked' : ''}></label><div><p>${processInline(taskMatch[2])}</p></div></li></ul>`);
+      continue;
+    }
+
     const h3Match = line.match(/^### (.+)$/);
     const h2Match = line.match(/^## (.+)$/);
     const h1Match = line.match(/^# (.+)$/);
@@ -1353,7 +1621,6 @@ function parseContentToHTML(markdown: string): string {
     const blockquoteMatch = line.match(/^> (.*)$/);
     const horizontalRuleMatch = line.match(/^(---+|\*\*\*+|___+)\s*$/);
 
-    // Close lists/blockquotes when switching to a different block type
     if (!bulletMatch && inBulletList) {
       processedLines.push('</ul>');
       inBulletList = false;
@@ -1395,32 +1662,23 @@ function parseContentToHTML(markdown: string): string {
       }
       processedLines.push(`<p>${processInline(blockquoteMatch[1])}</p>`);
     } else if (line.trim()) {
-      // Regular paragraph
       processedLines.push(`<p>${processInline(line)}</p>`);
     }
   }
 
-  // Close any remaining open blocks
-  if (inBulletList) {
-    processedLines.push('</ul>');
-  }
-  if (inOrderedList) {
-    processedLines.push('</ol>');
-  }
-  if (inBlockquote) {
-    processedLines.push('</blockquote>');
-  }
-  
+  if (inBulletList) processedLines.push('</ul>');
+  if (inOrderedList) processedLines.push('</ol>');
+  if (inBlockquote) processedLines.push('</blockquote>');
+
   return processedLines.join('');
 }
 
-// Convert HTML back to markdown
 function htmlToMarkdown(html: string): string {
   if (!html) return '';
 
   let markdown = html;
 
-  // Preserve HTML embeds (details, youtube, desmos, whiteboard, audio, video) - extract and protect them
+  // Preserve HTML embeds
   const htmlEmbeds: string[] = [];
   markdown = markdown.replace(/<details[^>]*>[\s\S]*?<\/details>/g, (match) => {
     htmlEmbeds.push(match);
@@ -1439,6 +1697,15 @@ function htmlToMarkdown(html: string): string {
     return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
   });
 
+  // Convert task list items to markdown checkboxes
+  markdown = markdown.replace(/<ul[^>]*data-type="taskList"[^>]*>([\s\S]*?)<\/ul>/g, (_, inner) => {
+    return inner.replace(/<li[^>]*data-type="taskItem"[^>]*data-checked="(true|false)"[^>]*>[\s\S]*?<div><p>([\s\S]*?)<\/p><\/div><\/li>/g,
+      (_m: string, checked: string, content: string) => {
+        const checkbox = checked === 'true' ? '[x]' : '[ ]';
+        return `- ${checkbox} ${content}\n`;
+      });
+  });
+
   // Convert TipTap math extension nodes back to $...$ syntax
   markdown = markdown.replace(/<span[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*data-latex="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
   markdown = markdown.replace(/<span[^>]*data-latex="([^"]*)"[^>]*class="[^"]*Tiptap-mathematics[^"]*"[^>]*>[\s\S]*?<\/span>/g, '$$$1$$');
@@ -1452,10 +1719,10 @@ function htmlToMarkdown(html: string): string {
     return match;
   });
 
-  // Extract LaTeX from KaTeX rendered spans before stripping tags
+  // Extract LaTeX from KaTeX rendered spans
   markdown = markdown.replace(/<span class="katex">[\s\S]*?<annotation encoding="application\/x-tex">([^<]+)<\/annotation>[\s\S]*?<\/span>/g, '$$$1$$');
 
-  // Convert code blocks BEFORE inline code (otherwise <pre><code> gets destroyed)
+  // Convert code blocks BEFORE inline code
   markdown = markdown.replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/g, '\n```\n$1\n```\n');
 
   // Convert inline formatting
@@ -1471,9 +1738,8 @@ function htmlToMarkdown(html: string): string {
   // Convert horizontal rules
   markdown = markdown.replace(/<hr\s*\/?>/g, '\n---\n');
 
-  // Convert blockquotes - extract content, prefix each line with >
+  // Convert blockquotes
   markdown = markdown.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/g, (_, inner) => {
-    // Strip <p> tags inside blockquotes and prefix with >
     const content = inner
       .replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1')
       .trim();
@@ -1481,22 +1747,20 @@ function htmlToMarkdown(html: string): string {
     return '\n' + lines.map((l: string) => `> ${l.trim()}`).join('\n') + '\n';
   });
 
-  // Convert ordered lists - must process <ol> blocks before <ul> blocks
+  // Convert ordered lists
   markdown = markdown.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/g, (_, inner) => {
     let idx = 0;
     const items = inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_m: string, content: string) => {
       idx++;
-      // Strip inner <p> tags that TipTap wraps list item content with
       const cleanContent = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1').trim();
       return `${idx}. ${cleanContent}\n`;
     });
     return '\n' + items.replace(/<[^>]+>/g, '');
   });
 
-  // Convert unordered lists
+  // Convert unordered lists (non-task)
   markdown = markdown.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/g, (_, inner) => {
     const items = inner.replace(/<li[^>]*>([\s\S]*?)<\/li>/g, (_m: string, content: string) => {
-      // Strip inner <p> tags that TipTap wraps list item content with
       const cleanContent = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1').trim();
       return `- ${cleanContent}\n`;
     });
@@ -1506,9 +1770,9 @@ function htmlToMarkdown(html: string): string {
   // Convert paragraphs
   markdown = markdown.replace(/<p[^>]*>([\s\S]*?)<\/p>/g, '$1\n\n');
 
-  // Clean up - remove remaining HTML tags (but not our preserved ones)
+  // Clean up - remove remaining HTML tags (but not preserved ones)
   markdown = markdown.replace(/<[^>]+>/g, '');
-  markdown = markdown.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
+  markdown = markdown.replace(/\n{3,}/g, '\n\n');
 
   // Restore preserved HTML embeds
   htmlEmbeds.forEach((embed, idx) => {
