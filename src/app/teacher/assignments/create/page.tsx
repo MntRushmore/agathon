@@ -8,16 +8,27 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import { createClient } from '@/lib/supabase';
 import { getTeacherClasses } from '@/lib/api/classes';
 import { createAssignment, publishAssignment } from '@/lib/api/assignments';
 import { Class, Whiteboard } from '@/types/database';
-import { ArrowLeft, Check, Calendar, BookOpen, Users } from 'lucide-react';
+import {
+  Check,
+  BookOpen,
+  UsersThree,
+  CircleNotch,
+  CalendarBlank,
+  Sparkle,
+} from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance } from 'date-fns';
+import { motion, AnimatePresence } from 'motion/react';
 
 type Step = 'select-template' | 'configure' | 'publish';
+
+const STEP_ORDER: Step[] = ['select-template', 'configure', 'publish'];
 
 export default function CreateAssignmentPage() {
   const router = useRouter();
@@ -28,24 +39,20 @@ export default function CreateAssignmentPage() {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
 
-  // Data
   const [whiteboards, setWhiteboards] = useState<Whiteboard[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
 
-  // Form state
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
 
-  // AI controls
   const [allowAI, setAllowAI] = useState(true);
   const [allowedModes, setAllowedModes] = useState<string[]>(['feedback', 'suggest', 'answer']);
   const [hintLimit, setHintLimit] = useState<number | null>(null);
   const [hasHintLimit, setHasHintLimit] = useState(false);
 
-  // Google Classroom
   const [postToGC, setPostToGC] = useState(false);
 
   useEffect(() => {
@@ -66,7 +73,6 @@ export default function CreateAssignmentPage() {
         return;
       }
 
-      // Load teacher's whiteboards and classes in parallel
       const [boardsData, classesData] = await Promise.all([
         supabase
           .from('whiteboards')
@@ -126,31 +132,27 @@ export default function CreateAssignmentPage() {
 
     setPublishing(true);
     try {
-      // Create assignment for each selected class
       const assignmentPromises = selectedClassIds.map(async (classId) => {
-          // Create assignment record
-          const assignment = await createAssignment({
-            class_id: classId,
-            template_board_id: selectedBoardId,
-            title: title.trim(),
-            instructions: instructions.trim() || null,
-            due_date: dueDate ? new Date(dueDate).toISOString() : null,
-            is_published: true,
-            metadata: {
-              allowAI,
-              allowedModes,
-              hintLimit: hasHintLimit ? hintLimit : null,
-            },
-          });
+        const assignment = await createAssignment({
+          class_id: classId,
+          template_board_id: selectedBoardId,
+          title: title.trim(),
+          instructions: instructions.trim() || null,
+          due_date: dueDate ? new Date(dueDate).toISOString() : null,
+          is_published: true,
+          metadata: {
+            allowAI,
+            allowedModes,
+            hintLimit: hasHintLimit ? hintLimit : null,
+          },
+        });
 
-        // Publish to all students (copy boards and create submissions)
         const result = await publishAssignment(assignment.id);
         return { assignment, result };
       });
 
       const results = await Promise.all(assignmentPromises);
 
-      // Count total successful distributions
       const totalSuccess = results.reduce((sum, r) => sum + r.result.successful, 0);
       const totalFailed = results.reduce((sum, r) => sum + r.result.failed, 0);
 
@@ -161,7 +163,6 @@ export default function CreateAssignmentPage() {
         }${totalFailed > 0 ? `. ${totalFailed} failed.` : ''}`,
       });
 
-      // Post to Google Classroom if enabled
       if (postToGC) {
         const gcLinkedResults = results.filter(({ assignment }) => {
           const cls = classes.find((c) => c.id === assignment.class_id);
@@ -175,9 +176,6 @@ export default function CreateAssignmentPage() {
             variant: 'destructive',
           });
         } else {
-          let gcSuccesses = 0;
-          let gcFailures = 0;
-
           const gcResults = await Promise.allSettled(
             gcLinkedResults.map(async ({ assignment }) => {
               const res = await fetch('/api/teacher/google-classroom/post-assignment', {
@@ -193,6 +191,8 @@ export default function CreateAssignmentPage() {
             })
           );
 
+          let gcSuccesses = 0;
+          let gcFailures = 0;
           for (const r of gcResults) {
             if (r.status === 'fulfilled') gcSuccesses++;
             else gcFailures++;
@@ -228,70 +228,97 @@ export default function CreateAssignmentPage() {
   };
 
   const selectedBoard = whiteboards.find((b) => b.id === selectedBoardId);
+  const stepIndex = STEP_ORDER.indexOf(step);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-6 py-12">
-          <div className="h-8 bg-muted rounded skeleton w-1/3 mb-6" />
-          <div className="grid grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-48 bg-muted rounded-lg skeleton" />
-            ))}
-          </div>
+      <div className="max-w-[1100px] mx-auto px-8 py-8">
+        <div className="space-y-2 mb-8">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-5 w-1/2" />
+        </div>
+        <Skeleton className="h-10 w-full mb-8" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-lg" />
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background page-transition">
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/teacher/classes')}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold">Create Assignment</h1>
-            <p className="text-muted-foreground mt-1">
-              Select a template board and distribute to your classes
-            </p>
-          </div>
-        </div>
+    <div className="max-w-[1100px] mx-auto px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold">Create Assignment</h1>
+        <p className="text-muted-foreground mt-1">
+          Select a template board and distribute to your classes
+        </p>
+      </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center gap-4 mb-12">
-          <div className={`flex items-center gap-2 ${step === 'select-template' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`flex items-center justify-center h-8 w-8 rounded-full border-2 ${step !== 'select-template' ? 'bg-primary border-primary text-primary-foreground' : 'border-current'}`}>
-              {step !== 'select-template' ? <Check className="h-4 w-4" /> : '1'}
+      {/* Progress Steps */}
+      <div className="flex items-center gap-3 mb-10">
+        {[
+          { key: 'select-template', label: 'Select Template' },
+          { key: 'configure', label: 'Configure' },
+          { key: 'publish', label: 'Publish' },
+        ].map((s, i) => {
+          const isCompleted = i < stepIndex;
+          const isCurrent = s.key === step;
+          return (
+            <div key={s.key} className="flex items-center gap-3 flex-1">
+              <div className={`flex items-center gap-2 ${isCurrent ? 'text-primary' : isCompleted ? 'text-primary' : 'text-muted-foreground'}`}>
+                <motion.div
+                  className={`flex items-center justify-center h-8 w-8 rounded-full border-2 text-sm font-medium transition-colors ${
+                    isCompleted
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : isCurrent
+                      ? 'border-primary text-primary'
+                      : 'border-muted-foreground/40 text-muted-foreground'
+                  }`}
+                  animate={isCompleted ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 0.3 }}
+                >
+                  {isCompleted ? <Check weight="bold" className="h-4 w-4" /> : i + 1}
+                </motion.div>
+                <span className="text-sm font-medium hidden sm:inline">{s.label}</span>
+              </div>
+              {i < 2 && (
+                <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-primary rounded-full"
+                    initial={{ width: '0%' }}
+                    animate={{ width: isCompleted ? '100%' : '0%' }}
+                    transition={{ duration: 0.4 }}
+                  />
+                </div>
+              )}
             </div>
-            <span className="text-sm font-medium">Select Template</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-muted" />
-          <div className={`flex items-center gap-2 ${step === 'configure' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className={`flex items-center justify-center h-8 w-8 rounded-full border-2 ${step === 'publish' ? 'bg-primary border-primary text-primary-foreground' : 'border-current'}`}>
-              {step === 'publish' ? <Check className="h-4 w-4" /> : '2'}
-            </div>
-            <span className="text-sm font-medium">Configure</span>
-          </div>
-          <div className="flex-1 h-0.5 bg-muted" />
-          <div className={`flex items-center gap-2 ${step === 'publish' ? 'text-primary' : 'text-muted-foreground'}`}>
-            <div className="flex items-center justify-center h-8 w-8 rounded-full border-2 border-current">
-              3
-            </div>
-            <span className="text-sm font-medium">Publish</span>
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Step Content */}
+      {/* Step Content */}
+      <AnimatePresence mode="wait">
         {step === 'select-template' && (
-          <div>
+          <motion.div
+            key="select-template"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+          >
             <h2 className="text-xl font-semibold mb-4">Select Template Board</h2>
             {whiteboards.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  </motion.div>
                   <h3 className="text-lg font-medium mb-2">No boards yet</h3>
                   <p className="text-muted-foreground mb-6">
                     Create a whiteboard first to use as a template
@@ -301,50 +328,70 @@ export default function CreateAssignmentPage() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {whiteboards.map((board) => (
-                  <Card
+                {whiteboards.map((board, index) => (
+                  <motion.div
                     key={board.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleSelectBoard(board)}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
-                    <CardContent className="p-0">
-                      {board.preview ? (
-                        <img
-                          src={board.preview}
-                          alt={board.title}
-                          className="w-full aspect-[16/10] object-cover rounded-t-lg"
-                        />
-                      ) : (
-                        <div className="w-full aspect-[16/10] bg-muted rounded-t-lg flex items-center justify-center">
-                          <BookOpen className="h-12 w-12 text-muted-foreground" />
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedBoardId === board.id
+                          ? 'ring-2 ring-primary'
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => handleSelectBoard(board)}
+                    >
+                      <CardContent className="p-0">
+                        {board.preview ? (
+                          <img
+                            src={board.preview}
+                            alt={board.title}
+                            className="w-full aspect-[16/10] object-cover rounded-t-lg"
+                          />
+                        ) : (
+                          <div className="w-full aspect-[16/10] bg-muted rounded-t-lg flex items-center justify-center">
+                            <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <h3 className="font-medium truncate">{board.title}</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Updated {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
+                          </p>
                         </div>
-                      )}
-                      <div className="p-4">
-                        <h3 className="font-medium truncate">{board.title}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Updated {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {step === 'configure' && selectedBoard && (
-          <div className="space-y-6">
+          <motion.div
+            key="configure"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6 max-w-2xl"
+          >
             <div>
               <h2 className="text-xl font-semibold mb-4">Configure Assignment</h2>
-              <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-muted-foreground mb-2">Template:</p>
-                <p className="font-medium">{selectedBoard.title}</p>
+              <div className="bg-muted/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+                <BookOpen weight="duotone" className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Template</p>
+                  <p className="font-medium">{selectedBoard.title}</p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
+            <div className="space-y-5">
+              <div className="space-y-2">
                 <Label htmlFor="title">Assignment Title *</Label>
                 <Input
                   id="title"
@@ -355,7 +402,7 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="instructions">Instructions (optional)</Label>
                 <Textarea
                   id="instructions"
@@ -366,8 +413,11 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="due_date">Due Date (optional)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="due_date" className="flex items-center gap-2">
+                  <CalendarBlank weight="duotone" className="h-4 w-4" />
+                  Due Date (optional)
+                </Label>
                 <Input
                   id="due_date"
                   type="datetime-local"
@@ -377,95 +427,102 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-                <div className="border-t pt-4">
-                  <Label>AI Assistance Settings</Label>
-                  <p className="text-xs text-muted-foreground mt-1 mb-3">
+              {/* AI Settings Card */}
+              <Card>
+                <CardContent className="pt-5 pb-4 space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkle weight="duotone" className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <Label className="text-base">AI Assistance</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground -mt-2">
                     Control how students can use AI help on this assignment
                   </p>
-                  <div className="space-y-3 mt-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={allowAI}
-                        onChange={(e) => setAllowAI(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      <span className="text-sm">Allow AI assistance for this assignment</span>
-                    </label>
 
-                    {allowAI && (
-                      <div className="ml-6 space-y-4 border-l-2 pl-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-2">Select which AI modes students can use:</p>
-                          <div className="space-y-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={allowedModes.includes('feedback')}
-                                onChange={() => toggleMode('feedback')}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                              <span className="text-sm">
-                                <span className="font-medium text-blue-600">Feedback</span> - Light hints pointing out where to look
-                              </span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={allowedModes.includes('suggest')}
-                                onChange={() => toggleMode('suggest')}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                              <span className="text-sm">
-                                <span className="font-medium text-amber-600">Suggest</span> - Guided hints for the next step
-                              </span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={allowedModes.includes('answer')}
-                                onChange={() => toggleMode('answer')}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              />
-                              <span className="text-sm">
-                                <span className="font-medium text-green-600">Solve</span> - Full worked solution (use sparingly)
-                              </span>
-                            </label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="allow-ai" className="text-sm cursor-pointer">
+                      Allow AI assistance
+                    </Label>
+                    <Switch
+                      id="allow-ai"
+                      checked={allowAI}
+                      onCheckedChange={setAllowAI}
+                    />
+                  </div>
+
+                  {allowAI && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3 border-t pt-4"
+                    >
+                      <p className="text-xs text-muted-foreground">Available modes:</p>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Feedback</span>
+                            <p className="text-xs text-muted-foreground">Light hints pointing out where to look</p>
                           </div>
+                          <Switch
+                            checked={allowedModes.includes('feedback')}
+                            onCheckedChange={() => toggleMode('feedback')}
+                          />
                         </div>
-
-                        <div className="pt-2">
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={hasHintLimit}
-                              onChange={(e) => {
-                                setHasHintLimit(e.target.checked);
-                                if (!e.target.checked) setHintLimit(null);
-                              }}
-                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <span className="text-sm">Limit number of AI helps per student</span>
-                          </label>
-                          {hasHintLimit && (
-                            <div className="mt-2 flex items-center gap-2">
-                              <Input
-                                type="number"
-                                min={1}
-                                max={50}
-                                value={hintLimit || ''}
-                                onChange={(e) => setHintLimit(parseInt(e.target.value) || null)}
-                                className="w-24"
-                                placeholder="e.g., 5"
-                              />
-                              <span className="text-sm text-muted-foreground">hints maximum</span>
-                            </div>
-                          )}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Suggest</span>
+                            <p className="text-xs text-muted-foreground">Guided hints for the next step</p>
+                          </div>
+                          <Switch
+                            checked={allowedModes.includes('suggest')}
+                            onCheckedChange={() => toggleMode('suggest')}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium text-green-600 dark:text-green-400">Solve</span>
+                            <p className="text-xs text-muted-foreground">Full worked solution (use sparingly)</p>
+                          </div>
+                          <Switch
+                            checked={allowedModes.includes('answer')}
+                            onCheckedChange={() => toggleMode('answer')}
+                          />
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+
+                      <div className="border-t pt-3">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="hint-limit" className="text-sm cursor-pointer">
+                            Limit AI helps per student
+                          </Label>
+                          <Switch
+                            id="hint-limit"
+                            checked={hasHintLimit}
+                            onCheckedChange={(checked) => {
+                              setHasHintLimit(checked);
+                              if (!checked) setHintLimit(null);
+                            }}
+                          />
+                        </div>
+                        {hasHintLimit && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={50}
+                              value={hintLimit || ''}
+                              onChange={(e) => setHintLimit(parseInt(e.target.value) || null)}
+                              className="w-24"
+                              placeholder="e.g., 5"
+                            />
+                            <span className="text-sm text-muted-foreground">hints maximum</span>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -476,23 +533,53 @@ export default function CreateAssignmentPage() {
                 Continue
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {step === 'publish' && (
-          <div className="space-y-6">
+          <motion.div
+            key="publish"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* Summary Card */}
+            <Card className="bg-muted/30">
+              <CardContent className="pt-5 pb-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Assignment Summary</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Title:</span>
+                    <p className="font-medium">{title}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Template:</span>
+                    <p className="font-medium">{selectedBoard?.title}</p>
+                  </div>
+                  {dueDate && (
+                    <div>
+                      <span className="text-muted-foreground">Due:</span>
+                      <p className="font-medium">{new Date(dueDate).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">AI:</span>
+                    <p className="font-medium">{allowAI ? `Enabled (${allowedModes.length} modes)` : 'Disabled'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div>
               <h2 className="text-xl font-semibold mb-4">Select Classes</h2>
-              <div className="bg-muted/50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-muted-foreground mb-1">Assignment:</p>
-                <p className="font-medium">{title}</p>
-              </div>
             </div>
 
             {classes.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <UsersThree weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No classes yet</h3>
                   <p className="text-muted-foreground mb-6">
                     Create a class first to assign work to students
@@ -502,70 +589,76 @@ export default function CreateAssignmentPage() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {classes.map((classData) => (
-                  <Card
+                {classes.map((classData, index) => (
+                  <motion.div
                     key={classData.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedClassIds.includes(classData.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => toggleClass(classData.id)}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-medium">{classData.name}</h3>
-                          {classData.subject && (
-                            <Badge variant="secondary">{classData.subject}</Badge>
-                          )}
-                          {classData.gc_course_id && (
-                            <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
-                              GC
-                            </Badge>
-                          )}
-                        </div>
-                        {classData.grade_level && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {classData.grade_level}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className={`h-5 w-5 rounded border-2 flex items-center justify-center ${
-                          selectedClassIds.includes(classData.id)
-                            ? 'bg-primary border-primary'
-                            : 'border-muted-foreground'
-                        }`}>
-                          {selectedClassIds.includes(classData.id) && (
-                            <Check className="h-3 w-3 text-primary-foreground" />
+                    <Card
+                      className={`cursor-pointer transition-all ${
+                        selectedClassIds.includes(classData.id)
+                          ? 'border-primary bg-primary/5'
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => toggleClass(classData.id)}
+                    >
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="font-medium">{classData.name}</h3>
+                            {classData.subject && (
+                              <Badge variant="secondary">{classData.subject}</Badge>
+                            )}
+                            {classData.gc_course_id && (
+                              <Badge variant="outline" className="text-green-600 border-green-300 dark:text-green-400 dark:border-green-700 text-xs">
+                                GC
+                              </Badge>
+                            )}
+                          </div>
+                          {classData.grade_level && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {classData.grade_level}
+                            </p>
                           )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="flex items-center gap-4">
+                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                            selectedClassIds.includes(classData.id)
+                              ? 'bg-primary border-primary'
+                              : 'border-muted-foreground'
+                          }`}>
+                            {selectedClassIds.includes(classData.id) && (
+                              <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
             )}
 
             {/* Google Classroom Integration */}
             {selectedClassIds.some((id) => classes.find((c) => c.id === id)?.gc_course_id) && (
-              <div className="border rounded-lg p-4 bg-muted/30">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={postToGC}
-                    onChange={(e) => setPostToGC(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <div>
-                    <span className="text-sm font-medium">Post to Google Classroom</span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      A link to this assignment will appear in your students&apos; Google Classroom
-                    </p>
+              <Card className="bg-muted/30">
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-sm font-medium">Post to Google Classroom</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        A link to this assignment will appear in your students&apos; Google Classroom
+                      </p>
+                    </div>
+                    <Switch
+                      checked={postToGC}
+                      onCheckedChange={setPostToGC}
+                    />
                   </div>
-                </label>
-              </div>
+                </CardContent>
+              </Card>
             )}
 
             <div className="flex gap-3 pt-4">
@@ -576,16 +669,21 @@ export default function CreateAssignmentPage() {
                 onClick={handlePublish}
                 disabled={publishing || selectedClassIds.length === 0}
               >
-                {publishing
-                  ? 'Publishing...'
-                  : `Publish to ${selectedClassIds.length} ${
-                      selectedClassIds.length === 1 ? 'Class' : 'Classes'
-                    }`}
+                {publishing ? (
+                  <>
+                    <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  `Publish to ${selectedClassIds.length} ${
+                    selectedClassIds.length === 1 ? 'Class' : 'Classes'
+                  }`
+                )}
               </Button>
             </div>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }

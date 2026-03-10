@@ -6,9 +6,13 @@ import type { Class, ClassMember, Database } from '@/types/database';
  */
 export async function getTeacherClasses() {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
   const { data, error } = await supabase
     .from('classes')
     .select('*')
+    .eq('teacher_id', user.id)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 

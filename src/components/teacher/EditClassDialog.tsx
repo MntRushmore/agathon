@@ -24,7 +24,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { updateClass } from '@/lib/api/classes';
 import type { Class } from '@/types/database';
-import { Loader2, Edit3 } from 'lucide-react';
+import { CircleNotch, PencilSimple } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 
 const SUBJECTS = [
@@ -116,7 +116,7 @@ export function EditClassDialog({
       <DialogTrigger asChild>
         {trigger ?? (
           <Button variant="ghost" size="sm" className={cn('gap-2', triggerClassName)}>
-            <Edit3 className="h-4 w-4" />
+            <PencilSimple weight="duotone" className="h-4 w-4" />
             Edit Class
           </Button>
         )}
@@ -195,7 +195,7 @@ export function EditClassDialog({
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                   Saving...
                 </>
               ) : (

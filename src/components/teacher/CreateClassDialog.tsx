@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { createClass } from '@/lib/api/classes';
 import { createClient } from '@/lib/supabase';
-import { Plus } from 'lucide-react';
+import { Plus, CircleNotch } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 
 const SUBJECTS = [
@@ -122,7 +122,7 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus weight="bold" className="mr-2 h-4 w-4" />
           New Class
         </Button>
       </DialogTrigger>
@@ -199,7 +199,14 @@ export function CreateClassDialog({ onClassCreated }: CreateClassDialogProps) {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Class'}
+              {loading ? (
+                <>
+                  <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Class'
+              )}
             </Button>
           </DialogFooter>
         </form>

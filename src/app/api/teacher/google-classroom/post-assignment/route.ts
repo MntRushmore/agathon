@@ -11,6 +11,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    // Verify teacher role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role !== 'teacher') {
+      return NextResponse.json({ error: 'Teacher access required' }, { status: 403 });
+    }
+
     const { assignmentId } = await req.json() as { assignmentId: string };
 
     if (!assignmentId) {

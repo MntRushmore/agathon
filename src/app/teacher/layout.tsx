@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
+import { TeacherSidebar } from '@/components/teacher/TeacherSidebar';
 import { sileo } from 'sileo';
 
 export default function TeacherLayout({ children }: { children: ReactNode }) {
@@ -58,7 +59,12 @@ export default function TeacherLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {children}
+      <div className="flex">
+        <TeacherSidebar />
+        <main className="flex-1 ml-52">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

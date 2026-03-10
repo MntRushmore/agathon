@@ -11,42 +11,37 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { EditClassDialog } from '@/components/teacher/EditClassDialog';
 import { Class } from '@/types/database';
-import { Users, Copy, MoreVertical, Eye, Edit, Archive, Trash, Loader2 } from 'lucide-react';
+import {
+  UsersThree,
+  Copy,
+  DotsThreeVertical,
+  Eye,
+  PencilSimple,
+  Archive,
+  Trash,
+  Check,
+} from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { archiveClass, deleteClass, updateClass } from '@/lib/api/classes';
+import { archiveClass, deleteClass } from '@/lib/api/classes';
+import { motion } from 'motion/react';
 
-const SUBJECTS = [
-  'Math',
-  'Science',
-  'English Language Arts',
-  'Social Studies',
-  'History',
-  'Art',
-  'Music',
-  'Physical Education',
-  'Computer Science',
-  'Other',
-];
+const subjectAccents: Record<string, { border: string; badge: string }> = {
+  'Math': { border: 'border-t-blue-500', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+  'Science': { border: 'border-t-green-500', badge: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
+  'English Language Arts': { border: 'border-t-purple-500', badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
+  'Social Studies': { border: 'border-t-orange-500', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' },
+  'History': { border: 'border-t-amber-500', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
+  'Art': { border: 'border-t-pink-500', badge: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300' },
+  'Music': { border: 'border-t-violet-500', badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300' },
+  'Physical Education': { border: 'border-t-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' },
+  'Computer Science': { border: 'border-t-cyan-500', badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300' },
+  'Other': { border: 'border-t-gray-400', badge: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+};
+
+const defaultAccent = { border: 'border-t-primary', badge: '' };
 
 interface ClassCardProps {
   classData: Class;
@@ -58,23 +53,20 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editLoading, setEditLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: classData.name || '',
-    description: classData.description || '',
-    subject: classData.subject || '',
-    grade_level: classData.grade_level || '',
-  });
+  const [copied, setCopied] = useState(false);
+
+  const accent = subjectAccents[classData.subject || ''] || defaultAccent;
 
   const handleCopyJoinCode = async () => {
     try {
       await navigator.clipboard.writeText(classData.join_code);
+      setCopied(true);
       toast({
         title: 'Copied!',
         description: `Join code ${classData.join_code} copied to clipboard`,
       });
-    } catch (error) {
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
       toast({
         title: 'Failed to copy',
         description: 'Could not copy join code to clipboard',
@@ -133,56 +125,12 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
     }
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) {
-      toast({
-        title: 'Name required',
-        description: 'Please enter a class name',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setEditLoading(true);
-    try {
-      await updateClass(classData.id, {
-        name: formData.name.trim(),
-        description: formData.description.trim() || null,
-        subject: formData.subject || null,
-        grade_level: formData.grade_level.trim() || null,
-      });
-      toast({
-        title: 'Class updated',
-        description: 'Class details have been saved',
-      });
-      setEditOpen(false);
-      onUpdate?.();
-    } catch (error) {
-      console.error('Error updating class:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update class',
-        variant: 'destructive',
-      });
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const openEditDialog = () => {
-    setFormData({
-      name: classData.name || '',
-      description: classData.description || '',
-      subject: classData.subject || '',
-      grade_level: classData.grade_level || '',
-    });
-    setEditOpen(true);
-  };
-
   return (
-    <>
-      <Card className="board-card group cursor-pointer" onClick={() => router.push(`/teacher/classes/${classData.id}`)}>
+    <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+      <Card
+        className={`group cursor-pointer border-t-[3px] ${accent.border} hover:shadow-md transition-shadow`}
+        onClick={() => router.push(`/teacher/classes/${classData.id}`)}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
@@ -193,29 +141,35 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loading}>
-                  <MoreVertical className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" disabled={loading}>
+                  <DotsThreeVertical weight="bold" className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/teacher/classes/${classData.id}`); }}>
-                  <Eye className="mr-2 h-4 w-4" />
+                  <Eye weight="duotone" className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(); }}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
+                <EditClassDialog
+                  classData={classData}
+                  onClassUpdated={() => onUpdate?.()}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()}>
+                      <PencilSimple weight="duotone" className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  }
+                />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleArchive(); }}>
-                  <Archive className="mr-2 h-4 w-4" />
+                  <Archive weight="duotone" className="mr-2 h-4 w-4" />
                   Archive
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); handleDelete(); }}
                   className="text-destructive focus:text-destructive"
                 >
-                  <Trash className="mr-2 h-4 w-4" />
+                  <Trash weight="duotone" className="mr-2 h-4 w-4" />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -226,12 +180,12 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
         <CardContent className="pb-3">
           <div className="flex items-center gap-2 mb-3">
             {classData.subject && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className={accent.badge}>
                 {classData.subject}
               </Badge>
             )}
             {classData.gc_course_id && (
-              <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
+              <Badge variant="outline" className="text-green-600 border-green-300 dark:text-green-400 dark:border-green-700 text-xs">
                 Google Classroom
               </Badge>
             )}
@@ -244,7 +198,7 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
           )}
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="h-4 w-4" />
+            <UsersThree weight="duotone" className="h-4 w-4" />
             <span>{memberCount} {memberCount === 1 ? 'student' : 'students'}</span>
           </div>
         </CardContent>
@@ -252,104 +206,27 @@ export function ClassCard({ classData, memberCount = 0, onUpdate }: ClassCardPro
         <CardFooter className="pt-3 border-t flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Join code:</span>
-            <code className="text-sm font-mono font-bold px-2 py-1 bg-muted rounded">
+            <code className="text-sm font-mono font-bold px-2.5 py-1 bg-muted rounded border border-dashed border-border">
               {classData.join_code}
             </code>
           </div>
           <Button
             variant="ghost"
             size="sm"
+            className="h-8 w-8 p-0"
             onClick={(e) => {
               e.stopPropagation();
               handleCopyJoinCode();
             }}
           >
-            <Copy className="h-4 w-4" />
+            {copied ? (
+              <Check weight="bold" className="h-4 w-4 text-green-600" />
+            ) : (
+              <Copy weight="duotone" className="h-4 w-4" />
+            )}
           </Button>
         </CardFooter>
       </Card>
-
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[500px]" onClick={(e) => e.stopPropagation()}>
-          <form onSubmit={handleEditSubmit}>
-            <DialogHeader>
-              <DialogTitle>Edit Class</DialogTitle>
-              <DialogDescription>
-                Update your class details.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-6 py-6">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Class Name *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  maxLength={100}
-                  placeholder="e.g., Math 101"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="edit-subject">Subject</Label>
-                <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
-                >
-                  <SelectTrigger id="edit-subject">
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUBJECTS.map((subject) => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="edit-grade">Grade Level</Label>
-                <Input
-                  id="edit-grade"
-                  value={formData.grade_level}
-                  onChange={(e) => setFormData({ ...formData, grade_level: e.target.value })}
-                  placeholder="e.g., Grade 8, Algebra I"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="edit-description">Description</Label>
-                <Textarea
-                  id="edit-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  placeholder="Brief description of the class (optional)"
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={editLoading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={editLoading}>
-                {editLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+    </motion.div>
   );
 }

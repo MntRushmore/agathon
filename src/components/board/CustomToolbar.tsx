@@ -49,12 +49,12 @@ function ToolButton({ icon, shortcut, isActive, onClick, label, hasDropdown, cla
           onTouchStart={(e) => e.stopPropagation()}
           className={cn(
             'no-enlarge relative flex items-center justify-center',
-            'rounded-md transition-all duration-150',
-            'hover:bg-gray-50 active:scale-[0.92]',
+            'rounded-lg transition-all duration-150',
+            'hover:bg-gray-100/80 active:scale-[0.92]',
             'touch-manipulation select-none',
             vertical ? 'w-10 h-10' : 'h-9 w-9',
-            isActive && 'bg-[#007ba5]/10 text-[#007ba5]',
-            !isActive && 'text-gray-500',
+            isActive && 'bg-[#007ba5]/10 text-[#007ba5] shadow-[inset_0_0_0_1px_rgba(0,123,165,0.15)]',
+            !isActive && 'text-gray-500 hover:text-gray-700',
             className
           )}
           aria-label={label}
@@ -71,9 +71,9 @@ function ToolButton({ icon, shortcut, isActive, onClick, label, hasDropdown, cla
           )}
         </button>
       </TooltipTrigger>
-      <TooltipContent side={vertical ? 'right' : 'bottom'} sideOffset={8}>
+      <TooltipContent side={vertical ? 'right' : 'bottom'} sideOffset={8} className="rounded-lg px-2.5 py-1.5 text-xs font-medium">
         <span>{label}</span>
-        {shortcut && <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">{shortcut}</kbd>}
+        {shortcut && <kbd className="ml-1.5 text-[10px] opacity-50 bg-gray-100 px-1 py-0.5 rounded font-mono">{shortcut}</kbd>}
       </TooltipContent>
     </Tooltip>
   );
@@ -190,8 +190,8 @@ function LassoIcon({ size = 17 }: { size?: number }) {
 
 function Separator({ vertical }: { vertical: boolean }) {
   return vertical
-    ? <div className="h-px w-7 bg-gray-200/80 mx-auto my-0.5" />
-    : <div className="w-px h-6 bg-gray-200 mx-1" />;
+    ? <div className="h-px w-7 bg-gray-200/70 mx-auto my-1" />
+    : <div className="w-px h-5 bg-gray-200/70 mx-1.5" />;
 }
 
 /** The tool buttons rendered as an inline flex row (no wrapper container) */
@@ -583,7 +583,7 @@ export function CustomToolbar() {
       onPointerDown={handleContainerPointerDown}
       onTouchStart={(e) => e.stopPropagation()}
     >
-      <div className="bg-white shadow-[0_2px_16px_rgba(0,0,0,0.08)] border border-gray-200/60 overflow-auto scrollbar-hide flex flex-col items-center gap-0.5 rounded-xl px-1.5 py-2 max-h-[calc(100vh-4rem)]">
+      <div className="bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] overflow-auto scrollbar-hide flex flex-col items-center gap-0.5 rounded-xl px-1.5 py-2.5 max-h-[calc(100vh-4rem)]">
         {/* Selection tools */}
         <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
           {tools.map((tool) => (

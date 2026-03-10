@@ -1,20 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/components/auth/auth-provider';
-import { ArrowLeft, CheckCircle, WarningCircle } from '@phosphor-icons/react';
-import { Check, ExternalLink, Loader2 } from 'lucide-react';
+import { CheckCircle, WarningCircle, Check, ArrowSquareOut, CircleNotch } from '@phosphor-icons/react';
 import { sileo } from 'sileo';
 import Link from 'next/link';
 import type { GCCourse } from '@/types/google-classroom';
 
 export default function TeacherSettingsPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { profile } = useAuth();
 
@@ -123,19 +121,13 @@ export default function TeacherSettingsPage() {
   const importedCourses = courses.filter((c) => c.importedClassId);
 
   return (
-    <div className="min-h-screen bg-background page-transition">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+    <div className="max-w-[1100px] mx-auto px-8 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/teacher')}>
-            <ArrowLeft className="h-5 w-5" weight="bold" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-semibold">Integrations</h1>
-            <p className="text-muted-foreground mt-1">
-              Connect external services to your teacher account
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold">Integrations</h1>
+          <p className="text-muted-foreground mt-1">
+            Connect external services to your teacher account
+          </p>
         </div>
 
         {/* Google Classroom Connection Status */}
@@ -188,7 +180,7 @@ export default function TeacherSettingsPage() {
                   >
                     {connecting ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                         Connecting...
                       </>
                     ) : (
@@ -252,7 +244,7 @@ export default function TeacherSettingsPage() {
                                 onClick={(e) => e.stopPropagation()}
                                 className="text-muted-foreground hover:text-foreground"
                               >
-                                <ExternalLink className="h-4 w-4" />
+                                <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                               </a>
                             )}
                             <div
@@ -263,7 +255,7 @@ export default function TeacherSettingsPage() {
                               }`}
                             >
                               {selectedCourseIds.has(course.id) && (
-                                <Check className="h-3 w-3 text-primary-foreground" />
+                                <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
                               )}
                             </div>
                           </div>
@@ -277,7 +269,7 @@ export default function TeacherSettingsPage() {
                       >
                         {importing ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                             Importing...
                           </>
                         ) : (
@@ -306,7 +298,7 @@ export default function TeacherSettingsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="text-xs">
-                              <Check className="h-3 w-3 mr-1" />
+                              <Check weight="bold" className="h-3 w-3 mr-1" />
                               Imported
                             </Badge>
                             <Button
@@ -328,7 +320,6 @@ export default function TeacherSettingsPage() {
             </CardContent>
           </Card>
         )}
-      </div>
     </div>
   );
 }

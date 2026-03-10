@@ -30,20 +30,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { createClient } from '@/lib/supabase/client';
 import {
-  ArrowLeft,
   Plus,
-  Search,
-  BookOpen,
+  MagnifyingGlass,
   Copy,
-  Trash2,
-  Edit2,
-  Sparkles,
-  Clock,
-  Eye,
+  Trash,
+  PencilSimple,
+  Sparkle,
   FileText,
-  Loader2,
+  CircleNotch,
   FolderOpen,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
 
@@ -264,15 +260,13 @@ export default function TemplatesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 bg-muted rounded w-1/3" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-48 bg-muted rounded-xl" />
-              ))}
-            </div>
+      <div className="max-w-[1100px] mx-auto px-8 py-8">
+        <div className="animate-pulse space-y-6">
+          <div className="h-10 bg-muted rounded w-1/3" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-48 bg-muted rounded-xl" />
+            ))}
           </div>
         </div>
       </div>
@@ -280,28 +274,22 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.push('/teacher')}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold">Assignment Templates</h1>
-                <p className="text-muted-foreground">
-                  Save and reuse assignment configurations
-                </p>
-              </div>
-            </div>
+    <div className="max-w-[1100px] mx-auto px-8 py-8">
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">Assignment Templates</h1>
+            <p className="text-muted-foreground mt-1">
+              Save and reuse assignment configurations
+            </p>
+          </div>
             <Dialog open={isCreateOpen} onOpenChange={(open) => {
               setIsCreateOpen(open);
               if (!open) resetForm();
             }}>
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus weight="bold" className="h-4 w-4 mr-2" />
                   New Template
                 </Button>
               </DialogTrigger>
@@ -442,7 +430,7 @@ export default function TemplatesPage() {
                   <Button onClick={handleSave} disabled={saving}>
                     {saving ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                         Saving...
                       </>
                     ) : (
@@ -456,7 +444,7 @@ export default function TemplatesPage() {
 
           <div className="mt-6">
             <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search templates..."
                 value={searchQuery}
@@ -466,13 +454,12 @@ export default function TemplatesPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div>
         {filteredTemplates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-muted p-6 mb-4">
-              <FolderOpen className="h-12 w-12 text-muted-foreground" />
+              <FolderOpen weight="duotone" className="h-12 w-12 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium mb-2">
               {searchQuery ? 'No templates found' : 'No templates yet'}
@@ -484,7 +471,7 @@ export default function TemplatesPage() {
             </p>
             {!searchQuery && (
               <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus weight="bold" className="h-4 w-4 mr-2" />
                 Create Your First Template
               </Button>
             )}
@@ -521,7 +508,7 @@ export default function TemplatesPage() {
 
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
+                      <Sparkle weight="duotone" className="h-3 w-3" />
                       {template.ai_settings?.allowAI !== false ? 'AI enabled' : 'AI disabled'}
                     </span>
                     {template.ai_settings?.hintLimit && (
@@ -541,7 +528,7 @@ export default function TemplatesPage() {
                       className="flex-1"
                       onClick={() => handleUseTemplate(template)}
                     >
-                      <FileText className="h-4 w-4 mr-1" />
+                      <FileText weight="duotone" className="h-4 w-4 mr-1" />
                       Use
                     </Button>
                     <Button
@@ -549,19 +536,19 @@ export default function TemplatesPage() {
                       size="sm"
                       onClick={() => openEditDialog(template)}
                     >
-                      <Edit2 className="h-4 w-4" />
+                      <PencilSimple weight="duotone" className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDuplicate(template)}
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy weight="duotone" className="h-4 w-4" />
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm">
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash weight="duotone" className="h-4 w-4 text-destructive" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>

@@ -17,11 +17,12 @@ export function HintButton({ onClick, isLoading, className }: HintButtonProps) {
       className={cn(
         "no-enlarge flex items-center gap-1.5 px-3 py-2 min-h-[44px] sm:min-h-0",
         "bg-white hover:bg-gray-50",
-        "border border-gray-200",
-        "rounded-lg text-sm text-gray-600 font-medium",
-        "shadow-sm transition-all duration-150",
-        "disabled:opacity-60 disabled:cursor-not-allowed",
-        isLoading && "bg-amber-50 border-amber-200 text-amber-700",
+        "border border-gray-200/80",
+        "rounded-xl text-sm text-gray-600 font-medium",
+        "shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]",
+        "transition-all duration-150 active:scale-[0.97]",
+        "disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100",
+        isLoading && "bg-amber-50 border-amber-200/60 text-amber-700",
         className
       )}
     >

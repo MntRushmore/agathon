@@ -1,5 +1,19 @@
 import { useState, useCallback, useRef } from 'react';
-import { Message, CanvasContext } from './useChat';
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+export interface CanvasContext {
+  subject?: string;
+  gradeLevel?: string;
+  instructions?: string;
+  description?: string;
+  imageBase64?: string;
+}
 
 export type AITutorTab = 'chat' | 'analysis';
 
@@ -342,6 +356,17 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
     if (analysisAbortRef.current) analysisAbortRef.current.abort();
   }, []);
 
+  const stopAnalysisGeneration = useCallback(() => {
+    if (analysisAbortRef.current) analysisAbortRef.current.abort();
+    setIsAnalysisStreaming(false);
+  }, []);
+
+  const retryAnalysis = useCallback(() => {
+    if (analysisImageRef.current) {
+      fetchAnalysis(analysisImageRef.current, analysisAnswerRef.current);
+    }
+  }, [fetchAnalysis]);
+
   return {
     // Shared
     activeTab,
@@ -367,5 +392,7 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
     fetchAnalysis,
     sendAnalysisFollowUp,
     resetAnalysis,
+    stopAnalysisGeneration,
+    retryAnalysis,
   };
 }

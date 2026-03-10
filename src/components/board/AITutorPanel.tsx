@@ -22,7 +22,7 @@ import { LatexRenderer } from '@/components/chat/LatexRenderer';
 import { useAnimatedUnmount } from '@/hooks/useAnimatedUnmount';
 import { animate, stagger } from 'animejs';
 import type { AITutorTab, GoDeepData } from '@/hooks/useAITutor';
-import type { Message } from '@/hooks/useChat';
+import type { Message } from '@/hooks/useAITutor';
 
 interface ConversationMessage {
   id: string;
@@ -45,6 +45,7 @@ interface AITutorPanelProps {
   checkWork: () => void;
   clearChat: () => void;
   stopChatGeneration: () => void;
+  chatError?: string | null;
   // Analysis
   analysisData: GoDeepData | null;
   isAnalysisLoading: boolean;
@@ -52,7 +53,9 @@ interface AITutorPanelProps {
   analysisConversation: ConversationMessage[];
   isAnalysisStreaming: boolean;
   sendAnalysisFollowUp: (content: string) => void;
+  stopAnalysisGeneration?: () => void;
   fetchAnalysis?: () => void;
+  resetAnalysis?: () => void;
   onWidthChange?: (width: number) => void;
 }
 
@@ -69,13 +72,16 @@ export function AITutorPanel({
   checkWork,
   clearChat,
   stopChatGeneration,
+  chatError,
   analysisData,
   isAnalysisLoading,
   analysisError,
   analysisConversation,
   isAnalysisStreaming,
   sendAnalysisFollowUp,
+  stopAnalysisGeneration,
   fetchAnalysis,
+  resetAnalysis,
   onWidthChange,
 }: AITutorPanelProps) {
   const [panelWidth, setPanelWidth] = useState(380);
@@ -189,8 +195,8 @@ export function AITutorPanel({
       ref={panelRef}
       style={{ width: panelWidth }}
       className={cn(
-        'fixed top-0 right-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)]',
-        'flex flex-col w-full sm:w-auto',
+        'fixed top-0 right-0 h-full bg-white border-l border-gray-200/60 z-[var(--z-panel)]',
+        'flex flex-col w-full sm:w-auto shadow-[-2px_0_8px_rgba(0,0,0,0.04)]',
         'transition-transform duration-250 ease-out',
         animationState === 'exiting' ? 'translate-x-full' : 'translate-x-0',
         isDragging && 'select-none'
@@ -200,29 +206,29 @@ export function AITutorPanel({
       <div
         onMouseDown={handleDragStart}
         className={cn(
-          'absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize',
-          'bg-gray-200 hover:bg-sky-400 transition-colors',
-          isDragging && 'bg-sky-500'
+          'absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize',
+          'hover:bg-[#007ba5]/30 transition-colors',
+          isDragging && 'bg-[#007ba5]/40'
         )}
       >
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-10 flex items-center justify-center -translate-x-1/2 bg-white border border-gray-200 rounded-l shadow-sm">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-8 flex items-center justify-center -translate-x-1/2 bg-white border border-gray-200/80 rounded-l-md shadow-sm">
           <GripVertical className="w-3 h-3 text-gray-400" />
         </div>
       </div>
 
-      {/* Header — minimal, matching old GoDeepPanel style */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-600">AI Tutor</span>
+          <span className="text-sm font-semibold text-gray-700">AI Tutor</span>
           {/* Tabs inline in header */}
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+          <div className="flex items-center gap-0.5 bg-gray-100/80 rounded-lg p-0.5">
             <button
               onClick={() => setActiveTab('chat')}
               className={cn(
-                'px-2.5 py-1 text-xs font-medium rounded transition-colors',
+                'px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-150',
                 activeTab === 'chat'
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-500 hover:text-gray-600'
               )}
             >
               Chat
@@ -230,10 +236,10 @@ export function AITutorPanel({
             <button
               onClick={() => setActiveTab('analysis')}
               className={cn(
-                'px-2.5 py-1 text-xs font-medium rounded transition-colors',
+                'px-2.5 py-1 text-xs font-medium rounded-md transition-all duration-150',
                 activeTab === 'analysis'
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-500 hover:text-gray-600'
               )}
             >
               Analysis
@@ -242,9 +248,9 @@ export function AITutorPanel({
         </div>
         <button
           onClick={onClose}
-          className="w-8 h-8 sm:w-6 sm:h-6 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <X className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-400" />
+          <X className="w-3.5 h-3.5 text-gray-400" />
         </button>
       </div>
 
@@ -255,6 +261,11 @@ export function AITutorPanel({
           'absolute inset-0 overflow-y-auto transition-opacity duration-200',
           activeTab === 'chat' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
         )}>
+          {chatError && (
+            <div className="mx-4 mt-2 p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+              {chatError}
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
@@ -522,19 +533,21 @@ export function AITutorPanel({
 
       {/* Input Area */}
       <div className="border-t border-gray-100 p-3">
-        {/* Next Step button — always visible above input */}
-        <button
-          onClick={() =>
-            activeTab === 'chat'
-              ? sendMessage('Help with the next step')
-              : sendAnalysisFollowUp('Help with the next step')
-          }
-          disabled={activeTab === 'chat' ? isChatLoading : isAnalysisStreaming}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ArrowRight className="w-3 h-3" />
-          Next Step
-        </button>
+        {/* Next Step button — hidden on analysis tab when no analysis data */}
+        {(activeTab === 'chat' || analysisData) && (
+          <button
+            onClick={() =>
+              activeTab === 'chat'
+                ? sendMessage('Help with the next step')
+                : sendAnalysisFollowUp('Help with the next step')
+            }
+            disabled={activeTab === 'chat' ? isChatLoading : isAnalysisStreaming}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-[#007ba5]/5 hover:bg-[#007ba5]/10 border border-[#007ba5]/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ArrowRight className="w-3 h-3" />
+            Next Step
+          </button>
+        )}
         {/* Socratic toggle + clear — subtle row above input */}
         <div className="flex items-center justify-between mb-2">
           {activeTab === 'chat' ? (
@@ -562,7 +575,17 @@ export function AITutorPanel({
               )}
             </>
           ) : (
-            <div />
+            <div className="flex items-center">
+              {analysisData && resetAnalysis && (
+                <button
+                  onClick={resetAnalysis}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  New Analysis
+                </button>
+              )}
+            </div>
           )}
         </div>
         <form onSubmit={handleSubmit} className="flex gap-2">
@@ -580,13 +603,13 @@ export function AITutorPanel({
             }
             disabled={isLoading || (activeTab === 'analysis' && !analysisData)}
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-sky-300 focus:border-sky-300 disabled:opacity-50"
+            className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#007ba5]/30 focus:border-[#007ba5]/40 disabled:opacity-50 transition-colors"
             style={{ minHeight: '36px', maxHeight: '120px' }}
           />
           {isLoading ? (
             <button
               type="button"
-              onClick={activeTab === 'chat' ? stopChatGeneration : undefined}
+              onClick={activeTab === 'chat' ? stopChatGeneration : stopAnalysisGeneration}
               className="flex items-center justify-center w-8 h-8 rounded-lg text-red-500 hover:bg-red-50 transition-colors self-end"
               title="Stop generating"
             >

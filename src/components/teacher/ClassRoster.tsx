@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { removeStudentFromClass } from '@/lib/api/classes';
-import { MoreVertical, UserMinus } from 'lucide-react';
+import { DotsThreeVertical, UserMinus } from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance } from 'date-fns';
 
@@ -87,7 +87,7 @@ export function ClassRoster({ classId, members, onUpdate }: ClassRosterProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
         <div className="rounded-full bg-muted p-4 mb-4">
-          <UserMinus className="h-8 w-8 text-muted-foreground" />
+          <UserMinus weight="duotone" className="h-8 w-8 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-medium mb-2">No students yet</h3>
         <p className="text-muted-foreground max-w-md">
@@ -141,7 +141,7 @@ export function ClassRoster({ classId, members, onUpdate }: ClassRosterProps) {
                       className="h-8 w-8"
                       disabled={removingId === member.student_id}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <DotsThreeVertical weight="bold" className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -154,7 +154,7 @@ export function ClassRoster({ classId, members, onUpdate }: ClassRosterProps) {
                       }
                       className="text-destructive focus:text-destructive"
                     >
-                      <UserMinus className="mr-2 h-4 w-4" />
+                      <UserMinus weight="duotone" className="mr-2 h-4 w-4" />
                       Remove from class
                     </DropdownMenuItem>
                   </DropdownMenuContent>

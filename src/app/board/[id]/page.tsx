@@ -57,7 +57,7 @@ import { BookOpen, Check, Clock, ExternalLink, FileText, PanelLeftClose, PanelLe
 import { formatDistance } from "date-fns";
 import { CustomToolbar } from "@/components/board/CustomToolbar";
 import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
-import type { CanvasContext } from "@/hooks/useChat";
+import type { CanvasContext } from "@/hooks/useAITutor";
 import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from "@/lib/celebrations";
 import { createClient } from "@/lib/supabase/client";
@@ -164,31 +164,31 @@ function ImageActionButtons({
     <div
       style={{
         position: 'absolute',
-        bottom: '80px', // Position above the voice button and chat
+        bottom: '80px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 11000,
         display: 'flex',
-        gap: '12px',
+        gap: '10px',
       }}
     >
       <Button
         variant="default"
         size="lg"
         onClick={() => onAccept(currentImageId)}
-        className="shadow-xl bg-green-600 hover:bg-green-700 text-white rounded-full px-6"
+        className="shadow-[0_4px_16px_rgba(0,0,0,0.12)] bg-green-600 hover:bg-green-700 text-white rounded-xl px-5 transition-all duration-150 active:scale-[0.97]"
       >
-        <Tick01Icon size={20} strokeWidth={2.5} />
-        <span className="ml-2 font-bold">Accept Help</span>
+        <Tick01Icon size={18} strokeWidth={2.5} />
+        <span className="ml-2 font-semibold">Accept Help</span>
       </Button>
       <Button
         variant="secondary"
         size="lg"
         onClick={() => onReject(currentImageId)}
-        className="shadow-xl bg-white hover:bg-gray-100 rounded-full px-6"
+        className="shadow-[0_4px_16px_rgba(0,0,0,0.08)] bg-white hover:bg-gray-50 rounded-xl px-5 border border-gray-200/80 transition-all duration-150 active:scale-[0.97]"
       >
-        <Cancel01Icon size={20} strokeWidth={2.5} />
-        <span className="ml-2 font-bold">Reject</span>
+        <Cancel01Icon size={18} strokeWidth={2.5} />
+        <span className="ml-2 font-semibold">Reject</span>
       </Button>
     </div>
   );
@@ -589,8 +589,8 @@ function VoiceAgentControls({
 
       {isSessionActive && status !== "idle" && (
         <div className="fixed top-0 left-0 right-0 z-[10000] flex flex-col items-center justify-center pt-4 pointer-events-none">
-          <div className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg animate-pulse">
-            <Loading03Icon size={20} className="animate-spin" />
+          <div className="flex items-center gap-2 bg-[#007ba5] text-white px-4 py-2 rounded-xl shadow-[0_4px_16px_rgba(0,123,165,0.3)] animate-pulse">
+            <Loading03Icon size={18} className="animate-spin" />
             <span className="text-sm font-medium">
               {statusMessages[status]}
               {statusDetail ? ` (${statusDetail})` : ""}
@@ -619,22 +619,22 @@ function VoiceAgentControls({
       )}
 
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[10000]">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isSessionActive && (
-            <span className="text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
+            <span className="text-sm text-gray-500 bg-white px-3 py-1.5 rounded-xl border border-gray-200/80 shadow-sm">
               Voice session active
             </span>
           )}
           <Button
             onClick={handleClick}
             variant={"outline"}
-            className="rounded-full shadow-md bg-white hover:bg-gray-50"
+            className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white hover:bg-gray-50 border-gray-200/80 transition-all duration-150 active:scale-[0.97]"
             size="lg"
           >
             {isSessionActive ? (
-              <MicOff02Icon size={20} strokeWidth={2} />
+              <MicOff02Icon size={18} strokeWidth={2} />
             ) : (
-              <Mic02Icon size={20} strokeWidth={2} />
+              <Mic02Icon size={18} strokeWidth={2} />
             )}
             <span className="ml-2 font-medium">
               {isSessionActive ? "End Session" : "Voice Mode"}
@@ -2476,12 +2476,16 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                 checkWork={aiTutor.checkWork}
                 clearChat={aiTutor.clearChat}
                 stopChatGeneration={aiTutor.stopChatGeneration}
+                chatError={aiTutor.chatError}
                 analysisData={aiTutor.analysisData}
                 isAnalysisLoading={aiTutor.isAnalysisLoading}
                 analysisError={aiTutor.analysisError}
                 analysisConversation={aiTutor.analysisConversation}
                 isAnalysisStreaming={aiTutor.isAnalysisStreaming}
                 sendAnalysisFollowUp={aiTutor.sendAnalysisFollowUp}
+                stopAnalysisGeneration={aiTutor.stopAnalysisGeneration}
+                fetchAnalysis={aiTutor.retryAnalysis}
+                resetAnalysis={aiTutor.resetAnalysis}
               />
             </>
           )}
@@ -2511,11 +2515,17 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     sileo.info({ title: 'Draw something first to get a hint!' });
                     return;
                   }
-                  setIsHintLoading(true);
-                  try {
-                    await generateSolution({ modeOverride: 'suggest', force: true });
-                  } finally {
-                    setIsHintLoading(false);
+                  if (isEnterprise) {
+                    setIsHintLoading(true);
+                    try {
+                      await generateSolution({ modeOverride: 'suggest', force: true });
+                    } finally {
+                      setIsHintLoading(false);
+                    }
+                  } else {
+                    setAiTutorOpen(true);
+                    aiTutor.setActiveTab('chat');
+                    aiTutor.sendMessage('Give me a hint about what to do next on my canvas.');
                   }
                 }}
               />
@@ -3143,10 +3153,10 @@ export default function BoardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <p className="text-gray-500 font-medium animate-pulse">Loading your canvas...</p>
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-[#007ba5]" />
+          <p className="text-gray-400 text-sm font-medium">Loading canvas...</p>
         </div>
       </div>
     );
@@ -3170,25 +3180,25 @@ export default function BoardPage() {
     <div style={{ position: "fixed", inset: 0, top: topOffset }}>
       {/* View-only banner */}
       {!canEdit && !submissionData && (
-        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-amber-500 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Eye className="w-4 h-4" />
-          View Only - You don't have permission to edit this board
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-amber-50 border-b border-amber-200/60 text-amber-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Eye className="w-4 h-4 text-amber-600" />
+          View Only — You don&apos;t have permission to edit this board
         </div>
       )}
 
       {/* Submitted assignment banner */}
       {!canEdit && submissionData?.status === 'submitted' && !isTeacherViewing && (
-        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-green-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Check className="w-4 h-4" />
-          Assignment Submitted - Your work has been locked
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-green-50 border-b border-green-200/60 text-green-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Check className="w-4 h-4 text-green-600" />
+          Assignment Submitted — Your work has been locked
         </div>
       )}
 
       {/* Teacher viewing student board banner */}
       {isTeacherViewing && (
-        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-blue-600 text-white px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Eye className="w-4 h-4" />
-          Viewing {studentName}'s submission - AI-generated content is highlighted in blue
+        <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-sky-50 border-b border-sky-200/60 text-sky-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
+          <Eye className="w-4 h-4 text-[#007ba5]" />
+          Viewing {studentName}&apos;s submission — AI-generated content is highlighted in blue
         </div>
       )}
 
@@ -3198,7 +3208,7 @@ export default function BoardPage() {
       {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !isTeacherViewing && (
         <div className="fixed bottom-4 left-4 z-[var(--z-controls)]" style={{ pointerEvents: 'auto' }}>
           {gcSubmitted ? (
-            <div className="bg-green-100 border border-green-300 rounded-full px-4 py-2 flex items-center gap-2 shadow-md">
+            <div className="bg-green-50 border border-green-200/80 rounded-xl px-4 py-2 flex items-center gap-2 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
               <Check className="w-4 h-4 text-green-600" />
               <span className="text-sm font-medium text-green-700">Submitted to Google Classroom</span>
             </div>
@@ -3206,7 +3216,7 @@ export default function BoardPage() {
             <Button
               onClick={handleGoogleClassroomSubmit}
               disabled={gcSubmitting}
-              className="rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white px-4"
+              className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-green-600 hover:bg-green-700 text-white px-4 active:scale-[0.97] transition-all duration-150"
             >
               {gcSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

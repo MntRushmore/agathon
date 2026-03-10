@@ -14,10 +14,8 @@ import { TableCell as TiptapTableCell } from '@tiptap/extension-table-cell';
 import { TableHeader as TiptapTableHeader } from '@tiptap/extension-table-header';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import Collaboration from '@tiptap/extension-collaboration';
 import { Extension, Node } from '@tiptap/core';
 import { TextSelection } from '@tiptap/pm/state';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
 import Suggestion, { SuggestionProps, SuggestionKeyDownProps } from '@tiptap/suggestion';
 import { useEffect, useState, useRef, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -35,8 +33,6 @@ import {
 } from '@phosphor-icons/react';
 import tippy, { Instance as TippyInstance } from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
-import * as Y from 'yjs';
-import { HocuspocusProvider } from '@hocuspocus/provider';
 
 // ============================================================
 // Custom TipTap Nodes
@@ -411,10 +407,6 @@ export interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   onSlashCommand?: (commandId: string) => void;
-  // Collaboration props
-  documentId?: string;
-  userName?: string;
-  userColor?: string;
 }
 
 // ============================================================
@@ -427,49 +419,12 @@ export function RichTextEditor({
   placeholder = 'Press \'/\' for commands...',
   className,
   onSlashCommand,
-  documentId,
-  userName,
-  userColor,
 }: RichTextEditorProps) {
   // Use refs to avoid stale closures in Tiptap editor callbacks
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const onSlashCommandRef = useRef(onSlashCommand);
   onSlashCommandRef.current = onSlashCommand;
-
-  // Collaboration setup
-  const ydocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<HocuspocusProvider | null>(null);
-
-  const collabEnabled = Boolean(
-    documentId &&
-    process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID &&
-    process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID !== 'your-tiptap-collab-app-id'
-  );
-
-  // Initialize Yjs doc and Hocuspocus provider for collaboration
-  useEffect(() => {
-    if (!collabEnabled || !documentId) return;
-
-    const ydoc = new Y.Doc();
-    ydocRef.current = ydoc;
-
-    const docPrefix = process.env.NEXT_PUBLIC_TIPTAP_COLLAB_DOC_PREFIX || 'agathon-journal-';
-
-    const provider = new HocuspocusProvider({
-      url: `wss://${process.env.NEXT_PUBLIC_TIPTAP_COLLAB_APP_ID}.collab.tiptap.cloud`,
-      name: `${docPrefix}${documentId}`,
-      document: ydoc,
-      token: 'notoken', // Will be replaced via the API route when real tokens are set
-    });
-
-    providerRef.current = provider;
-
-    return () => {
-      provider.destroy();
-      ydoc.destroy();
-    };
-  }, [collabEnabled, documentId]);
 
   // Build the extensions list
   const extensions = useMemo(() => {
@@ -495,8 +450,6 @@ export function RichTextEditor({
         blockquote: {
           HTMLAttributes: { class: '' },
         },
-        // Disable history when collaboration is enabled (Yjs handles undo/redo)
-        ...(collabEnabled ? { history: false } : {}),
       }),
       Placeholder.configure({
         placeholder: ({ node }) => {
@@ -556,18 +509,9 @@ export function RichTextEditor({
       DetailsContentNode,
     ];
 
-    // Add collaboration extension if enabled
-    if (collabEnabled && ydocRef.current) {
-      exts.push(
-        Collaboration.configure({
-          document: ydocRef.current,
-        })
-      );
-    }
-
     return exts;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collabEnabled, placeholder]);
+  }, [placeholder]);
 
   // Create slash command extension (separate to avoid recreation)
   const SlashCommands = useMemo(() => Extension.create({
@@ -702,7 +646,7 @@ export function RichTextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [...extensions, SlashCommands],
-    content: collabEnabled ? undefined : parseContentToHTML(content),
+    content: parseContentToHTML(content),
     editorProps: {
       attributes: {
         class: cn(
@@ -959,16 +903,16 @@ export function RichTextEditor({
     };
   }, []);
 
-  // Update editor content when prop changes externally (non-collab mode only)
+  // Update editor content when prop changes externally
   useEffect(() => {
-    if (editor && content && !collabEnabled) {
+    if (editor && content) {
       const currentHTML = editor.getHTML();
       const newHTML = parseContentToHTML(content);
       if (currentHTML !== newHTML && !editor.isFocused) {
         editor.commands.setContent(newHTML);
       }
     }
-  }, [content, editor, collabEnabled]);
+  }, [content, editor]);
 
   if (!editor) {
     return null;

@@ -5,15 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  AlertTriangle,
+  Warning,
   Clock,
-  HelpCircle,
+  Question,
   Eye,
   CheckCircle,
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+  ArrowsClockwise,
+  CaretDown,
+  CaretUp,
+} from '@phosphor-icons/react';
 import { formatDistance } from 'date-fns';
 import { useRouter } from 'next/navigation';
 
@@ -62,7 +62,7 @@ interface StrugglingStudentsPanelProps {
 
 const indicatorConfig = {
   repeated_hints: {
-    icon: HelpCircle,
+    icon: Question,
     label: 'Repeated help requests',
     color: 'text-amber-600',
   },
@@ -72,17 +72,17 @@ const indicatorConfig = {
     color: 'text-blue-600',
   },
   erasing: {
-    icon: AlertTriangle,
+    icon: Warning,
     label: 'Frequent erasing',
     color: 'text-orange-600',
   },
   no_progress: {
-    icon: AlertTriangle,
+    icon: Warning,
     label: 'No progress detected',
     color: 'text-red-600',
   },
   explicit_help: {
-    icon: HelpCircle,
+    icon: Question,
     label: 'Asked for help',
     color: 'text-purple-600',
   },
@@ -160,13 +160,13 @@ export function StrugglingStudentsPanel({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <Warning weight="duotone" className="h-5 w-5 text-amber-500" />
             Struggling Students
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+            <ArrowsClockwise weight="bold" className="h-5 w-5 animate-spin mr-2" />
             Loading...
           </div>
         </CardContent>
@@ -179,7 +179,7 @@ export function StrugglingStudentsPanel({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
-            <AlertTriangle className={`h-5 w-5 ${students.length > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
+            <Warning weight="duotone" className={`h-5 w-5 ${students.length > 0 ? 'text-amber-500' : 'text-muted-foreground'}`} />
             Struggling Students
             {students.length > 0 && (
               <Badge variant="destructive" className="ml-2">
@@ -189,10 +189,10 @@ export function StrugglingStudentsPanel({
           </CardTitle>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" onClick={fetchData}>
-              <RefreshCw className="h-4 w-4" />
+              <ArrowsClockwise weight="duotone" className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {expanded ? <CaretUp weight="bold" className="h-4 w-4" /> : <CaretDown weight="bold" className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -205,7 +205,7 @@ export function StrugglingStudentsPanel({
         <CardContent className="space-y-4">
           {students.length === 0 ? (
             <div className="text-center py-6 text-muted-foreground">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+              <CheckCircle weight="duotone" className="h-8 w-8 mx-auto mb-2 text-green-500" />
               <p className="font-medium">All students are doing well!</p>
               <p className="text-sm">No struggling indicators detected</p>
             </div>
@@ -256,7 +256,7 @@ export function StrugglingStudentsPanel({
                           className="ml-1 hover:text-green-600"
                           title="Mark as resolved"
                         >
-                          <CheckCircle className="h-3.5 w-3.5" />
+                          <CheckCircle weight="duotone" className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     );
@@ -276,7 +276,7 @@ export function StrugglingStudentsPanel({
                       size="sm"
                       onClick={() => router.push(`/board/${student.student_board!.id}`)}
                     >
-                      <Eye className="h-4 w-4 mr-1" />
+                      <Eye weight="duotone" className="h-4 w-4 mr-1" />
                       View Board
                     </Button>
                   )}

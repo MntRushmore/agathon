@@ -143,7 +143,7 @@ export function FeedbackCard({
     <div
       ref={cardRef}
       className={cn(
-        "fixed top-0 left-0 z-[var(--z-overlay)] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-lg border border-gray-200",
+        "fixed top-0 left-0 z-[var(--z-overlay)] w-[320px] max-w-[90vw] bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-gray-200/80",
         "select-none will-change-transform touch-none",
         isClosing
           ? "animate-out fade-out zoom-out-95 duration-200"

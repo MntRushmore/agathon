@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { ArrowLeft01Icon } from 'hugeicons-react';
-import { BookOpen, Check, Info, ChevronDown } from 'lucide-react';
+import { BookOpen, Check, Info, ChevronDown, Sparkles, ShieldOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,7 +64,7 @@ function ModeInfoDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="no-enlarge w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+          className="no-enlarge w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 transition-all duration-150"
           aria-label="How the help modes work"
         >
           <Info className="h-3.5 w-3.5" />
@@ -95,10 +95,10 @@ function ModeInfoDialog() {
             <img
               src="/modes/suggest.png"
               alt="Suggest mode example"
-              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+              className="h-48 w-auto rounded-xl border bg-muted object-contain mb-3"
             />
-            <p className="text-sm font-medium mb-1">Suggest</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm font-semibold mb-1">Suggest</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Hints and partial steps to nudge you in the right direction.
             </p>
           </div>
@@ -106,10 +106,10 @@ function ModeInfoDialog() {
             <img
               src="/modes/solve.png"
               alt="Solve mode example"
-              className="h-48 w-auto rounded-md border bg-muted object-contain mb-3"
+              className="h-48 w-auto rounded-xl border bg-muted object-contain mb-3"
             />
-            <p className="text-sm font-medium mb-1">Solve</p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm font-semibold mb-1">Solve</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Full worked solution overlaid on your canvas for comparison.
             </p>
           </div>
@@ -149,7 +149,7 @@ export function TopBar({
     <div
       className={cn(
         'top-bar fixed left-0 right-0 h-12 z-[var(--z-topbar)]',
-        'bg-white border-b border-gray-200/60 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+        'bg-white border-b border-gray-200/60',
         'flex items-center px-3 gap-2',
         'pointer-events-auto'
       )}
@@ -158,10 +158,10 @@ export function TopBar({
       onTouchStart={(e) => e.stopPropagation()}
     >
       {/* LEFT: Back + Assignment */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <button
           onClick={onBack}
-          className="no-enlarge w-8 h-8 flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 transition-colors"
+          className="no-enlarge w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100/80 hover:text-gray-700 transition-all duration-150 active:scale-95"
           aria-label="Go back"
         >
           <ArrowLeft01Icon size={18} strokeWidth={2} />
@@ -171,9 +171,9 @@ export function TopBar({
         {isAssignmentBoard && assignmentTitle && (
           <Popover>
             <PopoverTrigger asChild>
-              <button className="no-enlarge flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors max-w-[200px]">
+              <button className="no-enlarge flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200/80 hover:bg-gray-50 hover:border-gray-300/60 transition-all duration-150 max-w-[220px] group">
                 <BookOpen className="h-3.5 w-3.5 text-[#007ba5] flex-shrink-0" />
-                <span className="text-xs font-medium truncate label-text">{assignmentTitle}</span>
+                <span className="text-xs font-medium truncate label-text text-gray-700">{assignmentTitle}</span>
                 {submissionStatus && (
                   <Badge
                     variant={
@@ -181,103 +181,119 @@ export function TopBar({
                       submissionStatus === 'in_progress' ? 'secondary' :
                       'outline'
                     }
-                    className="text-[9px] px-1 py-0 h-4 hide-mobile"
+                    className="text-[9px] px-1.5 py-0 h-4 hide-mobile rounded-full"
                   >
                     {submissionStatus === 'submitted' ? 'Submitted' :
                      submissionStatus === 'in_progress' ? 'In Progress' :
                      'Not Started'}
                   </Badge>
                 )}
-                <ChevronDown className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <ChevronDown className="h-3 w-3 text-gray-400 group-hover:text-gray-500 flex-shrink-0 transition-colors" />
               </button>
             </PopoverTrigger>
             <PopoverContent
               side="bottom"
               align="start"
               sideOffset={8}
-              className="w-72 p-4 bg-white rounded-xl shadow-lg border border-gray-200/50"
+              className="w-80 p-0 bg-white rounded-xl shadow-xl border border-gray-200/50 overflow-hidden"
             >
-              <div className="space-y-2">
-                <p className="font-semibold text-sm leading-tight">{assignmentTitle}</p>
-                <p className="text-xs text-muted-foreground">
-                  {assignmentSubject || 'Subject'}{assignmentGradeLevel ? ` - ${assignmentGradeLevel}` : ''}
-                </p>
-                {assignmentInstructions && (
-                  <p className="text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-2 mt-2">
-                    {assignmentInstructions}
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-sm leading-tight text-gray-900">{assignmentTitle}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {assignmentSubject || 'Subject'}{assignmentGradeLevel ? ` \u00b7 ${assignmentGradeLevel}` : ''}
                   </p>
-                )}
-                {submissionStatus && submissionStatus !== 'submitted' && onSubmit && (
-                  <Button
-                    size="sm"
-                    onClick={onSubmit}
-                    disabled={isSubmitting}
-                    className="w-full mt-2 h-8 text-xs"
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
-                  </Button>
-                )}
-                {submissionStatus === 'submitted' && (
-                  <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium mt-1">
-                    <Check className="h-3.5 w-3.5" />
-                    Submitted
+                </div>
+                {assignmentInstructions && (
+                  <div className="border-t border-gray-100 pt-3">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {assignmentInstructions}
+                    </p>
                   </div>
                 )}
               </div>
+              {submissionStatus && (
+                <div className="px-4 py-3 bg-gray-50/80 border-t border-gray-100">
+                  {submissionStatus !== 'submitted' && onSubmit ? (
+                    <Button
+                      size="sm"
+                      onClick={onSubmit}
+                      disabled={isSubmitting}
+                      className="w-full h-9 text-xs font-medium rounded-lg"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+                    </Button>
+                  ) : submissionStatus === 'submitted' ? (
+                    <div className="flex items-center gap-1.5 text-green-600 text-xs font-medium justify-center">
+                      <Check className="h-3.5 w-3.5" />
+                      Submitted successfully
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </PopoverContent>
           </Popover>
         )}
       </div>
 
       {/* Vertical separator */}
-      {!isDocPanelOpen && <div className="w-px h-6 bg-gray-200 flex-shrink-0" />}
+      {!isDocPanelOpen && <div className="w-px h-5 bg-gray-200/60 flex-shrink-0 mx-0.5" />}
 
       {/* CENTER: Drawing tools (rendered by tldraw via CustomToolbar component slot) */}
-      {/* The CustomToolbar renders inline here automatically via tldraw's component override */}
-      {/* This space is intentionally left for the toolbar to fill */}
       <div className="flex-1 min-w-0 flex items-center justify-center overflow-x-auto scrollbar-hide">
-        {/* tldraw renders CustomToolbar here via the Toolbar component slot */}
-        {/* We add a data attribute so we can reference this in CSS if needed */}
         <div data-topbar-tools className="flex items-center" />
       </div>
 
       {/* Vertical separator */}
-      {!isTeacherViewing && <div className="w-px h-6 bg-gray-200 flex-shrink-0" />}
+      {!isTeacherViewing && <div className="w-px h-5 bg-gray-200/60 flex-shrink-0 mx-0.5" />}
 
       {/* RIGHT: AI mode + Status + Hints + Admin */}
       {!isTeacherViewing && (
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {/* AI Mode selector */}
           {!aiAllowed ? (
-            <div className="px-2.5 py-1 bg-amber-50 border border-amber-200 rounded-md text-amber-700 text-[11px] font-medium hide-mobile">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50/80 border border-amber-200/60 rounded-lg text-amber-700 text-[11px] font-medium hide-mobile">
+              <ShieldOff className="h-3 w-3" />
               AI off
             </div>
           ) : (
-            <Tabs
-              value={assistanceMode}
-              onValueChange={(value) => {
-                if (isModeAllowed(value)) {
-                  onModeChange(value);
-                }
-              }}
-              className="w-auto"
-              data-tutorial="ai-mode-selector"
-            >
-              <TabsList className="h-8 gap-0.5 p-0.5 bg-gray-100/80 border border-gray-200/50 shadow-none">
-                <TabsTrigger value="off" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm">Off</TabsTrigger>
-                {/* Feedback tab disabled — kept for potential re-enable
-                {isModeAllowed('feedback') && (
-                  <TabsTrigger value="feedback" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm hide-mobile">Feedback</TabsTrigger>
-                )}
-                */}
-                {isModeAllowed('suggest') && (
-                  <TabsTrigger value="suggest" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm hide-mobile">Suggest</TabsTrigger>
-                )}
-                {isModeAllowed('answer') && (
-                  <TabsTrigger value="answer" className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm hide-mobile">Solve</TabsTrigger>
-                )}
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center gap-1.5" data-tutorial="ai-mode-selector">
+              <Sparkles className="h-3.5 w-3.5 text-gray-400 hide-mobile" />
+              <Tabs
+                value={assistanceMode}
+                onValueChange={(value) => {
+                  if (isModeAllowed(value)) {
+                    onModeChange(value);
+                  }
+                }}
+                className="w-auto"
+              >
+                <TabsList className="h-8 gap-0.5 p-0.5 bg-gray-100/60 border border-gray-200/40 shadow-none rounded-lg">
+                  <TabsTrigger
+                    value="off"
+                    className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white font-medium transition-all duration-150"
+                  >
+                    Off
+                  </TabsTrigger>
+                  {isModeAllowed('suggest') && (
+                    <TabsTrigger
+                      value="suggest"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                    >
+                      Suggest
+                    </TabsTrigger>
+                  )}
+                  {isModeAllowed('answer') && (
+                    <TabsTrigger
+                      value="answer"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                    >
+                      Solve
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+              </Tabs>
+            </div>
           )}
 
           <ModeInfoDialog />
@@ -293,7 +309,14 @@ export function TopBar({
 
           {/* Hint counter */}
           {hintLimit !== null && hintLimit !== undefined && (
-            <div className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-semibold whitespace-nowrap hide-mobile">
+            <div className={cn(
+              "px-2 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap hide-mobile border transition-colors",
+              hintsRemaining === 0
+                ? "bg-red-50/80 border-red-200/60 text-red-600"
+                : hintsRemaining != null && hintsRemaining <= 2
+                  ? "bg-amber-50/80 border-amber-200/60 text-amber-700"
+                  : "bg-gray-50/80 border-gray-200/60 text-gray-600"
+            )}>
               {hintsRemaining} hint{hintsRemaining === 1 ? '' : 's'}
             </div>
           )}

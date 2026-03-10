@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,22 +29,21 @@ import {
   updateAssignment,
 } from '@/lib/api/assignments';
 import {
-  ArrowLeft,
-  Trash2,
+  Trash,
   Eye,
   Clock,
   CheckCircle,
-  AlertCircle,
-  ExternalLink,
-  Settings,
-  BarChart3,
-  Users,
+  WarningCircle,
+  ArrowSquareOut,
+  GearSix,
+  ChartBar,
+  UsersThree,
   FileText,
-  Save,
-  Loader2,
-  Calendar,
-  Sparkles,
-} from 'lucide-react';
+  FloppyDisk,
+  CircleNotch,
+  CalendarBlank,
+  Sparkle,
+} from '@phosphor-icons/react';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistance, format, isPast, isToday, isTomorrow } from 'date-fns';
 import { StrugglingStudentsPanel } from '@/components/teacher/StrugglingStudentsPanel';
@@ -218,21 +218,21 @@ export default function AssignmentDetailPage() {
       case 'submitted':
         return (
           <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-            <CheckCircle className="h-3 w-3 mr-1" />
+            <CheckCircle weight="duotone" className="h-3 w-3 mr-1" />
             Submitted
           </Badge>
         );
       case 'in_progress':
         return (
           <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-            <Clock className="h-3 w-3 mr-1" />
+            <Clock weight="duotone" className="h-3 w-3 mr-1" />
             In Progress
           </Badge>
         );
       default:
         return (
           <Badge className="bg-gray-500/10 text-gray-600 border-gray-500/20">
-            <AlertCircle className="h-3 w-3 mr-1" />
+            <WarningCircle weight="duotone" className="h-3 w-3 mr-1" />
             Not Started
           </Badge>
         );
@@ -264,19 +264,21 @@ export default function AssignmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="border-b bg-card">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="h-8 bg-muted rounded skeleton w-1/3 mb-4" />
-            <div className="h-6 bg-muted rounded skeleton w-1/4" />
-          </div>
+      <div className="max-w-[1100px] mx-auto px-8 py-8">
+        <div className="space-y-2 mb-8">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-5 w-1/4" />
         </div>
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="h-48 bg-muted rounded-lg skeleton" />
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-1/2 mb-6" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-lg" />
+          ))}
         </div>
       </div>
     );
@@ -284,7 +286,7 @@ export default function AssignmentDetailPage() {
 
   if (!assignment) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="max-w-[1100px] mx-auto px-8 py-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">Assignment not found</h2>
           <p className="text-muted-foreground mb-4">This assignment may have been deleted.</p>
@@ -297,17 +299,18 @@ export default function AssignmentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background page-transition">
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push(`/teacher/classes/${classId}`)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+    <div className="max-w-[1100px] mx-auto px-8 py-8">
+      <div className="mb-8">
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground -ml-2 mb-3"
+            onClick={() => router.push(`/teacher/classes/${classId}`)}
+          >
+            <FileText weight="duotone" className="h-4 w-4 mr-1.5" />
+            Back to {assignment.class.name}
+          </Button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl font-semibold">{assignment.title}</h1>
@@ -368,28 +371,26 @@ export default function AssignmentDetailPage() {
             </Card>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="submissions" className="gap-2">
-              <Users className="h-4 w-4" />
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="overview" className="gap-2">
+            <FileText weight="duotone" className="h-4 w-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="gap-2">
+            <UsersThree weight="duotone" className="h-4 w-4" />
               Submissions
               {stats.submitted > 0 && (
                 <Badge variant="secondary" className="ml-1">{stats.submitted}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
+              <ChartBar weight="duotone" className="h-4 w-4" />
               Analytics
             </TabsTrigger>
             <TabsTrigger value="settings" className="gap-2">
-              <Settings className="h-4 w-4" />
+              <GearSix weight="duotone" className="h-4 w-4" />
               Settings
             </TabsTrigger>
           </TabsList>
@@ -430,9 +431,9 @@ export default function AssignmentDetailPage() {
                           className="mt-2"
                           onClick={() => router.push(`/board/${assignment.template_board!.id}`)}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye weight="duotone" className="h-4 w-4 mr-2" />
                           View Template
-                          <ExternalLink className="h-3 w-3 ml-2" />
+                          <ArrowSquareOut weight="duotone" className="h-3 w-3 ml-2" />
                         </Button>
                       </div>
                     )}
@@ -542,7 +543,7 @@ export default function AssignmentDetailPage() {
             {filteredSubmissions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
                 <div className="rounded-full bg-muted p-4 mb-4">
-                  <Eye className="h-8 w-8 text-muted-foreground" />
+                  <Eye weight="duotone" className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium mb-2">No submissions found</h3>
                 <p className="text-muted-foreground max-w-md">
@@ -570,7 +571,7 @@ export default function AssignmentDetailPage() {
                         />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
-                            <FileText className="h-10 w-10 opacity-20" />
+                            <FileText weight="duotone" className="h-10 w-10 opacity-20" />
                             <span className="text-xs font-medium opacity-50">No preview available</span>
                           </div>
                         )}
@@ -610,13 +611,13 @@ export default function AssignmentDetailPage() {
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
                         {submission.ai_help_count !== undefined && submission.ai_help_count > 0 && (
                           <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                            <Sparkles className="h-3 w-3" />
+                            <Sparkle weight="duotone" className="h-3 w-3" />
                             {submission.ai_help_count} AI helps
                           </span>
                         )}
                         {submission.time_spent_seconds !== undefined && submission.time_spent_seconds > 0 && (
                           <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                            <Clock className="h-3 w-3" />
+                            <Clock weight="duotone" className="h-3 w-3" />
                             {Math.round(submission.time_spent_seconds / 60)}m spent
                           </span>
                         )}
@@ -639,7 +640,7 @@ export default function AssignmentDetailPage() {
                             className="flex-1"
                             onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
                           >
-                            <Eye className="h-4 w-4 mr-1" />
+                            <Eye weight="duotone" className="h-4 w-4 mr-1" />
                             View
                           </Button>
                           <AIHistoryTimeline
@@ -780,7 +781,7 @@ export default function AssignmentDetailPage() {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash weight="duotone" className="h-4 w-4 mr-2" />
                         Delete Assignment
                       </Button>
                     </AlertDialogTrigger>
@@ -808,12 +809,12 @@ export default function AssignmentDetailPage() {
                   <Button onClick={handleSaveSettings} disabled={saving}>
                     {saving ? (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                         Saving...
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4 mr-2" />
+                        <FloppyDisk weight="duotone" className="h-4 w-4 mr-2" />
                         Save Settings
                       </>
                     )}
@@ -822,8 +823,7 @@ export default function AssignmentDetailPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      </div>
+      </Tabs>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Message } from '@/hooks/useChat';
+import { Message } from '@/hooks/useAITutor';
 import { LatexRenderer } from './LatexRenderer';
 import { Sparkles, User, Copy, Check, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';

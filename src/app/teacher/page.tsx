@@ -16,7 +16,6 @@ import {
   BookOpenText,
   WarningCircle,
   CheckCircle,
-  ArrowLeft,
   Sparkle,
   CalendarBlank,
   GraduationCap,
@@ -336,18 +335,11 @@ export default function TeacherDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="border-b bg-card">
-          <div className="max-w-7xl mx-auto px-6 py-6">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-10 w-10 rounded-md" />
-              <div className="space-y-2">
-                <Skeleton className="h-7 w-48" />
-                <Skeleton className="h-4 w-36" />
-              </div>
-            </div>
+        <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-36" />
           </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map(i => (
               <Card key={i}>
@@ -403,41 +395,23 @@ export default function TeacherDashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-                <ArrowLeft weight="duotone" className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold">
-                  Welcome back, {teacherName.split(' ')[0]}!
-                </h1>
-                <p className="text-muted-foreground">
-                  {format(new Date(), 'EEEE, MMMM d, yyyy')}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" asChild>
-                <Link href="/teacher/classes">
-                  <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
-                  My Classes
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/teacher/assignments/create">
-                  <Plus weight="duotone" className="h-4 w-4 mr-2" />
-                  New Assignment
-                </Link>
-              </Button>
-            </div>
+      <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold">
+              Welcome back, {teacherName.split(' ')[0]}!
+            </h1>
+            <p className="text-muted-foreground">
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </p>
           </div>
+          <Button asChild>
+            <Link href="/teacher/assignments/create">
+              <Plus weight="duotone" className="h-4 w-4 mr-2" />
+              New Assignment
+            </Link>
+          </Button>
         </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         <TooltipProvider>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[

@@ -17,11 +17,12 @@ export function AITutorButton({ onClick, isOpen, messageCount = 0, className }: 
     <button
       onClick={onClick}
       className={cn(
-        'no-enlarge h-9 rounded-lg px-3',
+        'no-enlarge h-9 rounded-xl px-3',
         'inline-flex items-center gap-1.5',
-        'bg-white text-gray-600 border border-gray-200',
-        'shadow-sm hover:bg-gray-50',
-        'transition-colors duration-150',
+        'bg-white text-gray-600 border border-gray-200/80',
+        'shadow-[0_1px_4px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)]',
+        'hover:border-gray-300/60',
+        'transition-all duration-150 active:scale-[0.97]',
         className
       )}
       aria-label="Open AI Tutor"

@@ -19,6 +19,17 @@ export async function GET() {
 
     const adminClient = createServiceRoleClient();
 
+    // Verify caller is an admin
+    const { data: callerProfile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (callerProfile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const { data, error } = await adminClient
       .from('profiles')
       .select('id, email, full_name, role')

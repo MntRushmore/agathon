@@ -63,7 +63,7 @@ export function LassoActionPrompt({ position, onAction, onDismiss, isClosing }: 
       )}
       style={{ left: position.x, top: position.y, transform: 'translate(-50%, 8px)' }}
     >
-      <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-md px-1 py-1">
+      <div className="flex items-center gap-0.5 bg-white border border-gray-200/80 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-1.5 py-1">
         {/* Feedback button disabled — kept for potential re-enable
         <Tooltip>
           <TooltipTrigger asChild>

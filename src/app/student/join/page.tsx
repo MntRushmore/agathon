@@ -186,8 +186,7 @@ export default function StudentJoinPage() {
               {enrolledClasses.map((enrollment) => (
                 <Card
                   key={enrollment.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => router.push('/')}
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
