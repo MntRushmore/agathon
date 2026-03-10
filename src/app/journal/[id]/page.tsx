@@ -61,10 +61,9 @@ import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
-import { RichTextEditor } from '@/components/journal/RichTextEditor';
+import { NotionEditor } from '@/components/tiptap-templates/notion-like/notion-like-editor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
-import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
 
 // Simple markdown renderer for chat messages with DOMPurify sanitization
@@ -109,21 +108,6 @@ function renderMarkdown(text: string): string {
   });
 }
 
-// Dynamically import tldraw to avoid SSR issues
-const InlineWhiteboard = dynamic(
-  () => import('@/components/journal/InlineWhiteboard').then(mod => mod.InlineWhiteboard),
-  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
-);
-
-const InlineDesmos = dynamic(
-  () => import('@/components/journal/InlineDesmos').then(mod => mod.InlineDesmos),
-  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
-);
-
-const InlineChart = dynamic(
-  () => import('@/components/journal/InlineChart').then(mod => mod.InlineChart),
-  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
-);
 
 interface JournalData {
   id: string;
@@ -132,166 +116,6 @@ interface JournalData {
   content: any[];
   created_at: string;
   updated_at: string;
-}
-
-interface EmbeddedWhiteboard {
-  id: string;
-  data?: string;
-}
-
-interface EmbeddedDesmosGraph {
-  id: string;
-  expression: string;
-}
-
-// Component that renders content with embedded whiteboards and Desmos graphs
-function ContentWithEmbeds({
-  content,
-  onChange,
-  placeholder,
-  embeddedWhiteboards,
-  embeddedDesmos,
-  onWhiteboardSave,
-  onSlashCommand,
-  onDeleteWhiteboard,
-  onDeleteDesmos,
-  onChartSave,
-  onDeleteChart,
-}: {
-  content: string;
-  onChange: (content: string) => void;
-  placeholder: string;
-  embeddedWhiteboards: EmbeddedWhiteboard[];
-  embeddedDesmos: EmbeddedDesmosGraph[];
-  onWhiteboardSave: (id: string, data: string) => void;
-  onSlashCommand?: (commandId: string) => void;
-  onDeleteWhiteboard?: (id: string) => void;
-  onDeleteDesmos?: (id: string) => void;
-  onChartSave?: (id: string, data: ChartConfig) => void;
-  onDeleteChart?: (id: string) => void;
-}) {
-  // Extract placeholders from content for rendering embedded components
-  const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
-  const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
-  const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
-
-  // Build a unified, position-ordered list of all embeds
-  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
-  whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
-  desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
-  chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
-  allEmbeds.sort((a, b) => a.position - b.position);
-
-  // Remove placeholders from the content for the editor (they'll be rendered separately)
-  const editorContent = content
-    .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
-    .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
-    .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
-    .trim();
-
-  // Check if there are any embeds — shrink editor min-height when embeds exist
-  const hasEmbeds = allEmbeds.length > 0;
-
-  return (
-    <div className={hasEmbeds ? 'space-y-4' : 'space-y-6'}>
-      {/* Main editor for text content */}
-      <RichTextEditor
-        content={editorContent}
-        onChange={(newContent) => {
-          // Preserve the embedded placeholders when content changes
-          let fullContent = newContent;
-
-          // Re-add all embed placeholders at the end (in original order)
-          allEmbeds.forEach(({ match }) => {
-            if (!fullContent.includes(match[0])) {
-              fullContent += `\n\n${match[0]}`;
-            }
-          });
-
-          onChange(fullContent);
-        }}
-        placeholder={placeholder}
-        onSlashCommand={onSlashCommand}
-        className={hasEmbeds ? '[&_.ProseMirror]:!min-h-[120px]' : ''}
-      />
-
-      {/* Render all embeds in content order */}
-      {allEmbeds.map(({ type, match }) => {
-        if (type === 'whiteboard') {
-          const id = match[1];
-          const wb = embeddedWhiteboards.find(w => w.id === id);
-          return (
-            <div key={`wb-${id}`} className="my-2 group relative">
-              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <PenNib className="h-4 w-4" />
-                  <span>Whiteboard</span>
-                </div>
-                {onDeleteWhiteboard && (
-                  <button
-                    onClick={() => onDeleteWhiteboard(id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                    title="Delete whiteboard"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <InlineWhiteboard
-                id={id}
-                initialData={wb?.data}
-                onSave={(data) => onWhiteboardSave(id, data)}
-                height={400}
-              />
-            </div>
-          );
-        }
-
-        if (type === 'desmos') {
-          const id = match[1];
-          const expression = match[2];
-          return (
-            <div key={`desmos-${id}`} className="my-2 group relative">
-              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ChartLine className="h-4 w-4" />
-                  <span>Desmos Graph</span>
-                </div>
-                {onDeleteDesmos && (
-                  <button
-                    onClick={() => onDeleteDesmos(id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                    title="Delete graph"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              <InlineDesmos
-                expression={expression}
-                height={400}
-              />
-            </div>
-          );
-        }
-
-        // chart
-        const id = match[1];
-        const encodedData = match[2];
-        const chartConfig = decodeChartData(encodedData);
-        return (
-          <div key={`chart-${id}`} className="my-2">
-            <InlineChart
-              id={id}
-              initialData={chartConfig}
-              onSave={(chartId, data) => onChartSave?.(chartId, data)}
-              onDelete={(chartId) => onDeleteChart?.(chartId)}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 // Slash command menu items
@@ -2339,45 +2163,11 @@ export default function JournalEditorPage() {
           </div>
         )}
 
-        {/* WYSIWYG Rich Text Editor with Embedded Components */}
+        {/* Notion-like Rich Text Editor */}
         <div className="relative min-h-[60vh] pb-20">
-          <ContentWithEmbeds
-            content={content}
-            onChange={setContent}
-            placeholder="Start writing or click a button above to generate notes... Type '/' for commands."
-            embeddedWhiteboards={embeddedWhiteboards}
-            embeddedDesmos={embeddedDesmos}
-            onWhiteboardSave={(id, data) => {
-              setEmbeddedWhiteboards(prev =>
-                prev.map(wb => wb.id === id ? { ...wb, data } : wb)
-              );
-            }}
-            onDeleteWhiteboard={(id) => {
-              // Remove from embedded whiteboards
-              setEmbeddedWhiteboards(prev => prev.filter(wb => wb.id !== id));
-              // Remove placeholder from content
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[WHITEBOARD:${id}\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Whiteboard deleted' });
-            }}
-            onDeleteDesmos={(id) => {
-              // Remove placeholder from content
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Graph deleted' });
-            }}
-            onChartSave={(id, data) => {
-              // Update the chart placeholder with new encoded data
-              setContent(prev => {
-                const regex = new RegExp(`\\[CHART:${id}:[^\\]]*\\]`);
-                const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
-                return prev.replace(regex, newPlaceholder);
-              });
-              sileo.success({ title: 'Chart saved!' });
-            }}
-            onDeleteChart={(id) => {
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Chart deleted' });
-            }}
-            onSlashCommand={executeCommand}
+          <NotionEditor
+            room={params.id as string}
+            placeholder="Start writing or type '/' for commands..."
           />
 
           {/* Proactive AI Suggestion Display */}

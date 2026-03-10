@@ -45,3 +45,7 @@ next-env.d.ts
 remotion-video/node_modules/
 remotion-video/out/
 .env*.local
+
+
+# Authentication tokens
+.npmrc
