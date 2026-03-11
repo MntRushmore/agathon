@@ -96,6 +96,7 @@ import { ListNormalizationExtension } from "@/components/tiptap-extension/list-n
 export interface NotionEditorProps {
   room: string
   placeholder?: string
+  onEditorReady?: (editor: ReturnType<typeof useEditor>) => void
 }
 
 export interface EditorProviderProps {
@@ -103,6 +104,7 @@ export interface EditorProviderProps {
   ydoc: YDoc
   placeholder?: string
   aiToken: string | null
+  onEditorReady?: (editor: ReturnType<typeof useEditor>) => void
 }
 
 /**
@@ -183,7 +185,7 @@ export function EditorContentArea() {
  * Component that creates and provides the editor instance
  */
 export function EditorProvider(props: EditorProviderProps) {
-  const { provider, ydoc, placeholder = "Start writing...", aiToken } = props
+  const { provider, ydoc, placeholder = "Start writing...", aiToken, onEditorReady } = props
 
   const { user } = useUser()
   const { setTocContent } = useToc()
@@ -309,6 +311,12 @@ export function EditorProvider(props: EditorProviderProps) {
     ],
   })
 
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor)
+    }
+  }, [editor, onEditorReady])
+
   if (!editor) {
     return <LoadingSpinner />
   }
@@ -346,6 +354,7 @@ export function EditorProvider(props: EditorProviderProps) {
 export function NotionEditor({
   room,
   placeholder = "Start writing...",
+  onEditorReady,
 }: NotionEditorProps) {
   return (
     <UserProvider>
@@ -353,7 +362,7 @@ export function NotionEditor({
         <CollabProvider room={room}>
           <AiProvider>
             <TocProvider>
-              <NotionEditorContent placeholder={placeholder} />
+              <NotionEditorContent placeholder={placeholder} onEditorReady={onEditorReady} />
             </TocProvider>
           </AiProvider>
         </CollabProvider>
@@ -365,7 +374,7 @@ export function NotionEditor({
 /**
  * Internal component that handles the editor loading state
  */
-export function NotionEditorContent({ placeholder }: { placeholder?: string }) {
+export function NotionEditorContent({ placeholder, onEditorReady }: { placeholder?: string; onEditorReady?: (editor: ReturnType<typeof useEditor>) => void }) {
   const { provider, ydoc, setupError: collabSetupError } = useCollab()
   const { aiToken, setupError: aiSetupError } = useAi()
 
@@ -389,6 +398,7 @@ export function NotionEditorContent({ placeholder }: { placeholder?: string }) {
       ydoc={ydoc}
       placeholder={placeholder}
       aiToken={aiToken}
+      onEditorReady={onEditorReady}
     />
   )
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent, type MutableRefObject } from 'react';
+import type { Editor } from '@tiptap/react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -235,6 +236,69 @@ export default function JournalEditorPage() {
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
 
+  // TipTap editor ref for programmatic content insertion
+  const tiptapEditorRef = useRef<Editor | null>(null);
+
+  // Helper to insert markdown-like content at the end of the TipTap editor
+  const insertContentToEditor = useCallback((text: string) => {
+    const editor = tiptapEditorRef.current;
+    if (!editor) return;
+
+    // Move cursor to end of document, insert a newline, then insert the text as HTML
+    // Convert basic markdown to HTML for TipTap
+    const html = text
+      // Headers
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Unordered lists - wrap consecutive items
+      .replace(/(?:^- .+$\n?)+/gm, (match) => {
+        const items = match.trim().split('\n').map(line => `<li>${line.replace(/^- /, '')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      })
+      // Ordered lists - wrap consecutive items
+      .replace(/(?:^\d+\. .+$\n?)+/gm, (match) => {
+        const items = match.trim().split('\n').map(line => `<li>${line.replace(/^\d+\. /, '')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      })
+      // Paragraphs from double newlines
+      .split(/\n\n+/)
+      .map(block => {
+        // Don't wrap blocks that are already HTML elements
+        if (block.match(/^<(h[1-6]|ul|ol|blockquote|hr|div|table|p)/)) return block;
+        return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+      })
+      .join('');
+
+    editor
+      .chain()
+      .focus('end')
+      .insertContent('<p></p>' + html)
+      .run();
+  }, []);
+
+  const handleEditorReady = useCallback((editor: Editor | null) => {
+    tiptapEditorRef.current = editor;
+    if (editor) {
+      // Sync editor content changes to the content state for proactive AI and context
+      editor.on('update', () => {
+        const text = editor.getText();
+        setContent(text);
+      });
+    }
+  }, []);
+
+  // Get current editor text content (for AI context)
+  const getEditorContent = useCallback(() => {
+    const editor = tiptapEditorRef.current;
+    if (!editor) return content; // fallback to initial loaded content
+    return editor.getText();
+  }, [content]);
+
   // Function to detect if user is asking to create/make notes
   const isNotesRequest = (message: string): boolean => {
     const normalizedMsg = message.toLowerCase().trim();
@@ -443,7 +507,7 @@ export default function JournalEditorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
-          content: content || customTopic || title,
+          content: getEditorContent() || customTopic || title,
           topic: customTopic || title,
         }),
       });
@@ -454,9 +518,8 @@ export default function JournalEditorPage() {
 
       const data = await response.json();
 
-      // Set the generated content
-      const newContent = content ? content + '\n\n' + data.content : data.content;
-      setContent(newContent);
+      // Insert the generated content into the TipTap editor
+      insertContentToEditor(data.content);
 
       sileo.dismiss(loadingId);
       sileo.success({ title: `${typeLabel} generated!` });
@@ -747,8 +810,7 @@ export default function JournalEditorPage() {
   // Apply proactive suggestion to content
   const handleApplySuggestion = () => {
     if (!proactiveSuggestion) return;
-    const newContent = content ? content + '\n\n' + proactiveSuggestion : proactiveSuggestion;
-    setContent(newContent);
+    insertContentToEditor(proactiveSuggestion);
     setProactiveSuggestion(null);
     sileo.success({ title: 'Suggestion applied!' });
   };
@@ -798,8 +860,7 @@ export default function JournalEditorPage() {
     if (!showSlashMenu) {
       if (e.key === 'Enter' && commandInput.trim()) {
         // Add as plain text content
-        const newContent = content ? content + '\n\n' + commandInput : commandInput;
-        setContent(newContent);
+        insertContentToEditor(commandInput);
         setCommandInput('');
       }
       return;
@@ -893,7 +954,7 @@ export default function JournalEditorPage() {
         default:
           insertText = '';
       }
-      setContent(prev => prev ? prev + '\n\n' + insertText : insertText);
+      insertContentToEditor(insertText);
     } else {
       // Handle other commands
       switch (commandId) {
@@ -948,9 +1009,9 @@ export default function JournalEditorPage() {
     // Add to embedded whiteboards
     setEmbeddedWhiteboards(prev => [...prev, { id: whiteboardId }]);
 
-    // Add a placeholder in the content (use functional setState to avoid stale closures)
-    const whiteboardPlaceholder = `\n\n[WHITEBOARD:${whiteboardId}]\n`;
-    setContent(prev => prev ? prev + whiteboardPlaceholder : whiteboardPlaceholder);
+    // Add a placeholder in the content
+    const whiteboardPlaceholder = `[WHITEBOARD:${whiteboardId}]`;
+    insertContentToEditor(whiteboardPlaceholder);
     sileo.success({ title: 'Whiteboard added!' });
   };
 
@@ -960,10 +1021,7 @@ export default function JournalEditorPage() {
 
     // Add a placeholder in the content (use functional setState to avoid stale closures)
     const desmosPlaceholder = `[DESMOS:${desmosId}:]`;
-    setContent(prev => {
-      if (prev.includes(desmosPlaceholder)) return prev;
-      return prev ? prev + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
-    });
+    insertContentToEditor(desmosPlaceholder);
     sileo.success({ title: 'Graph added! Type equations directly in the calculator.' });
   };
 
@@ -986,9 +1044,8 @@ export default function JournalEditorPage() {
 
       if (error) throw error;
 
-      const subjournalLink = `\n\n[📓 Subjournal: ${data.title}](/journal/${data.id})\n`;
-      const newContent = content ? content + subjournalLink : subjournalLink;
-      setContent(newContent);
+      const subjournalLink = `[📓 Subjournal: ${data.title}](/journal/${data.id})`;
+      insertContentToEditor(subjournalLink);
       sileo.dismiss(loadingId);
       sileo.success({ title: 'Subjournal created!' });
     } catch (error) {
@@ -1026,9 +1083,8 @@ export default function JournalEditorPage() {
 
   // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
-    const journalLink = `\n\nhttps://agathon.app/journal/${linkedJournal.id}\n`;
-    const newContent = content ? content + journalLink : journalLink;
-    setContent(newContent);
+    const journalLink = `https://agathon.app/journal/${linkedJournal.id}`;
+    insertContentToEditor(journalLink);
     setShowJournalLinkModal(false);
     sileo.success({ title: 'Journal linked!' });
   };
@@ -1045,9 +1101,8 @@ export default function JournalEditorPage() {
     if (videoIdMatch && videoIdMatch[1]) {
       const videoId = videoIdMatch[1];
       // Embed as an iframe for inline playback
-      const embedCode = `\n\n<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;border-radius:12px;margin:16px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>\n`;
-      const newContent = content ? content + embedCode : embedCode;
-      setContent(newContent);
+      const embedCode = `<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;border-radius:12px;margin:16px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      insertContentToEditor(embedCode);
       setShowYoutubeModal(false);
       setYoutubeUrl('');
       sileo.success({ title: 'YouTube video embedded!' });
@@ -1063,13 +1118,7 @@ export default function JournalEditorPage() {
     const desmosId = `desmos-${Date.now()}`;
     const desmosPlaceholder = `[DESMOS:${desmosId}:${desmosExpression}]`;
 
-    // Check if this exact placeholder already exists (prevent duplicates)
-    if (content.includes(desmosPlaceholder)) {
-      return;
-    }
-
-    const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
-    setContent(newContent);
+    insertContentToEditor(desmosPlaceholder);
     setShowDesmosModal(false);
     setDesmosExpression('');
     sileo.success({ title: 'Desmos graph added!' });
@@ -1080,10 +1129,7 @@ export default function JournalEditorPage() {
     const chartId = `chart-${Date.now()}`;
     const encodedData = encodeChartData(DEFAULT_CHART_DATA);
     const chartPlaceholder = `[CHART:${chartId}:${encodedData}]`;
-    setContent(prev => {
-      if (prev.includes(chartPlaceholder)) return prev;
-      return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
-    });
+    insertContentToEditor(chartPlaceholder);
     sileo.success({ title: 'Chart added!' });
   };
 
@@ -1122,8 +1168,7 @@ export default function JournalEditorPage() {
             break;
         }
 
-        const newContent = content ? content + embedCode : embedCode;
-        setContent(newContent);
+        insertContentToEditor(embedCode);
         sileo.dismiss(loadingId);
         sileo.success({ title: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded!` });
       };
@@ -1187,7 +1232,7 @@ export default function JournalEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'flashcards',
-            content: content || topic,
+            content: getEditorContent() || topic,
             topic: topic,
             count: flashcardCount,
           }),
@@ -1224,7 +1269,7 @@ export default function JournalEditorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: isNotes ? 'notes' : 'chat',
-          content: content || '',
+          content: getEditorContent() || '',
           topic: userMessage,
         }),
       });
@@ -1275,8 +1320,7 @@ export default function JournalEditorPage() {
   // Accept pending content and add to document
   const handleAcceptContent = () => {
     if (!pendingContent || pendingMessageIndex === null) return;
-    const newContent = content ? content + '\n\n' + pendingContent : pendingContent;
-    setContent(newContent);
+    insertContentToEditor(pendingContent);
     // Mark the message as written
     setChatMessages(prev => prev.map((msg, idx) =>
       idx === pendingMessageIndex ? { ...msg, written: true } : msg
@@ -1288,8 +1332,7 @@ export default function JournalEditorPage() {
 
   // Reapply content (re-add content from a written message)
   const handleReapplyContent = (messageContent: string, messageIndex: number) => {
-    const newContent = content ? content + '\n\n' + messageContent : messageContent;
-    setContent(newContent);
+    insertContentToEditor(messageContent);
     sileo.success({ title: 'Content reapplied to journal!' });
   };
 
@@ -1321,9 +1364,8 @@ export default function JournalEditorPage() {
     const block = pendingBlocks.find(b => b.id === blockId);
     if (!block) return;
 
-    // Add block content to document
-    const newContent = content ? content + '\n\n' + block.content : block.content;
-    setContent(newContent);
+    // Add block content to the TipTap editor
+    insertContentToEditor(block.content);
 
     // Remove the block from pending
     setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
@@ -1341,10 +1383,9 @@ export default function JournalEditorPage() {
     const pendingOnly = pendingBlocks.filter(b => b.status === 'pending');
     if (pendingOnly.length === 0) return;
 
-    // Add all pending content to document
+    // Add all pending content to the TipTap editor
     const combinedContent = pendingOnly.map(b => b.content).join('\n\n');
-    const newContent = content ? content + '\n\n' + combinedContent : combinedContent;
-    setContent(newContent);
+    insertContentToEditor(combinedContent);
 
     // Clear all pending blocks to remove the UI
     setPendingBlocks([]);
@@ -2168,6 +2209,7 @@ export default function JournalEditorPage() {
           <NotionEditor
             room={params.id as string}
             placeholder="Start writing or type '/' for commands..."
+            onEditorReady={handleEditorReady}
           />
 
           {/* Proactive AI Suggestion Display */}
