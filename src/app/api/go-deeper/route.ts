@@ -131,7 +131,9 @@ ${mode === 'steps' || mode === 'both' ? `
 ## STEPS
 Give 3-4 clear steps. Write like you're talking to the student:
 - Short, friendly explanations (not robotic)
-- Include the math using LaTeX ($...$)
+- CRITICAL: ALL math expressions MUST be wrapped in dollar signs: $...$  for inline math. Never output raw LaTeX without $ delimiters.
+- In the "latex" field, always wrap the expression in $...$, e.g. "$\\frac{3}{4}$" not "\\frac{3}{4}"
+- In the "explanation" field, also wrap any math in $...$, e.g. "The value of $x$ is $5$"
 - Focus on the "why", not just the "what"
 ` : ''}
 
@@ -156,10 +158,10 @@ Bad questions (avoid these):
 ## CONCEPTS
 2-3 math ideas involved (just the names, lowercase).
 
-JSON format:
+JSON format (IMPORTANT: all math in explanation and latex fields MUST be wrapped in $...$):
 {
   "steps": [
-    { "number": 1, "explanation": "Let's start by...", "latex": "$15 = 10 + 5$" }
+    { "number": 1, "explanation": "Let's start by looking at $15$. We can break it into $10 + 5$.", "latex": "$15 = 10 + 5$" }
   ],
   "socraticQuestions": [
     {

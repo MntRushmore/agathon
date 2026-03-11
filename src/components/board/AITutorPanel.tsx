@@ -362,7 +362,7 @@ export function AITutorPanel({
                           </div>
                           {step.latex && (
                             <div className="mt-2 text-base text-gray-800">
-                              <LatexRenderer content={step.latex} />
+                              <LatexRenderer content={step.latex.includes('$') ? step.latex : `$${step.latex}$`} />
                             </div>
                           )}
                         </div>

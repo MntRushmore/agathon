@@ -1,9 +1,12 @@
 'use client'
 
 import React from 'react'
+import { usePathname } from 'next/navigation'
 import { Sun, Moon } from 'lucide-react'
 
 export default function ThemeToggle() {
+  const pathname = usePathname()
+
   const [theme, setTheme] = React.useState<'light' | 'dark' | 'system'>(() => {
     try {
       return (localStorage.getItem('agathon_theme') as any) || 'system'
@@ -43,6 +46,11 @@ export default function ThemeToggle() {
       window.dispatchEvent(new Event('agathon-pref-change'))
     } catch {}
     setTheme(next)
+  }
+
+  // Hide on pages that have their own theme toggle (board, journal with NotionEditor)
+  if (pathname?.startsWith('/board/') || pathname?.startsWith('/journal/')) {
+    return null
   }
 
   return (

@@ -66,14 +66,51 @@ import { NotionEditor } from '@/components/tiptap-templates/notion-like/notion-l
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
 import DOMPurify from 'dompurify';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
-// Simple markdown renderer for chat messages with DOMPurify sanitization
+// Render LaTeX expressions within text (both block $$ and inline $)
+function renderLatex(text: string): string {
+  // First handle block math $$...$$
+  let result = text.replace(/\$\$([^$]+?)\$\$/g, (_match, expr) => {
+    try {
+      return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false });
+    } catch {
+      return _match;
+    }
+  });
+
+  // Then handle inline math $...$
+  result = result.replace(/\$([^$\n]+?)\$/g, (_match, expr) => {
+    try {
+      return katex.renderToString(expr.trim(), { displayMode: false, throwOnError: false });
+    } catch {
+      return _match;
+    }
+  });
+
+  return result;
+}
+
+// Simple markdown renderer for chat messages with DOMPurify sanitization and LaTeX support
 function renderMarkdown(text: string): string {
-  let html = text
-    // Escape HTML
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  // Render LaTeX before HTML escaping (KaTeX output is safe HTML)
+  let html = renderLatex(text);
+
+  // Escape HTML but preserve KaTeX output (which uses <span> tags)
+  // We split on KaTeX spans, escape non-KaTeX parts, and rejoin
+  const katexParts = html.split(new RegExp('(<span class="katex.*?<\\/span>)', 's'));
+  html = katexParts.map((part, i) => {
+    // Odd indices are KaTeX HTML — leave them as-is
+    if (i % 2 === 1) return part;
+    // Even indices are regular text — escape HTML
+    return part
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }).join('');
+
+  html = html
     // Headers (order matters - check longer patterns first)
     .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h6>')
     .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h5>')
@@ -102,10 +139,12 @@ function renderMarkdown(text: string): string {
   // Clean up empty paragraphs
   html = html.replace(/<p><\/p>/g, '');
 
-  // Sanitize output to prevent XSS
+  // Sanitize output to prevent XSS — allow KaTeX tags
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'li', 'ul', 'ol'],
-    ALLOWED_ATTR: ['class'],
+    ADD_TAGS: ['span', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mtext', 'annotation', 'mover', 'munder', 'mtable', 'mtr', 'mtd', 'mspace', 'mpadded', 'menclose', 'svg', 'line', 'path'],
+    ADD_ATTR: ['class', 'style', 'aria-hidden', 'encoding', 'xmlns', 'width', 'height', 'viewBox', 'preserveAspectRatio', 'x1', 'x2', 'y1', 'y2', 'stroke', 'stroke-width', 'd', 'fill'],
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'li', 'ul', 'ol', 'span', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mtext', 'annotation', 'mover', 'munder', 'mtable', 'mtr', 'mtd', 'mspace', 'mpadded', 'menclose', 'svg', 'line', 'path'],
+    ALLOWED_ATTR: ['class', 'style', 'aria-hidden', 'encoding', 'xmlns', 'width', 'height', 'viewBox', 'preserveAspectRatio', 'x1', 'x2', 'y1', 'y2', 'stroke', 'stroke-width', 'd', 'fill'],
   });
 }
 
