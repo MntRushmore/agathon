@@ -687,8 +687,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
 
     aiShapes.forEach((shape: any) => {
       const mode = shape.meta?.aiMode || 'feedback';
-      const rawId = String(shape.id ?? '');
-      const safeId = rawId.replace(/(["\\])/g, "\\$1").replace(/[\n\r]/g, '');
+      const safeId = CSS.escape(String(shape.id ?? ''));
       const selector = `.tl-shape[data-shape-id="${safeId}"]`;
 
       switch (mode) {
