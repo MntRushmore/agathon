@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
     const result = data?.[0];
     if (!result) {
       return NextResponse.json(
-        { valid: false, error: 'Invalid invite code' },
+        { valid: false },
         { status: 400 }
       );
     }
 
     if (!result.valid) {
       return NextResponse.json(
-        { valid: false, error: result.error_message || 'Invalid invite code' },
+        { valid: false },
         { status: 400 }
       );
     }
