@@ -28,11 +28,9 @@ function getEmailForRole(role: string, name?: string, referralCode?: string) {
 // Fallback referral code generator (matches DB pattern)
 function generateReferralCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => chars[b % chars.length]).join('');
 }
 
 // Fallback referral tracking via direct queries (if RPC function is unavailable)
