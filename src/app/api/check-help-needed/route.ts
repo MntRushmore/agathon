@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       helpCheckLogger.error({
         requestId,
         status: response.status,
