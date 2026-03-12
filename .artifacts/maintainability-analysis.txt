@@ -1,0 +1,529 @@
+================================================================================
+AGATHON CODEBASE MAINTAINABILITY ANALYSIS
+Generated: 2026-03-12
+Branch: marcus-staging
+Total codebase: ~96,000 lines across 632 .ts/.tsx files
+================================================================================
+
+
+================================================================================
+1. FILE SIZE ANALYSIS
+================================================================================
+
+Files over 500 lines are flagged as "NEEDS ATTENTION".
+Files over 300 lines are listed for awareness.
+
+  LINES  STATUS            FILE
+  -----  ------            ----
+  3334   *** CRITICAL ***   src/app/board/[id]/page.tsx
+  2481   *** CRITICAL ***   src/app/journal/[id]/page.tsx
+  2165   *** CRITICAL ***   src/app/page.tsx
+  1727   *** CRITICAL ***   src/components/journal/RichTextEditor.tsx
+  1289   *** CRITICAL ***   src/components/tiptap-node/table-node/lib/tiptap-table-utils.ts
+   846   NEEDS ATTENTION    src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts
+   837   NEEDS ATTENTION    src/app/knowledge/page.tsx
+   829   NEEDS ATTENTION    src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx
+   777   NEEDS ATTENTION    src/components/board/CustomToolbar.tsx
+   748   NEEDS ATTENTION    src/components/tiptap-node/table-node/ui/table-handle-menu/table-handle-menu.tsx
+   689   NEEDS ATTENTION    src/app/teacher/assignments/create/page.tsx
+   679   NEEDS ATTENTION    src/components/tiptap-templates/notion-like/notion-like-editor-mobile-toolbar.tsx
+   672   NEEDS ATTENTION    src/components/annotate/PDFAnnotator.tsx
+   649   NEEDS ATTENTION    src/app/teacher/page.tsx
+   633   NEEDS ATTENTION    src/lib/tiptap-utils.ts
+   631   NEEDS ATTENTION    src/components/board/AITutorPanel.tsx
+   624   NEEDS ATTENTION    src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx
+   611   NEEDS ATTENTION    src/components/annotate/AnnotationToolbar.tsx
+   581   NEEDS ATTENTION    src/app/teacher/templates/page.tsx
+   574   NEEDS ATTENTION    src/components/tiptap-node/table-node/ui/table-selection-overlay/table-selection-overlay.tsx
+   554   NEEDS ATTENTION    src/components/tiptap-node/image-upload-node/image-upload-node.tsx
+   548   NEEDS ATTENTION    src/components/tiptap-node/table-node/ui/table-align-cell-button/use-table-align-cell.ts
+   537   NEEDS ATTENTION    src/components/journal/JournalSidebar.tsx
+   531   NEEDS ATTENTION    src/components/tiptap-ui/drag-context-menu/drag-context-menu.tsx
+   520   NEEDS ATTENTION    src/components/board/MyScriptMathOverlay.tsx
+   489   WARNING            src/app/admin/page.tsx
+   485   WARNING            src/components/board/MathKeyboard.tsx
+   481   WARNING            src/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts
+   478   WARNING            src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts
+   476   WARNING            src/components/journal/InlineChart.tsx
+   473   WARNING            src/components/math-board/MathCanvas.tsx
+   470   WARNING            src/components/tiptap-node/table-node/ui/table-clear-row-column-content-button/use-table-clear-row-column-content.ts
+   455   WARNING            src/components/tiptap-ui/color-text-popover/color-text-popover.tsx
+   442   WARNING            src/components/landing/LandingPage.tsx
+   438   WARNING            src/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts
+   437   WARNING            src/components/annotate/AnnotationCanvas.tsx
+   436   WARNING            src/app/api/generate-solution/route.ts
+   429   WARNING            src/app/admin/users/page.tsx
+   426   WARNING            src/lib/composio.ts
+   421   WARNING            src/components/math-editor/CorcaBlock.tsx
+   413   WARNING            src/components/math-editor/CorcaSidebar.tsx
+   413   WARNING            src/app/annotate/files/page.tsx
+   407   WARNING            src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts
+   404   WARNING            src/components/tiptap-templates/notion-like/notion-like-editor.tsx
+   398   WARNING            src/hooks/useAITutor.ts
+   381   WARNING            src/lib/annotate/drawing.ts
+   380   WARNING            src/components/tiptap-ui/color-highlight-button/use-color-highlight.ts
+   369   WARNING            src/lib/tiptap-advanced-utils.ts
+   367   WARNING            src/components/tiptap-ui/image-download-button/use-image-download.ts
+   366   WARNING            src/app/teacher/classes/[id]/page.tsx
+   364   WARNING            src/components/tiptap-ui-utils/floating-element/floating-element.tsx
+   362   WARNING            src/components/admin/ImpersonationBar.tsx
+   357   WARNING            src/components/math-editor/CorcaEditor.tsx
+   353   WARNING            src/components/tiptap-ui/list-button/use-list.ts
+   348   WARNING            src/components/tiptap-ui/heading-button/use-heading.ts
+   348   WARNING            src/components/tiptap-node/table-node/ui/table-add-row-column-button/use-table-add-row-column.ts
+   346   WARNING            src/components/tiptap-node/image-node/image-node-view.tsx
+   345   WARNING            src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts
+   343   WARNING            src/components/tiptap-ui/ai-menu/ai-menu.tsx
+   343   WARNING            src/components/teacher/AIHistoryTimeline.tsx
+   343   WARNING            src/components/math-editor/RichTextBlock.tsx
+   342   WARNING            src/app/teacher/classes/page.tsx
+   342   WARNING            src/app/settings/page.tsx
+   340   WARNING            src/components/sharing/ShareBoardDialog.tsx
+   330   WARNING            src/components/board/TopBar.tsx
+   327   WARNING            src/lib/api/assignments.ts
+   327   WARNING            src/components/auth/sign-up-form.tsx
+   325   WARNING            src/app/teacher/settings/page.tsx
+   324   WARNING            src/components/onboarding/WelcomeDialog.tsx
+   324   WARNING            src/components/math-editor/MathBlock.tsx
+   324   WARNING            src/app/credits/page.tsx
+   321   WARNING            src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts
+   317   WARNING            src/app/billing/page.tsx
+   317   WARNING            src/app/admin/content/page.tsx
+   316   WARNING            src/app/login/page.tsx
+   311   WARNING            src/types/database.ts
+   311   WARNING            src/components/tiptap-ui-primitive/menu/menu.tsx
+   309   WARNING            src/emails/WaitlistTeacher.tsx
+   309   WARNING            src/emails/WaitlistParent.tsx
+
+Summary: 5 CRITICAL files (>1000 lines), 20 NEEDS ATTENTION files (500-999 lines),
+         ~48 WARNING files (300-499 lines).
+
+
+================================================================================
+2. FUNCTION LENGTH ANALYSIS
+================================================================================
+
+Functions/components over 50 lines, sorted by approximate length:
+
+FILE                                          FUNCTION/COMPONENT              ~LINES
+----                                          ------------------              ------
+src/app/board/[id]/page.tsx                   BoardContent()                  ~1600
+  The main board component. Spans lines 987-2593. Contains massive state
+  management, AI integration, auto-save, lasso tools, voice controls,
+  assignment handling, and all canvas rendering. THIS IS THE SINGLE LARGEST
+  FUNCTION IN THE CODEBASE.
+
+src/app/board/[id]/page.tsx                   BoardPage()                     ~740
+  Outer page wrapper. Lines 2595-3334. Handles loading, auth, assignment
+  checks, Google Classroom submission, template/background setup.
+
+src/app/journal/[id]/page.tsx                 JournalPage() (default export)  ~2400
+  Entire journal page in one component. Lines ~155-2481. Handles editing,
+  AI generation, flashcards, chat, proactive AI, sidebar, timers.
+
+src/app/page.tsx                              DashboardPage() (default export) ~1700
+  Dashboard with board/journal CRUD, assignment management, classroom
+  integration, folder management, study timer, all in one component.
+
+src/components/journal/RichTextEditor.tsx     RichTextEditor()                ~1000
+  Lines 416-1424. Editor setup, slash commands, toolbar, drag-and-drop.
+
+src/components/journal/RichTextEditor.tsx     parseContentToHTML()            ~195
+  Lines 1425-1618. Markdown-to-HTML parser with many regex branches.
+
+src/app/board/[id]/page.tsx                   VoiceAgentControls()            ~435
+  Lines 213-647. WebRTC session management, tool calling, function dispatch.
+
+src/app/board/[id]/page.tsx                   handleFunctionCall()            ~115
+  Lines 293-407. Voice agent tool dispatch with nested conditionals.
+
+src/app/board/[id]/page.tsx                   auto-save useEffect             ~215
+  Lines 2122-2337. Canvas snapshot, thumbnail, Supabase upsert with
+  extensive error handling.
+
+src/app/board/[id]/page.tsx                   TeacherAIIndicator()            ~148
+  Lines 649-797. AI shape counting, CSS generation, legend display.
+
+src/app/board/[id]/page.tsx                   generateSolution()              ~320 (est)
+  Callback within BoardContent. AI solution generation with premium/free
+  branching, image placement, annotation creation.
+
+src/app/board/[id]/page.tsx                   generateSolutionForShapes()     ~170
+  Lasso-solve handler. Image capture, API call, result placement.
+
+src/app/api/generate-solution/route.ts        POST()                         ~412
+  Lines 24-436. API route handling auth, credit deduction, AI provider
+  selection, prompt construction, response parsing.
+
+src/components/journal/RichTextEditor.tsx     htmlToMarkdown()                ~105 (est)
+  Lines 1620-1727. HTML-to-markdown reverse parser.
+
+src/app/board/[id]/page.tsx                   loadBoard() useEffect           ~70
+  Lines 2682-2750. Board loading with auth/permission checks.
+
+src/app/board/[id]/page.tsx                   checkIfAssignment() useEffect   ~50
+  Lines 2752-2800. Assignment/teacher verification logic.
+
+
+================================================================================
+3. CYCLOMATIC COMPLEXITY ESTIMATION
+================================================================================
+
+Estimated by counting: if/else, switch/case, ternary, try/catch, &&/|| in
+conditions, and loop constructs. Functions with estimated complexity > 10
+are flagged.
+
+FILE                                   FUNCTION               EST. COMPLEXITY
+----                                   --------               ---------------
+src/app/board/[id]/page.tsx            BoardContent()         ~85  *** SEVERE ***
+  - ~40 if/else branches
+  - ~10 try/catch blocks
+  - ~15 ternary operators
+  - ~10 && conditions
+  - ~5 switch cases
+  - ~5 loops
+  This function is extraordinarily complex and should be decomposed.
+
+src/app/board/[id]/page.tsx            BoardPage()            ~35  *** HIGH ***
+  - ~15 if/else branches
+  - ~8 try/catch blocks
+  - ~8 ternary operators
+  - ~4 && conditions
+
+src/app/board/[id]/page.tsx            auto-save useEffect    ~25  *** HIGH ***
+  - ~10 if/else branches
+  - ~5 try/catch blocks (nested)
+  - ~5 ternary operators
+  - ~5 && conditions
+
+src/app/journal/[id]/page.tsx          JournalPage()          ~45  *** HIGH ***
+  - ~20 if/else branches
+  - ~8 try/catch blocks
+  - ~10 ternary operators
+  - ~7 && conditions
+
+src/app/page.tsx                       DashboardPage()        ~40  *** HIGH ***
+  - ~18 if/else branches
+  - ~7 try/catch blocks
+  - ~10 ternary operators
+  - ~5 && conditions
+
+src/app/api/generate-solution/route.ts POST()                 ~30  *** HIGH ***
+  - ~12 if/else branches
+  - ~5 try/catch blocks
+  - ~3 switch cases
+  - ~5 ternary operators
+  - ~5 && conditions
+
+src/components/journal/RichTextEditor.tsx parseContentToHTML() ~25  *** HIGH ***
+  - ~12 if/else branches
+  - 1 for loop
+  - ~8 regex-based branches
+  - ~4 ternary operators
+
+src/app/board/[id]/page.tsx            VoiceAgentControls()   ~18  HIGH
+  - ~8 if/else branches
+  - ~3 try/catch blocks
+  - ~4 ternary operators
+  - ~3 && conditions
+
+src/app/board/[id]/page.tsx            handleFunctionCall()   ~15  HIGH
+  - ~5 if/else branches
+  - ~3 try/catch blocks
+  - ~4 ternary operators
+  - ~3 && conditions
+
+src/components/board/MyScriptMathOverlay.tsx (main component) ~20 HIGH
+  - Multiple useEffect hooks with conditional logic
+  - Shape filtering with type-unsafe callbacks
+
+src/lib/composio.ts                    (various functions)    ~15  HIGH
+  - Multiple try/catch blocks
+  - Conditional API call branching
+
+
+================================================================================
+4. NESTING DEPTH ANALYSIS
+================================================================================
+
+Code locations where nesting exceeds 4 levels (if/for/try/catch/callback):
+
+FILE                                   LOCATION       DEPTH  CONTEXT
+----                                   --------       -----  -------
+src/app/board/[id]/page.tsx            ~L2136-2337    6      useEffect > setTimeout > async > try > if > try
+  Auto-save logic: useEffect -> debounced callback -> try -> validation ->
+  thumbnail try/catch -> Supabase update -> error handling with nested ifs.
+  This is the deepest nesting in the codebase.
+
+src/app/board/[id]/page.tsx            ~L1108-1169    5      useCallback > try > if > if > if
+  trackAIUsage: async callback -> try -> milestone check -> profile query
+  -> conditional update.
+
+src/app/board/[id]/page.tsx            ~L1527-1608    5      useCallback > if > try > if > promise chain
+  generateSolution: premium image creation with nested conditionals for
+  asset creation, shape placement, and feedback card logic.
+
+src/app/board/[id]/page.tsx            ~L2682-2750    5      useEffect > async > try > if > if
+  loadBoard: auth check -> ownership check -> share permission check.
+
+src/app/board/[id]/page.tsx            ~L2754-2800    5      useEffect > async > try > if > if
+  checkIfAssignment: submission check -> teacher check -> student check.
+
+src/app/board/[id]/page.tsx            ~L293-407      5      useCallback > try > if/else if > await > dc.send
+  handleFunctionCall: voice agent tool dispatch with nested async operations.
+
+src/app/page.tsx                       ~L422-476      5      useCallback > async > try > if > if
+  handleTemplateSelect: auth -> limit check -> DB insert -> file handling.
+
+src/app/api/generate-solution/route.ts ~L156-300      5      try > if > try > if > map/filter
+  Premium vs free tier branching with nested API calls and response parsing.
+
+src/components/journal/RichTextEditor.tsx ~L1518-1611  5      for > if/else if chain
+  parseContentToHTML line-by-line processing with nested list state tracking.
+
+
+================================================================================
+5. IMPORT ANALYSIS
+================================================================================
+
+Files with > 15 imports (potentially doing too much):
+
+IMPORTS  FILE
+-------  ----
+   65    src/components/tiptap-templates/notion-like/notion-like-editor.tsx
+   40    src/app/board/[id]/page.tsx
+   39    src/components/tiptap-templates/notion-like/notion-like-editor-mobile-toolbar.tsx
+   38    src/components/tiptap-ui/drag-context-menu/drag-context-menu.tsx
+   24    src/components/journal/RichTextEditor.tsx
+   24    src/components/tiptap-node/table-node/ui/table-handle-menu/table-handle-menu.tsx
+   23    src/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts
+   23    src/app/page.tsx
+   22    src/components/tiptap-templates/notion-like/notion-like-editor-toolbar-floating.tsx
+   22    src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx
+   22    src/components/tiptap-ui/improve-dropdown/improve-dropdown.tsx
+   20    src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx
+   18    src/app/teacher/assignments/create/page.tsx
+   17    src/components/tiptap-ui/ai-menu/ai-menu-input/ai-menu-input.tsx
+   17    src/app/journal/[id]/page.tsx
+   16    src/app/teacher/classes/[id]/page.tsx
+   16    src/app/teacher/page.tsx
+   16    src/app/admin/users/page.tsx
+
+Notable: The notion-like-editor.tsx has 65 imports, which is extremely high
+and suggests it is acting as a composition root or god module.
+
+Files marked as potentially doing too much based on import count:
+- Page components (board, journal, dashboard, teacher) pull in UI + business
+  logic + data access -- classic "fat page" anti-pattern in Next.js apps.
+- TipTap editor components aggregate many sub-extensions, which inflates
+  imports but is somewhat expected for editor configuration.
+
+
+================================================================================
+6. TYPE SAFETY ANALYSIS
+================================================================================
+
+--- 6a. `any` Type Usage ---
+
+Total `any` occurrences: ~150+ across ~35 files
+
+Worst offenders by count:
+
+FILE                                              APPROX COUNT
+----                                              ------------
+src/app/board/[id]/page.tsx                       38
+  - (error as any).code/details/hint patterns     12
+  - (window as any).__tldrawEditor                 5
+  - shape.type as any                             3
+  - (data as any).is_public                       1
+  - function params typed as any                  7
+  - useState<any>                                 4
+  - (editor as any).cameraOptions                 3
+  - shapes.filter((s: any) => ...)                8
+
+src/app/api/teacher/struggling-students/route.ts  10
+  - Callback params typed as (s: any), (i: any)
+
+src/app/api/teacher/ai-history/route.ts           9
+  - (submission.student as any), (u: any) patterns
+
+src/lib/platform.ts                               8
+  - (window as any) for native app bridge
+
+src/components/board/MyScriptMathOverlay.tsx       8
+  - (shape as any).props, filter callbacks
+
+src/lib/composio.ts                               7
+  - (connections as any), (result as any)
+
+src/app/page.tsx                                  6
+  - (error: any), (item: any), templates Record
+
+src/app/api/knowledge/assignments/route.ts        6
+  - Callback params typed as any
+
+src/app/api/generate-solution/route.ts            5
+  - (message as any), extractJSON return type
+
+src/components/journal/RichTextEditor.tsx          4
+  - exts: any[], editor: any, command params
+
+src/app/api/teacher/generate-feedback/route.ts    4
+  - messages: any[], updateData: any
+
+--- 6b. @ts-ignore / @ts-expect-error ---
+
+Total: 2 occurrences
+
+  src/components/board/MathEditorPanel.tsx:97      @ts-ignore (math-field custom element)
+  src/components/board/MyScriptMathOverlay.tsx:87  @ts-expect-error (nerdamer types)
+
+--- 6c. Type Assertions (as any / as unknown) ---
+
+  as any:     ~60 occurrences (many in board/[id]/page.tsx)
+  as unknown: ~8 occurrences
+    - src/app/teacher/page.tsx:162
+    - src/app/math/[id]/page.tsx:84
+    - src/components/board/AITutorPanel.tsx:179
+    - src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts (x2)
+    - src/app/api/teacher/concept-mastery/route.ts:37
+
+--- 6d. Non-null Assertions (!.) ---
+
+Total: 22 occurrences across 15 files
+
+Most common in:
+  src/components/board/MyScriptMathOverlay.tsx     3
+  src/components/math-board/TldrawMathCanvas.tsx   3
+  src/lib/ai/knowledge-agent.ts                    2
+  src/lib/annotate/export.ts                       2
+  src/components/tiptap-node/table-node/lib/tiptap-table-utils.ts  2
+
+
+================================================================================
+7. CODE ORGANIZATION / MIXED CONCERNS
+================================================================================
+
+The following files mix UI rendering, business logic, and data access in a
+single file, violating separation of concerns:
+
+SEVERITY   FILE                                   CONCERNS MIXED
+--------   ----                                   --------------
+CRITICAL   src/app/board/[id]/page.tsx (3334 lines)
+           - UI: Canvas rendering, toolbars, banners, dialogs, overlays
+           - Business Logic: AI mode management, hint limits, assignment
+             restrictions, template handling, voice agent dispatch
+           - Data Access: Direct Supabase queries (auth, whiteboards,
+             profiles, board_shares, knowledge_base, classes)
+           - State: 30+ useState hooks in BoardContent alone
+           - Side Effects: Auto-save, realtime, milestone tracking
+           RECOMMENDATION: Extract into ~8 modules:
+             - BoardCanvas (pure rendering)
+             - useBoardData (data loading hook)
+             - useAutoSave (save logic hook)
+             - useAIAssistance (AI mode/generation)
+             - useVoiceAgent (voice controls)
+             - useBoardPermissions (auth/share)
+             - BoardBanners (status banners)
+             - AssignmentIntegration (submission handling)
+
+CRITICAL   src/app/journal/[id]/page.tsx (2481 lines)
+           - UI: Editor, toolbar, sidebar, chat, flashcards, modals
+           - Business Logic: AI generation, proactive AI, timer, flashcards
+           - Data Access: Direct Supabase CRUD for journals
+           RECOMMENDATION: Extract chat, flashcards, AI generation, and
+             sidebar into separate components/hooks.
+
+CRITICAL   src/app/page.tsx (2165 lines)
+           - UI: Dashboard grid, board cards, assignment cards, dialogs,
+             study timer, classroom integration
+           - Business Logic: Board/journal CRUD, folder management,
+             sorting/filtering, template selection
+           - Data Access: Supabase queries for whiteboards, journals,
+             assignments, classroom data
+           RECOMMENDATION: Extract into DashboardLayout, BoardGrid,
+             JournalList, ClassroomPanel, StudyTimer components.
+
+HIGH       src/components/journal/RichTextEditor.tsx (1727 lines)
+           - UI: Editor toolbar, bubble menu, drag handles
+           - Business Logic: Markdown/HTML parsing (parseContentToHTML,
+             htmlToMarkdown), slash command definitions
+           - Extension Config: TipTap extension initialization
+           RECOMMENDATION: Extract parseContentToHTML and htmlToMarkdown
+             into a lib/markdown-parser.ts. Move extension config to
+             a separate file.
+
+HIGH       src/app/api/generate-solution/route.ts (436 lines)
+           - Auth verification
+           - Credit management (deduction + refund on failure)
+           - AI provider selection (OpenRouter vs Gemini)
+           - Prompt engineering
+           - Response parsing
+           - Error handling with refund logic
+           RECOMMENDATION: Extract prompt construction, provider dispatch,
+             and credit management into separate modules.
+
+MODERATE   src/app/teacher/page.tsx (649 lines)
+           - UI: Teacher dashboard, class list, assignment overview
+           - Data Access: Multiple Supabase queries
+           - Business Logic: Assignment status computation
+
+MODERATE   src/app/knowledge/page.tsx (837 lines)
+           - UI: Knowledge base dashboard, course list, assignment grid
+           - Data Access: API calls for sync/connect/disconnect
+           - Business Logic: Course filtering, sync state management
+
+MODERATE   src/lib/composio.ts (426 lines)
+           - Mixes HTTP client logic with business logic
+           - Heavy use of `any` types for API responses
+
+
+================================================================================
+SUMMARY & PRIORITIZED RECOMMENDATIONS
+================================================================================
+
+Priority 1 - CRITICAL (immediate refactoring needed):
+  1. src/app/board/[id]/page.tsx (3334 lines, complexity ~85)
+     The single biggest maintainability risk in the codebase. Contains
+     ~40 any types, 5+ nesting levels, and mixes UI/logic/data heavily.
+     Decompose into 6-8 focused modules.
+
+  2. src/app/journal/[id]/page.tsx (2481 lines, complexity ~45)
+     Second largest file. Extract chat, flashcard, and AI subsystems.
+
+  3. src/app/page.tsx (2165 lines, complexity ~40)
+     Dashboard "god component." Split into focused sub-components.
+
+Priority 2 - HIGH (should address soon):
+  4. src/components/journal/RichTextEditor.tsx (1727 lines)
+     Extract markdown parsers and extension config.
+
+  5. Type safety: 150+ `any` usages, concentrated in board/[id]/page.tsx
+     and API routes. Define proper types for Supabase responses, tldraw
+     shapes, and API payloads.
+
+  6. src/app/api/generate-solution/route.ts (436 lines, complexity ~30)
+     Extract prompt templates, provider logic, credit management.
+
+Priority 3 - MODERATE (improve over time):
+  7. 20 files in the 500-999 line range should be monitored and
+     progressively decomposed as they grow.
+
+  8. Non-null assertions (22 occurrences) should be replaced with proper
+     null checks or type guards.
+
+  9. Several API routes use `any` extensively for Supabase join results.
+     Create typed query helpers to eliminate these.
+
+Key Metrics:
+  - Files over 500 lines:  25 (4.8% of files, but disproportionate risk)
+  - Files over 1000 lines: 5  (0.95% of files)
+  - Total `any` usages:    ~150+
+  - @ts-ignore/expect-error: 2 (low - good)
+  - Non-null assertions:   22 (moderate)
+  - Files with >15 imports: 18
+  - Functions with complexity >10: 11
+
+================================================================================
+END OF REPORT
+================================================================================

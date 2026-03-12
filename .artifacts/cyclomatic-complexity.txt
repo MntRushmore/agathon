@@ -1,0 +1,47 @@
+=== Cyclomatic Complexity Estimation ===
+Estimated by counting decision points (if/else/switch/case/for/while/catch)
+
+    HIGH (312) │ src/app/board/[id]/page.tsx                                            │ 3334 lines │ if=182 else=23 for=54 catch=30
+    HIGH (195) │ src/app/journal/[id]/page.tsx                                          │ 2481 lines │ if=96 else=15 for=36 catch=12
+    HIGH (117) │ src/components/journal/RichTextEditor.tsx                              │ 1727 lines │ if=88 else=8 for=5 catch=1
+    HIGH (102) │ src/app/page.tsx                                                       │ 2165 lines │ if=59 else=8 for=11 catch=15
+    HIGH ( 60) │ src/app/api/generate-solution/route.ts                                 │  436 lines │ if=28 else=6 for=17 catch=5
+    HIGH ( 55) │ src/app/api/knowledge/sync/route.ts                                    │  289 lines │ if=30 else=1 for=16 catch=7
+    HIGH ( 44) │ src/app/knowledge/page.tsx                                             │  837 lines │ if=29 else=4 for=3 catch=7
+    HIGH ( 32) │ src/app/api/journal/generate/route.ts                                  │  294 lines │ if=8 else=1 for=21 catch=1
+    HIGH ( 29) │ src/app/api/waitlist/route.ts                                          │  217 lines │ if=19 else=3 for=2 catch=2
+    HIGH ( 27) │ src/app/api/polar/webhook/route.ts                                     │  247 lines │ if=19 else=0 for=7 catch=0
+    HIGH ( 24) │ src/app/api/track-ai-usage/route.ts                                    │  207 lines │ if=19 else=2 for=1 catch=1
+    HIGH ( 24) │ src/app/api/teacher/generate-feedback/route.ts                         │  230 lines │ if=12 else=3 for=5 catch=3
+    HIGH ( 21) │ src/app/api/chat/route.ts                                              │  184 lines │ if=11 else=0 for=6 catch=3
+    HIGH ( 20) │ src/app/api/go-deeper/route.ts                                         │  275 lines │ if=9 else=1 for=7 catch=2
+    HIGH ( 20) │ src/app/api/admin/send-referral-emails/route.ts                        │  145 lines │ if=11 else=3 for=3 catch=2
+    HIGH ( 19) │ src/app/api/teacher/struggling-students/route.ts                       │  165 lines │ if=16 else=0 for=0 catch=2
+    HIGH ( 19) │ src/app/api/solve-math/route.ts                                        │  217 lines │ if=13 else=0 for=2 catch=3
+    HIGH ( 17) │ src/app/api/knowledge/assignments/route.ts                             │  133 lines │ if=15 else=0 for=0 catch=1
+    HIGH ( 17) │ src/app/api/classroom/submit/route.ts                                  │  131 lines │ if=12 else=0 for=3 catch=1
+    HIGH ( 16) │ src/app/api/voice/analyze-workspace/route.ts                           │  160 lines │ if=8 else=0 for=4 catch=3
+    HIGH ( 15) │ src/app/api/teacher/google-classroom/post-assignment/route.ts          │  121 lines │ if=11 else=0 for=1 catch=2
+    HIGH ( 15) │ src/app/api/command-chat/route.ts                                      │  117 lines │ if=8 else=0 for=5 catch=1
+    HIGH ( 15) │ src/app/api/admin/switch-user/route.ts                                 │   98 lines │ if=11 else=1 for=1 catch=1
+    HIGH ( 15) │ src/app/api/admin/invite-codes/route.ts                                │  148 lines │ if=11 else=0 for=0 catch=3
+    HIGH ( 14) │ src/components/board/AITutorPanel.tsx                                  │  631 lines │ if=11 else=2 for=0 catch=0
+    HIGH ( 14) │ src/app/api/teacher/google-classroom/courses/route.ts                  │   91 lines │ if=8 else=0 for=2 catch=3
+    HIGH ( 14) │ src/app/api/check-help-needed/route.ts                                 │  168 lines │ if=9 else=0 for=1 catch=3
+    HIGH ( 13) │ src/components/board/CustomToolbar.tsx                                 │  777 lines │ if=9 else=2 for=1 catch=0
+    HIGH ( 13) │ src/app/api/teacher/ai-history/route.ts                                │  169 lines │ if=8 else=0 for=3 catch=1
+    HIGH ( 11) │ src/app/api/teacher/google-classroom/import-courses/route.ts           │  103 lines │ if=7 else=0 for=2 catch=1
+MODERATE ( 10) │ src/app/api/teacher/concept-mastery/route.ts                           │  129 lines │ if=8 else=0 for=0 catch=1
+MODERATE (  9) │ src/app/api/voice/token/route.ts                                       │  105 lines │ if=5 else=0 for=1 catch=2
+MODERATE (  9) │ src/app/api/ocr/route.ts                                               │  120 lines │ if=5 else=0 for=2 catch=1
+MODERATE (  8) │ src/app/api/knowledge/search/route.ts                                  │   63 lines │ if=4 else=0 for=2 catch=1
+MODERATE (  7) │ src/app/api/tts/route.ts                                               │   87 lines │ if=4 else=0 for=0 catch=2
+MODERATE (  7) │ src/app/api/referral/[code]/route.ts                                   │   72 lines │ if=4 else=0 for=1 catch=1
+MODERATE (  7) │ src/app/api/polar/checkout/route.ts                                    │   51 lines │ if=5 else=0 for=1 catch=0
+MODERATE (  7) │ src/app/api/knowledge/auto-sync/route.ts                               │   51 lines │ if=5 else=0 for=0 catch=1
+MODERATE (  7) │ src/app/api/help/route.ts                                              │   54 lines │ if=3 else=1 for=0 catch=2
+MODERATE (  7) │ src/app/api/auth/redeem-invite/route.ts                                │   61 lines │ if=5 else=0 for=0 catch=1
+MODERATE (  7) │ src/app/api/admin/switch-user/users/route.ts                           │   47 lines │ if=3 else=0 for=2 catch=1
+MODERATE (  7) │ src/app/api/admin/analytics/route.ts                                   │  119 lines │ if=3 else=0 for=2 catch=1
+MODERATE (  6) │ src/app/api/auth/validate-invite/route.ts                              │   51 lines │ if=4 else=0 for=0 catch=1
+MODERATE (  6) │ src/app/api/admin/audit-logs/route.ts                                  │   57 lines │ if=4 else=0 for=0 catch=1
