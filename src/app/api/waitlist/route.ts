@@ -68,11 +68,9 @@ async function recordReferralDirect(
     console.error('[referral-direct] Failed to set referred_by:', updateRefError.message);
   }
 
-  // Increment referral count on the referrer
+  // Atomically increment referral count on the referrer
   const { error: updateCountError } = await supabase
-    .from('waitlist')
-    .update({ referral_count: (referrer.referral_count || 0) + 1 })
-    .eq('id', referrer.id);
+    .rpc('increment_referral_count', { p_id: referrer.id });
 
   if (updateCountError) {
     console.error('[referral-direct] Failed to increment count:', updateCountError.message);
@@ -85,7 +83,8 @@ export async function POST(request: NextRequest) {
   try {
     const { email, name, role, ref } = await request.json();
 
-    if (!email || !email.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
       return NextResponse.json(
         { error: 'Valid email is required' },
         { status: 400 }
