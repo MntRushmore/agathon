@@ -30,6 +30,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (typeof image !== 'string' || image.length > 10_000_000) {
+      ocrLogger.warn({ requestId, imageSize: typeof image === 'string' ? image.length : 0 }, 'Image data invalid or too large');
+      return NextResponse.json(
+        { error: 'Image data is invalid or too large' },
+        { status: 413 }
+      );
+    }
+
     ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
 
     if (!process.env.MISTRAL_API_KEY) {
