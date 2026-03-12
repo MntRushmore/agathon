@@ -62,11 +62,6 @@ export async function POST() {
       entries = data;
     }
 
-    if (error) {
-      console.error('Failed to fetch waitlist:', error);
-      return NextResponse.json({ error: 'Failed to fetch waitlist' }, { status: 500 });
-    }
-
     if (!entries || entries.length === 0) {
       return NextResponse.json({ message: 'No waitlist entries found', sent: 0 });
     }
