@@ -20,20 +20,32 @@ export function MathEditorPanel({ open, onInsert, onClose, initialLatex = '' }: 
   const [showLatexInput, setShowLatexInput] = useState(false);
   const mathfieldRef = useRef<MathfieldElement | null>(null);
 
+  // Initialize MathLive and sync value
   useEffect(() => {
-    if (open && mathfieldRef.current) {
-      // Initialize MathLive
-      import('mathlive').then(() => {
-        const mf = mathfieldRef.current;
-        if (mf) {
-          mf.value = latex;
-          mf.addEventListener('input', (evt) => {
-            setLatex((evt.target as MathfieldElement).value);
-          });
-        }
-      });
-    }
+    if (!open || !mathfieldRef.current) return;
+
+    let mounted = true;
+    import('mathlive').then(() => {
+      if (!mounted || !mathfieldRef.current) return;
+      mathfieldRef.current.value = latex;
+    });
+
+    return () => { mounted = false; };
   }, [open, latex]);
+
+  // Attach input listener with proper cleanup to prevent memory leaks
+  useEffect(() => {
+    if (!open || !mathfieldRef.current) return;
+
+    const mf = mathfieldRef.current;
+    const handleInput = (evt: Event) => {
+      setLatex((evt.target as MathfieldElement).value);
+    };
+    mf.addEventListener('input', handleInput);
+    return () => {
+      mf.removeEventListener('input', handleInput);
+    };
+  }, [open]);
 
   // Update latex when initialLatex changes (for editing mode)
   useEffect(() => {
