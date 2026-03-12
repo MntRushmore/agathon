@@ -1,22 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 
-/**
- * Extracts the user ID from a Supabase JWT access token.
- * Decodes the payload without cryptographic verification (we verify the
- * user's admin role via the service role client instead).
- */
-function extractUserIdFromJwt(token: string): string | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1]));
-    return payload.sub || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -52,18 +36,18 @@ export async function POST(req: NextRequest) {
     if (callerProfile?.role === 'admin') {
       isAuthorized = true;
     } else if (adminAccessToken) {
-      // Extract admin user ID from the saved JWT and verify their role
-      const savedAdminId = extractUserIdFromJwt(adminAccessToken);
-      if (savedAdminId) {
+      // Verify the saved admin token cryptographically via Supabase auth
+      const { data: { user: adminUser }, error: adminAuthError } = await adminClient.auth.getUser(adminAccessToken);
+      if (adminUser && !adminAuthError) {
         const { data: adminProfile } = await adminClient
           .from('profiles')
           .select('role')
-          .eq('id', savedAdminId)
+          .eq('id', adminUser.id)
           .single();
 
         if (adminProfile?.role === 'admin') {
           isAuthorized = true;
-          adminUserId = savedAdminId;
+          adminUserId = adminUser.id;
         }
       }
     }
