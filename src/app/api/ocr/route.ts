@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     if (!process.env.MISTRAL_API_KEY) {
       ocrLogger.error({ requestId }, 'MISTRAL_API_KEY not configured');
       return NextResponse.json(
-        { error: 'MISTRAL_API_KEY not configured' },
+        { error: 'Service temporarily unavailable' },
         { status: 500 }
       );
     }
@@ -113,10 +113,7 @@ export async function POST(req: NextRequest) {
     }, 'Error performing OCR');
 
     return NextResponse.json(
-      {
-        error: 'Failed to perform OCR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to perform OCR' },
       { status: 500 }
     );
   }

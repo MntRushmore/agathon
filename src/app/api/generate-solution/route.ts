@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       if (!openrouterApiKey) {
         solutionLogger.error({ requestId }, 'OpenRouter API key missing');
         return NextResponse.json(
-          { error: 'OPENROUTER_API_KEY not configured' },
+          { error: 'Service temporarily unavailable' },
           { status: 500 }
         );
       }
@@ -384,7 +384,7 @@ No text before or after the JSON object.`;
       } catch (hackclubError) {
         solutionLogger.error({ requestId, error: hackclubError }, 'Hack Club AI error');
         return NextResponse.json(
-          { error: 'Failed to generate solution', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { error: 'Failed to generate solution' },
           { status: 500 }
         );
       }
@@ -429,7 +429,7 @@ No text before or after the JSON object.`;
     }
 
     return NextResponse.json(
-      { error: 'Failed to generate solution', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate solution' },
       { status: 500 }
     );
   }
