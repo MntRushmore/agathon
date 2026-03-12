@@ -44,7 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [impersonatedProfile, setImpersonatedProfile] = useState<Profile | null>(() => {
     if (typeof window === 'undefined') return null;
     const saved = sessionStorage.getItem('agathon_impersonated_profile');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      sessionStorage.removeItem('agathon_impersonated_profile');
+      return null;
+    }
   });
   const [originalProfile, setOriginalProfile] = useState<Profile | null>(null);
 
