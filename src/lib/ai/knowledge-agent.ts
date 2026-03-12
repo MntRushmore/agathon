@@ -52,11 +52,12 @@ export async function searchKnowledgeBase(
 
   // Fallback: ILIKE search with the most significant term
   const primaryTerm = searchTerms[0];
+  const escapedTerm = primaryTerm.replace(/[%_\\]/g, '\\$&');
   const { data: fallbackData } = await supabase
     .from('knowledge_base')
     .select('title, content, source')
     .eq('user_id', userId)
-    .or(`title.ilike.%${primaryTerm}%,content.ilike.%${primaryTerm}%`)
+    .or(`title.ilike.%${escapedTerm}%,content.ilike.%${escapedTerm}%`)
     .limit(limit);
 
   if (fallbackData && fallbackData.length > 0) {
