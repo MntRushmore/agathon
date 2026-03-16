@@ -860,7 +860,7 @@ export default function Dashboard() {
       return (
         <div className="min-h-screen bg-background flex">
           {/* Skeleton sidebar */}
-          <div className="w-56 h-screen border-r border-border bg-card p-4 flex flex-col gap-4">
+          <div className="w-[300px] h-screen p-4 flex flex-col gap-4" style={{ backgroundColor: '#F5F8F7' }}>
             <Skeleton className="h-8 w-24" />
             <div className="space-y-2 mt-4">
               <Skeleton className="h-9 w-full rounded-lg" />
@@ -899,266 +899,281 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: '#F5F8F7' }}>
       {/* Sidebar */}
       <motion.aside
         layout
         className={cn(
           "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
-          "bg-card border-r border-border",
-          sidebarCollapsed ? "w-16" : "w-56"
-        )}>
-        {/* Sidebar Header */}
-        <div className="p-4 flex items-center justify-between">
-          {sidebarCollapsed ? (
-            <button
-              onClick={() => setSidebarCollapsed(false)}
-              className="w-full flex items-center justify-center"
-            >
-              <Logo size="sm" />
-            </button>
-          ) : (
-            <>
-              <Logo size="sm" showText />
-              <button
-                onClick={() => setSidebarCollapsed(true)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
-              >
-                <CaretLeft className="h-4 w-4" weight="duotone" />
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* New Board Dropdown */}
-        <div className="px-3 pb-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className={cn(
-                  "w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                  sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
-                )}
-              >
-                <Plus className="h-4 w-4 flex-shrink-0" weight="duotone" />
-                {!sidebarCollapsed && <span className="text-sm">New</span>}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => createWhiteboard()}>
-                <PencilLine className="w-4 h-4 mr-2" weight="duotone" />
-                New Board
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
-                <Lightning className="w-4 h-4 mr-2" weight="duotone" />
-                Quick Board
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => createJournal()}>
-                <BookOpenText className="w-4 h-4 mr-2" weight="duotone" />
-                New Journal
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Primary Navigation */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto">
-          <div className="space-y-1">
-            <button
-              onClick={() => setActiveView('home')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-                activeView === 'home'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <House className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">Home</span>}
-            </button>
-            <button
-              onClick={() => setActiveView('boards')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-                activeView === 'boards'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
-            </button>
-            <button
-              onClick={() => setActiveView('journals')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
-                activeView === 'journals'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <BookOpenText className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Journals</span>}
-            </button>
-            <button
-              onClick={() => router.push('/annotate/files')}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
-            >
-              <HighlighterCircle className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Annotations</span>}
-            </button>
-            <button
-              onClick={() => router.push('/knowledge')}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
-            >
-              <Books className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">Knowledge Base</span>}
-            </button>
-          </div>
-
-          {/* Collapsible Tools Section */}
-          {!sidebarCollapsed && (
-            <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="mt-4">
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Tools
-                {toolsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 mt-1">
+          sidebarCollapsed ? "w-16" : "w-[300px]"
+        )}
+        style={{ backgroundColor: '#F5F8F7' }}>
+        {/* Sidebar Inner */}
+        <div className="flex flex-col h-full py-[27px] px-[25px] justify-between">
+          {/* Top Section */}
+          <div className="flex flex-col gap-[30px]">
+            {/* Logo + Search */}
+            <div className="flex flex-col gap-[30px]">
+              {/* Logo */}
+              {sidebarCollapsed ? (
                 <button
-                  onClick={() => setPomodoroActive(!pomodoroActive)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                  onClick={() => setSidebarCollapsed(false)}
+                  className="flex items-center justify-center"
                 >
-                  <Timer className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-                  <span className="text-sm flex-1">Pomodoro</span>
-                  {pomodoroActive && (
-                    <span className="text-xs font-mono text-primary">{formatPomodoroTime(pomodoroTime)}</span>
-                  )}
-                </button>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-
-          {/* Collapsible Settings Section */}
-          {!sidebarCollapsed && (
-            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="mt-2">
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Settings
-                {settingsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 mt-1">
-                {user && (
-                  <button
-                    onClick={() => router.push('/billing')}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
-                  >
-                    <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-                    <span className="text-sm">Plans & Usage</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => router.push('/settings')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
-                >
-                  <GearSix className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-                  <span className="text-sm">Preferences</span>
-                </button>
-                <button
-                  onClick={() => sileo.info({ title: 'Help center coming soon!' })}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
-                >
-                  <Question className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-                  <span className="text-sm">Help</span>
-                </button>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </nav>
-
-        {/* Divider */}
-        <div className="mx-3 border-t border-border" />
-
-        {/* Secondary Navigation / Footer */}
-        <div className="p-3 space-y-1">
-          {/* Admin Console - only show here for admin */}
-          {profile?.role === 'admin' && (
-            <button
-              onClick={() => router.push('/admin')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
-                "text-muted-foreground hover:bg-muted hover:text-foreground",
-                sidebarCollapsed && "justify-center"
-              )}
-            >
-              <ShieldCheck className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">Admin Console</span>}
-            </button>
-          )}
-
-          {/* Usage indicator */}
-          {!sidebarCollapsed && user && (
-            <div className="px-3 py-2 space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <PencilLine className="w-3 h-3" />
-                    Boards
-                  </span>
-                  <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
-                </div>
-                {!isAdmin && <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />}
-              </div>
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <BookOpenText className="w-3 h-3" />
-                    Journals
-                  </span>
-                  <span>{journalCount} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
-                </div>
-                {!isAdmin && <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />}
-              </div>
-            </div>
-          )}
-
-          {/* User info / Sign in */}
-          {!sidebarCollapsed && (
-            <div className="pt-2 mt-2 border-t border-border">
-              {user ? (
-                <button
-                  onClick={() => router.push('/profile')}
-                  className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted rounded-lg transition-colors text-left"
-                >
-                  <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                    {profile?.full_name
-                      ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-                      : user.email?.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {profile?.full_name || user.email?.split('@')[0]}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">{profile?.role || 'User'}</p>
-                  </div>
+                  <Logo size="sm" />
                 </button>
               ) : (
-                <button
-                  onClick={() => router.push('/login')}
-                  className="w-full px-3 py-2.5 text-sm text-left hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                <div className="flex items-center justify-between">
+                  <Logo size="sm" showText />
+                  <button
+                    onClick={() => setSidebarCollapsed(true)}
+                    className="p-1.5 hover:bg-white/60 rounded-lg transition-colors"
+                    style={{ color: '#06313A' }}
+                  >
+                    <CaretLeft className="h-4 w-4" weight="duotone" />
+                  </button>
+                </div>
+              )}
+
+              {/* Search Bar */}
+              {!sidebarCollapsed && (
+                <div
+                  className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] border"
+                  style={{ backgroundColor: '#FFFFFF', borderColor: '#E7E7E7', boxShadow: '0px 1px 1px 0px rgba(165, 165, 165, 0.25)' }}
                 >
-                  Sign in
-                </button>
+                  <MagnifyingGlass className="w-[15px] h-[15px] flex-shrink-0" style={{ color: '#B8B8B4' }} />
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
+                    className="flex-1 text-[15px] bg-transparent outline-none placeholder:text-[#B8B4B4]"
+                    style={{ fontFamily: 'Inter, sans-serif', color: '#06313A' }}
+                    data-search-input
+                  />
+                  <div
+                    className="flex items-center justify-center rounded-[5px] px-[7px]"
+                    style={{ backgroundColor: '#F5F8F7' }}
+                  >
+                    <span className="text-[20px] font-light" style={{ fontFamily: 'Manrope, sans-serif', color: '#ACB4B6' }}>/</span>
+                  </div>
+                </div>
               )}
             </div>
-          )}
+
+            {/* Primary Navigation */}
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => setActiveView('home')}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
+                  activeView === 'home'
+                    ? "bg-[#FCFCFC]"
+                    : "hover:bg-white/60"
+                )}
+                style={{ boxShadow: activeView === 'home' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
+              >
+                <House className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</span>}
+              </button>
+              <button
+                onClick={() => setActiveView('boards')}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
+                  activeView === 'boards'
+                    ? "bg-[#FCFCFC]"
+                    : "hover:bg-white/60"
+                )}
+                style={{ boxShadow: activeView === 'boards' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
+              >
+                <FolderOpen className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>My Boards</span>}
+              </button>
+              <button
+                onClick={() => setActiveView('journals')}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
+                  activeView === 'journals'
+                    ? "bg-[#FCFCFC]"
+                    : "hover:bg-white/60"
+                )}
+                style={{ boxShadow: activeView === 'journals' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
+              >
+                <BookOpenText className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Journals</span>}
+              </button>
+              <button
+                onClick={() => router.push('/annotate/files')}
+                className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+              >
+                <HighlighterCircle className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Annotations</span>}
+              </button>
+              <button
+                onClick={() => router.push('/knowledge')}
+                className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+              >
+                <Lightning className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Integrations</span>}
+              </button>
+            </div>
+
+            {/* Tools Section */}
+            {!sidebarCollapsed && (
+              <Collapsible open={toolsOpen} onOpenChange={setToolsOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
+                  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Tools</span>
+                  <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-[5px]">
+                  <button
+                    onClick={() => setPomodoroActive(!pomodoroActive)}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                  >
+                    <Timer className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+                    <span className="text-[15px] flex-1" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Pomodoro</span>
+                    {pomodoroActive && (
+                      <span className="text-xs font-mono" style={{ color: '#05313A' }}>{formatPomodoroTime(pomodoroTime)}</span>
+                    )}
+                  </button>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Settings Section */}
+            {!sidebarCollapsed && (
+              <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
+                <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
+                  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Settings</span>
+                  <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-[5px] mt-[5px]">
+                  {user && (
+                    <button
+                      onClick={() => router.push('/billing')}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+                      style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                    >
+                      <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+                      <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Plans & Usage</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push('/settings')}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                  >
+                    <GearSix className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+                    <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Preferences</span>
+                  </button>
+                  <button
+                    onClick={() => sileo.info({ title: 'Help center coming soon!' })}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                  >
+                    <Question className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+                    <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Help</span>
+                  </button>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </div>
+
+          {/* Bottom Section - Usage + Profile */}
+          <div className="flex flex-col gap-2.5">
+            {/* Usage indicators */}
+            {!sidebarCollapsed && user && (
+              <div
+                className="rounded-[10px] p-[15px_13px] space-y-2.5"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Boards</span>
+                    <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+                      {isAdmin ? '\u221E' : `${FREE_BOARD_LIMIT - whiteboards.length}/${FREE_BOARD_LIMIT} remaining`}
+                    </span>
+                  </div>
+                  {!isAdmin && (
+                    <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: '#05313A', width: `${(whiteboards.length / FREE_BOARD_LIMIT) * 100}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Journals</span>
+                    <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+                      {isAdmin ? '\u221E' : `${FREE_JOURNAL_LIMIT - journalCount}/${FREE_JOURNAL_LIMIT} remaining`}
+                    </span>
+                  </div>
+                  {!isAdmin && (
+                    <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
+                      <div
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: '#05313A', width: `${(journalCount / FREE_JOURNAL_LIMIT) * 100}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* User Profile */}
+            {!sidebarCollapsed && (
+              <div
+                className="rounded-[10px] p-[15px_13px]"
+                style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+              >
+                {user ? (
+                  <button
+                    onClick={() => router.push('/profile')}
+                    className="w-full flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 overflow-hidden"
+                        style={{ backgroundColor: '#06313A', color: '#FFFFFF' }}
+                      >
+                        {profile?.full_name
+                          ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                          : user.email?.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[13px] font-medium" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>
+                          {profile?.full_name || user.email?.split('@')[0]}
+                        </p>
+                        <p className="text-[10px] capitalize" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+                          {profile?.role || 'User'}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Settings icon */}
+                    <img src="/dashboard/user-menu.svg" alt="" className="w-[29px] h-[30px]" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="w-full text-[15px] text-left"
+                    style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}
+                  >
+                    Sign in
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </motion.aside>
 
       {/* Main Content */}
       <main className={cn(
         "flex-1 transition-all duration-300 ease-out",
-        sidebarCollapsed ? "ml-16" : "ml-56"
+        sidebarCollapsed ? "ml-16" : "ml-[300px]"
       )}>
         <AnimatePresence mode="wait">
         {activeView === 'boards' ? (
@@ -1916,22 +1931,45 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="relative min-h-screen"
+            style={{ backgroundColor: '#F5F8F7' }}
           >
-          <div className="flex items-start justify-center min-h-screen px-8 lg:px-12 pt-[12vh] pb-12">
-          <div className="w-full max-w-4xl">
-              {/* Greeting */}
-              <div className="mb-6">
-                <p className="text-[13px] text-muted-foreground">
-                  {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : ''}
-                </p>
-                <h1 className="text-xl font-semibold text-foreground tracking-tight mt-0.5" style={{ fontFamily: 'var(--font-sans)' }}>
-                  What would you like to work on?
-                </h1>
-              </div>
+          {/* Page title - positioned above the white card */}
+          <div className="pl-[19px] pt-[30px] pb-[18px]">
+            <h2 className="text-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</h2>
+          </div>
 
-              {/* All feature cards in a single grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
-                {featureCards.map((card, index) => (
+          {/* Main white content card */}
+          <div
+            className="rounded-[20px] ml-[-7px] mr-0"
+            style={{
+              backgroundColor: '#FFFFFF',
+              boxShadow: '0px 1px 4px 0px rgba(210, 203, 203, 0.25)',
+              minHeight: 'calc(100vh - 75px)',
+            }}
+          >
+            {/* Greeting */}
+            <div style={{ padding: '76px 0 0 70px' }}>
+              <p className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+                {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : ''}
+              </p>
+              <h1 className="text-[30px] mt-[9px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#07323B' }}>
+                What are we working on today? :)
+              </h1>
+            </div>
+
+            {/* Feature Cards Row */}
+            <div className="grid grid-cols-4 gap-[15px]" style={{ padding: '41px 70px 0 70px' }}>
+              {featureCards.map((card, index) => {
+                const gradientMap: Record<string, string> = {
+                  blue: 'linear-gradient(180deg, #4F88F1 0%, #90B6FC 100%)',
+                  green: 'linear-gradient(180deg, #3AD53F 0%, #87FB8B 100%)',
+                  purple: 'linear-gradient(180deg, #EB8633 0%, #FFCFA8 100%)',
+                  amber: 'linear-gradient(180deg, #7929F9 0%, #B588FE 100%)',
+                };
+                const gradient = gradientMap[card.color] || gradientMap.blue;
+                const isLast = card.id === 'join';
+                return (
                   <motion.button
                     key={card.id}
                     initial={{ opacity: 0, y: 12 }}
@@ -1939,86 +1977,104 @@ export default function Dashboard() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={card.onClick}
                     disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
-                    className={cn(
-                      "group text-left rounded-lg border border-border bg-card p-3.5 transition-colors duration-100 relative",
-                      "hover:bg-muted/40 active:bg-muted/60",
-                      "disabled:cursor-not-allowed",
-                      card.comingSoon && "opacity-50"
-                    )}
+                    className="text-left rounded-[15px] p-[5px] transition-all duration-150 hover:scale-[1.01] disabled:cursor-not-allowed"
+                    style={{ backgroundColor: isLast ? '#F4F7F6' : '#F5F8F7' }}
                   >
-                    {card.comingSoon && (
-                      <span className="absolute top-2.5 right-2.5 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">Soon</span>
-                    )}
-                    <div className="flex items-center gap-2.5 text-muted-foreground mb-2">
-                      {card.icon}
-                      {card.isPrimary && (
-                        <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-auto">AI</span>
+                    <div
+                      className="rounded-[10px] flex flex-col gap-[15px] h-full"
+                      style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)', padding: '20px 11px' }}
+                    >
+                      <div
+                        className="w-[29px] h-[30px] rounded-[5px] flex items-center justify-center flex-shrink-0"
+                        style={{ background: gradient }}
+                      >
+                        <div className="text-white">{card.icon}</div>
+                      </div>
+                      <h3 className="text-[20px] font-medium leading-tight" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>
+                        {card.title}
+                      </h3>
+                      <p className="text-[17px] leading-snug" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}>
+                        {card.description}
+                      </p>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {/* Divider line */}
+            <div style={{ margin: '30px 70px 0 70px', height: 1, backgroundColor: 'rgba(227, 227, 227, 0.6)' }} />
+
+            {/* Recents Header */}
+            <div className="flex items-center justify-between" style={{ padding: '14px 70px 0 70px' }}>
+              <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#06313A' }}>Recents</span>
+              <button
+                onClick={() => setActiveView('boards')}
+                className="text-[15px] transition-colors hover:opacity-80"
+                style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}
+              >
+                View All →
+              </button>
+            </div>
+
+            {/* Recents Cards Grid */}
+            {user && recentItems.length > 0 && (
+              <div className="grid grid-cols-4 gap-[15px] pb-[40px]" style={{ padding: '30px 70px 40px 70px' }}>
+                {recentItems.slice(0, 4).map((item, index) => (
+                  <motion.button
+                    key={`${item.type}-${item.id}`}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
+                    className="text-left rounded-[15px] border p-[10px] flex flex-col transition-all duration-150 hover:shadow-md relative"
+                    style={{ backgroundColor: '#F5F8F7', borderColor: '#E7E7E7' }}
+                  >
+                    {/* Preview area */}
+                    <div
+                      className="w-full rounded-[10px] overflow-hidden flex-shrink-0"
+                      style={{ backgroundColor: '#FFFFFF', height: 213 }}
+                    >
+                      {item.type === 'board' && item.preview ? (
+                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpenText className="w-8 h-8" weight="duotone" style={{ color: '#05313A', opacity: 0.15 }} />
+                        </div>
                       )}
                     </div>
-                    <h3 className="text-[13px] font-semibold text-foreground leading-tight" style={{ fontFamily: 'var(--font-sans)' }}>{card.title}</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{card.description}</p>
+                    {/* Title */}
+                    <h3 className="text-[20px] font-medium truncate mt-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
+                      {item.title}
+                    </h3>
+                    {/* Timestamp + badge row */}
+                    <div className="flex items-center justify-between mt-[8px]">
+                      <span className="text-[12px]" style={{ fontFamily: 'Inter, sans-serif', color: '#6A8389', letterSpacing: '-0.02em' }}>
+                        {getFriendlyTimestamp(new Date(item.updated_at))}
+                      </span>
+                      <span
+                        className="rounded-[30px] border px-[5px] py-[3px] text-[10px] font-light"
+                        style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)', backgroundColor: '#FFFFFF', borderColor: '#F1F1F1', letterSpacing: '-0.02em' }}
+                      >
+                        {item.type === 'board' ? 'Board' : 'Journal'}
+                      </span>
+                    </div>
                   </motion.button>
                 ))}
               </div>
+            )}
 
-              {/* Recents — boards + journals */}
-              {user && recentItems.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'var(--font-sans)' }}>Recents</span>
-                    <button
-                      onClick={() => setActiveView('boards')}
-                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      View all &rarr;
-                    </button>
-                  </div>
-                  <div className="border border-border rounded-lg bg-card divide-y divide-border">
-                    {recentItems.map((item, index) => (
-                      <motion.button
-                        key={`${item.type}-${item.id}`}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: index * 0.03 }}
-                        onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
-                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {/* Thumbnail / icon */}
-                        {item.type === 'board' && item.preview ? (
-                          <div className="w-10 h-7 rounded overflow-hidden bg-muted flex-shrink-0">
-                            <img src={item.preview} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ) : (
-                          <div className="w-10 h-7 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                            {item.type === 'board'
-                              ? <PencilLine className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
-                              : <BookOpenText className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
-                            }
-                          </div>
-                        )}
-                        {/* Title + snippet */}
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[13px] text-foreground truncate block">{item.title}</span>
-                          {item.snippet && (
-                            <span className="text-[11px] text-muted-foreground/60 truncate block">{item.snippet}</span>
-                          )}
-                        </div>
-                        {/* Meta */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[10px] text-muted-foreground/50 uppercase">
-                            {item.type === 'board' ? 'Board' : 'Journal'}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground/70 tabular-nums">
-                            {getFriendlyTimestamp(new Date(item.updated_at))}
-                          </span>
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
+            {/* Empty state for recents */}
+            {user && recentItems.length === 0 && (
+              <div className="flex items-center justify-center py-20" style={{ padding: '80px 70px' }}>
+                <div className="text-center">
+                  <PencilLine className="w-10 h-10 mx-auto mb-4" weight="duotone" style={{ color: '#05313A', opacity: 0.2 }} />
+                  <p className="text-[17px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+                    No recent items yet. Create a board or journal to get started!
+                  </p>
                 </div>
-              )}
-
-          </div>
+              </div>
+            )}
           </div>
           </motion.div>
         )}
