@@ -26,12 +26,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const inviteError = searchParams.get('error') === 'invite_required';
+  const nextPath = searchParams.get('next') ?? '/';
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push('/');
+      router.push(nextPath);
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, nextPath]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -39,7 +40,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback${nextPath !== '/' ? `?next=${encodeURIComponent(nextPath)}` : ''}`,
         },
       });
       if (error) throw error;
@@ -64,7 +65,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       sileo.success({ title: 'Signed in successfully!' });
-      router.push('/');
+      router.push(nextPath);
     } catch (error) {
       logger.error({ error }, 'Email sign-in failed');
       const message = mapSupabaseError(error);
