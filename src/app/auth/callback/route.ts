@@ -23,6 +23,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = await cookies();
+    const redirectResponse = NextResponse.redirect(`${origin}${next}`);
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,9 +34,10 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+              redirectResponse.cookies.set(name, value, options);
+            });
           },
         },
       }
@@ -47,6 +49,8 @@ export async function GET(request: Request) {
       console.error('Error exchanging code for session:', error);
       return NextResponse.redirect(`${origin}/login?error=auth_failed`);
     }
+
+    return redirectResponse;
   }
 
   // URL to redirect to after sign in process completes
