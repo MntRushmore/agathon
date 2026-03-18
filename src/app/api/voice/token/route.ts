@@ -21,7 +21,7 @@ export async function POST(_req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
     voiceLogger.error('OPENAI_API_KEY not configured for Realtime voice token route');
     return NextResponse.json(
-      { error: 'OPENAI_API_KEY not configured' },
+      { error: 'Service temporarily unavailable' },
       { status: 500 },
     );
   }

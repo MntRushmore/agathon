@@ -1,0 +1,116 @@
+=== Formatting & Style Consistency ===
+
+--- Semicolon Usage ---
+Files with semicolons (sample):
+      45
+Files without semicolons (sample check):
+
+--- Quote Style ---
+Single-quoted imports:
+1040
+Double-quoted imports:
+1703
+
+--- Console Statements ---
+console.log count:
+src/app/board/[id]/page.tsx:17
+src/components/board/TemplateSelectionDialog.tsx:4
+src/app/api/polar/webhook/route.ts:4
+src/app/api/knowledge/sync/route.ts:4
+src/lib/platform.ts:3
+src/lib/api/assignments.ts:3
+src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts:3
+src/app/api/waitlist/route.ts:3
+src/app/api/help/route.ts:3
+src/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts:2
+src/components/board/MyScriptMathOverlay.tsx:2
+src/components/tiptap-ui/undo-redo-button/use-undo-redo.ts:1
+src/components/tiptap-ui/turn-into-dropdown/use-turn-into-dropdown.ts:1
+src/components/tiptap-ui/text-button/use-text.ts:1
+src/components/tiptap-ui/text-align-button/use-text-align.ts:1
+src/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts:1
+src/components/tiptap-ui/reset-all-formatting-button/use-reset-all-formatting.ts:1
+src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts:1
+src/components/tiptap-ui/mark-button/use-mark.ts:1
+src/components/tiptap-ui/list-button/use-list.ts:1
+
+--- TODO/FIXME/HACK Comments ---
+src/middleware.ts:11:      // TODO: migrate to CSP nonces (next.config.ts headers + middleware nonce) to drop 'unsafe-inline'.
+src/app/settings/page.tsx:22:  BOARD_TEMPLATE: 'agathon_pref_board_template',
+src/app/settings/page.tsx:54:  const [boardTemplate, setBoardTemplate] = useLocalPref<BoardTemplate>(PREF_KEYS.BOARD_TEMPLATE, 'blank');
+src/app/api/command-chat/route.ts:1:import { HACKCLUB_MODEL } from '@/lib/ai/config';
+src/app/api/command-chat/route.ts:74:    model: HACKCLUB_MODEL,
+src/app/api/voice/analyze-workspace/route.ts:98:          const { HACKCLUB_MODEL: hackclubModel } = await import('@/lib/ai/config');
+src/components/auth/sign-up-form.tsx:170:              placeholder="XXXX-XXXX"
+src/components/math-editor/CorcaSidebar.tsx:111:const ARGUMENT_TEMPLATES = [
+src/components/math-editor/CorcaSidebar.tsx:214:              {ARGUMENT_TEMPLATES.map((tmpl, i) => (
+src/components/tiptap-ui/ai-ask-button/use-ai-ask.ts:42:  // TODO: Wait until AI extensions support for image
+src/lib/tiptap-utils.ts:254:      // TODO: Needed?
+src/lib/tiptap-collab-utils.ts:197:      // TODO: implement this API endpoint in your app
+src/lib/tiptap-collab-utils.ts:217:  // TODO: as a developer, use the example JWT token provided in the Tiptap
+src/lib/tiptap-collab-utils.ts:232:  // TODO: remove this in production and use the API endpoint instead
+src/lib/tiptap-collab-utils.ts:243:      // TODO: implement this API endpoint in your app
+src/lib/tiptap-collab-utils.ts:263:  // TODO: as a developer, use the example JWT token provided in the Tiptap
+src/lib/tiptap-collab-utils.ts:278:  // TODO: remove this in production and use the API endpoint instead
+src/lib/ai/hackclub.ts:20:const HACKCLUB_API_URL = 'https://ai.hackclub.com/proxy/v1/chat/completions';
+src/lib/ai/hackclub.ts:27:  const apiKey = process.env.HACKCLUB_AI_API_KEY;
+src/lib/ai/hackclub.ts:28:  const { HACKCLUB_MODEL } = await import('@/lib/ai/config');
+src/lib/ai/hackclub.ts:29:  const model = options.model || HACKCLUB_MODEL;
+src/lib/ai/hackclub.ts:32:    throw new Error('HACKCLUB_AI_API_KEY not configured');
+src/lib/ai/hackclub.ts:35:  const response = await fetch(HACKCLUB_API_URL, {
+src/lib/ai/config.ts:7:export const HACKCLUB_MODEL = process.env.HACKCLUB_AI_MODEL || 'google/gemini-2.5-flash';
+
+--- any Type Usage ---
+Total 'any' type occurrences:
+src/app/board/[id]/page.tsx:39
+src/lib/platform.ts:10
+src/components/board/MyScriptMathOverlay.tsx:10
+src/app/api/teacher/struggling-students/route.ts:8
+src/app/api/teacher/ai-history/route.ts:8
+src/app/api/knowledge/assignments/route.ts:8
+src/app/page.tsx:6
+src/lib/composio.ts:5
+src/app/api/generate-solution/route.ts:5
+src/components/math-editor/GraphPanel.tsx:4
+src/components/journal/RichTextEditor.tsx:4
+src/components/board/CustomToolbar.tsx:4
+src/lib/cas-solver.ts:3
+src/components/annotate/PDFRenderer.tsx:3
+src/app/api/teacher/generate-feedback/route.ts:3
+src/lib/error-utils.ts:2
+src/lib/ai/knowledge-agent.ts:2
+src/hooks/useRealtimeBoard.ts:2
+src/components/ui/ThemeToggle.tsx:2
+src/components/tiptap-ui-primitive/tooltip/tooltip.tsx:2
+src/components/math-board/MathGraph.tsx:2
+src/app/knowledge/page.tsx:2
+src/app/journal/page.tsx:2
+src/app/journal/[id]/page.tsx:2
+src/app/api/teacher/concept-mastery/route.ts:2
+src/app/api/knowledge/sync/route.ts:2
+src/app/admin/users/page.tsx:2
+src/types/mathlive.d.ts:1
+src/types/database.ts:1
+src/lib/annotate/storage.ts:1
+
+--- @ts-ignore / @ts-expect-error ---
+src/components/board/MyScriptMathOverlay.tsx:87:    // @ts-expect-error nerdamer types are not bundled
+src/components/board/MathEditorPanel.tsx:97:            {/* @ts-ignore - math-field is a custom element from MathLive */}
+
+--- Non-null Assertions (!) ---
+Files with non-null assertions (top 20):
+src/components/math-board/TldrawMathCanvas.tsx:3
+src/components/board/MyScriptMathOverlay.tsx:3
+src/lib/annotate/export.ts:2
+src/lib/ai/knowledge-agent.ts:2
+src/components/tiptap-node/table-node/lib/tiptap-table-utils.ts:2
+src/lib/tiptap-utils.ts:1
+src/components/tiptap-node/table-node/ui/table-selection-overlay/use-resize-overlay.ts:1
+src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts:1
+src/components/teacher/StrugglingStudentsPanel.tsx:1
+src/components/journal/RichTextEditor.tsx:1
+src/components/journal/JournalSidebar.tsx:1
+src/components/annotate/PDFAnnotator.tsx:1
+src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx:1
+src/app/api/knowledge/assignments/route.ts:1
+src/app/api/command-chat/route.ts:1

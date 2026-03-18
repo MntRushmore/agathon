@@ -34,6 +34,33 @@ export async function POST(req: Request) {
 
   const { messages } = await req.json();
 
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'Messages array is required' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  if (messages.length > 50) {
+    return new Response(
+      JSON.stringify({ error: 'Too many messages (max 50)' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  for (const msg of messages) {
+    if (!msg.role || !msg.content || typeof msg.content !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Each message must have a role and content string' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (msg.content.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: 'Message content too long (max 50000 chars)' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
   const hackclubMessages: HackClubMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...messages.map((m: { role: string; content: string }) => ({

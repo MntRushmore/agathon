@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENROUTER_API_KEY) {
       helpCheckLogger.error({ requestId }, 'OPENROUTER_API_KEY not configured');
       return NextResponse.json(
-        { error: 'OPENROUTER_API_KEY not configured' },
+        { error: 'Service temporarily unavailable' },
         { status: 500 }
       );
     }
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       helpCheckLogger.error({
         requestId,
         status: response.status,
@@ -161,10 +161,7 @@ export async function POST(req: NextRequest) {
     }, 'Error checking if help is needed');
 
     return NextResponse.json(
-      {
-        error: 'Failed to check if help is needed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to check if help is needed' },
       { status: 500 }
     );
   }

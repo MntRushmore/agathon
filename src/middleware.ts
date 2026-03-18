@@ -33,7 +33,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   // Permissions policy
   response.headers.set(
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+    'camera=(), microphone=(), geolocation=(), browsing-topics=()'
   );
 
   // Strict Transport Security

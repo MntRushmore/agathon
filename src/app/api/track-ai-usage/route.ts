@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (conceptTags && conceptTags.length > 0) {
+    if (conceptTags && conceptTags.length > 0 && assignmentId) {
       for (const concept of conceptTags) {
         const { data: existingConcept } = await supabase
           .from('concept_mastery')

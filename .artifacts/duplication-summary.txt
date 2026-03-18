@@ -1,0 +1,1504 @@
+=== Code Duplication Report (jscpd) ===
+Total files analyzed: 892
+Total lines: 105259
+Total clones: 374
+Duplicated lines: 7336
+Duplication percentage: 6.97%
+
+=== Duplicate Pairs ===
+
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [741-752]
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [730-741]
+  → 12 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [82-99]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title-button.tsx [79-97]
+  → 18 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts [146-160]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [138-152]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-move-row-column-button/table-move-row-column-button.tsx [88-122]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-merge-split-cell-button/table-merge-split-cell-button.tsx [90-124]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/use-table-header-row-column.ts [76-95]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [129-148]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [58-74]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title-button.tsx [57-73]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [76-98]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [77-97]
+  → 23 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-fit-to-width-button/table-fit-to-width-button.tsx [64-81]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-82]
+  → 18 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-fit-to-width-button/table-fit-to-width-button.tsx [79-97]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title-button.tsx [78-97]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts [65-90]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [129-154]
+  → 26 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts [242-261]
+  src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/use-table-duplicate-row-column.ts [152-171]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/table-duplicate-row-column-button.tsx [57-91]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-delete-row-column-button/use-table-delete-row-column.ts [63-89]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [129-163]
+  → 27 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-delete-row-column-button/use-table-delete-row-column.ts [154-169]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/use-table-header-row-column.ts [169-185]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-delete-row-column-button/table-delete-row-column-button.tsx [65-99]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-clear-row-column-content-button/use-table-clear-row-column-content.ts [96-122]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [129-160]
+  → 27 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-clear-row-column-content-button/use-table-clear-row-column-content.ts [330-343]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/use-table-sort-row-column.ts [332-345]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-clear-row-column-content-button/table-clear-row-column-content-button.tsx [65-99]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-align-cell-button/table-align-cell-button.tsx [94-128]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [64-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-add-row-column-button/use-table-add-row-column.ts [88-107]
+  src/components/tiptap-node/table-node/ui/table-move-row-column-button/use-table-move-row-column.ts [101-119]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-add-row-column-button/use-table-add-row-column.ts [199-206]
+  src/components/tiptap-node/table-node/ui/table-delete-row-column-button/use-table-delete-row-column.ts [117-124]
+  → 8 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/ui/table-add-row-column-button/table-add-row-column-button.tsx [67-101]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [65-97]
+  → 35 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts [625-641]
+  src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts [610-624]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts [696-710]
+  src/components/tiptap-node/table-node/extensions/table-handle/table-handle-plugin.ts [657-672]
+  → 15 lines, 0 tokens
+
+  src/app/api/teacher/google-classroom/import-courses/route.ts [3-25]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-25]
+  → 23 lines, 0 tokens
+
+  src/app/api/teacher/google-classroom/courses/route.ts [6-26]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [5-25]
+  → 21 lines, 0 tokens
+
+  src/app/api/admin/switch-user/users/route.ts [13-20]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [7-14]
+  → 8 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [99-114]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [121-136]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [143-158]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [165-180]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [187-202]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [209-224]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [231-246]
+  src/components/tiptap-ui/ai-menu/ai-menu-items/ai-menu-items.tsx [77-92]
+  → 16 lines, 0 tokens
+
+  src/app/teacher/classes/[id]/page.tsx [156-163]
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [265-272]
+  → 8 lines, 0 tokens
+
+  src/app/teacher/classes/[id]/page.tsx [164-178]
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [273-287]
+  → 15 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [310-326]
+  src/app/teacher/classes/[id]/page.tsx [290-307]
+  → 17 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [333-339]
+  src/app/teacher/classes/[id]/page.tsx [315-322]
+  → 7 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [350-398]
+  src/app/teacher/assignments/create/page.tsx [293-317]
+  → 49 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [456-500]
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [714-763]
+  → 45 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [532-587]
+  src/app/teacher/assignments/create/page.tsx [293-317]
+  → 56 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [594-600]
+  src/app/teacher/classes/[id]/page.tsx [315-322]
+  → 7 lines, 0 tokens
+
+  src/app/teacher/assignments/create/page.tsx [49-54]
+  src/app/teacher/classes/[id]/assignments/[assignmentId]/page.tsx [117-122]
+  → 6 lines, 0 tokens
+
+  src/app/api/teacher/struggling-students/route.ts [17-24]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [15-22]
+  → 8 lines, 0 tokens
+
+  src/app/api/teacher/struggling-students/route.ts [100-109]
+  src/app/api/teacher/struggling-students/route.ts [4-13]
+  → 10 lines, 0 tokens
+
+  src/app/api/teacher/struggling-students/route.ts [109-119]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [15-27]
+  → 11 lines, 0 tokens
+
+  src/app/api/teacher/generate-feedback/route.ts [3-11]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-11]
+  → 9 lines, 0 tokens
+
+  src/app/api/teacher/generate-feedback/route.ts [5-24]
+  src/app/api/teacher/struggling-students/route.ts [4-119]
+  → 20 lines, 0 tokens
+
+  src/app/api/teacher/generate-feedback/route.ts [164-183]
+  src/app/api/teacher/struggling-students/route.ts [4-24]
+  → 20 lines, 0 tokens
+
+  src/app/api/teacher/concept-mastery/route.ts [1-14]
+  src/app/api/teacher/struggling-students/route.ts [1-14]
+  → 14 lines, 0 tokens
+
+  src/app/api/teacher/concept-mastery/route.ts [17-30]
+  src/app/api/teacher/struggling-students/route.ts [106-27]
+  → 14 lines, 0 tokens
+
+  src/app/api/teacher/ai-history/route.ts [1-23]
+  src/app/api/teacher/struggling-students/route.ts [1-119]
+  → 23 lines, 0 tokens
+
+  src/app/api/polar/checkout/route.ts [22-29]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [6-14]
+  → 8 lines, 0 tokens
+
+  src/app/api/knowledge/sync/route.ts [12-23]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-20]
+  → 12 lines, 0 tokens
+
+  src/app/api/knowledge/status/route.ts [2-13]
+  src/app/api/teacher/google-classroom/courses/route.ts [4-14]
+  → 12 lines, 0 tokens
+
+  src/app/api/knowledge/search/route.ts [2-13]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-23]
+  → 12 lines, 0 tokens
+
+  src/app/api/knowledge/disconnect/route.ts [3-14]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-23]
+  → 12 lines, 0 tokens
+
+  src/app/api/knowledge/connect/route.ts [3-14]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-23]
+  → 12 lines, 0 tokens
+
+  src/app/api/knowledge/auto-sync/route.ts [11-20]
+  src/app/api/teacher/google-classroom/courses/route.ts [6-14]
+  → 10 lines, 0 tokens
+
+  src/app/api/knowledge/assignments/route.ts [1-10]
+  src/app/api/teacher/struggling-students/route.ts [1-10]
+  → 10 lines, 0 tokens
+
+  src/app/api/knowledge/assignments/route.ts [4-13]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [5-23]
+  → 10 lines, 0 tokens
+
+  src/app/api/journal/generate/route.ts [238-247]
+  src/app/api/voice/token/route.ts [9-17]
+  → 10 lines, 0 tokens
+
+  src/app/api/journal/generate/route.ts [240-250]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [7-23]
+  → 11 lines, 0 tokens
+
+  src/app/api/credits/balance/route.ts [3-11]
+  src/app/api/teacher/google-classroom/courses/route.ts [4-12]
+  → 9 lines, 0 tokens
+
+  src/app/api/credits/balance/route.ts [5-14]
+  src/app/api/teacher/struggling-students/route.ts [4-13]
+  → 10 lines, 0 tokens
+
+  src/app/api/classroom/submit/route.ts [26-35]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [5-23]
+  → 10 lines, 0 tokens
+
+  src/app/api/auth/redeem-invite/route.ts [1-11]
+  src/app/api/knowledge/search/route.ts [1-11]
+  → 11 lines, 0 tokens
+
+  src/app/api/admin/switch-user/route.ts [2-13]
+  src/app/api/knowledge/search/route.ts [2-23]
+  → 12 lines, 0 tokens
+
+  src/app/api/admin/stats/route.ts [5-15]
+  src/app/api/usage/summary/route.ts [6-16]
+  → 11 lines, 0 tokens
+
+  src/app/api/admin/send-referral-emails/route.ts [17-30]
+  src/app/api/teacher/struggling-students/route.ts [6-115]
+  → 14 lines, 0 tokens
+
+  src/app/api/admin/send-referral-emails/route.ts [24-31]
+  src/app/api/admin/stats/route.ts [16-23]
+  → 8 lines, 0 tokens
+
+  src/app/api/admin/invite-codes/route.ts [1-23]
+  src/app/api/knowledge/status/route.ts [1-26]
+  → 23 lines, 0 tokens
+
+  src/app/api/admin/invite-codes/route.ts [37-58]
+  src/app/api/classroom/submit/route.ts [24-23]
+  → 22 lines, 0 tokens
+
+  src/app/api/admin/invite-codes/route.ts [95-119]
+  src/app/api/teacher/struggling-students/route.ts [95-23]
+  → 25 lines, 0 tokens
+
+  src/app/api/admin/audit-logs/route.ts [1-23]
+  src/app/api/teacher/struggling-students/route.ts [1-23]
+  → 23 lines, 0 tokens
+
+  src/app/api/admin/analytics/route.ts [1-23]
+  src/app/api/teacher/struggling-students/route.ts [1-23]
+  → 23 lines, 0 tokens
+
+  src/components/tiptap-ui-utils/suggestion-menu/suggestion-menu.tsx [203-212]
+  src/components/tiptap-ui-utils/suggestion-menu/suggestion-menu.tsx [191-200]
+  → 10 lines, 0 tokens
+
+  src/components/tiptap-ui/undo-redo-button/undo-redo-button.tsx [98-112]
+  src/components/tiptap-node/table-node/ui/table-fit-to-width-button/table-fit-to-width-button.tsx [76-90]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/turn-into-dropdown/turn-into-dropdown.tsx [109-223]
+  src/components/tiptap-ui/turn-into-dropdown/turn-into-dropdown.tsx [98-143]
+  → 115 lines, 0 tokens
+
+  src/components/tiptap-ui/text-button/use-text.ts [247-262]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title.ts [179-194]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/text-button/text-button.tsx [70-98]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [53-80]
+  → 29 lines, 0 tokens
+
+  src/components/tiptap-ui/text-button/text-button.tsx [99-108]
+  src/components/tiptap-ui/undo-redo-button/undo-redo-button.tsx [103-112]
+  → 10 lines, 0 tokens
+
+  src/components/tiptap-ui/text-align-button/text-align-button.tsx [111-129]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [71-89]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts [236-249]
+  src/components/tiptap-ui/slash-dropdown-menu/use-slash-dropdown-menu.ts [198-212]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-ui/slash-command-trigger-button/slash-command-trigger-button.tsx [102-118]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title-button.tsx [74-113]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-ui/reset-all-formatting-button/reset-all-formatting-button.tsx [106-116]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/move-node-button/move-node-button.tsx [100-110]
+  src/components/tiptap-ui/undo-redo-button/undo-redo-button.tsx [103-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [59-81]
+  src/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts [59-81]
+  → 23 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [87-106]
+  src/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts [91-110]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [136-177]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [82-127]
+  → 42 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [221-238]
+  src/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts [163-180]
+  → 18 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [293-313]
+  src/components/tiptap-ui/slash-command-trigger-button/use-slash-command-trigger.ts [235-255]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-ui/mention-trigger-button/mention-trigger-button.tsx [86-112]
+  src/components/tiptap-ui/slash-command-trigger-button/slash-command-trigger-button.tsx [92-113]
+  → 27 lines, 0 tokens
+
+  src/components/tiptap-ui/mark-button/mark-button.tsx [85-113]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [64-113]
+  → 29 lines, 0 tokens
+
+  src/components/tiptap-ui/list-button/use-list.ts [147-211]
+  src/components/tiptap-ui/text-button/use-text.ts [93-156]
+  → 65 lines, 0 tokens
+
+  src/components/tiptap-ui/list-button/use-list.ts [316-334]
+  src/components/tiptap-ui/mark-button/use-mark.ts [184-202]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/list-button/list-button.tsx [52-72]
+  src/components/tiptap-ui/text-button/text-button.tsx [49-69]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-ui/list-button/list-button.tsx [74-104]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [53-99]
+  → 31 lines, 0 tokens
+
+  src/components/tiptap-ui/list-button/list-button.tsx [100-113]
+  src/components/tiptap-node/table-node/ui/table-sort-row-column-button/table-sort-row-column-button.tsx [80-113]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-ui/improve-dropdown/improve-dropdown.tsx [283-296]
+  src/components/tiptap-ui/improve-dropdown/improve-dropdown.tsx [262-274]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-ui/image-upload-button/use-image-upload.ts [147-165]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/image-upload-button/image-upload-button.tsx [104-122]
+  src/components/tiptap-ui/list-button/list-button.tsx [92-110]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/image-upload-button/image-upload-button.tsx [112-124]
+  src/components/tiptap-ui/text-align-button/text-align-button.tsx [119-131]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-ui/image-download-button/use-image-download.ts [276-290]
+  src/components/tiptap-ui/text-button/use-text.ts [171-185]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/image-download-button/image-download-button.tsx [100-116]
+  src/components/tiptap-ui/slash-command-trigger-button/slash-command-trigger-button.tsx [102-113]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-ui/image-caption-button/use-image-caption.ts [113-127]
+  src/components/tiptap-ui/text-button/use-text.ts [171-290]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/image-caption-button/image-caption-button.tsx [60-93]
+  src/components/tiptap-node/toc-node/ui/toc-show-title-button/toc-show-title-button.tsx [63-97]
+  → 34 lines, 0 tokens
+
+  src/components/tiptap-ui/image-align-button/use-image-align.ts [93-102]
+  src/components/tiptap-ui/image-align-button/use-image-align.ts [76-85]
+  → 10 lines, 0 tokens
+
+  src/components/tiptap-ui/image-align-button/image-align-button.tsx [108-128]
+  src/components/tiptap-ui/text-align-button/text-align-button.tsx [114-134]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-ui/image-align-button/image-align-button.tsx [98-125]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [64-112]
+  → 28 lines, 0 tokens
+
+  src/components/tiptap-ui/heading-button/use-heading.ts [143-206]
+  src/components/tiptap-ui/text-button/use-text.ts [93-156]
+  → 64 lines, 0 tokens
+
+  src/components/tiptap-ui/heading-button/heading-button.tsx [78-117]
+  src/components/tiptap-node/table-node/ui/table-header-row-column-button/table-header-row-column-button.tsx [53-113]
+  → 40 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [1-20]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [1-20]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [63-89]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [76-106]
+  → 27 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [97-138]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [117-91]
+  → 42 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [150-173]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [170-193]
+  → 24 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [181-200]
+  src/components/tiptap-ui/mention-trigger-button/use-mention-trigger.ts [201-220]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [201-215]
+  src/components/tiptap-ui/text-button/use-text.ts [171-185]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/use-emoji-trigger.ts [271-289]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-trigger-button/emoji-trigger-button.tsx [108-118]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-menu/emoji-menu.tsx [37-46]
+  src/components/tiptap-ui/mention-dropdown-menu/mention-dropdown-menu.tsx [146-155]
+  → 10 lines, 0 tokens
+
+  src/components/tiptap-ui/emoji-dropdown-menu/emoji-dropdown-menu.tsx [80-103]
+  src/components/tiptap-ui/mention-dropdown-menu/mention-dropdown-menu.tsx [189-212]
+  → 24 lines, 0 tokens
+
+  src/components/tiptap-ui/duplicate-button/use-duplicate.ts [108-123]
+  src/components/tiptap-ui/text-button/use-text.ts [171-216]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/duplicate-button/use-duplicate.ts [174-192]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/duplicate-button/duplicate-button.tsx [69-90]
+  src/components/tiptap-node/table-node/ui/table-duplicate-row-column-button/table-duplicate-row-column-button.tsx [46-67]
+  → 22 lines, 0 tokens
+
+  src/components/tiptap-ui/duplicate-button/duplicate-button.tsx [94-104]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/delete-node-button/use-delete-node.ts [127-142]
+  src/components/tiptap-ui/text-button/use-text.ts [171-216]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/delete-node-button/use-delete-node.ts [193-211]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/delete-node-button/delete-node-button.tsx [94-104]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/copy-to-clipboard-button/use-copy-to-clipboard.ts [139-154]
+  src/components/tiptap-ui/text-button/use-text.ts [171-216]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-ui/copy-to-clipboard-button/use-copy-to-clipboard.ts [207-225]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/copy-to-clipboard-button/copy-to-clipboard-button.tsx [96-106]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/copy-anchor-link-button/use-copy-anchor-link.ts [212-230]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/copy-anchor-link-button/copy-anchor-link-button.tsx [98-108]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/color-text-popover/use-color-text-popover.ts [78-92]
+  src/components/tiptap-ui/improve-dropdown/use-improve-dropdown.ts [89-103]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/color-text-button/use-color-text.ts [135-149]
+  src/components/tiptap-ui/text-button/use-text.ts [171-185]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/color-text-button/use-color-text.ts [219-237]
+  src/components/tiptap-ui/text-button/use-text.ts [241-259]
+  → 19 lines, 0 tokens
+
+  src/components/tiptap-ui/color-text-button/color-text-button.tsx [103-123]
+  src/components/tiptap-ui/list-button/list-button.tsx [85-105]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-ui/color-highlight-button/color-highlight-button.tsx [129-156]
+  src/components/tiptap-ui/color-text-button/color-text-button.tsx [103-130]
+  → 28 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/use-code-block.ts [1-21]
+  src/components/tiptap-ui/heading-button/use-heading.ts [1-21]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/use-code-block.ts [89-153]
+  src/components/tiptap-ui/text-button/use-text.ts [93-206]
+  → 65 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/use-code-block.ts [170-184]
+  src/components/tiptap-ui/text-button/use-text.ts [171-185]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/use-code-block.ts [248-267]
+  src/components/tiptap-ui/text-button/use-text.ts [243-194]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/code-block-button.tsx [52-75]
+  src/components/tiptap-ui/text-button/text-button.tsx [46-69]
+  → 24 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/code-block-button.tsx [75-100]
+  src/components/tiptap-ui/text-button/text-button.tsx [69-76]
+  → 26 lines, 0 tokens
+
+  src/components/tiptap-ui/code-block-button/code-block-button.tsx [105-115]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/use-blockquote.ts [86-150]
+  src/components/tiptap-ui/text-button/use-text.ts [93-153]
+  → 65 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/use-blockquote.ts [167-181]
+  src/components/tiptap-ui/text-button/use-text.ts [171-185]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/use-blockquote.ts [236-257]
+  src/components/tiptap-ui/code-block-button/use-code-block.ts [246-194]
+  → 22 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/blockquote-button.tsx [52-75]
+  src/components/tiptap-ui/text-button/text-button.tsx [46-69]
+  → 24 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/blockquote-button.tsx [75-105]
+  src/components/tiptap-ui/text-button/text-button.tsx [69-99]
+  → 31 lines, 0 tokens
+
+  src/components/tiptap-ui/blockquote-button/blockquote-button.tsx [105-115]
+  src/components/tiptap-ui/text-button/text-button.tsx [99-113]
+  → 11 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-ask-button/use-ai-ask.ts [62-76]
+  src/components/tiptap-ui/text-button/use-text.ts [171-290]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-ui/ai-ask-button/ai-ask-button.tsx [88-102]
+  src/components/tiptap-node/table-node/ui/table-fit-to-width-button/table-fit-to-width-button.tsx [76-108]
+  → 15 lines, 0 tokens
+
+  src/app/teacher/settings/page.tsx [291-300]
+  src/app/teacher/settings/page.tsx [230-239]
+  → 10 lines, 0 tokens
+
+  src/app/teacher/classes/page.tsx [322-331]
+  src/app/teacher/assignments/create/page.tsx [587-322]
+  → 10 lines, 0 tokens
+
+  src/app/teacher/classes/page.tsx [90-95]
+  src/app/teacher/settings/page.tsx [76-81]
+  → 6 lines, 0 tokens
+
+  src/app/referral/[code]/page.tsx [69-79]
+  src/app/referral/leaderboard/page.tsx [45-55]
+  → 11 lines, 0 tokens
+
+  src/app/api/waitlist/route.ts [29-36]
+  src/app/api/admin/send-referral-emails/route.ts [7-14]
+  → 8 lines, 0 tokens
+
+  src/app/api/tts/route.ts [6-18]
+  src/app/api/voice/token/route.ts [9-21]
+  → 13 lines, 0 tokens
+
+  src/app/api/track-ai-usage/route.ts [5-16]
+  src/app/api/teacher/google-classroom/post-assignment/route.ts [3-13]
+  → 12 lines, 0 tokens
+
+  src/app/api/solve-math/route.ts [7-19]
+  src/app/api/voice/analyze-workspace/route.ts [12-24]
+  → 13 lines, 0 tokens
+
+  src/app/api/ocr/route.ts [11-23]
+  src/app/api/journal/generate/route.ts [238-23]
+  → 13 lines, 0 tokens
+
+  src/app/api/go-deeper/route.ts [23-36]
+  src/app/api/journal/generate/route.ts [237-23]
+  → 14 lines, 0 tokens
+
+  src/app/api/generate-solution/route.ts [32-46]
+  src/app/api/voice/analyze-workspace/route.ts [10-24]
+  → 15 lines, 0 tokens
+
+  src/app/api/documents/route.ts [2-12]
+  src/app/api/polar/checkout/route.ts [20-23]
+  → 11 lines, 0 tokens
+
+  src/app/api/documents/route.ts [25-33]
+  src/app/api/polar/checkout/route.ts [22-23]
+  → 9 lines, 0 tokens
+
+  src/app/api/check-help-needed/route.ts [9-23]
+  src/app/api/ocr/route.ts [9-23]
+  → 15 lines, 0 tokens
+
+  src/app/api/chat/route.ts [29-41]
+  src/app/api/command-chat/route.ts [23-35]
+  → 13 lines, 0 tokens
+
+  src/app/api/chat/route.ts [49-76]
+  src/app/api/command-chat/route.ts [37-64]
+  → 28 lines, 0 tokens
+
+  src/app/annotate/files/page.tsx [323-398]
+  src/app/annotate/files/page.tsx [224-305]
+  → 76 lines, 0 tokens
+
+  src/app/annotate/files/page.tsx [383-406]
+  src/app/annotate/files/page.tsx [290-313]
+  → 24 lines, 0 tokens
+
+  src/app/admin/logs/page.tsx [184-252]
+  src/app/admin/users/page.tsx [323-376]
+  → 69 lines, 0 tokens
+
+  src/app/admin/logs/page.tsx [146-156]
+  src/app/admin/users/page.tsx [205-215]
+  → 11 lines, 0 tokens
+
+  src/app/admin/logs/page.tsx [217-259]
+  src/app/admin/users/page.tsx [341-384]
+  → 43 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [149-156]
+  src/app/admin/users/page.tsx [247-258]
+  → 8 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [168-173]
+  src/app/admin/users/page.tsx [292-302]
+  → 6 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [192-200]
+  src/app/admin/content/page.tsx [148-258]
+  → 9 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [211-229]
+  src/app/admin/content/page.tsx [167-185]
+  → 19 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [236-243]
+  src/app/admin/users/page.tsx [247-258]
+  → 8 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [250-256]
+  src/app/admin/users/page.tsx [292-303]
+  → 7 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [257-270]
+  src/app/admin/content/page.tsx [172-185]
+  → 14 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [270-284]
+  src/app/admin/content/page.tsx [229-258]
+  → 15 lines, 0 tokens
+
+  src/app/admin/content/page.tsx [286-310]
+  src/app/admin/content/page.tsx [245-185]
+  → 25 lines, 0 tokens
+
+  src/app/admin/analytics/page.tsx [94-102]
+  src/app/admin/users/page.tsx [205-213]
+  → 9 lines, 0 tokens
+
+  src/app/admin/analytics/page.tsx [174-180]
+  src/app/admin/analytics/page.tsx [110-116]
+  → 7 lines, 0 tokens
+
+  src/app/admin/analytics/page.tsx [204-214]
+  src/app/admin/analytics/page.tsx [155-165]
+  → 11 lines, 0 tokens
+
+  src/lib/annotate/drawing.ts [221-229]
+  src/lib/annotate/drawing.ts [142-150]
+  → 9 lines, 0 tokens
+
+  src/lib/ai/knowledge-agent.ts [160-167]
+  src/app/api/knowledge/assignments/route.ts [126-133]
+  → 8 lines, 0 tokens
+
+  src/components/tiptap-icons/undo2-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/underline-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/type-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/trash-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/text-reduce-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/text-extend-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/text-color-small-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/table-row-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/table-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/table-header-row-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/table-column-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/table-cell-split-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/table-cell-merge-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/superscript-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/sun-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/summarize-text-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/subscript-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/strike-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/stop-circle-2-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/square-x-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/smile-plus-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/smile-ai-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/simplify-2-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/rotate-ccw-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/repeat-2-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/refresh-ccw-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/refresh-ai-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/redo2-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/plus-small-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/plus-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/paint-bucket-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/move-horizontal-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/more-vertical-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/moon-star-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/minus-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/mic-ai-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/message-square-plus-icon.tsx [5-18]
+  src/components/tiptap-icons/table-header-column-icon.tsx [5-18]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-icons/message-square-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/list-todo-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/list-ordered-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/list-indented-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/list-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/link-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/languages-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/italic-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/image-plus-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/image-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/image-caption-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/highlighter-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-two-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-three-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-six-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-one-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-four-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/heading-five-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/grip-vertical-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/grip-4-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/external-link-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/corner-down-left-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/copy-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/complete-sentence-icon.tsx [5-18]
+  src/components/tiptap-icons/table-header-column-icon.tsx [5-18]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-icons/code2-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/code-block-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/close-icon.tsx [5-24]
+  src/components/tiptap-icons/x-icon.tsx [5-24]
+  → 20 lines, 0 tokens
+
+  src/components/tiptap-icons/clipboard-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/chevron-right-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/chevron-down-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/check-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/check-ai-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/bold-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/blockquote-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/ban-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/at-sign-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-up-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-right-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-left-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-down-z-a-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-down-to-line-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-down-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/arrow-down-a-z-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/alignment-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/align-top-icon.tsx [5-21]
+  src/components/tiptap-icons/x-icon.tsx [5-21]
+  → 17 lines, 0 tokens
+
+  src/components/tiptap-icons/align-start-vertical-icon.tsx [5-18]
+  src/components/tiptap-icons/table-header-column-icon.tsx [5-18]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-icons/align-right-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/align-middle-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/align-left-icon.tsx [5-25]
+  src/components/tiptap-icons/x-icon.tsx [5-25]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-icons/align-justify-icon.tsx [5-25]
+  src/components/tiptap-icons/x-icon.tsx [5-25]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-icons/align-end-vertical-icon.tsx [5-20]
+  src/components/tiptap-icons/table-header-column-icon.tsx [5-20]
+  → 16 lines, 0 tokens
+
+  src/components/tiptap-icons/align-center-vertical-icon.tsx [5-18]
+  src/components/tiptap-icons/table-header-column-icon.tsx [5-18]
+  → 14 lines, 0 tokens
+
+  src/components/tiptap-icons/align-center-icon.tsx [5-25]
+  src/components/tiptap-icons/x-icon.tsx [5-25]
+  → 21 lines, 0 tokens
+
+  src/components/tiptap-icons/align-bottom-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/ai-sparkles-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/add-row-top-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/add-row-bottom-icon.tsx [5-17]
+  src/components/tiptap-icons/x-icon.tsx [5-17]
+  → 13 lines, 0 tokens
+
+  src/components/tiptap-icons/add-col-right-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-icons/add-col-left-icon.tsx [5-19]
+  src/components/tiptap-icons/x-icon.tsx [5-19]
+  → 15 lines, 0 tokens
+
+  src/components/tiptap-extension/node-alignment-extension.ts [164-171]
+  src/components/tiptap-extension/node-background-extension.ts [114-123]
+  → 8 lines, 0 tokens
+
+  src/components/tiptap-extension/node-alignment-extension.ts [256-267]
+  src/components/tiptap-extension/node-alignment-extension.ts [223-234]
+  → 12 lines, 0 tokens
+
+  src/components/teacher/CreateClassDialog.tsx [122-175]
+  src/components/teacher/EditClassDialog.tsx [118-168]
+  → 54 lines, 0 tokens
+
+  src/components/teacher/CreateClassDialog.tsx [3-24]
+  src/components/teacher/EditClassDialog.tsx [3-24]
+  → 22 lines, 0 tokens
+
+  src/components/teacher/CreateClassDialog.tsx [147-174]
+  src/components/teacher/EditClassDialog.tsx [141-168]
+  → 28 lines, 0 tokens
+
+  src/components/teacher/CreateClassDialog.tsx [192-205]
+  src/components/teacher/EditClassDialog.tsx [186-199]
+  → 14 lines, 0 tokens
+
+  src/components/teacher/ConceptMasteryHeatmap.tsx [66-80]
+  src/components/teacher/StrugglingStudentsPanel.tsx [149-163]
+  → 15 lines, 0 tokens
+
+  src/components/teacher/ClassCard.tsx [61-78]
+  src/app/teacher/classes/[id]/page.tsx [129-146]
+  → 18 lines, 0 tokens
+
+  src/components/math-editor/MathBlock.tsx [136-148]
+  src/components/math-editor/MathEquationRow.tsx [68-80]
+  → 13 lines, 0 tokens
+
+  src/components/math-editor/CorcaBlock.tsx [76-83]
+  src/components/math-editor/MathBlock.tsx [72-80]
+  → 8 lines, 0 tokens
+
+  src/components/math-editor/CorcaBlock.tsx [99-115]
+  src/components/math-editor/MathBlock.tsx [78-94]
+  → 17 lines, 0 tokens
+
+  src/components/math-editor/CorcaBlock.tsx [136-168]
+  src/components/math-editor/MathBlock.tsx [106-138]
+  → 33 lines, 0 tokens
+
+  src/components/math-editor/CorcaBlock.tsx [168-179]
+  src/components/math-editor/MathEquationRow.tsx [70-149]
+  → 12 lines, 0 tokens
+
+  src/components/math-editor/CorcaBlock.tsx [179-193]
+  src/components/math-editor/MathBlock.tsx [149-163]
+  → 15 lines, 0 tokens
+
+  src/components/math-board/MathGraph.tsx [26-37]
+  src/components/math-editor/GraphPanel.tsx [32-42]
+  → 12 lines, 0 tokens
+
+  src/components/math-board/MathGraph.tsx [129-135]
+  src/components/math-board/MathGraph.tsx [75-81]
+  → 7 lines, 0 tokens
+
+  src/components/landing/WaitlistForm.tsx [216-226]
+  src/components/landing/WaitlistForm.tsx [165-175]
+  → 11 lines, 0 tokens
+
+  src/components/landing/WaitlistDialog.tsx [62-96]
+  src/components/landing/WaitlistForm.tsx [30-64]
+  → 35 lines, 0 tokens
+
+  src/components/landing/WaitlistDialog.tsx [153-165]
+  src/app/referral/[code]/page.tsx [136-148]
+  → 13 lines, 0 tokens
+
+  src/components/journal/JournalSidebar.tsx [266-273]
+  src/components/journal/JournalSidebar.tsx [210-217]
+  → 8 lines, 0 tokens
+
+  src/components/board/WhiteboardOnboarding.tsx [42-52]
+  src/components/board/WhiteboardOnboarding.tsx [13-23]
+  → 11 lines, 0 tokens
+
+  src/components/board/MyScriptMathOverlay.tsx [240-257]
+  src/components/math-board/TldrawMathCanvas.tsx [118-135]
+  → 18 lines, 0 tokens
+
+  src/components/board/MathKeyboard.tsx [370-383]
+  src/components/board/MathKeyboard.tsx [350-363]
+  → 14 lines, 0 tokens
+
+  src/components/board/FirstBoardTutorial.tsx [114-122]
+  src/components/board/FirstBoardTutorial.tsx [92-100]
+  → 9 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [130-236]
+  src/components/board/CustomToolbar.tsx [123-183]
+  → 107 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [584-608]
+  src/components/board/CustomToolbar.tsx [236-261]
+  → 25 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [596-649]
+  src/components/board/CustomToolbar.tsx [261-308]
+  → 54 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [682-710]
+  src/components/board/CustomToolbar.tsx [344-367]
+  → 29 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [735-751]
+  src/components/board/CustomToolbar.tsx [395-413]
+  → 17 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [564-581]
+  src/components/board/CustomToolbar.tsx [229-246]
+  → 18 lines, 0 tokens
+
+  src/components/board/CustomToolbar.tsx [605-623]
+  src/components/board/CustomToolbar.tsx [264-282]
+  → 19 lines, 0 tokens
+
+  src/components/auth/user-menu.tsx [35-45]
+  src/components/sharing/ShareBoardDialog.tsx [181-191]
+  → 11 lines, 0 tokens
+
+  src/components/auth/sign-in-form.tsx [89-131]
+  src/components/auth/sign-up-form.tsx [285-327]
+  → 43 lines, 0 tokens
+
+  src/components/annotate/PDFAnnotator.tsx [232-240]
+  src/components/annotate/PDFAnnotator.tsx [211-219]
+  → 9 lines, 0 tokens
+
+  src/components/annotate/FileUploadZone.tsx [15-33]
+  src/components/board/TemplateSelectionDialog.tsx [81-99]
+  → 19 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [63-204]
+  src/components/board/CustomToolbar.tsx [113-183]
+  → 142 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [296-398]
+  src/components/annotate/AnnotationToolbar.tsx [127-285]
+  → 103 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [41-48]
+  src/components/board/CustomToolbar.tsx [83-90]
+  → 8 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [69-78]
+  src/components/board/CustomToolbar.tsx [119-128]
+  → 10 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [87-97]
+  src/components/annotate/AnnotationToolbar.tsx [61-163]
+  → 11 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [97-105]
+  src/components/annotate/AnnotationToolbar.tsx [61-181]
+  → 9 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [221-236]
+  src/components/board/CustomToolbar.tsx [663-676]
+  → 16 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [308-337]
+  src/components/annotate/AnnotationToolbar.tsx [200-229]
+  → 30 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [338-362]
+  src/components/annotate/AnnotationToolbar.tsx [229-253]
+  → 25 lines, 0 tokens
+
+  src/components/annotate/AnnotationToolbar.tsx [471-495]
+  src/components/annotate/AnnotationToolbar.tsx [435-459]
+  → 25 lines, 0 tokens
+
+  src/components/annotate/AnnotationCanvas.tsx [152-161]
+  src/components/annotate/AnnotationCanvas.tsx [92-99]
+  → 10 lines, 0 tokens
+
+  src/components/annotate/AnnotationCanvas.tsx [171-181]
+  src/components/annotate/AnnotationCanvas.tsx [151-161]
+  → 11 lines, 0 tokens
+
+  src/components/annotate/AnnotationCanvas.tsx [200-210]
+  src/components/annotate/AnnotationCanvas.tsx [151-99]
+  → 11 lines, 0 tokens
+
+  src/app/teacher/page.tsx [464-471]
+  src/app/teacher/classes/[id]/page.tsx [254-266]
+  → 8 lines, 0 tokens
+
+  src/app/teacher/page.tsx [478-530]
+  src/app/teacher/classes/[id]/page.tsx [307-318]
+  → 53 lines, 0 tokens
+
+  src/app/teacher/page.tsx [527-534]
+  src/app/teacher/classes/[id]/page.tsx [254-266]
+  → 8 lines, 0 tokens
+
+  src/app/profile/page.tsx [48-60]
+  src/app/settings/page.tsx [69-78]
+  → 13 lines, 0 tokens
+
+  src/app/profile/page.tsx [159-172]
+  src/app/settings/page.tsx [140-152]
+  → 14 lines, 0 tokens
+
+  src/app/privacy/page.tsx [9-40]
+  src/app/terms/page.tsx [9-40]
+  → 32 lines, 0 tokens
+
+  src/app/privacy/page.tsx [147-160]
+  src/app/terms/page.tsx [174-187]
+  → 14 lines, 0 tokens
+
+  src/app/login/page.tsx [251-301]
+  src/app/signup/page.tsx [60-91]
+  → 51 lines, 0 tokens
+
+  src/app/login/page.tsx [34-47]
+  src/components/auth/sign-in-form.tsx [40-55]
+  → 14 lines, 0 tokens
+
+  src/app/login/page.tsx [52-67]
+  src/components/auth/sign-in-form.tsx [18-33]
+  → 16 lines, 0 tokens
+
+  src/app/login/page.tsx [99-128]
+  src/app/signup/page.tsx [20-49]
+  → 30 lines, 0 tokens
+
+  src/app/login/page.tsx [281-316]
+  src/app/signup/page.tsx [71-106]
+  → 36 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [211-218]
+  src/app/knowledge/page.tsx [188-195]
+  → 8 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [346-357]
+  src/app/settings/page.tsx [110-121]
+  → 12 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [613-626]
+  src/app/knowledge/page.tsx [412-425]
+  → 14 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [626-637]
+  src/app/knowledge/page.tsx [425-436]
+  → 12 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [637-647]
+  src/app/knowledge/page.tsx [436-446]
+  → 11 lines, 0 tokens
+
+  src/app/knowledge/page.tsx [668-679]
+  src/app/knowledge/page.tsx [547-558]
+  → 12 lines, 0 tokens
+
+  src/app/journal/page.tsx [57-67]
+  src/components/journal/JournalSidebar.tsx [157-164]
+  → 11 lines, 0 tokens
+
+  src/app/billing/page.tsx [134-139]
+  src/app/credits/page.tsx [90-94]
+  → 6 lines, 0 tokens
+
+  src/app/billing/page.tsx [159-176]
+  src/app/knowledge/page.tsx [341-122]
+  → 18 lines, 0 tokens
+
+  src/app/admin/page.tsx [49-60]
+  src/app/admin/logs/page.tsx [24-35]
+  → 12 lines, 0 tokens
+
+  src/app/admin/page.tsx [197-204]
+  src/components/board/AdminPlanToggle.tsx [28-35]
+  → 8 lines, 0 tokens
+
+  src/app/admin/page.tsx [215-223]
+  src/app/admin/logs/page.tsx [101-109]
+  → 9 lines, 0 tokens
+
+  src/app/admin/page.tsx [232-239]
+  src/app/admin/invite-codes/page.tsx [129-136]
+  → 8 lines, 0 tokens
+
+  src/lib/tiptap-collab-utils.ts [244-258]
+  src/lib/tiptap-collab-utils.ts [198-212]
+  → 15 lines, 0 tokens
+
+  src/lib/composio.ts [130-140]
+  src/lib/composio.ts [107-117]
+  → 11 lines, 0 tokens
+
+  src/hooks/useAITutor.ts [286-310]
+  src/hooks/useAITutor.ts [105-129]
+  → 25 lines, 0 tokens
+
+  src/emails/WaitlistTeacher.tsx [28-74]
+  src/emails/WaitlistWelcome.tsx [28-73]
+  → 47 lines, 0 tokens
+
+  src/emails/WaitlistTeacher.tsx [75-156]
+  src/emails/WaitlistWelcome.tsx [50-131]
+  → 82 lines, 0 tokens
+
+  src/emails/WaitlistTeacher.tsx [27-47]
+  src/emails/WaitlistWelcome.tsx [27-47]
+  → 21 lines, 0 tokens
+
+  src/emails/WaitlistTeacher.tsx [112-309]
+  src/emails/WaitlistWelcome.tsx [87-284]
+  → 198 lines, 0 tokens
+
+  src/emails/WaitlistParent.tsx [28-156]
+  src/emails/WaitlistWelcome.tsx [28-131]
+  → 129 lines, 0 tokens
+
+  src/emails/WaitlistParent.tsx [20-27]
+  src/emails/WaitlistWelcome.tsx [20-27]
+  → 8 lines, 0 tokens
+
+  src/emails/WaitlistParent.tsx [27-47]
+  src/emails/WaitlistWelcome.tsx [27-47]
+  → 21 lines, 0 tokens
+
+  src/emails/WaitlistParent.tsx [112-309]
+  src/emails/WaitlistWelcome.tsx [87-284]
+  → 198 lines, 0 tokens
+
+  src/emails/ReferralAnnouncement.tsx [27-47]
+  src/emails/WaitlistWelcome.tsx [27-47]
+  → 21 lines, 0 tokens
+
+  src/emails/ReferralAnnouncement.tsx [117-220]
+  src/emails/WaitlistWelcome.tsx [108-211]
+  → 104 lines, 0 tokens
+
+  src/emails/ReferralAnnouncement.tsx [230-255]
+  src/emails/WaitlistWelcome.tsx [259-284]
+  → 26 lines, 0 tokens
+
+  src/emails/ReferralAnnouncement.tsx [254-293]
+  src/emails/WaitlistWelcome.tsx [208-247]
+  → 40 lines, 0 tokens

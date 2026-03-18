@@ -64,7 +64,9 @@ export async function POST(req: NextRequest) {
         : courseInfo.name;
 
       // Generate a 6-character alphanumeric join code
-      const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      const bytes = crypto.getRandomValues(new Uint8Array(6));
+      const joinCode = Array.from(bytes, (b) => chars[b % chars.length]).join('');
 
       const { data: newClass, error } = await supabase
         .from('classes')

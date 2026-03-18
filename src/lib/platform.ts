@@ -28,8 +28,11 @@ export function isIpadApp(): boolean {
 export function setupNativeAppBridge() {
   if (typeof window === 'undefined') return;
 
-  // Listen for messages from native app
+  // Listen for messages from native app (validate origin)
   window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin && !event.origin.startsWith('file://')) {
+      return;
+    }
     try {
       // Handle both string and object messages
       let message: any;
@@ -105,7 +108,7 @@ export function sendToNativeApp(message: any) {
       (window as any).ReactNativeWebView.postMessage(JSON.stringify(message));
     } else {
       // Fallback for development
-      window.postMessage(message, '*');
+      window.postMessage(message, window.location.origin);
     }
   } catch (error) {
     console.error('Error sending message to native app:', error);

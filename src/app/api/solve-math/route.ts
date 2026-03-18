@@ -83,7 +83,7 @@ Examples:
       } catch (hackclubError) {
         console.error('Hack Club AI vision error:', hackclubError);
         return NextResponse.json(
-          { error: 'Vision API error', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { error: 'Vision API error' },
           { status: 500 }
         );
       }
@@ -210,7 +210,7 @@ Examples:
   } catch (error) {
     console.error('Error solving math:', error);
     return NextResponse.json(
-      { error: 'Failed to solve', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to solve' },
       { status: 500 }
     );
   }

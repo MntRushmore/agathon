@@ -27,6 +27,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
+    // Verify teacher owns the class containing this assignment
+    const { data: assignment } = await supabase
+      .from('assignments')
+      .select('class_id, classes!inner(teacher_id)')
+      .eq('id', assignmentId)
+      .single();
+
+    if (!assignment || (assignment.classes as unknown as { teacher_id: string })?.teacher_id !== user.id) {
+      return NextResponse.json({ error: 'Assignment not found or not authorized' }, { status: 403 });
+    }
+
     const { data: conceptData, error } = await supabase
       .from('concept_mastery')
       .select(`
