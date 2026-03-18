@@ -425,7 +425,9 @@ No text before or after the JSON object.`;
 
     // Refund credits if they were deducted before the failure
     if (premiumDeducted && refundUserId) {
-      await grantCredits(refundUserId, refundCreditCost, 'refund', 'Refund: solution generation failed').catch(() => {});
+      await grantCredits(refundUserId, refundCreditCost, 'refund', 'Refund: solution generation failed').catch((refundErr) => {
+        solutionLogger.error({ requestId, error: refundErr instanceof Error ? refundErr.message : 'Unknown error', userId: refundUserId, credits: refundCreditCost }, 'Failed to refund credits after solution generation failure');
+      });
     }
 
     return NextResponse.json(

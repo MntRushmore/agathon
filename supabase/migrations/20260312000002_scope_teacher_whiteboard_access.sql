@@ -5,6 +5,7 @@ DROP POLICY IF EXISTS "Teachers can view all whiteboards" ON public.whiteboards;
 
 CREATE POLICY "Teachers can view their students whiteboards" ON public.whiteboards
   FOR SELECT USING (
+    user_id = auth.uid() OR
     EXISTS (
       SELECT 1
       FROM public.class_members cm
