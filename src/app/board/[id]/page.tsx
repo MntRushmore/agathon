@@ -3230,7 +3230,7 @@ export default function BoardPage() {
 
         <DocumentPanelContext.Provider value={docPanelOpen}>
         <Tldraw
-          licenseKey="tldraw-2026-03-19/WyJSZHJJZ3NSWCIsWyIqIl0sMTYsIjIwMjYtMDMtMTkiXQ.8X9Dhayg/Q1F82ArvwNCMl//yOg8tTOTqLIfhMAySFKg50Wq946/jip5Qved7oDYoVA+YWYTNo4/zQEPK2+neQ"
+          licenseKey="tldraw-2026-12-15/WyJlcHFUaGRCMCIsWyIqLndoaXRlYm9hcmQtZGVsdGEtd2luZS52ZXJjZWwuYXBwIiwiKi53aGl0ZWJvYXJkLnJ1c2hpbGNob3ByYS5jb20iXSw5LCIyMDI2LTEyLTE1Il0.EW2FVgyPnqS47O9IA0TxV0uWBMvH9xfn5PCh6CtEaH9YeNCEW4oN3RvewKE3PDK4Jam52MHG7MDtnW3ADQyyIA"
           tools={[LassoSolveTool]}
           shapeUtils={[LaTeXShapeUtil]}
           overrides={hugeIconsOverrides}
