@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, ChangeEvent, Component } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Pencil, FileText, Grid3x3, Upload } from 'lucide-react';
 import { sileo } from 'sileo';
+import LinedPaper from '../svgs/LinedPaper';
+import UploadFile from '../svgs/UploadFile';
+import GraphPaper from '../svgs/GraphPaper';
+import BlankCanvas from '../svgs/BlankCanvas';
 
 interface TemplateSelectionDialogProps {
   open: boolean;
@@ -16,7 +20,7 @@ type TemplateId = 'blank' | 'lined' | 'graph' | 'file-upload';
 
 interface Template {
   id: TemplateId;
-  icon: React.ElementType;
+  icon?: React.ReactNode;
   title: string;
   description: string;
   iconBg: string;
@@ -26,7 +30,7 @@ interface Template {
 const templates: Template[] = [
   {
     id: 'blank',
-    icon: Pencil,
+    icon: <BlankCanvas/>,
     title: 'Blank Canvas',
     description: 'Start with a clean slate',
     iconBg: 'bg-[var(--accent-blue-muted)]',
@@ -34,7 +38,7 @@ const templates: Template[] = [
   },
   {
     id: 'lined',
-    icon: FileText,
+    icon: <LinedPaper/>,
     title: 'Lined Paper',
     description: 'Ruled notebook lines',
     iconBg: 'bg-[var(--accent-purple-muted)]',
@@ -42,7 +46,7 @@ const templates: Template[] = [
   },
   {
     id: 'graph',
-    icon: Grid3x3,
+    icon: <GraphPaper/>,
     title: 'Graph Paper',
     description: 'Grid for math and diagrams',
     iconBg: 'bg-[var(--accent-green-muted)]',
@@ -50,7 +54,7 @@ const templates: Template[] = [
   },
   {
     id: 'file-upload',
-    icon: Upload,
+    icon:<UploadFile/>,
     title: 'Upload File',
     description: 'Import PDF or image',
     iconBg: 'bg-[var(--accent-amber-muted)]',
@@ -186,17 +190,17 @@ export function TemplateSelectionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-serif">Choose a template</DialogTitle>
+            <DialogTitle className="text-xl">Choose a template</DialogTitle>
             <DialogDescription>
               Start with a blank canvas or import a file
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="grid grid-cols-2 place-content-start items-start place-items-start gap-3 mt-3">
             {templates.map((template) => {
-              const Icon = template.icon;
+              // const Icon = template.icon;
               const isSelected = selectedTemplate === template.id;
               const isLoading = (creating && isSelected) || (uploading && template.id === 'file-upload');
 
@@ -206,8 +210,8 @@ export function TemplateSelectionDialog({
                   onClick={() => handleTemplateClick(template.id)}
                   disabled={creating || uploading}
                   className={`
-                    feature-card group relative flex flex-col items-center justify-center
-                    h-36 p-4 rounded-xl
+                    feature-card group relative flex flex-col items-start justify-center
+                    h-[250px]
                     disabled:opacity-50 disabled:cursor-not-allowed
                     ${isSelected && !isLoading
                       ? 'ring-2 ring-primary/20 border-primary/30'
@@ -215,8 +219,8 @@ export function TemplateSelectionDialog({
                     }
                   `}
                 >
-                  <div className={`mb-3 flex items-center justify-center w-12 h-12 rounded-xl ${template.iconBg} ${template.iconColor}`}>
-                    <Icon className="w-5 h-5" strokeWidth={1.5} />
+                  <div className={`mb-3 flex items-center justify-center w-[150px] h-[150px] rounded-xl`}>
+                    {template.icon && template.icon}
                   </div>
                   <h3 className="text-sm font-medium text-foreground mb-0.5">
                     {template.title}

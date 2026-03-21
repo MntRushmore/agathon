@@ -28,7 +28,7 @@ export function Logo({ size = 'md', showText = false, className }: LogoProps) {
           alt="Agathon"
           width={width * 3}
           height={height}
-          className="h-auto"
+          className="h-auto rounded-[10px]"
           style={{ width: 'auto', height: size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 48 : 64 }}
           priority
         />

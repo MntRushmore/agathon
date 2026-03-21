@@ -53,6 +53,7 @@ import {
   Eye,
   ClockCountdown,
   HighlighterCircle,
+  DotsThreeVerticalIcon,
 } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'motion/react';
 import { sileo } from "sileo";
@@ -86,6 +87,20 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { AgoraLandingPage } from "@/components/landing/AgoraLandingPage";
 import { TemplateSelectionDialog } from "@/components/board/TemplateSelectionDialog";
+import { ChevronDown, ChevronsLeft, EllipsisVertical, FunnelIcon, Grid, Option, OptionIcon, PlusIcon, Search } from 'lucide-react';
+import ColoredBoard from '@/components/svgs/ColoredBoard';
+import ColoredJournal from '@/components/svgs/ColoredJournal';
+import ColoredAnnotations from '@/components/svgs/ColoredAnnotations';
+import Home from '@/components/svgs/Home';
+import Boards from '@/components/svgs/Boards';
+import Journals from '@/components/svgs/Journals';
+import Annotations from '@/components/svgs/Annotations';
+import Integrations from '@/components/svgs/Integrations';
+import Pomodoro from '@/components/svgs/Pomodoro';
+import Plans from '@/components/svgs/Plans';
+import Settings from '@/components/svgs/Settings';
+import Help from '@/components/svgs/Help';
+import ColoredClass from '@/components/svgs/ColoredClass';
 
 type Whiteboard = {
   id: string;
@@ -782,9 +797,9 @@ export default function Dashboard() {
     {
       id: 'whiteboard',
       title: 'Agathon',
-      description: 'Draw and get real-time AI tutoring help',
+      description: 'Draw and get real-time AI tutoring help →',
       detail: 'Handwriting recognition & hints',
-      icon: <PencilLine className="h-5 w-5" weight="duotone" />,
+      icon: <ColoredBoard/>,
       color: 'blue',
       onClick: () => { createWhiteboard(); },
       isPrimary: true,
@@ -792,18 +807,18 @@ export default function Dashboard() {
     {
       id: 'annotate',
       title: 'PDF Annotator',
-      description: 'Mark up PDFs and images with ease',
+      description: 'Mark up PDFs and images with ease →',
       detail: 'Draw, highlight & add text',
-      icon: <HighlighterCircle className="h-5 w-5" weight="duotone" />,
+      icon: <ColoredAnnotations/>,
       color: 'purple',
       onClick: () => { router.push('/annotate'); },
     },
     {
       id: 'journal',
       title: 'Journal',
-      description: 'Write notes with AI-powered study tools',
+      description: 'Write notes with AI-powered study tools →`',
       detail: 'Flashcards, Feynman method & more',
-      icon: <BookOpenText className="h-5 w-5" weight="duotone" />,
+      icon: <ColoredJournal/>,
       color: 'green',
       onClick: () => { createJournal(); },
       isPrimary: true,
@@ -838,9 +853,9 @@ export default function Dashboard() {
     featureCards.push({
       id: 'join',
       title: 'Join a Class',
-      description: 'Enter a class code from your teacher',
+      description: 'Enter a class code from your teacher →',
       detail: 'Access assignments & get help',
-      icon: <GraduationCap className="h-5 w-5" weight="duotone" />,
+      icon: <ColoredClass/>,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/student/join'); },
     });
@@ -905,8 +920,8 @@ export default function Dashboard() {
         layout
         className={cn(
           "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
-          "bg-card border-r border-border",
-          sidebarCollapsed ? "w-16" : "w-56"
+          "bg-new-background ",
+          sidebarCollapsed ? "w-16" : "w-60"
         )}>
         {/* Sidebar Header */}
         <div className="p-4 flex items-center justify-between">
@@ -919,12 +934,12 @@ export default function Dashboard() {
             </button>
           ) : (
             <>
-              <Logo size="sm" showText />
+              <Logo size="md" showText />
               <button
                 onClick={() => setSidebarCollapsed(true)}
-                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+                className="p-2 bg-white shadow-sm shadow-[#b5b5b541] rounded-lg transition-colors text-muted-foreground"
               >
-                <CaretLeft className="h-4 w-4" weight="duotone" />
+                <ChevronsLeft className="h-4 w-4"  />
               </button>
             </>
           )}
@@ -936,102 +951,107 @@ export default function Dashboard() {
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "w-full flex items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
+                  "w-full flex mt-6 mb-3 items-center gap-2.5 rounded-lg transition-all duration-150 font-medium",
+                  "bg-new-foreground h-[40px]! text-primary-foreground hover:bg-new-foreground/90",
                   sidebarCollapsed ? "justify-center px-2 py-2" : "px-4 py-2"
                 )}
               >
-                <Plus className="h-4 w-4 flex-shrink-0" weight="duotone" />
-                {!sidebarCollapsed && <span className="text-sm">New</span>}
-              </button>
+                <PlusIcon className="h-4 w-4 flex-shrink-0" />
+                {!sidebarCollapsed && <span className="text-sm">Create</span> }
+              </button> 
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => createWhiteboard()}>
-                <PencilLine className="w-4 h-4 mr-2" weight="duotone" />
-                New Board
+            <DropdownMenuContent align="start" className="w-[215px] bg-white rounded-xl!">
+              <DropdownMenuItem className='hover:shadow flex items-center gap-2 text-[.9rem] text-new-foreground rounded-lg!' onClick={() => createWhiteboard()}>
+                <ColoredBoard width={23} height={25}/>
+                New board
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
+              {/* <DropdownMenuItem onClick={() => router.push('/board/temp-' + Date.now())}>
                 <Lightning className="w-4 h-4 mr-2" weight="duotone" />
                 Quick Board
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => createJournal()}>
-                <BookOpenText className="w-4 h-4 mr-2" weight="duotone" />
+              <DropdownMenuSeparator /> */}
+              <DropdownMenuItem className='hover:shadow my-2 flex items-center gap-2 text-[.9rem] text-new-foreground rounded-lg!' onClick={() => createJournal()}>
+                <ColoredJournal width={23} height={25}/>
                 New Journal
+              </DropdownMenuItem>
+               <DropdownMenuItem className='hover:shadow flex items-center gap-2 text-[.9rem] text-new-foreground rounded-lg!' onClick={() => createWhiteboard()}>
+                <ColoredAnnotations width={23} height={25}/>
+                New Annotation
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto">
+        <nav className="flex-1 px-3 pb-2 overflow-y-auto ">
           <div className="space-y-1">
             <button
               onClick={() => setActiveView('home')}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                "w-full flex cursor-pointer items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
                 activeView === 'home'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white shadow shadow-[#b5b5b541] text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-white hover:shadow hover:text-foreground"
               )}
             >
-              <House className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">Home</span>}
+              <Home/>
+              {/* <House className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" /> */}
+              {!sidebarCollapsed && <span className="text-sm text-new-foreground!">Home</span>}
             </button>
             <button
               onClick={() => setActiveView('boards')}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                "w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
                 activeView === 'boards'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white shadow shadow-[#b5b5b541] text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-white hover:shadow hover:shadow-[#b5b5b541]"
               )}
             >
-              <FolderOpen className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Boards</span>}
+              <Boards/>
+              {!sidebarCollapsed && <span className="text-sm text-new-foreground!">My Boards</span>}
             </button>
             <button
               onClick={() => setActiveView('journals')}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
+                "w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-left",
                 activeView === 'journals'
-                  ? "bg-accent text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-white shadow shadow-[#b5b5b541] text-foreground font-medium"
+                  : "hover:bg-white hover:shadow hover:shadow-[#b5b5b541]"
               )}
             >
-              <BookOpenText className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Journals</span>}
+              <Journals/>
+              {!sidebarCollapsed && <span className="text-sm text-new-foreground!">My Journals</span>}
             </button>
             <button
               onClick={() => router.push('/annotate/files')}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+              className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
             >
-              <HighlighterCircle className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">My Annotations</span>}
+              <Annotations/>
+              {!sidebarCollapsed && <span className="text-sm text-new-foreground!">My Annotations</span>}
             </button>
             <button
               onClick={() => router.push('/knowledge')}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+              className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
             >
-              <Books className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-              {!sidebarCollapsed && <span className="text-sm">Knowledge Base</span>}
+              <Integrations/>
+              {!sidebarCollapsed && <span className="text-sm text-new-foreground!">Integrations</span>}
             </button>
           </div>
 
           {/* Collapsible Tools Section */}
           {!sidebarCollapsed && (
-            <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="mt-4">
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <Collapsible open={toolsOpen} onOpenChange={setToolsOpen} className="mt-6">
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 text-xs font-semibold text-new-foreground/60!">
                 Tools
-                {toolsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
+                {toolsOpen ? <CaretUp className="h-3.5 w-3.5 text-new-foreground/60!" /> : <CaretDown className="h-3.5 w-3.5 text-new-foreground/60!" />}
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-1 mt-1">
                 <button
                   onClick={() => setPomodoroActive(!pomodoroActive)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                  className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
                 >
-                  <Timer className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
-                  <span className="text-sm flex-1">Pomodoro</span>
+                  <Pomodoro/>
+                  <span className="text-sm flex-1 text-new-foreground!">Pomodoro</span>
                   {pomodoroActive && (
                     <span className="text-xs font-mono text-primary">{formatPomodoroTime(pomodoroTime)}</span>
                   )}
@@ -1042,8 +1062,8 @@ export default function Dashboard() {
 
           {/* Collapsible Settings Section */}
           {!sidebarCollapsed && (
-            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="mt-2">
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen} className="mt-6">
+              <CollapsibleTrigger className="flex items-center justify-between w-full px-3 text-xs font-semibold text-new-foreground/60!">
                 Settings
                 {settingsOpen ? <CaretUp className="h-3.5 w-3.5" /> : <CaretDown className="h-3.5 w-3.5" />}
               </CollapsibleTrigger>
@@ -1051,24 +1071,24 @@ export default function Dashboard() {
                 {user && (
                   <button
                     onClick={() => router.push('/billing')}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                    className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
                   >
-                    <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+                    <Plans/>
                     <span className="text-sm">Plans & Usage</span>
                   </button>
                 )}
                 <button
                   onClick={() => router.push('/settings')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                  className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
                 >
-                  <GearSix className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+                  <Settings/>
                   <span className="text-sm">Preferences</span>
                 </button>
                 <button
                   onClick={() => sileo.info({ title: 'Help center coming soon!' })}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-muted hover:text-foreground text-left"
+                  className="w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150 hover:bg-white hover:shadow hover:shadow-[#b5b5b541] hover:text-foreground text-left"
                 >
-                  <Question className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" />
+                  <Help/>
                   <span className="text-sm">Help</span>
                 </button>
               </CollapsibleContent>
@@ -1077,7 +1097,7 @@ export default function Dashboard() {
         </nav>
 
         {/* Divider */}
-        <div className="mx-3 border-t border-border" />
+        {/* <div className="mx-3 border-t border-border" /> */}
 
         {/* Secondary Navigation / Footer */}
         <div className="p-3 space-y-1">
@@ -1086,7 +1106,7 @@ export default function Dashboard() {
             <button
               onClick={() => router.push('/admin')}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                "w-full flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg transition-all duration-150",
                 "text-muted-foreground hover:bg-muted hover:text-foreground",
                 sidebarCollapsed && "justify-center"
               )}
@@ -1099,25 +1119,25 @@ export default function Dashboard() {
           {/* Usage indicator */}
           {!sidebarCollapsed && user && (
             <div className="px-3 py-2 space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <div className='bg-white shadow shadow-[#b5b5b541] text-new-foreground h-[50px] rounded-[8px] w-full p-[10px]'>
+                <div className="flex items-center justify-between text-xs  mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <PencilLine className="w-3 h-3" />
+                    {/* <PencilLine className="w-3 h-3" /> */}
                     Boards
                   </span>
-                  <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT}</span>
+                  <span>{whiteboards.length} / {isAdmin ? '\u221E' : FREE_BOARD_LIMIT} remaining</span>
                 </div>
-                {!isAdmin && <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1.5" />}
+                {!isAdmin && <Progress value={(whiteboards.length / FREE_BOARD_LIMIT) * 100} className="h-1" />}
               </div>
-              <div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <div className='bg-white shadow shadow-[#b5b5b541] text-new-foreground h-[50px] rounded-[8px] w-full p-[10px]'>
+                <div className="flex items-center justify-between text-xs mb-1.5">
                   <span className="flex items-center gap-1.5">
-                    <BookOpenText className="w-3 h-3" />
+                    {/* <BookOpenText className="w-3 h-3" /> */}
                     Journals
                   </span>
                   <span>{journalCount} / {isAdmin ? '\u221E' : FREE_JOURNAL_LIMIT}</span>
                 </div>
-                {!isAdmin && <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1.5" />}
+                {!isAdmin && <Progress value={(journalCount / FREE_JOURNAL_LIMIT) * 100} className="h-1" />}
               </div>
             </div>
           )}
@@ -1128,7 +1148,7 @@ export default function Dashboard() {
               {user ? (
                 <button
                   onClick={() => router.push('/profile')}
-                  className="w-full px-3 py-2 flex items-center gap-3 hover:bg-muted rounded-lg transition-colors text-left"
+                  className="w-full px-3 py-2 flex items-center gap-3 cursor-pointer hover:bg-muted rounded-lg transition-colors text-left"
                 >
                   <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center text-xs font-semibold flex-shrink-0">
                     {profile?.full_name
@@ -1157,7 +1177,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className={cn(
-        "flex-1 transition-all duration-300 ease-out",
+        "flex-1 transition-all duration-300 ease-out bg-new-background py-[50px] px-[3%]",
         sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
         <AnimatePresence mode="wait">
@@ -1168,43 +1188,43 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-          <div className="max-w-6xl mx-auto px-8 py-10">
-            <div className="flex items-center justify-between mb-8">
+            transition={{ duration: 0.2, ease:'easeOut'}}>
+          <h1 className="text-lg font-medium text-new-foreground tracking-tight -mt-8
+           mb-3">My Boards</h1>
+        
+          <div className="w-full mx-auto p-6 bg-white shadow rounded-[20px]">
+            <div className="flex items-center justify-between mb-8 mx-auto max-w-5xl">
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Boards</h1>
-                <p className="text-sm text-muted-foreground mt-1">All your whiteboards in one place</p>
+                <p className="text-sm text-new-foreground/60 mt-1">All your whiteboards in one place</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 p-0.5 border-[5px] border-new-background rounded-xl">
                 {/* View mode toggle */}
                 <div className="flex items-center bg-muted rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
                     className={cn(
-                      "p-1.5 rounded-md transition-colors",
-                      viewMode === 'grid' ? "bg-card shadow-sm" : "hover:bg-card/50"
+                      "cursor-pointer p-1.5 rounded-md transition-colors",
+                      viewMode === 'grid' ? "bg-new-foreground shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <GridNine className="w-4 h-4" weight="duotone" />
+                    <Grid className="w-4 h-4" color={viewMode === 'grid' ? 'white':'black'} />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
                     className={cn(
-                      "p-1.5 rounded-md transition-colors",
-                      viewMode === 'list' ? "bg-card shadow-sm" : "hover:bg-card/50"
+                      "cursor-pointer p-1.5 rounded-md transition-colors",
+                      viewMode === 'list' ? "bg-new-foreground shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <ListBullets className="w-4 h-4" weight="duotone" />
+                    <ListBullets className="w-4 h-4" weight="duotone" color={viewMode === 'list' ? 'white':'black'} />
                   </button>
                 </div>
 
                 {/* Filter dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Funnel className="w-4 h-4" weight="duotone" />
-                      {filterType === 'all' ? 'All' : filterType === 'favorites' ? 'Favorites' : filterType === 'recent' ? 'Recent' : 'Archived'}
+                    <Button size="sm" className="gap-2 cursor-pointer text-new-foreground hover:text-white hover:bg-new-foreground bg-new-background h-[38px]">
+                      <FunnelIcon className="w-4 h-4" />  {filterType === 'all' ? 'All' : filterType === 'favorites' ? 'Favorites' : filterType === 'recent' ? 'Recent' : 'Archived'}<ChevronDown/>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -1218,13 +1238,13 @@ export default function Dashboard() {
 
                 {/* MagnifyingGlass */}
                 <div className="relative w-64">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" weight="duotone" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"  />
                   <Input
                     type="text"
                     placeholder=" Search boards..."
                     value={searchQuery}
                     onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
-                    className="pl-9 bg-card border-border"
+                    className="pl-9 bg-card border-border placeholder:text-[.8rem] placeholder:text-new-foreground/30"
                     data-search-input
                   />
                 </div>
@@ -1243,18 +1263,22 @@ export default function Dashboard() {
               </div>
             ) : filteredBoards.length === 0 && !searchQuery ? (
               /* Empty State */
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
-                  <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <PencilLine className="w-6 h-6" weight="duotone" />
+              <div className="flex flex-col items-center justify-center">
+                <div className="rounded-2xl p-12 text-center max-w-md w-full">
+                  <div className="w-[150px] h-[150px] mx-auto mb-5">
+                    <img
+                    src='/empty-states/empty-board.png'
+                    alt='empty board'
+                    />
+                    {/* <PencilLine className="w-6 h-6" weight="duotone" /> */}
                   </div>
-                  <h2 className="text-lg font-bold text-foreground mb-2">Create your first board</h2>
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                  <h2 className="text-lg font-bold text-new-foreground mb-2">Create your first board</h2>
+                  <p className="text-sm text-new-foreground/60 mb-6 leading-relaxed">
                     Start with a blank whiteboard and draw, write equations, or get AI tutoring help.
                   </p>
-                  <Button onClick={() => createWhiteboard()} size="lg" className="px-6">
-                    <Plus className="w-4 h-4" weight="duotone" />
-                    New Board
+                  <Button onClick={() => createWhiteboard()} size="lg" className="px-6 bg-new-foreground">
+                    <PlusIcon className="w-4 h-4" />
+                    Create A New Board
                   </Button>
                 </div>
               </div>
@@ -1278,10 +1302,10 @@ export default function Dashboard() {
                 {viewMode === 'grid' && (
                   <button
                     onClick={() => createWhiteboard()}
-                    className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
+                    className="border border-border bg-new-background rounded-xl aspect-[4/3] h-full w-full flex flex-col items-center justify-center gap-3 cursor-pointer"
                   >
-                    <div className="icon-container icon-container-green">
-                      <Plus className="w-5 h-5" weight="duotone" />
+                    <div className="bg-white p-1 border border-border rounded-sm">
+                      <PlusIcon className="w-5 h-5 text-foreground"/>
                     </div>
                     <span className="text-sm font-medium text-muted-foreground">New Board</span>
                   </button>
@@ -1295,15 +1319,15 @@ export default function Dashboard() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.2 }}
                       key={board.id}
-                      className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
+                      className="p-2 group bg-new-background rounded-xl overflow-hidden cursor-pointer"
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
-                      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                      <div className="aspect-[4/3] bg-white relative rounded-sm overflow-hidden">
                         {board.preview ? (
                           <img
                             src={board.preview}
                             alt={board.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover rounded-sm"
                           />
                         ) : (
                           <div className="flex items-center justify-center h-full">
@@ -1324,7 +1348,7 @@ export default function Dashboard() {
                           </div>
                         )}
                         {/* Quick actions on hover */}
-                        <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-new-background/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <Button
                             size="sm"
                             variant="secondary"
@@ -1351,7 +1375,7 @@ export default function Dashboard() {
                           </Button>
                         </div>
                       </div>
-                      <div className="p-4">
+                      <div className="p-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-foreground truncate text-sm">
@@ -1361,29 +1385,31 @@ export default function Dashboard() {
                               {getFriendlyTimestamp(new Date(board.updated_at))}
                             </p>
                           </div>
-                          <DropdownMenu>
+                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
+                                className="h-8 w-8 -mr-2"
                               >
-                                <DotsThree className="w-4 h-4" weight="duotone" />
+                                <EllipsisVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuContent 
+                            className='rounded-lg'
+                            align="end" onClick={(e) => e.stopPropagation()}>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 toggleFavorite(board.id, board.is_favorite || false);
                               }}>
                                 {board.is_favorite ? (
                                   <>
-                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
+                                    <Star className="w-4 h-4 mr-2" />
                                     Remove from favorites
                                   </>
                                 ) : (
                                   <>
-                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
+                                    <Star className="w-4 h-4 mr-2" />
                                     Add to favorites
                                   </>
                                 )}
@@ -1393,14 +1419,14 @@ export default function Dashboard() {
                                 setRenameId(board.id);
                                 setRenameTitle(board.title);
                               }}>
-                                <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
+                                <PencilSimple className="w-4 h-4 mr-2" />
                                 Rename
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 duplicateWhiteboard(board);
                               }}>
-                                <Copy className="w-4 h-4 mr-2" weight="duotone" />
+                                <Copy className="w-4 h-4 mr-2" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
@@ -1409,7 +1435,7 @@ export default function Dashboard() {
                                 setShareBoardTitle(board.title);
                                 setShareDialogOpen(true);
                               }}>
-                                <ShareNetwork className="w-4 h-4 mr-2" weight="duotone" />
+                                <ShareNetwork className="w-4 h-4 mr-2" />
                                 Share
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -1420,7 +1446,7 @@ export default function Dashboard() {
                                   deleteWhiteboard(board.id);
                                 }}
                               >
-                                <Trash className="w-4 h-4 mr-2" weight="duotone" />
+                                <Trash className="w-4 h-4 mr-2" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1432,7 +1458,7 @@ export default function Dashboard() {
                     /* List view */
                     <div
                       key={board.id}
-                      className="group flex items-center gap-4 p-3 bg-card rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
+                      className="group flex items-center gap-4 p-3 bg-new-background rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
                       <div className="w-16 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
@@ -1447,6 +1473,7 @@ export default function Dashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-sm text-foreground truncate" title={board.title}>{board.title}</h3>
+                          
                           {board.is_favorite && (
                             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" weight="duotone" />
                           )}
@@ -1568,7 +1595,7 @@ export default function Dashboard() {
                 {/* Header with sync + manage */}
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5" weight="duotone" />
+                    <ColoredClass/>
                     Google Classroom
                   </h2>
                   <div className="flex items-center gap-2">
@@ -1916,32 +1943,35 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
+            className='h-full w-full'
           >
-          <div className="flex items-start justify-center min-h-screen px-8 lg:px-12 pt-[12vh] pb-12">
+          <div className="flex items-start justify-center min-h-screen px-4 lg:px-6 pt-[6vh] pb-12 bg-white shadow rounded-[20px]">
           <div className="w-full max-w-4xl">
               {/* Greeting */}
               <div className="mb-6">
-                <p className="text-[13px] text-muted-foreground">
+                <p className="text-[13px] text-new-foreground/60">
                   {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : ''}
                 </p>
-                <h1 className="text-xl font-semibold text-foreground tracking-tight mt-0.5" style={{ fontFamily: 'var(--font-sans)' }}>
-                  What would you like to work on?
+                <h1 className="text-xl font-semibold text-new-foreground tracking-tight mt-0.5" style={{ fontFamily: 'var(--font-sans)' }}>
+                  What are we working on today? :)
                 </h1>
               </div>
 
               {/* All feature cards in a single grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {featureCards.map((card, index) => (
+                <div
+                key={card.id}
+                className='bg-new-foreground/5 flex items-center justify-center h-fit w-fit p-[5px] rounded-xl'>
                   <motion.button
-                    key={card.id}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={card.onClick}
                     disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
                     className={cn(
-                      "group text-left rounded-lg border border-border bg-card p-3.5 transition-colors duration-100 relative",
-                      "hover:bg-muted/40 active:bg-muted/60",
+                      "cursor-pointer group text-left rounded-lg bg-card p-3.5 transition-colors duration-100 relative shadow shadow-[#b5b5b541]",
+                      "hover:bg-new-foreground/2 active:bg-muted/60",
                       "disabled:cursor-not-allowed",
                       card.comingSoon && "opacity-50"
                     )}
@@ -1951,29 +1981,32 @@ export default function Dashboard() {
                     )}
                     <div className="flex items-center gap-2.5 text-muted-foreground mb-2">
                       {card.icon}
-                      {card.isPrimary && (
+                      {/* {card.isPrimary && (
                         <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded ml-auto">AI</span>
-                      )}
+                      )} */}
                     </div>
-                    <h3 className="text-[13px] font-semibold text-foreground leading-tight" style={{ fontFamily: 'var(--font-sans)' }}>{card.title}</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug line-clamp-2">{card.description}</p>
+                    <h3 className="text-[16px] font-semibold text-new-foreground leading-tight mt-[20px]" style={{ fontFamily: 'var(--font-sans)' }}>{card.title}</h3>
+                    <p className="text-[11px] text-new-foreground/60 mt-0.5 h-[30px] leading-snug line-clamp-2">{card.description}</p>
                   </motion.button>
+                 </div>
                 ))}
               </div>
+
+              <div className='h-[1px] w-full bg-new-foreground/5 my-[30px]'></div>
 
               {/* Recents — boards + journals */}
               {user && recentItems.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'var(--font-sans)' }}>Recents</span>
+                    <span className="text-[11px] font-medium text-new-foreground" style={{ fontFamily: 'var(--font-sans)' }}>Recents</span>
                     <button
                       onClick={() => setActiveView('boards')}
-                      className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-[11px] text-new-foreground hover:text-foreground transition-colors"
                     >
                       View all &rarr;
                     </button>
                   </div>
-                  <div className="border border-border rounded-lg bg-card divide-y divide-border">
+                  <div className="w-full rounded-lg bg-card divide-y divide-border grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                     {recentItems.map((item, index) => (
                       <motion.button
                         key={`${item.type}-${item.id}`}
@@ -1981,15 +2014,15 @@ export default function Dashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.2, delay: index * 0.03 }}
                         onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
-                        className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-muted/30 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                        className="flex p-[8px] flex-col items-start justify-start h-[265px] border-border border bg-new-background flex items-center gap-3 text-left hover:bg-muted/30 transition-colors rounded-lg"
                       >
                         {/* Thumbnail / icon */}
                         {item.type === 'board' && item.preview ? (
-                          <div className="w-10 h-7 rounded overflow-hidden bg-muted flex-shrink-0">
+                          <div className="w-full h-[180px] rounded overflow-hidden bg-muted flex-shrink-0">
                             <img src={item.preview} alt="" className="w-full h-full object-cover" />
                           </div>
                         ) : (
-                          <div className="w-10 h-7 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          <div className="w-full h-[180px] rounded bg-white flex items-center justify-center flex-shrink-0">
                             {item.type === 'board'
                               ? <PencilLine className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
                               : <BookOpenText className="w-3.5 h-3.5 text-muted-foreground/50" weight="duotone" />
@@ -1997,21 +2030,22 @@ export default function Dashboard() {
                           </div>
                         )}
                         {/* Title + snippet */}
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[13px] text-foreground truncate block">{item.title}</span>
+                        <div className="flex-1 min-w-0 relative w-full">
+                          <span className="text-[.9rem] pb-[10px] text-new-foreground truncate block">{item.title}</span>
                           {item.snippet && (
                             <span className="text-[11px] text-muted-foreground/60 truncate block">{item.snippet}</span>
                           )}
-                        </div>
-                        {/* Meta */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-[10px] text-muted-foreground/50 uppercase">
-                            {item.type === 'board' ? 'Board' : 'Journal'}
-                          </span>
+                          {/* Meta */}
+                        <div className="flex items-center gap-2  w-full">
                           <span className="text-[11px] text-muted-foreground/70 tabular-nums">
                             {getFriendlyTimestamp(new Date(item.updated_at))}
                           </span>
                         </div>
+                          <span className="text-[9px] top-0 text-muted-foreground/50 rounded-full px-3 absolute bg-white right-0">
+                            {item.type === 'board' ? 'Board' : 'Journal'}
+                          </span>
+                        </div>
+                        
                       </motion.button>
                     ))}
                   </div>

@@ -1,0 +1,13 @@
+import React from 'react'
+
+function Home() {
+    return (
+        <svg width="17" height="15" viewBox="0 0 17 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14.7223 4.75879V11.1587C14.7223 12.6672 14.7223 13.4214 14.2016 13.89C13.6809 14.3587 12.8428 14.3587 11.1667 14.3587H10.2778H6.72228H5.83339C4.15728 14.3587 3.31923 14.3587 2.79853 13.89C2.27783 13.4214 2.27783 12.6672 2.27783 11.1587V4.75879" stroke="#06313A" stroke-linejoin="round" />
+            <path d="M0.5 6.3592L4.5 3.15924L7.31893 0.904137C7.99244 0.365288 9.00756 0.365288 9.68107 0.904137L12.5 3.15924L16.5 6.3592" stroke="#06313A" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M6.72217 14.359V11.1591C6.72217 10.2754 7.51808 9.55908 8.49995 9.55908C9.48181 9.55908 10.2777 10.2754 10.2777 11.1591V14.359" stroke="#06313A" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    )
+}
+
+export default Home

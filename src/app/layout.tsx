@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
+import { Geist, Geist_Mono, Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers";
 import { NativeAppBridge } from "@/components/NativeAppBridge";
@@ -16,6 +16,11 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
@@ -80,7 +85,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${cormorantGaramond.variable} antialiased`}
+        className={`${manrope.variable} ${cormorantGaramond.variable} text-new-foreground antialiased`}
         suppressHydrationWarning
       >
         <NativeAppBridge />
