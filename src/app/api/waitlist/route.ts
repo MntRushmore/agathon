@@ -72,8 +72,6 @@ async function recordReferralDirect(
 
   if (updateCountError) {
     console.error('[referral-direct] Failed to increment count:', updateCountError.message);
-  } else {
-    console.log('[referral-direct] Recorded referral for referrer:', referrer.id);
   }
 }
 
@@ -157,8 +155,6 @@ export async function POST(request: NextRequest) {
     // Track referral if ref code was provided
     if (ref && typeof ref === 'string') {
       const cleanedRef = ref.replace(/[-\s]/g, '').toUpperCase();
-      console.log('[waitlist] Tracking referral:', { ref: cleanedRef, newId: newEntry.id });
-
       try {
         const { data: referralResult, error: referralError } = await supabase.rpc('record_referral', {
           p_referral_code: cleanedRef,
@@ -172,8 +168,6 @@ export async function POST(request: NextRequest) {
           const result = Array.isArray(referralResult) ? referralResult[0] : referralResult;
           if (result && !result.success) {
             console.warn('[waitlist] Referral not recorded:', result.error_message);
-          } else {
-            console.log('[waitlist] Referral recorded via RPC');
           }
         }
       } catch (rpcErr) {

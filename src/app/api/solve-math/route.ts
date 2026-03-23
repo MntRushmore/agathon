@@ -145,7 +145,6 @@ Examples:
             provider: 'local',
           });
         }
-        console.log('CAS failed, falling back to LLM:', result.error);
       }
     }
 

@@ -67,7 +67,6 @@ export function setupNativeAppBridge() {
             }
           }
 
-          console.log('Native app detected:', message.platform, 'iPad:', message.isIpad);
           break;
 
         case 'SCRIPTS_READY':
@@ -75,13 +74,11 @@ export function setupNativeAppBridge() {
           break;
 
         case 'TOKEN_LOADED':
-          // Handle auth token from native storage
-          console.log('Auth token loaded from native storage');
           // Trigger auth state update if needed
           break;
 
         default:
-          console.log('Unknown native message:', message.type);
+          break;
       }
     } catch (error) {
       console.error('Error handling native message:', error);

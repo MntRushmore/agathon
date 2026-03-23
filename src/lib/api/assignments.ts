@@ -133,12 +133,6 @@ export async function publishAssignment(assignmentId: string) {
   }
   if (!templateBoard) throw new Error('Template board data not found');
 
-  // Debug: Log template board data to verify it's being fetched correctly
-  const dataStr = JSON.stringify(templateBoard.data || {});
-  console.log('Template board ID:', templateBoard.id);
-  console.log('Template board has data:', !!templateBoard.data);
-  console.log('Template board data size:', dataStr.length, 'characters');
-
   // Check if data is actually empty
   if (!templateBoard.data || Object.keys(templateBoard.data).length === 0) {
     console.warn('WARNING: Template board has empty data! This might mean:');

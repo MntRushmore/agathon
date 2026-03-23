@@ -140,7 +140,6 @@ async function recognizeWithGemini(imageBase64: string): Promise<RecognitionResu
     // Check if the recognized expression looks like math
     const expression = data.recognized || '';
     if (expression && !isMathExpression(expression)) {
-      console.log('Skipping non-math content:', expression);
       return null;
     }
 
@@ -280,7 +279,6 @@ export function MyScriptMathOverlay({ editor, enabled, onResult }: MyScriptMathO
     // Skip MyScript if not configured - will use Gemini instead
     if (!config.applicationKey || !config.hmacKey) {
       if (!missingConfigWarnedRef.current) {
-        console.log('MyScript not configured, using Gemini vision for recognition');
         missingConfigWarnedRef.current = true;
       }
       return null;

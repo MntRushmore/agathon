@@ -444,7 +444,6 @@ function VoiceAgentControls({
 
     const setupDataChannel = useCallback((dc: RTCDataChannel) => {
       dc.onopen = () => {
-        console.log("[Voice Agent] Data channel open, configuring session...");
         const sessionConfig = {
           type:"session.update",
           session: {
@@ -491,7 +490,6 @@ function VoiceAgentControls({
       };
 
       dc.onclose = () => {
-        console.log("[Voice Agent] Data channel closed");
         stopSession();
       };
     }, [handleServerEvent, stopSession]);
@@ -2087,7 +2085,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     const handleChange = () => {
       // Skip auto-save for temporary boards (no auth)
       if (id.startsWith('temp-')) {
-        console.log('Skipping auto-save for temporary board');
         return;
       }
 
@@ -2202,8 +2199,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             }
           }
 
-          console.log(`Attempting to save board ${id}...`);
-          
           const { error, data } = await supabase
             .from("whiteboards")
             .update(updateData)
@@ -2623,7 +2618,6 @@ export default function BoardPage() {
       try {
         // If it's a temp board (no auth), just allow editing
         if (id.startsWith('temp-')) {
-          console.log('Loading temporary board (no auth)');
           setBoardTitle('Temporary Board');
           setCanEdit(true);
           setLoading(false);
@@ -2894,28 +2888,20 @@ export default function BoardPage() {
 
   // Handle uploaded files from template selection
   useEffect(() => {
-    console.log('[Upload Effect] Effect triggered, searchParams:', searchParams.toString());
-
     const hasUpload = searchParams.get('hasUpload');
-    console.log('[Upload Effect] hasUpload param:', hasUpload);
 
     if (!hasUpload) {
-      console.log('[Upload Effect] No hasUpload param, exiting');
       return;
     }
 
     // Check if data is in sessionStorage (if not, we already processed it)
     const storedData = sessionStorage.getItem('uploadedFile');
     if (!storedData) {
-      console.log('[Upload Effect] No data in sessionStorage, already processed');
       return;
     }
 
-    console.log('[Upload Effect] Starting upload process...');
-
     // Clear URL param immediately to prevent re-triggering
     router.replace(`/board/${id}`);
-    console.log('[Upload Effect] Cleared URL param');
 
     let attempts = 0;
     const maxAttempts = 20;
@@ -2925,15 +2911,11 @@ export default function BoardPage() {
       const editor = (window as any).__tldrawEditor;
       attempts++;
 
-      console.log(`[Upload Effect] Attempt ${attempts}: editor=${!!editor}, loading=${loading}, hasLoaded=${hasLoaded}`);
-
       if (editor && !loading && !hasLoaded) {
-        console.log('[Upload Effect] Editor ready, calling loadUploadedFiles');
         hasLoaded = true;
         clearInterval(intervalId);
         loadUploadedFiles(editor);
       } else if (attempts >= maxAttempts) {
-        console.log('[Upload Effect] Max attempts reached, giving up');
         clearInterval(intervalId);
         if (!hasLoaded) {
           sileo.error({ title: 'Failed to initialize editor' });
@@ -2946,11 +2928,8 @@ export default function BoardPage() {
         // Retrieve from sessionStorage
         const storedData = sessionStorage.getItem('uploadedFile');
         if (!storedData) {
-          console.log('No stored file data');
           return;
         }
-
-        console.log('Found stored file data, length:', storedData.length);
 
         // Clear from sessionStorage
         sessionStorage.removeItem('uploadedFile');
@@ -2961,7 +2940,6 @@ export default function BoardPage() {
 
         // Check if it's an array (multi-page PDF) or single image
         imageUrls = Array.isArray(parsed) ? parsed : [parsed];
-        console.log(`Loading ${imageUrls.length} image(s)`);
 
         const viewportBounds = editor.getViewportPageBounds();
         const viewportCenter = viewportBounds.center;

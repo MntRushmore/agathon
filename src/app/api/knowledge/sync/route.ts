@@ -159,9 +159,7 @@ async function syncProvider(
       // Fetch coursework (assignments) for this course
       try {
         const courseworkResponse = await fetchClassroomCoursework(userId, courseId);
-        console.log(`Coursework response for course ${courseId}:`, JSON.stringify(courseworkResponse).slice(0, 500));
         const courseworkItems = extractItems(courseworkResponse);
-        console.log(`Found ${courseworkItems.length} coursework items for course ${courseId}`);
 
         for (const cw of courseworkItems.slice(0, 20)) {
           const cwId = cw.id;
@@ -222,9 +220,7 @@ async function syncProvider(
       // Fetch course materials
       try {
         const materialsResponse = await fetchClassroomMaterials(userId, courseId);
-        console.log(`Materials response for course ${courseId}:`, JSON.stringify(materialsResponse).slice(0, 500));
         const materialItems = extractItems(materialsResponse);
-        console.log(`Found ${materialItems.length} material items for course ${courseId}`);
 
         for (const mat of materialItems.slice(0, 20)) {
           const matId = mat.id;

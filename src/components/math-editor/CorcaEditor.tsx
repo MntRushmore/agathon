@@ -230,10 +230,6 @@ export function CorcaEditor({
             )}
           />
  <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
-            <span>Your Name</span>
-            <span>·</span>
-            <span>@username</span>
-            <span>·</span>
             <span>{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
           </div>
         </div>
