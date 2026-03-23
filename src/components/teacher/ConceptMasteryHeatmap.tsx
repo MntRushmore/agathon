@@ -75,15 +75,15 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
   if (loading) {
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+ <CardHeader className="pb-3">
+ <CardTitle className="text-lg flex items-center gap-2">
+ <BarChart3 className="h-5 w-5" />
             Concept Mastery
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+ <div className="flex items-center justify-center py-8 text-muted-foreground">
+ <RefreshCw className="h-5 w-5 animate-spin mr-2" />
             Loading...
           </div>
         </CardContent>
@@ -93,112 +93,112 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+ <CardHeader className="pb-3">
+ <div className="flex items-center justify-between">
+ <CardTitle className="text-lg flex items-center gap-2">
+ <BarChart3 className="h-5 w-5" />
             Concept Mastery Heatmap
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={fetchData}>
-            <RefreshCw className="h-4 w-4" />
+ <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-muted rounded-lg">
-            <div className="text-2xl font-bold">{totalInteractions}</div>
-            <div className="text-xs text-muted-foreground">Total AI Interactions</div>
+ <CardContent className="space-y-6">
+ <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+ <div className="text-center p-3 bg-muted rounded-lg">
+ <div className="text-2xl font-bold">{totalInteractions}</div>
+ <div className="text-xs text-muted-foreground">Total AI Interactions</div>
           </div>
-          <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{modeBreakdown.feedback || 0}</div>
-            <div className="text-xs text-muted-foreground">Feedback</div>
+ <div className="text-center p-3 bg-blue-50 rounded-lg">
+ <div className="text-2xl font-bold text-blue-600 ">{modeBreakdown.feedback || 0}</div>
+ <div className="text-xs text-muted-foreground">Feedback</div>
           </div>
-          <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg">
-            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{modeBreakdown.suggest || 0}</div>
-            <div className="text-xs text-muted-foreground">Suggestions</div>
+ <div className="text-center p-3 bg-amber-50 rounded-lg">
+ <div className="text-2xl font-bold text-amber-600 ">{modeBreakdown.suggest || 0}</div>
+ <div className="text-xs text-muted-foreground">Suggestions</div>
           </div>
-          <div className="text-center p-3 bg-green-50 dark:bg-green-950/40 rounded-lg">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{modeBreakdown.answer || 0}</div>
-            <div className="text-xs text-muted-foreground">Solves</div>
+ <div className="text-center p-3 bg-green-50 rounded-lg">
+ <div className="text-2xl font-bold text-green-600 ">{modeBreakdown.answer || 0}</div>
+ <div className="text-xs text-muted-foreground">Solves</div>
           </div>
         </div>
 
         {concepts.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="font-medium">No concept data yet</p>
-            <p className="text-sm">Concept mastery will appear as students use AI help</p>
+ <div className="text-center py-8 text-muted-foreground">
+ <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+ <p className="font-medium">No concept data yet</p>
+ <p className="text-sm">Concept mastery will appear as students use AI help</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+ <div className="space-y-3">
+ <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
               <span>Concept</span>
               <span>Class Performance</span>
             </div>
             {concepts.map((concept) => (
-              <div key={concept.concept} className="border rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${getMasteryColor(concept.strugglingPercent)}`} />
-                    <span className="font-medium">{concept.concept}</span>
+ <div key={concept.concept} className="border rounded-lg p-3">
+ <div className="flex items-center justify-between mb-2">
+ <div className="flex items-center gap-2">
+ <div className={`w-3 h-3 rounded-full ${getMasteryColor(concept.strugglingPercent)}`} />
+ <span className="font-medium">{concept.concept}</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">
+ <Badge variant="outline" className="text-xs">
                     {getMasteryLabel(concept.strugglingPercent)}
                   </Badge>
                 </div>
 
-                <div className="h-4 bg-muted rounded-full overflow-hidden flex mb-2">
+ <div className="h-4 bg-muted rounded-full overflow-hidden flex mb-2">
                   {concept.struggling > 0 && (
                     <div
-                      className="bg-red-500 h-full"
+ className="bg-red-500 h-full"
                       style={{ width: `${(concept.struggling / concept.totalStudents) * 100}%` }}
                       title={`${concept.struggling} struggling`}
                     />
                   )}
                   {concept.learning > 0 && (
                     <div
-                      className="bg-amber-500 h-full"
+ className="bg-amber-500 h-full"
                       style={{ width: `${(concept.struggling / concept.totalStudents) * 100}%` }}
                       title={`${concept.learning} learning`}
                     />
                   )}
                   {concept.proficient > 0 && (
                     <div
-                      className="bg-blue-500 h-full"
+ className="bg-blue-500 h-full"
                       style={{ width: `${(concept.struggling / concept.totalStudents) * 100}%` }}
                       title={`${concept.proficient} proficient`}
                     />
                   )}
                   {concept.mastered > 0 && (
                     <div
-                      className="bg-green-500 h-full"
+ className="bg-green-500 h-full"
                       style={{ width: `${(concept.struggling / concept.totalStudents) * 100}%` }}
                       title={`${concept.mastered} mastered`}
                     />
                   )}
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-red-500" />
+ <div className="flex items-center justify-between text-xs text-muted-foreground">
+ <div className="flex items-center gap-3">
+ <span className="flex items-center gap-1">
+ <div className="w-2 h-2 rounded-full bg-red-500" />
                       {concept.struggling} struggling
                     </span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
+ <span className="flex items-center gap-1">
+ <div className="w-2 h-2 rounded-full bg-green-500" />
                       {concept.mastered} mastered
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+ <div className="flex items-center gap-3">
                     <span>{concept.avgHelpCount} avg helps</span>
                     <span>{formatTime(concept.avgTimeSeconds)} avg time</span>
                   </div>
                 </div>
 
                 {concept.strugglingPercent >= 50 && (
-                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded text-xs text-red-700 dark:text-red-300 flex items-center gap-2">
-                    <TrendingDown className="h-4 w-4" />
+ <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-2">
+ <TrendingDown className="h-4 w-4" />
                     <span>
                       {concept.strugglingPercent}% of students need help with this concept. Consider reviewing in class.
                     </span>
@@ -209,18 +209,18 @@ export function ConceptMasteryHeatmap({ assignmentId }: ConceptMasteryHeatmapPro
           </div>
         )}
 
-        <div className="flex items-center justify-center gap-6 pt-4 border-t text-xs">
-          <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-500" /> Struggling
+ <div className="flex items-center justify-center gap-6 pt-4 border-t text-xs">
+ <span className="flex items-center gap-1.5">
+ <div className="w-3 h-3 rounded-full bg-red-500" /> Struggling
           </span>
-          <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-amber-500" /> Learning
+ <span className="flex items-center gap-1.5">
+ <div className="w-3 h-3 rounded-full bg-amber-500" /> Learning
           </span>
-          <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-blue-500" /> Proficient
+ <span className="flex items-center gap-1.5">
+ <div className="w-3 h-3 rounded-full bg-blue-500" /> Proficient
           </span>
-          <span className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-green-500" /> Mastered
+ <span className="flex items-center gap-1.5">
+ <div className="w-3 h-3 rounded-full bg-green-500" /> Mastered
           </span>
         </div>
       </CardContent>

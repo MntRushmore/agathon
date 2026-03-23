@@ -217,22 +217,22 @@ export default function AssignmentDetailPage() {
     switch (status) {
       case 'submitted':
         return (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-            <CheckCircle weight="duotone" className="h-3 w-3 mr-1" />
+ <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
+ <CheckCircle weight="duotone" className="h-3 w-3 mr-1" />
             Submitted
           </Badge>
         );
       case 'in_progress':
         return (
-          <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-            <Clock weight="duotone" className="h-3 w-3 mr-1" />
+ <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+ <Clock weight="duotone" className="h-3 w-3 mr-1" />
             In Progress
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-gray-500/10 text-gray-600 border-gray-500/20">
-            <WarningCircle weight="duotone" className="h-3 w-3 mr-1" />
+ <Badge className="bg-gray-500/10 text-gray-600 border-gray-500/20">
+ <WarningCircle weight="duotone" className="h-3 w-3 mr-1" />
             Not Started
           </Badge>
         );
@@ -243,7 +243,7 @@ export default function AssignmentDetailPage() {
     if (!assignment?.due_date) return null;
     const date = new Date(assignment.due_date);
     if (isPast(date)) return <Badge variant="destructive">Past Due</Badge>;
-    if (isToday(date)) return <Badge className="bg-amber-500">Due Today</Badge>;
+ if (isToday(date)) return <Badge className="bg-amber-500">Due Today</Badge>;
     if (isTomorrow(date)) return <Badge variant="secondary">Due Tomorrow</Badge>;
     return null;
   };
@@ -264,20 +264,20 @@ export default function AssignmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-8">
-        <div className="space-y-2 mb-8">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-5 w-1/4" />
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="space-y-2 mb-8">
+ <Skeleton className="h-8 w-1/3" />
+ <Skeleton className="h-5 w-1/4" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+ <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+ <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
-        <Skeleton className="h-10 w-1/2 mb-6" />
-        <div className="space-y-4">
+ <Skeleton className="h-10 w-1/2 mb-6" />
+ <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-lg" />
+ <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
       </div>
@@ -286,10 +286,10 @@ export default function AssignmentDetailPage() {
 
   if (!assignment) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-8 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Assignment not found</h2>
-          <p className="text-muted-foreground mb-4">This assignment may have been deleted.</p>
+ <div className="max-w-[1100px] mx-auto px-8 py-8 flex items-center justify-center min-h-[60vh]">
+ <div className="text-center">
+ <h2 className="text-xl font-semibold mb-2">Assignment not found</h2>
+ <p className="text-muted-foreground mb-4">This assignment may have been deleted.</p>
           <Button onClick={() => router.push(`/teacher/classes/${classId}`)}>
             Back to Class
           </Button>
@@ -299,24 +299,24 @@ export default function AssignmentDetailPage() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-8">
-      <div className="mb-8">
-        <div className="mb-6">
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="mb-8">
+ <div className="mb-6">
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground -ml-2 mb-3"
+ className="text-muted-foreground -ml-2 mb-3"
             onClick={() => router.push(`/teacher/classes/${classId}`)}
           >
-            <FileText weight="duotone" className="h-4 w-4 mr-1.5" />
+ <FileText weight="duotone" className="h-4 w-4 mr-1.5" />
             Back to {assignment.class.name}
           </Button>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-semibold">{assignment.title}</h1>
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-3 mb-1">
+ <h1 className="text-2xl font-semibold">{assignment.title}</h1>
                 {getDueBadge()}
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+ <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span>{assignment.class.name}</span>
                 {assignment.class.subject && (
                   <>
@@ -334,37 +334,37 @@ export default function AssignmentDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-            <Card className="bg-muted/50 border-0">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold">{stats.total}</div>
-                <div className="text-xs text-muted-foreground">Total Students</div>
+ <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
+ <Card className="bg-muted/50 border-0">
+ <CardContent className="p-4 text-center">
+ <div className="text-3xl font-bold">{stats.total}</div>
+ <div className="text-xs text-muted-foreground">Total Students</div>
               </CardContent>
             </Card>
-            <Card className="bg-green-500/10 border-green-500/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.submitted}</div>
-                <div className="text-xs text-green-600 dark:text-green-400">Submitted</div>
+ <Card className="bg-green-500/10 border-green-500/20">
+ <CardContent className="p-4 text-center">
+ <div className="text-3xl font-bold text-green-600 ">{stats.submitted}</div>
+ <div className="text-xs text-green-600 ">Submitted</div>
               </CardContent>
             </Card>
-            <Card className="bg-yellow-500/10 border-yellow-500/20">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.inProgress}</div>
-                <div className="text-xs text-yellow-600 dark:text-yellow-400">In Progress</div>
+ <Card className="bg-yellow-500/10 border-yellow-500/20">
+ <CardContent className="p-4 text-center">
+ <div className="text-3xl font-bold text-yellow-600 ">{stats.inProgress}</div>
+ <div className="text-xs text-yellow-600 ">In Progress</div>
               </CardContent>
             </Card>
-            <Card className="bg-muted/50 border-muted">
-              <CardContent className="p-4 text-center">
-                <div className="text-3xl font-bold text-muted-foreground">{stats.notStarted}</div>
-                <div className="text-xs text-muted-foreground">Not Started</div>
+ <Card className="bg-muted/50 border-muted">
+ <CardContent className="p-4 text-center">
+ <div className="text-3xl font-bold text-muted-foreground">{stats.notStarted}</div>
+ <div className="text-xs text-muted-foreground">Not Started</div>
               </CardContent>
             </Card>
-            <Card className={stats.struggling > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-muted/50 border-0'}>
-              <CardContent className="p-4 text-center">
-                <div className={`text-3xl font-bold ${stats.struggling > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+ <Card className={stats.struggling > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-muted/50 border-0'}>
+ <CardContent className="p-4 text-center">
+ <div className={`text-3xl font-bold ${stats.struggling > 0 ? 'text-red-600 ' : 'text-muted-foreground'}`}>
                   {stats.struggling}
                 </div>
-                <div className={`text-xs ${stats.struggling > 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+ <div className={`text-xs ${stats.struggling > 0 ? 'text-red-600 ' : 'text-muted-foreground'}`}>
                   Need Help
                 </div>
               </CardContent>
@@ -373,50 +373,50 @@ export default function AssignmentDetailPage() {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="overview" className="gap-2">
-            <FileText weight="duotone" className="h-4 w-4" />
+ <TabsList className="mb-6">
+ <TabsTrigger value="overview" className="gap-2">
+ <FileText weight="duotone" className="h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="submissions" className="gap-2">
-            <UsersThree weight="duotone" className="h-4 w-4" />
+ <TabsTrigger value="submissions" className="gap-2">
+ <UsersThree weight="duotone" className="h-4 w-4" />
               Submissions
               {stats.submitted > 0 && (
-                <Badge variant="secondary" className="ml-1">{stats.submitted}</Badge>
+ <Badge variant="secondary" className="ml-1">{stats.submitted}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <ChartBar weight="duotone" className="h-4 w-4" />
+ <TabsTrigger value="analytics" className="gap-2">
+ <ChartBar weight="duotone" className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <GearSix weight="duotone" className="h-4 w-4" />
+ <TabsTrigger value="settings" className="gap-2">
+ <GearSix weight="duotone" className="h-4 w-4" />
               Settings
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
+ <TabsContent value="overview" className="space-y-6">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+ <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>Assignment Details</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+ <CardContent className="space-y-4">
                     {assignment.instructions && (
                       <div>
-                        <Label className="text-muted-foreground">Instructions</Label>
-                        <p className="mt-1 whitespace-pre-wrap">{assignment.instructions}</p>
+ <Label className="text-muted-foreground">Instructions</Label>
+ <p className="mt-1 whitespace-pre-wrap">{assignment.instructions}</p>
                       </div>
                     )}
-                    <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-muted-foreground">Created</Label>
-                        <p className="mt-1">{format(new Date(assignment.created_at), 'PPP')}</p>
+ <Label className="text-muted-foreground">Created</Label>
+ <p className="mt-1">{format(new Date(assignment.created_at), 'PPP')}</p>
                       </div>
                       <div>
-                        <Label className="text-muted-foreground">Due Date</Label>
-                        <p className="mt-1">
+ <Label className="text-muted-foreground">Due Date</Label>
+ <p className="mt-1">
                           {assignment.due_date
                             ? format(new Date(assignment.due_date), 'PPP')
                             : 'No due date'}
@@ -425,15 +425,15 @@ export default function AssignmentDetailPage() {
                     </div>
                     {assignment.template_board && (
                       <div>
-                        <Label className="text-muted-foreground">Template Board</Label>
+ <Label className="text-muted-foreground">Template Board</Label>
                         <Button
                           variant="outline"
-                          className="mt-2"
+ className="mt-2"
                           onClick={() => router.push(`/board/${assignment.template_board!.id}`)}
                         >
-                          <Eye weight="duotone" className="h-4 w-4 mr-2" />
+ <Eye weight="duotone" className="h-4 w-4 mr-2" />
                           View Template
-                          <ArrowSquareOut weight="duotone" className="h-3 w-3 ml-2" />
+ <ArrowSquareOut weight="duotone" className="h-3 w-3 ml-2" />
                         </Button>
                       </div>
                     )}
@@ -441,7 +441,7 @@ export default function AssignmentDetailPage() {
                 </Card>
 
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+ <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Recent Submissions</CardTitle>
                     <Button variant="ghost" size="sm" onClick={() => setActiveTab('submissions')}>
                       View All
@@ -449,35 +449,35 @@ export default function AssignmentDetailPage() {
                   </CardHeader>
                   <CardContent>
                     {submissions.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+ <div className="text-center py-8 text-muted-foreground">
                         No submissions yet
                       </div>
                     ) : (
-                      <div className="space-y-3">
+ <div className="space-y-3">
                         {submissions
                           .filter(s => s.status === 'submitted')
                           .slice(0, 5)
                           .map((submission) => (
                             <div
                               key={submission.id}
-                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+ className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                               onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
                             >
-                              <div className="flex items-center gap-3">
+ <div className="flex items-center gap-3">
                                 {submission.student.avatar_url ? (
                                   <img
                                     src={submission.student.avatar_url}
                                     alt=""
-                                    className="w-8 h-8 rounded-full"
+ className="w-8 h-8 rounded-full"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
+ <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
                                     {(submission.student.full_name || submission.student.email)[0].toUpperCase()}
                                   </div>
                                 )}
                                 <div>
-                                  <p className="font-medium">{submission.student.full_name || 'Student'}</p>
-                                  <p className="text-xs text-muted-foreground">
+ <p className="font-medium">{submission.student.full_name || 'Student'}</p>
+ <p className="text-xs text-muted-foreground">
                                     {submission.submitted_at && formatDistance(new Date(submission.submitted_at), new Date(), { addSuffix: true })}
                                   </p>
                                 </div>
@@ -497,9 +497,9 @@ export default function AssignmentDetailPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="submissions" className="space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
+ <TabsContent value="submissions" className="space-y-6">
+ <div className="flex items-center justify-between mb-4">
+ <div className="flex items-center gap-2">
                 <Button
                   variant={filterStatus === 'all' ? 'default' : 'outline'}
                   size="sm"
@@ -541,89 +541,89 @@ export default function AssignmentDetailPage() {
             </div>
 
             {filteredSubmissions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <Eye weight="duotone" className="h-8 w-8 text-muted-foreground" />
+ <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
+ <div className="rounded-full bg-muted p-4 mb-4">
+ <Eye weight="duotone" className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">No submissions found</h3>
-                <p className="text-muted-foreground max-w-md">
+ <h3 className="text-lg font-medium mb-2">No submissions found</h3>
+ <p className="text-muted-foreground max-w-md">
                   {filterStatus === 'all'
                     ? 'Students will appear here once they receive this assignment.'
                     : 'No students match this filter.'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredSubmissions.map((submission) => (
                   <Card
                     key={submission.id}
-                    className={`overflow-hidden hover:shadow-md transition-shadow ${submission.is_struggling ? 'border-red-300' : ''}`}
+ className={`overflow-hidden hover:shadow-md transition-shadow ${submission.is_struggling ? 'border-red-300' : ''}`}
                   >
                     <div
-                      className="aspect-video bg-muted relative cursor-pointer"
+ className="aspect-video bg-muted relative cursor-pointer"
                       onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
                     >
                       {submission.student_board?.preview ? (
                         <img
                           src={submission.student_board.preview}
                           alt="Board preview"
-                          className="w-full h-full object-cover"
+ className="w-full h-full object-cover"
                         />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
-                            <FileText weight="duotone" className="h-10 w-10 opacity-20" />
-                            <span className="text-xs font-medium opacity-50">No preview available</span>
+ <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-muted-foreground gap-2">
+ <FileText weight="duotone" className="h-10 w-10 opacity-20" />
+ <span className="text-xs font-medium opacity-50">No preview available</span>
                           </div>
                         )}
-                      <div className="absolute top-2 right-2">
+ <div className="absolute top-2 right-2">
                         {getStatusBadge(submission.status)}
                       </div>
                       {submission.is_struggling && (
-                        <div className="absolute top-2 left-2">
+ <div className="absolute top-2 left-2">
                           <Badge variant="destructive">Needs Help</Badge>
                         </div>
                       )}
                     </div>
 
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3 mb-3">
+ <CardContent className="p-4">
+ <div className="flex items-center gap-3 mb-3">
                         {submission.student.avatar_url ? (
                           <img
                             src={submission.student.avatar_url}
                             alt=""
-                            className="w-10 h-10 rounded-full"
+ className="w-10 h-10 rounded-full"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-medium">
+ <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center font-medium">
                             {(submission.student.full_name || submission.student.email)[0].toUpperCase()}
                           </div>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">
+ <div className="flex-1 min-w-0">
+ <p className="font-medium truncate">
                             {submission.student.full_name || 'Unknown Student'}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate">
+ <p className="text-xs text-muted-foreground truncate">
                             {submission.student.email}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
+ <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mb-3">
                         {submission.ai_help_count !== undefined && submission.ai_help_count > 0 && (
-                          <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                            <Sparkle weight="duotone" className="h-3 w-3" />
+ <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+ <Sparkle weight="duotone" className="h-3 w-3" />
                             {submission.ai_help_count} AI helps
                           </span>
                         )}
                         {submission.time_spent_seconds !== undefined && submission.time_spent_seconds > 0 && (
-                          <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
-                            <Clock weight="duotone" className="h-3 w-3" />
+ <span className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+ <Clock weight="duotone" className="h-3 w-3" />
                             {Math.round(submission.time_spent_seconds / 60)}m spent
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs text-muted-foreground mb-3">
+ <div className="text-xs text-muted-foreground mb-3">
                         {submission.status === 'submitted' && submission.submitted_at ? (
                           <>Submitted {formatDistance(new Date(submission.submitted_at), new Date(), { addSuffix: true })}</>
                         ) : submission.student_board ? (
@@ -633,14 +633,14 @@ export default function AssignmentDetailPage() {
                         )}
                       </div>
 
-                        <div className="flex gap-2">
+ <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1"
+ className="flex-1"
                             onClick={() => submission.student_board && router.push(`/board/${submission.student_board.id}`)}
                           >
-                            <Eye weight="duotone" className="h-4 w-4 mr-1" />
+ <Eye weight="duotone" className="h-4 w-4 mr-1" />
                             View
                           </Button>
                           <AIHistoryTimeline
@@ -661,20 +661,20 @@ export default function AssignmentDetailPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+ <TabsContent value="analytics" className="space-y-6">
+ <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <ConceptMasteryHeatmap assignmentId={assignmentId} />
               <StrugglingStudentsPanel assignmentId={assignmentId} />
             </div>
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
+ <TabsContent value="settings" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Assignment Settings</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
+ <CardContent className="space-y-6">
+ <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
@@ -683,7 +683,7 @@ export default function AssignmentDetailPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
+ <div className="space-y-2">
                   <Label htmlFor="instructions">Instructions</Label>
                   <Textarea
                     id="instructions"
@@ -693,7 +693,7 @@ export default function AssignmentDetailPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
+ <div className="space-y-2">
                   <Label htmlFor="dueDate">Due Date</Label>
                   <Input
                     id="dueDate"
@@ -703,71 +703,71 @@ export default function AssignmentDetailPage() {
                   />
                 </div>
 
-                <div className="border-t pt-6">
-                  <h3 className="font-medium mb-4">AI Assistance Settings</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+ <div className="border-t pt-6">
+ <h3 className="font-medium mb-4">AI Assistance Settings</h3>
+ <div className="space-y-4">
+ <div className="flex items-center justify-between">
                       <div>
                         <Label>Allow AI Assistance</Label>
-                        <p className="text-sm text-muted-foreground">Students can use AI help on this assignment</p>
+ <p className="text-sm text-muted-foreground">Students can use AI help on this assignment</p>
                       </div>
                       <Switch checked={allowAI} onCheckedChange={setAllowAI} />
                     </div>
 
                     {allowAI && (
-                      <div className="ml-4 pl-4 border-l space-y-4">
+ <div className="ml-4 pl-4 border-l space-y-4">
                         <div>
-                          <Label className="mb-2 block">Allowed AI Modes</Label>
-                          <div className="space-y-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
+ <Label className="mb-2 block">Allowed AI Modes</Label>
+ <div className="space-y-2">
+ <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={allowedModes.includes('feedback')}
                                 onChange={() => toggleMode('feedback')}
-                                className="h-4 w-4 rounded"
+ className="h-4 w-4 rounded"
                               />
-                              <span className="text-sm">
-                                <span className="font-medium text-blue-600">Feedback</span> - Light hints
+ <span className="text-sm">
+ <span className="font-medium text-blue-600">Feedback</span> - Light hints
                               </span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
+ <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={allowedModes.includes('suggest')}
                                 onChange={() => toggleMode('suggest')}
-                                className="h-4 w-4 rounded"
+ className="h-4 w-4 rounded"
                               />
-                              <span className="text-sm">
-                                <span className="font-medium text-amber-600">Suggest</span> - Guided hints
+ <span className="text-sm">
+ <span className="font-medium text-amber-600">Suggest</span> - Guided hints
                               </span>
                             </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
+ <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={allowedModes.includes('answer')}
                                 onChange={() => toggleMode('answer')}
-                                className="h-4 w-4 rounded"
+ className="h-4 w-4 rounded"
                               />
-                              <span className="text-sm">
-                                <span className="font-medium text-green-600">Solve</span> - Full solution
+ <span className="text-sm">
+ <span className="font-medium text-green-600">Solve</span> - Full solution
                               </span>
                             </label>
                           </div>
                         </div>
 
-                        <div className="space-y-2">
+ <div className="space-y-2">
                           <Label>Hint Limit</Label>
-                          <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
                             <Input
                               type="number"
                               min={0}
                               max={50}
                               value={hintLimit || ''}
                               onChange={(e) => setHintLimit(e.target.value ? parseInt(e.target.value) : null)}
-                              className="w-24"
+ className="w-24"
                               placeholder="None"
                             />
-                            <span className="text-sm text-muted-foreground">
+ <span className="text-sm text-muted-foreground">
                               {hintLimit ? `${hintLimit} hints maximum` : 'Unlimited'}
                             </span>
                           </div>
@@ -777,11 +777,11 @@ export default function AssignmentDetailPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between pt-4 border-t">
+ <div className="flex justify-between pt-4 border-t">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive">
-                        <Trash weight="duotone" className="h-4 w-4 mr-2" />
+ <Trash weight="duotone" className="h-4 w-4 mr-2" />
                         Delete Assignment
                       </Button>
                     </AlertDialogTrigger>
@@ -797,7 +797,7 @@ export default function AssignmentDetailPage() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDelete}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+ className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           disabled={deleting}
                         >
                           {deleting ? 'Deleting...' : 'Delete Assignment'}
@@ -809,12 +809,12 @@ export default function AssignmentDetailPage() {
                   <Button onClick={handleSaveSettings} disabled={saving}>
                     {saving ? (
                       <>
-                        <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+ <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                         Saving...
                       </>
                     ) : (
                       <>
-                        <FloppyDisk weight="duotone" className="h-4 w-4 mr-2" />
+ <FloppyDisk weight="duotone" className="h-4 w-4 mr-2" />
                         Save Settings
                       </>
                     )}

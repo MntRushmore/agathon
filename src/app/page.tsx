@@ -164,10 +164,10 @@ const colorVariants: Record<ColorVariant, { iconBg: string; iconColor: string; h
 
 // Board type icons
 const boardTypeIcons: Record<string, React.ReactNode> = {
-  math: <Calculator className="w-3.5 h-3.5" weight="duotone" />,
-  notes: <FileText className="w-3.5 h-3.5" weight="duotone" />,
-  diagram: <GridNine className="w-3.5 h-3.5" weight="duotone" />,
-  general: <PencilLine className="w-3.5 h-3.5" weight="duotone" />,
+ math: <Calculator className="w-3.5 h-3.5" weight="duotone" />,
+ notes: <FileText className="w-3.5 h-3.5" weight="duotone" />,
+ diagram: <GridNine className="w-3.5 h-3.5" weight="duotone" />,
+ general: <PencilLine className="w-3.5 h-3.5" weight="duotone" />,
 };
 
 function toEmbedUrl(url: string): string {
@@ -784,7 +784,7 @@ export default function Dashboard() {
       title: 'Agathon',
       description: 'Draw and get real-time AI tutoring help',
       detail: 'Handwriting recognition & hints',
-      icon: <PencilLine className="h-5 w-5" weight="duotone" />,
+ icon: <PencilLine className="h-5 w-5" weight="duotone" />,
       color: 'blue',
       onClick: () => { createWhiteboard(); },
       isPrimary: true,
@@ -794,7 +794,7 @@ export default function Dashboard() {
       title: 'PDF Annotator',
       description: 'Mark up PDFs and images with ease',
       detail: 'Draw, highlight & add text',
-      icon: <HighlighterCircle className="h-5 w-5" weight="duotone" />,
+ icon: <HighlighterCircle className="h-5 w-5" weight="duotone" />,
       color: 'purple',
       onClick: () => { router.push('/annotate'); },
     },
@@ -803,7 +803,7 @@ export default function Dashboard() {
       title: 'Journal',
       description: 'Write notes with AI-powered study tools',
       detail: 'Flashcards, Feynman method & more',
-      icon: <BookOpenText className="h-5 w-5" weight="duotone" />,
+ icon: <BookOpenText className="h-5 w-5" weight="duotone" />,
       color: 'green',
       onClick: () => { createJournal(); },
       isPrimary: true,
@@ -817,7 +817,7 @@ export default function Dashboard() {
       title: 'Admin Console',
       description: 'Manage users, content, and platform analytics',
       detail: 'Administrative controls',
-      icon: <ShieldCheck className="h-5 w-5" weight="duotone" />,
+ icon: <ShieldCheck className="h-5 w-5" weight="duotone" />,
       color: 'amber',
       onClick: () => { router.push('/admin'); },
     });
@@ -830,7 +830,7 @@ export default function Dashboard() {
       title: 'My Classes',
       description: 'Manage your classes and students',
       detail: 'Create assignments & track progress',
-      icon: <UsersThree className="h-5 w-5" weight="duotone" />,
+ icon: <UsersThree className="h-5 w-5" weight="duotone" />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/teacher/classes'); },
     });
@@ -840,7 +840,7 @@ export default function Dashboard() {
       title: 'Join a Class',
       description: 'Enter a class code from your teacher',
       detail: 'Access assignments & get help',
-      icon: <GraduationCap className="h-5 w-5" weight="duotone" />,
+ icon: <GraduationCap className="h-5 w-5" weight="duotone" />,
       color: 'green' as ColorVariant,
       onClick: () => { router.push('/student/join'); },
     });
@@ -858,36 +858,36 @@ export default function Dashboard() {
   if (!user) {
     if (authLoading && !searchParams.get('ref') && !searchParams.get('waitlist')) {
       return (
-        <div className="min-h-screen bg-background flex">
+ <div className="min-h-screen bg-background flex">
           {/* Skeleton sidebar */}
-          <div className="w-[300px] h-screen p-4 flex flex-col gap-4" style={{ backgroundColor: '#F5F8F7' }}>
-            <Skeleton className="h-8 w-24" />
-            <div className="space-y-2 mt-4">
-              <Skeleton className="h-9 w-full rounded-lg" />
-              <Skeleton className="h-9 w-full rounded-lg" />
-              <Skeleton className="h-9 w-full rounded-lg" />
+ <div className="w-[300px] h-screen p-4 flex flex-col gap-4" style={{ backgroundColor: '#F5F8F7' }}>
+ <Skeleton className="h-8 w-24" />
+ <div className="space-y-2 mt-4">
+ <Skeleton className="h-9 w-full rounded-lg" />
+ <Skeleton className="h-9 w-full rounded-lg" />
+ <Skeleton className="h-9 w-full rounded-lg" />
             </div>
-            <div className="mt-auto space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-8 w-full rounded-lg" />
+ <div className="mt-auto space-y-2">
+ <Skeleton className="h-4 w-3/4" />
+ <Skeleton className="h-8 w-full rounded-lg" />
             </div>
           </div>
           {/* Skeleton main content */}
-          <div className="flex-1 flex items-start justify-center pt-[12vh] px-8">
-            <div className="w-full max-w-4xl space-y-6">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-7 w-64" />
+ <div className="flex-1 flex items-start justify-center pt-[12vh] px-8">
+ <div className="w-full max-w-4xl space-y-6">
+ <div className="space-y-2">
+ <Skeleton className="h-4 w-32" />
+ <Skeleton className="h-7 w-64" />
               </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+ <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <Skeleton key={i} className="h-24 rounded-lg" />
+ <Skeleton key={i} className="h-24 rounded-lg" />
                 ))}
               </div>
-              <div className="space-y-2 mt-6">
-                <Skeleton className="h-4 w-20" />
+ <div className="space-y-2 mt-6">
+ <Skeleton className="h-4 w-20" />
                 {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-lg" />
+ <Skeleton key={i} className="h-12 w-full rounded-lg" />
                 ))}
               </div>
             </div>
@@ -899,38 +899,38 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F5F8F7' }}>
+ <div className="min-h-screen flex" style={{ backgroundColor: '#F5F8F7' }}>
       {/* Sidebar */}
       <motion.aside
         layout
-        className={cn(
+ className={cn(
           "fixed left-0 top-0 h-full flex flex-col transition-all duration-300 ease-out z-50",
           sidebarCollapsed ? "w-16" : "w-[300px]"
         )}
         style={{ backgroundColor: '#F5F8F7' }}>
         {/* Sidebar Inner */}
-        <div className="flex flex-col h-full py-[27px] px-[25px] justify-between">
+ <div className="flex flex-col h-full py-[27px] px-[25px] justify-between">
           {/* Top Section */}
-          <div className="flex flex-col gap-[30px]">
+ <div className="flex flex-col gap-[30px]">
             {/* Logo + Search */}
-            <div className="flex flex-col gap-[30px]">
+ <div className="flex flex-col gap-[30px]">
               {/* Logo */}
               {sidebarCollapsed ? (
                 <button
                   onClick={() => setSidebarCollapsed(false)}
-                  className="flex items-center justify-center"
+ className="flex items-center justify-center"
                 >
                   <Logo size="sm" />
                 </button>
               ) : (
-                <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between">
                   <Logo size="sm" showText />
                   <button
                     onClick={() => setSidebarCollapsed(true)}
-                    className="p-1.5 hover:bg-white/60 rounded-lg transition-colors"
+ className="p-1.5 hover:bg-white/60 rounded-lg transition-colors"
                     style={{ color: '#06313A' }}
                   >
-                    <CaretLeft className="h-4 w-4" weight="duotone" />
+ <CaretLeft className="h-4 w-4" weight="duotone" />
                   </button>
                 </div>
               )}
@@ -938,34 +938,34 @@ export default function Dashboard() {
               {/* Search Bar */}
               {!sidebarCollapsed && (
                 <div
-                  className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] border"
+ className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] border"
                   style={{ backgroundColor: '#FFFFFF', borderColor: '#E7E7E7', boxShadow: '0px 1px 1px 0px rgba(165, 165, 165, 0.25)' }}
                 >
-                  <MagnifyingGlass className="w-[15px] h-[15px] flex-shrink-0" style={{ color: '#B8B8B4' }} />
+ <MagnifyingGlass className="w-[15px] h-[15px] flex-shrink-0" style={{ color: '#B8B8B4' }} />
                   <input
                     type="text"
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
-                    className="flex-1 text-[15px] bg-transparent outline-none placeholder:text-[#B8B4B4]"
+ className="flex-1 text-[15px] bg-transparent outline-none placeholder:text-[#B8B4B4]"
                     style={{ fontFamily: 'Inter, sans-serif', color: '#06313A' }}
                     data-search-input
                   />
                   <div
-                    className="flex items-center justify-center rounded-[5px] px-[7px]"
+ className="flex items-center justify-center rounded-[5px] px-[7px]"
                     style={{ backgroundColor: '#F5F8F7' }}
                   >
-                    <span className="text-[20px] font-light" style={{ fontFamily: 'Manrope, sans-serif', color: '#ACB4B6' }}>/</span>
+ <span className="text-[20px] font-light" style={{ fontFamily: 'Manrope, sans-serif', color: '#ACB4B6' }}>/</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Primary Navigation */}
-            <div className="flex flex-col gap-2.5">
+ <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => setActiveView('home')}
-                className={cn(
+ className={cn(
                   "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
                   activeView === 'home'
                     ? "bg-[#FCFCFC]"
@@ -973,12 +973,12 @@ export default function Dashboard() {
                 )}
                 style={{ boxShadow: activeView === 'home' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
               >
-                <House className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
-                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</span>}
+ <House className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+ {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</span>}
               </button>
               <button
                 onClick={() => setActiveView('boards')}
-                className={cn(
+ className={cn(
                   "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
                   activeView === 'boards'
                     ? "bg-[#FCFCFC]"
@@ -986,12 +986,12 @@ export default function Dashboard() {
                 )}
                 style={{ boxShadow: activeView === 'boards' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
               >
-                <FolderOpen className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
-                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>My Boards</span>}
+ <FolderOpen className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+ {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>My Boards</span>}
               </button>
               <button
                 onClick={() => setActiveView('journals')}
-                className={cn(
+ className={cn(
                   "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
                   activeView === 'journals'
                     ? "bg-[#FCFCFC]"
@@ -999,42 +999,42 @@ export default function Dashboard() {
                 )}
                 style={{ boxShadow: activeView === 'journals' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
               >
-                <BookOpenText className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
-                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Journals</span>}
+ <BookOpenText className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+ {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Journals</span>}
               </button>
               <button
                 onClick={() => router.push('/annotate/files')}
-                className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
               >
-                <HighlighterCircle className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
-                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Annotations</span>}
+ <HighlighterCircle className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+ {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Annotations</span>}
               </button>
               <button
                 onClick={() => router.push('/knowledge')}
-                className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
               >
-                <Lightning className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
-                {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Integrations</span>}
+ <Lightning className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
+ {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Integrations</span>}
               </button>
             </div>
 
             {/* Tools Section */}
             {!sidebarCollapsed && (
               <Collapsible open={toolsOpen} onOpenChange={setToolsOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
-                  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Tools</span>
-                  <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
+ <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
+ <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Tools</span>
+ <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-[5px]">
+ <CollapsibleContent className="mt-[5px]">
                   <button
                     onClick={() => setPomodoroActive(!pomodoroActive)}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
                     style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
                   >
-                    <Timer className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
-                    <span className="text-[15px] flex-1" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Pomodoro</span>
+ <Timer className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+ <span className="text-[15px] flex-1" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Pomodoro</span>
                     {pomodoroActive && (
-                      <span className="text-xs font-mono" style={{ color: '#05313A' }}>{formatPomodoroTime(pomodoroTime)}</span>
+ <span className="text-xs font-mono" style={{ color: '#05313A' }}>{formatPomodoroTime(pomodoroTime)}</span>
                     )}
                   </button>
                 </CollapsibleContent>
@@ -1044,36 +1044,36 @@ export default function Dashboard() {
             {/* Settings Section */}
             {!sidebarCollapsed && (
               <Collapsible open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
-                  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Settings</span>
-                  <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
+ <CollapsibleTrigger className="flex items-center justify-between w-full px-2.5 py-1">
+ <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>Settings</span>
+ <CaretDown className="h-3 w-3" style={{ color: '#668186' }} />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-[5px] mt-[5px]">
+ <CollapsibleContent className="space-y-[5px] mt-[5px]">
                   {user && (
                     <button
                       onClick={() => router.push('/billing')}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
                       style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
                     >
-                      <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
-                      <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Plans & Usage</span>
+ <CreditCard className="h-[18px] w-[18px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+ <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Plans & Usage</span>
                     </button>
                   )}
                   <button
                     onClick={() => router.push('/settings')}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
                     style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
                   >
-                    <GearSix className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
-                    <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Preferences</span>
+ <GearSix className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+ <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Preferences</span>
                   </button>
                   <button
                     onClick={() => sileo.info({ title: 'Help center coming soon!' })}
-                    className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
                     style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
                   >
-                    <Question className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
-                    <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Help</span>
+ <Question className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
+ <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Help</span>
                   </button>
                 </CollapsibleContent>
               </Collapsible>
@@ -1081,40 +1081,40 @@ export default function Dashboard() {
           </div>
 
           {/* Bottom Section - Usage + Profile */}
-          <div className="flex flex-col gap-2.5">
+ <div className="flex flex-col gap-2.5">
             {/* Usage indicators */}
             {!sidebarCollapsed && user && (
               <div
-                className="rounded-[10px] p-[15px_13px] space-y-2.5"
+ className="rounded-[10px] p-[15px_13px] space-y-2.5"
                 style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Boards</span>
-                    <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+ <div className="flex items-center justify-between mb-1.5">
+ <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Boards</span>
+ <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
                       {isAdmin ? '\u221E' : `${FREE_BOARD_LIMIT - whiteboards.length}/${FREE_BOARD_LIMIT} remaining`}
                     </span>
                   </div>
                   {!isAdmin && (
-                    <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
+ <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
                       <div
-                        className="h-full rounded-full"
+ className="h-full rounded-full"
                         style={{ backgroundColor: '#05313A', width: `${(whiteboards.length / FREE_BOARD_LIMIT) * 100}%` }}
                       />
                     </div>
                   )}
                 </div>
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Journals</span>
-                    <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+ <div className="flex items-center justify-between mb-1.5">
+ <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Journals</span>
+ <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
                       {isAdmin ? '\u221E' : `${FREE_JOURNAL_LIMIT - journalCount}/${FREE_JOURNAL_LIMIT} remaining`}
                     </span>
                   </div>
                   {!isAdmin && (
-                    <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
+ <div className="h-1 rounded-full" style={{ backgroundColor: '#F5F8F7' }}>
                       <div
-                        className="h-full rounded-full"
+ className="h-full rounded-full"
                         style={{ backgroundColor: '#05313A', width: `${(journalCount / FREE_JOURNAL_LIMIT) * 100}%` }}
                       />
                     </div>
@@ -1126,39 +1126,39 @@ export default function Dashboard() {
             {/* User Profile */}
             {!sidebarCollapsed && (
               <div
-                className="rounded-[10px] p-[15px_13px]"
+ className="rounded-[10px] p-[15px_13px]"
                 style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
               >
                 {user ? (
                   <button
                     onClick={() => router.push('/profile')}
-                    className="w-full flex items-center justify-between"
+ className="w-full flex items-center justify-between"
                   >
-                    <div className="flex items-center gap-2.5">
+ <div className="flex items-center gap-2.5">
                       <div
-                        className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 overflow-hidden"
+ className="w-[35px] h-[35px] rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 overflow-hidden"
                         style={{ backgroundColor: '#06313A', color: '#FFFFFF' }}
                       >
                         {profile?.full_name
                           ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
                           : user.email?.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="text-left">
-                        <p className="text-[13px] font-medium" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>
+ <div className="text-left">
+ <p className="text-[13px] font-medium" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>
                           {profile?.full_name || user.email?.split('@')[0]}
                         </p>
-                        <p className="text-[10px] capitalize" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+ <p className="text-[10px] capitalize" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
                           {profile?.role || 'User'}
                         </p>
                       </div>
                     </div>
                     {/* Settings icon */}
-                    <img src="/dashboard/user-menu.svg" alt="" className="w-[29px] h-[30px]" />
+ <img src="/dashboard/user-menu.svg" alt="" className="w-[29px] h-[30px]" />
                   </button>
                 ) : (
                   <button
                     onClick={() => router.push('/login')}
-                    className="w-full text-[15px] text-left"
+ className="w-full text-[15px] text-left"
                     style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}
                   >
                     Sign in
@@ -1171,7 +1171,7 @@ export default function Dashboard() {
       </motion.aside>
 
       {/* Main Content */}
-      <main className={cn(
+ <main className={cn(
         "flex-1 transition-all duration-300 ease-out",
         sidebarCollapsed ? "ml-16" : "ml-[300px]"
       )}>
@@ -1185,40 +1185,40 @@ export default function Dashboard() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-          <div className="max-w-6xl mx-auto px-8 py-10">
-            <div className="flex items-center justify-between mb-8">
+ <div className="max-w-6xl mx-auto px-8 py-10">
+ <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Boards</h1>
-                <p className="text-sm text-muted-foreground mt-1">All your whiteboards in one place</p>
+ <h1 className="text-2xl font-bold text-foreground tracking-tight">My Boards</h1>
+ <p className="text-sm text-muted-foreground mt-1">All your whiteboards in one place</p>
               </div>
-              <div className="flex items-center gap-3">
+ <div className="flex items-center gap-3">
                 {/* View mode toggle */}
-                <div className="flex items-center bg-muted rounded-lg p-1">
+ <div className="flex items-center bg-muted rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={cn(
+ className={cn(
                       "p-1.5 rounded-md transition-colors",
                       viewMode === 'grid' ? "bg-card shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <GridNine className="w-4 h-4" weight="duotone" />
+ <GridNine className="w-4 h-4" weight="duotone" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={cn(
+ className={cn(
                       "p-1.5 rounded-md transition-colors",
                       viewMode === 'list' ? "bg-card shadow-sm" : "hover:bg-card/50"
                     )}
                   >
-                    <ListBullets className="w-4 h-4" weight="duotone" />
+ <ListBullets className="w-4 h-4" weight="duotone" />
                   </button>
                 </div>
 
                 {/* Filter dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <Funnel className="w-4 h-4" weight="duotone" />
+ <Button variant="outline" size="sm" className="gap-2">
+ <Funnel className="w-4 h-4" weight="duotone" />
                       {filterType === 'all' ? 'All' : filterType === 'favorites' ? 'Favorites' : filterType === 'recent' ? 'Recent' : 'Archived'}
                     </Button>
                   </DropdownMenuTrigger>
@@ -1232,14 +1232,14 @@ export default function Dashboard() {
                 </DropdownMenu>
 
                 {/* MagnifyingGlass */}
-                <div className="relative w-64">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" weight="duotone" />
+ <div className="relative w-64">
+ <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" weight="duotone" />
                   <Input
                     type="text"
                     placeholder=" Search boards..."
                     value={searchQuery}
                     onChange={(e) => setMagnifyingGlassQuery(e.target.value)}
-                    className="pl-9 bg-card border-border"
+ className="pl-9 bg-card border-border"
                     data-search-input
                   />
                 </div>
@@ -1247,44 +1247,44 @@ export default function Dashboard() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
-                    <div className="aspect-[4/3] bg-muted rounded-lg mb-4" />
-                    <div className="h-5 bg-muted rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+ <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
+ <div className="aspect-[4/3] bg-muted rounded-lg mb-4" />
+ <div className="h-5 bg-muted rounded w-3/4 mb-2" />
+ <div className="h-4 bg-muted rounded w-1/2" />
                   </div>
                 ))}
               </div>
             ) : filteredBoards.length === 0 && !searchQuery ? (
               /* Empty State */
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
-                  <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <PencilLine className="w-6 h-6" weight="duotone" />
+ <div className="flex flex-col items-center justify-center py-20">
+ <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
+ <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
+ <PencilLine className="w-6 h-6" weight="duotone" />
                   </div>
-                  <h2 className="text-lg font-bold text-foreground mb-2">Create your first board</h2>
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+ <h2 className="text-lg font-bold text-foreground mb-2">Create your first board</h2>
+ <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                     Start with a blank whiteboard and draw, write equations, or get AI tutoring help.
                   </p>
-                  <Button onClick={() => createWhiteboard()} size="lg" className="px-6">
-                    <Plus className="w-4 h-4" weight="duotone" />
+ <Button onClick={() => createWhiteboard()} size="lg" className="px-6">
+ <Plus className="w-4 h-4" weight="duotone" />
                     New Board
                   </Button>
                 </div>
               </div>
             ) : filteredBoards.length === 0 && searchQuery ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="text-center">
-                  <MagnifyingGlass className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
-                  <h2 className="text-lg font-bold text-foreground mb-2">No boards found</h2>
-                  <p className="text-sm text-muted-foreground">
+ <div className="flex flex-col items-center justify-center py-20">
+ <div className="text-center">
+ <MagnifyingGlass className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" weight="duotone" />
+ <h2 className="text-lg font-bold text-foreground mb-2">No boards found</h2>
+ <p className="text-sm text-muted-foreground">
                     No boards match "{searchQuery}"
                   </p>
                 </div>
               </div>
             ) : (
-              <div className={cn(
+ <div className={cn(
                 viewMode === 'grid'
                   ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
                   : "space-y-2"
@@ -1293,12 +1293,12 @@ export default function Dashboard() {
                 {viewMode === 'grid' && (
                   <button
                     onClick={() => createWhiteboard()}
-                    className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
+ className="empty-state-card rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-3 cursor-pointer"
                   >
-                    <div className="icon-container icon-container-green">
-                      <Plus className="w-5 h-5" weight="duotone" />
+ <div className="icon-container icon-container-green">
+ <Plus className="w-5 h-5" weight="duotone" />
                     </div>
-                    <span className="text-sm font-medium text-muted-foreground">New Board</span>
+ <span className="text-sm font-medium text-muted-foreground">New Board</span>
                   </button>
                 )}
 
@@ -1310,51 +1310,51 @@ export default function Dashboard() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.2 }}
                       key={board.id}
-                      className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
+ className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
-                      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+ <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                         {board.preview ? (
                           <img
                             src={board.preview}
                             alt={board.title}
-                            className="w-full h-full object-cover"
+ className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <PencilLine className="w-10 h-10 text-muted-foreground/30" weight="duotone" />
+ <div className="flex items-center justify-center h-full">
+ <PencilLine className="w-10 h-10 text-muted-foreground/30" weight="duotone" />
                           </div>
                         )}
                         {/* Board type badge */}
                         {board.metadata?.boardType && (
-                          <div className="absolute top-2 left-2 px-2 py-1 bg-card/90 backdrop-blur-sm rounded-md flex items-center gap-1.5 text-xs text-muted-foreground">
+ <div className="absolute top-2 left-2 px-2 py-1 bg-card/90 backdrop-blur-sm rounded-md flex items-center gap-1.5 text-xs text-muted-foreground">
                             {boardTypeIcons[board.metadata.boardType]}
-                            <span className="capitalize">{board.metadata.boardType}</span>
+ <span className="capitalize">{board.metadata.boardType}</span>
                           </div>
                         )}
                         {/* Favorite indicator */}
                         {board.is_favorite && (
-                          <div className="absolute top-2 right-2">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" weight="duotone" />
+ <div className="absolute top-2 right-2">
+ <Star className="w-4 h-4 text-amber-500 fill-amber-500" weight="duotone" />
                           </div>
                         )}
                         {/* Quick actions on hover */}
-                        <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+ <div className="absolute inset-0 bg-foreground/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <Button
                             size="sm"
                             variant="secondary"
-                            className="shadow-md"
+ className="shadow-md"
                             onClick={(e) => {
                               e.stopPropagation();
                               duplicateWhiteboard(board);
                             }}
                           >
-                            <Copy className="w-4 h-4" weight="duotone" />
+ <Copy className="w-4 h-4" weight="duotone" />
                           </Button>
                           <Button
                             size="sm"
                             variant="secondary"
-                            className="shadow-md"
+ className="shadow-md"
                             onClick={(e) => {
                               e.stopPropagation();
                               setShareBoardId(board.id);
@@ -1362,17 +1362,17 @@ export default function Dashboard() {
                               setShareDialogOpen(true);
                             }}
                           >
-                            <ShareNetwork className="w-4 h-4" weight="duotone" />
+ <ShareNetwork className="w-4 h-4" weight="duotone" />
                           </Button>
                         </div>
                       </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-foreground truncate text-sm">
+ <div className="p-4">
+ <div className="flex items-start justify-between gap-2">
+ <div className="flex-1 min-w-0">
+ <h3 className="font-semibold text-foreground truncate text-sm">
                               {board.title}
                             </h3>
-                            <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
                               {getFriendlyTimestamp(new Date(board.updated_at))}
                             </p>
                           </div>
@@ -1381,9 +1381,9 @@ export default function Dashboard() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
+ className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity -mr-2"
                               >
-                                <DotsThree className="w-4 h-4" weight="duotone" />
+ <DotsThree className="w-4 h-4" weight="duotone" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -1393,12 +1393,12 @@ export default function Dashboard() {
                               }}>
                                 {board.is_favorite ? (
                                   <>
-                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
+ <Star className="w-4 h-4 mr-2" weight="duotone" />
                                     Remove from favorites
                                   </>
                                 ) : (
                                   <>
-                                    <Star className="w-4 h-4 mr-2" weight="duotone" />
+ <Star className="w-4 h-4 mr-2" weight="duotone" />
                                     Add to favorites
                                   </>
                                 )}
@@ -1408,14 +1408,14 @@ export default function Dashboard() {
                                 setRenameId(board.id);
                                 setRenameTitle(board.title);
                               }}>
-                                <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
+ <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
                                 Rename
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
                                 e.stopPropagation();
                                 duplicateWhiteboard(board);
                               }}>
-                                <Copy className="w-4 h-4 mr-2" weight="duotone" />
+ <Copy className="w-4 h-4 mr-2" weight="duotone" />
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => {
@@ -1424,18 +1424,18 @@ export default function Dashboard() {
                                 setShareBoardTitle(board.title);
                                 setShareDialogOpen(true);
                               }}>
-                                <ShareNetwork className="w-4 h-4 mr-2" weight="duotone" />
+ <ShareNetwork className="w-4 h-4 mr-2" weight="duotone" />
                                 Share
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
+ className="text-destructive focus:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   deleteWhiteboard(board.id);
                                 }}
                               >
-                                <Trash className="w-4 h-4 mr-2" weight="duotone" />
+ <Trash className="w-4 h-4 mr-2" weight="duotone" />
                                 Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -1447,40 +1447,40 @@ export default function Dashboard() {
                     /* List view */
                     <div
                       key={board.id}
-                      className="group flex items-center gap-4 p-3 bg-card rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
+ className="group flex items-center gap-4 p-3 bg-card rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
-                      <div className="w-16 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
+ <div className="w-16 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
                         {board.preview ? (
-                          <img src={board.preview} alt="" className="w-full h-full object-cover" />
+ <img src={board.preview} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <PencilLine className="w-5 h-5 text-muted-foreground/30" weight="duotone" />
+ <div className="flex items-center justify-center h-full">
+ <PencilLine className="w-5 h-5 text-muted-foreground/30" weight="duotone" />
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm text-foreground truncate" title={board.title}>{board.title}</h3>
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-2">
+ <h3 className="font-semibold text-sm text-foreground truncate" title={board.title}>{board.title}</h3>
                           {board.is_favorite && (
-                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" weight="duotone" />
+ <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 flex-shrink-0" weight="duotone" />
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{getFriendlyTimestamp(new Date(board.updated_at))}</p>
+ <p className="text-xs text-muted-foreground">{getFriendlyTimestamp(new Date(board.updated_at))}</p>
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
+ <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+ <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
                           e.stopPropagation();
                           setShareBoardId(board.id);
                           setShareBoardTitle(board.title);
                           setShareDialogOpen(true);
                         }}>
-                          <ShareNetwork className="w-4 h-4" weight="duotone" />
+ <ShareNetwork className="w-4 h-4" weight="duotone" />
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <DotsThree className="w-4 h-4" weight="duotone" />
+ <Button variant="ghost" size="icon" className="h-8 w-8">
+ <DotsThree className="w-4 h-4" weight="duotone" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -1489,25 +1489,25 @@ export default function Dashboard() {
                               setRenameId(board.id);
                               setRenameTitle(board.title);
                             }}>
-                              <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
+ <PencilSimple className="w-4 h-4 mr-2" weight="duotone" />
                               Rename
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation();
                               duplicateWhiteboard(board);
                             }}>
-                              <Copy className="w-4 h-4 mr-2" weight="duotone" />
+ <Copy className="w-4 h-4 mr-2" weight="duotone" />
                               Duplicate
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
+ className="text-destructive focus:text-destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteWhiteboard(board.id);
                               }}
                             >
-                              <Trash className="w-4 h-4 mr-2" weight="duotone" />
+ <Trash className="w-4 h-4 mr-2" weight="duotone" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -1521,52 +1521,52 @@ export default function Dashboard() {
 
             {/* Assignments Section for Students */}
             {profile?.role === 'student' && assignments.length > 0 && (
-              <div className="mt-12">
-                <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-                  <BookOpenText className="h-5 w-5" weight="duotone" />
+ <div className="mt-12">
+ <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+ <BookOpenText className="h-5 w-5" weight="duotone" />
                   My Assignments
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {assignments.map((submission: any) => (
                     <div
                       key={submission.id}
-                      className="group bg-card rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-200 cursor-pointer"
+ className="group bg-card rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-200 cursor-pointer"
                       onClick={() => router.push(`/board/${submission.student_board_id}`)}
                     >
-                      <div className="aspect-video bg-muted relative">
+ <div className="aspect-video bg-muted relative">
                         {submission.student_board?.preview ? (
                           <img
                             src={submission.student_board.preview}
                             alt={submission.assignment.title}
-                            className="w-full h-full object-cover"
+ className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <BookOpenText className="w-12 h-12 text-muted-foreground/50" weight="duotone" />
+ <div className="flex items-center justify-center h-full">
+ <BookOpenText className="w-12 h-12 text-muted-foreground/50" weight="duotone" />
                           </div>
                         )}
-                        <div className={cn(
+ <div className={cn(
                           "absolute top-3 right-3 px-2.5 py-1 text-xs font-medium rounded-full",
                           submission.status === 'submitted'
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            ? 'bg-emerald-100 text-emerald-700  '
                             : submission.status === 'in_progress'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            ? 'bg-amber-100 text-amber-700  '
                             : 'bg-muted text-muted-foreground'
                         )}>
                           {submission.status === 'submitted' ? 'Submitted' :
                            submission.status === 'in_progress' ? 'In Progress' : 'Not Started'}
                         </div>
                       </div>
-                      <div className="p-4">
-                        <h3 className="font-semibold text-foreground">
+ <div className="p-4">
+ <h3 className="font-semibold text-foreground">
                           {submission.assignment.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
+ <p className="text-sm text-muted-foreground mt-1">
                           {submission.assignment.class?.name}
                         </p>
                         {submission.assignment.due_date && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2">
-                            <Clock className="w-3.5 h-3.5" weight="duotone" />
+ <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-2">
+ <Clock className="w-3.5 h-3.5" weight="duotone" />
                             Due {getFriendlyTimestamp(new Date(submission.assignment.due_date))}
                           </p>
                         )}
@@ -1579,24 +1579,24 @@ export default function Dashboard() {
 
             {/* Google Classroom Section for Students + Admins */}
             {(profile?.role === 'student' || profile?.role === 'admin') && (classroomConnected ? (
-              <div className="mt-12">
+ <div className="mt-12">
                 {/* Header with sync + manage */}
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5" weight="duotone" />
+ <div className="flex items-center justify-between mb-4">
+ <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+ <GraduationCap className="h-5 w-5" weight="duotone" />
                     Google Classroom
                   </h2>
-                  <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
                     {classroomSyncing && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <CircleNotch className="w-3 h-3 animate-spin" weight="duotone" />
+ <span className="text-xs text-muted-foreground flex items-center gap-1">
+ <CircleNotch className="w-3 h-3 animate-spin" weight="duotone" />
                         Syncing...
                       </span>
                     )}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground gap-1.5"
+ className="text-muted-foreground gap-1.5"
                       onClick={async () => {
                         setClassroomSyncing(true);
                         try {
@@ -1608,30 +1608,30 @@ export default function Dashboard() {
                       }}
                       disabled={classroomSyncing}
                     >
-                      <ArrowsClockwise className="w-3.5 h-3.5" weight="duotone" />
+ <ArrowsClockwise className="w-3.5 h-3.5" weight="duotone" />
                       Sync
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground gap-1.5"
+ className="text-muted-foreground gap-1.5"
                       onClick={() => router.push('/knowledge')}
                     >
                       Manage
-                      <ArrowRight className="w-3.5 h-3.5" />
+ <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Token expiry warning */}
                 {classroomExpired && (
-                  <div className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 flex items-center gap-3">
-                    <Warning className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" weight="duotone" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Connection expired</p>
-                      <p className="text-xs text-amber-700 dark:text-amber-400">Your Google Classroom token has expired. Reconnect to keep syncing.</p>
+ <div className="mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 flex items-center gap-3">
+ <Warning className="w-5 h-5 text-amber-600 shrink-0" weight="duotone" />
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-medium text-amber-800 ">Connection expired</p>
+ <p className="text-xs text-amber-700 ">Your Google Classroom token has expired. Reconnect to keep syncing.</p>
                     </div>
-                    <Button size="sm" variant="outline" className="shrink-0" onClick={() => router.push('/knowledge')}>
+ <Button size="sm" variant="outline" className="shrink-0" onClick={() => router.push('/knowledge')}>
                       Reconnect
                     </Button>
                   </div>
@@ -1639,41 +1639,41 @@ export default function Dashboard() {
 
                 {/* Stats bar */}
                 {classroomStats.total > 0 && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-md bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <ClockCountdown className="w-4 h-4 text-blue-600 dark:text-blue-400" weight="duotone" />
+ <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+ <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+ <div className="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center">
+ <ClockCountdown className="w-4 h-4 text-blue-600 " weight="duotone" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.upcoming}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Upcoming</p>
+ <p className="text-lg font-bold text-foreground leading-none">{classroomStats.upcoming}</p>
+ <p className="text-[10px] text-muted-foreground mt-0.5">Upcoming</p>
                       </div>
                     </div>
-                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-md bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" weight="duotone" />
+ <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+ <div className="w-8 h-8 rounded-md bg-emerald-100 flex items-center justify-center">
+ <CheckCircle className="w-4 h-4 text-emerald-600 " weight="duotone" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.turned_in}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Turned In</p>
+ <p className="text-lg font-bold text-foreground leading-none">{classroomStats.turned_in}</p>
+ <p className="text-[10px] text-muted-foreground mt-0.5">Turned In</p>
                       </div>
                     </div>
-                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-md bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                        <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" weight="duotone" />
+ <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+ <div className="w-8 h-8 rounded-md bg-purple-100 flex items-center justify-center">
+ <Eye className="w-4 h-4 text-purple-600 " weight="duotone" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.graded}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Graded</p>
+ <p className="text-lg font-bold text-foreground leading-none">{classroomStats.graded}</p>
+ <p className="text-[10px] text-muted-foreground mt-0.5">Graded</p>
                       </div>
                     </div>
-                    <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-md bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                        <Warning className="w-4 h-4 text-red-600 dark:text-red-400" weight="duotone" />
+ <div className="bg-card rounded-lg border border-border p-3 flex items-center gap-2.5">
+ <div className="w-8 h-8 rounded-md bg-red-100 flex items-center justify-center">
+ <Warning className="w-4 h-4 text-red-600 " weight="duotone" />
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-foreground leading-none">{classroomStats.missing}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Missing</p>
+ <p className="text-lg font-bold text-foreground leading-none">{classroomStats.missing}</p>
+ <p className="text-[10px] text-muted-foreground mt-0.5">Missing</p>
                       </div>
                     </div>
                   </div>
@@ -1681,10 +1681,10 @@ export default function Dashboard() {
 
                 {/* Course filter */}
                 {classroomCourses.length > 1 && (
-                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+ <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
                     <button
                       onClick={() => { setClassroomCourseFilter(null); fetchClassroomAssignments(null); }}
-                      className={cn(
+ className={cn(
                         "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
                         !classroomCourseFilter
                           ? "bg-primary text-primary-foreground"
@@ -1697,7 +1697,7 @@ export default function Dashboard() {
                       <button
                         key={course.id}
                         onClick={() => { setClassroomCourseFilter(course.id); fetchClassroomAssignments(course.id); }}
-                        className={cn(
+ className={cn(
                           "px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap",
                           classroomCourseFilter === course.id
                             ? "bg-primary text-primary-foreground"
@@ -1712,7 +1712,7 @@ export default function Dashboard() {
 
                 {/* Assignments list */}
                 {classroomAssignments.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {classroomAssignments.map((item: any) => {
                       const subState = item.metadata?.submission_state;
                       const isTurnedIn = subState === 'TURNED_IN';
@@ -1732,67 +1732,67 @@ export default function Dashboard() {
                       return (
                         <div
                           key={item.id}
-                          className={cn(
+ className={cn(
                             "group bg-card rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-md",
-                            isOverdue ? "border-red-200 dark:border-red-900/50" : "border-border"
+                            isOverdue ? "border-red-200 " : "border-border"
                           )}
                         >
-                          <div className="p-4 pb-3">
-                            <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1">
+ <div className="p-4 pb-3">
+ <div className="flex items-start justify-between gap-2">
+ <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1">
                                 {item.title}
                               </h3>
                               {/* Status badge */}
                               {isReturned ? (
-                                <Badge className="shrink-0 text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-0">
+ <Badge className="shrink-0 text-[10px] bg-purple-100 text-purple-700 border-0">
                                   {grade != null && maxPts ? `${grade}/${maxPts}` : 'Returned'}
                                 </Badge>
                               ) : isTurnedIn ? (
-                                <Badge className="shrink-0 text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">
+ <Badge className="shrink-0 text-[10px] bg-emerald-100 text-emerald-700 border-0">
                                   Turned In
                                 </Badge>
                               ) : isOverdue ? (
-                                <Badge className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0">
+ <Badge className="shrink-0 text-[10px] bg-red-100 text-red-700 border-0">
                                   {isLate ? 'Late' : 'Missing'}
                                 </Badge>
                               ) : maxPts ? (
-                                <Badge variant="secondary" className="shrink-0 text-[10px]">
+ <Badge variant="secondary" className="shrink-0 text-[10px]">
                                   {maxPts} pts
                                 </Badge>
                               ) : null}
                             </div>
                             {item.metadata?.course_name && (
-                              <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
                                 {item.metadata.course_name}
                               </p>
                             )}
                             {dueDateStr && (
-                              <p className={cn(
+ <p className={cn(
                                 "text-xs flex items-center gap-1.5 mt-2",
-                                isOverdue ? "text-red-600 dark:text-red-400 font-medium" : "text-muted-foreground"
+                                isOverdue ? "text-red-600  font-medium" : "text-muted-foreground"
                               )}>
-                                <Clock className="w-3 h-3" weight="duotone" />
+ <Clock className="w-3 h-3" weight="duotone" />
                                 {isOverdue ? 'Was due' : 'Due'} {dueDateStr}
                               </p>
                             )}
                           </div>
-                          <div className="px-4 pb-3 flex gap-2">
+ <div className="px-4 pb-3 flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
-                              className="flex-1 gap-1.5 text-xs h-8"
+ className="flex-1 gap-1.5 text-xs h-8"
                               onClick={() => openClassroomInBoard(item)}
                             >
-                              <PencilLine className="w-3 h-3" weight="duotone" />
+ <PencilLine className="w-3 h-3" weight="duotone" />
                               Board
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="flex-1 gap-1.5 text-xs h-8"
+ className="flex-1 gap-1.5 text-xs h-8"
                               onClick={() => openClassroomInJournal(item)}
                             >
-                              <BookOpenText className="w-3 h-3" weight="duotone" />
+ <BookOpenText className="w-3 h-3" weight="duotone" />
                               Journal
                             </Button>
                           </div>
@@ -1801,31 +1801,31 @@ export default function Dashboard() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-card rounded-xl border border-border">
-                    <GraduationCap className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" weight="duotone" />
-                    <p className="text-sm font-medium text-foreground">No assignments found</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+ <div className="text-center py-8 bg-card rounded-xl border border-border">
+ <GraduationCap className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" weight="duotone" />
+ <p className="text-sm font-medium text-foreground">No assignments found</p>
+ <p className="text-xs text-muted-foreground mt-1">
                       {classroomCourseFilter ? 'Try selecting a different course' : 'Your classroom assignments will appear here after syncing'}
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="mt-12">
+ <div className="mt-12">
                 <div
-                  className="bg-card rounded-xl border border-dashed border-border p-6 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors"
+ className="bg-card rounded-xl border border-dashed border-border p-6 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors"
                   onClick={() => router.push('/knowledge')}
                 >
-                  <div className="icon-container icon-container-lg icon-container-green shrink-0">
-                    <GraduationCap className="w-5 h-5" weight="duotone" />
+ <div className="icon-container icon-container-lg icon-container-green shrink-0">
+ <GraduationCap className="w-5 h-5" weight="duotone" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground">Connect Google Classroom</h3>
-                    <p className="text-sm text-muted-foreground mt-0.5">
+ <div className="flex-1 min-w-0">
+ <h3 className="font-semibold text-foreground">Connect Google Classroom</h3>
+ <p className="text-sm text-muted-foreground mt-0.5">
                       See your assignments here and open them in a board or journal
                     </p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" weight="duotone" />
+ <ArrowRight className="w-5 h-5 text-muted-foreground shrink-0" weight="duotone" />
                 </div>
               </div>
             ))}
@@ -1840,44 +1840,44 @@ export default function Dashboard() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-          <div className="max-w-6xl mx-auto px-8 py-10">
-            <div className="flex items-center justify-between mb-8">
+ <div className="max-w-6xl mx-auto px-8 py-10">
+ <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Journals</h1>
-                <p className="text-sm text-muted-foreground mt-1">All your journals in one place</p>
+ <h1 className="text-2xl font-bold text-foreground tracking-tight">My Journals</h1>
+ <p className="text-sm text-muted-foreground mt-1">All your journals in one place</p>
               </div>
-              <Button onClick={() => createJournal()} size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
+ <Button onClick={() => createJournal()} size="sm" className="gap-2">
+ <Plus className="w-4 h-4" />
                 New Journal
               </Button>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
-                    <div className="h-5 bg-muted rounded w-3/4 mb-3" />
-                    <div className="h-4 bg-muted rounded w-full mb-2" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+ <div key={i} className="bg-card rounded-xl p-4 animate-pulse border border-border">
+ <div className="h-5 bg-muted rounded w-3/4 mb-3" />
+ <div className="h-4 bg-muted rounded w-full mb-2" />
+ <div className="h-4 bg-muted rounded w-1/2" />
                   </div>
                 ))}
               </div>
             ) : journals.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
-                  <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
-                    <BookOpenText className="w-6 h-6" weight="duotone" />
+ <div className="flex flex-col items-center justify-center py-20">
+ <div className="empty-state-card rounded-2xl p-12 text-center max-w-md w-full">
+ <div className="icon-container icon-container-lg icon-container-green mx-auto mb-5">
+ <BookOpenText className="w-6 h-6" weight="duotone" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground mb-2">No journals yet</h3>
-                  <p className="text-sm text-muted-foreground mb-6">Create your first journal to start writing with AI-powered study tools.</p>
-                  <Button onClick={() => createJournal()} size="lg" className="px-6">
-                    <Plus className="w-4 h-4 mr-2" />
+ <h3 className="text-base font-semibold text-foreground mb-2">No journals yet</h3>
+ <p className="text-sm text-muted-foreground mb-6">Create your first journal to start writing with AI-powered study tools.</p>
+ <Button onClick={() => createJournal()} size="lg" className="px-6">
+ <Plus className="w-4 h-4 mr-2" />
                     Create Journal
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {journals.map((journal) => {
                   let snippet = '';
                   if (journal.content && journal.content.length > 0) {
@@ -1888,32 +1888,32 @@ export default function Dashboard() {
                   return (
                     <div
                       key={journal.id}
-                      className="group bg-card border border-border rounded-xl p-4 hover:bg-muted/30 transition-colors cursor-pointer relative"
+ className="group bg-card border border-border rounded-xl p-4 hover:bg-muted/30 transition-colors cursor-pointer relative"
                       onClick={() => router.push(`/journal/${journal.id}`)}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-[13px] font-semibold text-foreground truncate pr-8">{journal.title}</h3>
+ <div className="flex items-start justify-between mb-2">
+ <h3 className="text-[13px] font-semibold text-foreground truncate pr-8">{journal.title}</h3>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <button className="p-1 rounded-md hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity absolute top-3 right-3">
-                              <DotsThree className="w-4 h-4 text-muted-foreground" />
+ <button className="p-1 rounded-md hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity absolute top-3 right-3">
+ <DotsThree className="w-4 h-4 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuItem
-                              className="text-destructive"
+ className="text-destructive"
                               onClick={() => deleteJournal(journal.id)}
                             >
-                              <Trash className="w-4 h-4 mr-2" />
+ <Trash className="w-4 h-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      <p className="text-[12px] text-muted-foreground line-clamp-3 mb-3">
+ <p className="text-[12px] text-muted-foreground line-clamp-3 mb-3">
                         {snippet || 'Empty journal'}
                       </p>
-                      <span className="text-[11px] text-muted-foreground/60">
+ <span className="text-[11px] text-muted-foreground/60">
                         {getFriendlyTimestamp(new Date(journal.updated_at))}
                       </span>
                     </div>
@@ -1931,17 +1931,17 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative min-h-screen"
+ className="relative min-h-screen"
             style={{ backgroundColor: '#F5F8F7' }}
           >
           {/* Page title - positioned above the white card */}
-          <div className="pl-[19px] pt-[30px] pb-[18px]">
-            <h2 className="text-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</h2>
+ <div className="pl-[19px] pt-[30px] pb-[18px]">
+ <h2 className="text-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</h2>
           </div>
 
           {/* Main white content card */}
           <div
-            className="rounded-[20px] ml-[-7px] mr-0"
+ className="rounded-[20px] ml-[-7px] mr-0"
             style={{
               backgroundColor: '#FFFFFF',
               boxShadow: '0px 1px 4px 0px rgba(210, 203, 203, 0.25)',
@@ -1950,16 +1950,16 @@ export default function Dashboard() {
           >
             {/* Greeting */}
             <div style={{ padding: '76px 0 0 70px' }}>
-              <p className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+ <p className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
                 {greeting}{user ? `, ${profile?.full_name?.split(' ')[0] || 'there'}` : ''}
               </p>
-              <h1 className="text-[30px] mt-[9px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#07323B' }}>
+ <h1 className="text-[30px] mt-[9px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#07323B' }}>
                 What are we working on today? :)
               </h1>
             </div>
 
             {/* Feature Cards Row */}
-            <div className="grid grid-cols-4 gap-[15px]" style={{ padding: '41px 70px 0 70px' }}>
+ <div className="grid grid-cols-4 gap-[15px]" style={{ padding: '41px 70px 0 70px' }}>
               {featureCards.map((card, index) => {
                 const gradientMap: Record<string, string> = {
                   blue: 'linear-gradient(180deg, #4F88F1 0%, #90B6FC 100%)',
@@ -1977,23 +1977,23 @@ export default function Dashboard() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     onClick={card.onClick}
                     disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
-                    className="text-left rounded-[15px] p-[5px] transition-all duration-150 hover:scale-[1.01] disabled:cursor-not-allowed"
+ className="text-left rounded-[15px] p-[5px] transition-all duration-150 hover:scale-[1.01] disabled:cursor-not-allowed"
                     style={{ backgroundColor: isLast ? '#F4F7F6' : '#F5F8F7' }}
                   >
                     <div
-                      className="rounded-[10px] flex flex-col gap-[15px] h-full"
+ className="rounded-[10px] flex flex-col gap-[15px] h-full"
                       style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)', padding: '20px 11px' }}
                     >
                       <div
-                        className="w-[29px] h-[30px] rounded-[5px] flex items-center justify-center flex-shrink-0"
+ className="w-[29px] h-[30px] rounded-[5px] flex items-center justify-center flex-shrink-0"
                         style={{ background: gradient }}
                       >
-                        <div className="text-white">{card.icon}</div>
+ <div className="text-white">{card.icon}</div>
                       </div>
-                      <h3 className="text-[20px] font-medium leading-tight" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>
+ <h3 className="text-[20px] font-medium leading-tight" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>
                         {card.title}
                       </h3>
-                      <p className="text-[17px] leading-snug" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}>
+ <p className="text-[17px] leading-snug" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}>
                         {card.description}
                       </p>
                     </div>
@@ -2006,11 +2006,11 @@ export default function Dashboard() {
             <div style={{ margin: '30px 70px 0 70px', height: 1, backgroundColor: 'rgba(227, 227, 227, 0.6)' }} />
 
             {/* Recents Header */}
-            <div className="flex items-center justify-between" style={{ padding: '14px 70px 0 70px' }}>
-              <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#06313A' }}>Recents</span>
+ <div className="flex items-center justify-between" style={{ padding: '14px 70px 0 70px' }}>
+ <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: '#06313A' }}>Recents</span>
               <button
                 onClick={() => setActiveView('boards')}
-                className="text-[15px] transition-colors hover:opacity-80"
+ className="text-[15px] transition-colors hover:opacity-80"
                 style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}
               >
                 View All →
@@ -2019,7 +2019,7 @@ export default function Dashboard() {
 
             {/* Recents Cards Grid */}
             {user && recentItems.length > 0 && (
-              <div className="grid grid-cols-4 gap-[15px] pb-[40px]" style={{ padding: '30px 70px 40px 70px' }}>
+ <div className="grid grid-cols-4 gap-[15px] pb-[40px]" style={{ padding: '30px 70px 40px 70px' }}>
                 {recentItems.slice(0, 4).map((item, index) => (
                   <motion.button
                     key={`${item.type}-${item.id}`}
@@ -2027,33 +2027,33 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: index * 0.05 }}
                     onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
-                    className="text-left rounded-[15px] border p-[10px] flex flex-col transition-all duration-150 hover:shadow-md relative"
+ className="text-left rounded-[15px] border p-[10px] flex flex-col transition-all duration-150 hover:shadow-md relative"
                     style={{ backgroundColor: '#F5F8F7', borderColor: '#E7E7E7' }}
                   >
                     {/* Preview area */}
                     <div
-                      className="w-full rounded-[10px] overflow-hidden flex-shrink-0"
+ className="w-full rounded-[10px] overflow-hidden flex-shrink-0"
                       style={{ backgroundColor: '#FFFFFF', height: 213 }}
                     >
                       {item.type === 'board' && item.preview ? (
-                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
+ <img src={item.preview} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpenText className="w-8 h-8" weight="duotone" style={{ color: '#05313A', opacity: 0.15 }} />
+ <div className="w-full h-full flex items-center justify-center">
+ <BookOpenText className="w-8 h-8" weight="duotone" style={{ color: '#05313A', opacity: 0.15 }} />
                         </div>
                       )}
                     </div>
                     {/* Title */}
-                    <h3 className="text-[20px] font-medium truncate mt-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
+ <h3 className="text-[20px] font-medium truncate mt-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
                       {item.title}
                     </h3>
                     {/* Timestamp + badge row */}
-                    <div className="flex items-center justify-between mt-[8px]">
-                      <span className="text-[12px]" style={{ fontFamily: 'Inter, sans-serif', color: '#6A8389', letterSpacing: '-0.02em' }}>
+ <div className="flex items-center justify-between mt-[8px]">
+ <span className="text-[12px]" style={{ fontFamily: 'Inter, sans-serif', color: '#6A8389', letterSpacing: '-0.02em' }}>
                         {getFriendlyTimestamp(new Date(item.updated_at))}
                       </span>
                       <span
-                        className="rounded-[30px] border px-[5px] py-[3px] text-[10px] font-light"
+ className="rounded-[30px] border px-[5px] py-[3px] text-[10px] font-light"
                         style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)', backgroundColor: '#FFFFFF', borderColor: '#F1F1F1', letterSpacing: '-0.02em' }}
                       >
                         {item.type === 'board' ? 'Board' : 'Journal'}
@@ -2066,10 +2066,10 @@ export default function Dashboard() {
 
             {/* Empty state for recents */}
             {user && recentItems.length === 0 && (
-              <div className="flex items-center justify-center py-20" style={{ padding: '80px 70px' }}>
-                <div className="text-center">
-                  <PencilLine className="w-10 h-10 mx-auto mb-4" weight="duotone" style={{ color: '#05313A', opacity: 0.2 }} />
-                  <p className="text-[17px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
+ <div className="flex items-center justify-center py-20" style={{ padding: '80px 70px' }}>
+ <div className="text-center">
+ <PencilLine className="w-10 h-10 mx-auto mb-4" weight="duotone" style={{ color: '#05313A', opacity: 0.2 }} />
+ <p className="text-[17px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
                     No recent items yet. Create a board or journal to get started!
                   </p>
                 </div>
@@ -2088,16 +2088,16 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-4 z-40"
+ className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-lg p-4 flex items-center gap-4 z-40"
         >
-          <div className="flex items-center gap-2">
-            <Timer className={cn(
+ <div className="flex items-center gap-2">
+ <Timer className={cn(
               "w-5 h-5",
               pomodoroMode === 'work' ? "text-primary" : "text-green-500"
             )} weight="duotone" />
-            <span className="text-2xl font-mono font-bold">{formatPomodoroTime(pomodoroTime)}</span>
+ <span className="text-2xl font-mono font-bold">{formatPomodoroTime(pomodoroTime)}</span>
           </div>
-          <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
             <Button
               size="icon"
               variant="ghost"
@@ -2105,9 +2105,9 @@ export default function Dashboard() {
               title={pomodoroPaused ? "Resume" : "Pause"}
             >
               {pomodoroPaused ? (
-                <Play className="w-4 h-4" weight="duotone" />
+ <Play className="w-4 h-4" weight="duotone" />
               ) : (
-                <Pause className="w-4 h-4" weight="duotone" />
+ <Pause className="w-4 h-4" weight="duotone" />
               )}
             </Button>
             <Button
@@ -2119,7 +2119,7 @@ export default function Dashboard() {
               }}
               title="Reset"
             >
-              <ArrowCounterClockwise className="w-4 h-4" weight="duotone" />
+ <ArrowCounterClockwise className="w-4 h-4" weight="duotone" />
             </Button>
             <Button
               size="icon"
@@ -2132,10 +2132,10 @@ export default function Dashboard() {
               }}
               title="Stop"
             >
-              <X className="w-4 h-4" weight="duotone" />
+ <X className="w-4 h-4" weight="duotone" />
             </Button>
           </div>
-          <Badge variant="secondary" className="text-xs">
+ <Badge variant="secondary" className="text-xs">
             {pomodoroPaused ? 'Paused' : pomodoroMode === 'work' ? 'Focus' : 'Break'}
           </Badge>
         </motion.div>
@@ -2146,20 +2146,20 @@ export default function Dashboard() {
       <Dialog open={quickNoteOpen} onOpenChange={setQuickNoteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Note className="w-5 h-5" weight="duotone" />
+ <DialogTitle className="flex items-center gap-2">
+ <Note className="w-5 h-5" weight="duotone" />
               Quick Note
             </DialogTitle>
             <DialogDescription>
               Capture a quick thought or idea.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+ <div className="py-4">
             <textarea
               value={quickNoteContent}
               onChange={(e) => setQuickNoteContent(e.target.value)}
               placeholder="What's on your mind?"
-              className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+ className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
               autoFocus
             />
           </div>
@@ -2183,8 +2183,8 @@ export default function Dashboard() {
               Enter a new name for your whiteboard.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="name" className="mb-2 block">Name</Label>
+ <div className="py-4">
+ <Label htmlFor="name" className="mb-2 block">Name</Label>
             <Input
               id="name"
               value={renameTitle}

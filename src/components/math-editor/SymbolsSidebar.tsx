@@ -154,38 +154,38 @@ export function SymbolsSidebar({ onInsertSymbol, variables }: SymbolsSidebarProp
   const filteredCategories = getFilteredSymbols();
 
   return (
-    <div className="w-72 border-l bg-gray-50 dark:bg-gray-900 flex flex-col h-full">
+ <div className="w-72 border-l bg-gray-50 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm mb-3">SYMBOLS PALETTE</h3>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+ <div className="p-4 border-b">
+ <h3 className="font-semibold text-sm mb-3">SYMBOLS PALETTE</h3>
+ <div className="relative">
+ <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search symbols..."
-            className="pl-9 h-9 text-sm"
+ className="pl-9 h-9 text-sm"
           />
         </div>
       </div>
 
       {/* Variables section */}
       {variables.length > 0 && (
-        <div className="p-4 border-b">
-          <h4 className="text-xs font-medium text-gray-500 mb-2">OBJECTS</h4>
-          <div className="space-y-1">
+ <div className="p-4 border-b">
+ <h4 className="text-xs font-medium text-gray-500 mb-2">OBJECTS</h4>
+ <div className="space-y-1">
             {variables.slice(0, 6).map((v) => (
               <button
                 key={v.name}
                 onClick={() => onInsertSymbol(v.name)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+ className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-left"
               >
-                <span className="text-[#007ba5] dark:text-[#33b5d6] font-mono">{v.name}</span>
-                <span className="text-xs text-gray-500 truncate">{v.description}</span>
+ <span className="text-[#007ba5] font-mono">{v.name}</span>
+ <span className="text-xs text-gray-500 truncate">{v.description}</span>
               </button>
             ))}
             {variables.length > 6 && (
-              <button className="text-xs text-[#007ba5] hover:underline px-2">
+ <button className="text-xs text-[#007ba5] hover:underline px-2">
                 See all {variables.length}
               </button>
             )}
@@ -194,30 +194,30 @@ export function SymbolsSidebar({ onInsertSymbol, variables }: SymbolsSidebarProp
       )}
 
       {/* Symbol categories */}
-      <div className="flex-1 overflow-y-auto p-2">
+ <div className="flex-1 overflow-y-auto p-2">
         {Object.entries(filteredCategories).map(([category, symbols]) => (
-          <div key={category} className="mb-1">
+ <div key={category} className="mb-1">
             <button
               onClick={() => toggleCategory(category)}
-              className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+ className="w-full flex items-center gap-2 px-2 py-2 rounded hover:bg-gray-100 text-left"
             >
               {expandedCategories.has(category) ? (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+ <ChevronDown className="h-4 w-4 text-gray-400" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+ <ChevronRight className="h-4 w-4 text-gray-400" />
               )}
-              <span className="text-sm font-medium">{category}</span>
+ <span className="text-sm font-medium">{category}</span>
             </button>
 
             {expandedCategories.has(category) && (
-              <div className="grid grid-cols-4 gap-1 px-2 py-1">
+ <div className="grid grid-cols-4 gap-1 px-2 py-1">
                 {symbols.map((symbol) => (
                   <Button
                     key={symbol.latex}
                     variant="ghost"
                     size="sm"
                     onClick={() => onInsertSymbol(symbol.latex)}
-                    className="h-10 text-lg font-normal hover:bg-[#e0f2f7] dark:hover:bg-[#007ba5]/10"
+ className="h-10 text-lg font-normal hover:bg-[#e0f2f7] "
                     title={symbol.label}
                   >
                     {symbol.display}
@@ -230,20 +230,20 @@ export function SymbolsSidebar({ onInsertSymbol, variables }: SymbolsSidebarProp
       </div>
 
       {/* Keyboard shortcuts */}
-      <div className="p-4 border-t bg-gray-100 dark:bg-gray-800/50">
-        <h4 className="text-xs font-medium text-gray-500 mb-2">SHORTCUTS</h4>
-        <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-          <div className="flex justify-between">
+ <div className="p-4 border-t bg-gray-100 ">
+ <h4 className="text-xs font-medium text-gray-500 mb-2">SHORTCUTS</h4>
+ <div className="space-y-1 text-xs text-gray-600 ">
+ <div className="flex justify-between">
             <span>New math block</span>
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 rounded text-[10px]">$</kbd>
+ <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px]">$</kbd>
           </div>
-          <div className="flex justify-between">
+ <div className="flex justify-between">
             <span>New heading</span>
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 rounded text-[10px]"># + space</kbd>
+ <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px]"># + space</kbd>
           </div>
-          <div className="flex justify-between">
+ <div className="flex justify-between">
             <span>New line</span>
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 rounded text-[10px]">Enter</kbd>
+ <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px]">Enter</kbd>
           </div>
         </div>
       </div>

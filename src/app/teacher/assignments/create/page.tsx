@@ -232,15 +232,15 @@ export default function CreateAssignmentPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-8">
-        <div className="space-y-2 mb-8">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-5 w-1/2" />
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="space-y-2 mb-8">
+ <Skeleton className="h-8 w-1/3" />
+ <Skeleton className="h-5 w-1/2" />
         </div>
-        <Skeleton className="h-10 w-full mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <Skeleton className="h-10 w-full mb-8" />
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Skeleton key={i} className="h-48 rounded-lg" />
+ <Skeleton key={i} className="h-48 rounded-lg" />
           ))}
         </div>
       </div>
@@ -248,17 +248,17 @@ export default function CreateAssignmentPage() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold">Create Assignment</h1>
-        <p className="text-muted-foreground mt-1">
+ <div className="mb-8">
+ <h1 className="text-2xl font-semibold">Create Assignment</h1>
+ <p className="text-muted-foreground mt-1">
           Select a template board and distribute to your classes
         </p>
       </div>
 
       {/* Progress Steps */}
-      <div className="flex items-center gap-3 mb-10">
+ <div className="flex items-center gap-3 mb-10">
         {[
           { key: 'select-template', label: 'Select Template' },
           { key: 'configure', label: 'Configure' },
@@ -267,10 +267,10 @@ export default function CreateAssignmentPage() {
           const isCompleted = i < stepIndex;
           const isCurrent = s.key === step;
           return (
-            <div key={s.key} className="flex items-center gap-3 flex-1">
-              <div className={`flex items-center gap-2 ${isCurrent ? 'text-primary' : isCompleted ? 'text-primary' : 'text-muted-foreground'}`}>
+ <div key={s.key} className="flex items-center gap-3 flex-1">
+ <div className={`flex items-center gap-2 ${isCurrent ? 'text-primary' : isCompleted ? 'text-primary' : 'text-muted-foreground'}`}>
                 <motion.div
-                  className={`flex items-center justify-center h-8 w-8 rounded-full border-2 text-sm font-medium transition-colors ${
+ className={`flex items-center justify-center h-8 w-8 rounded-full border-2 text-sm font-medium transition-colors ${
                     isCompleted
                       ? 'bg-primary border-primary text-primary-foreground'
                       : isCurrent
@@ -280,14 +280,14 @@ export default function CreateAssignmentPage() {
                   animate={isCompleted ? { scale: [1, 1.1, 1] } : {}}
                   transition={{ duration: 0.3 }}
                 >
-                  {isCompleted ? <Check weight="bold" className="h-4 w-4" /> : i + 1}
+ {isCompleted ? <Check weight="bold" className="h-4 w-4" /> : i + 1}
                 </motion.div>
-                <span className="text-sm font-medium hidden sm:inline">{s.label}</span>
+ <span className="text-sm font-medium hidden sm:inline">{s.label}</span>
               </div>
               {i < 2 && (
-                <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
+ <div className="flex-1 h-0.5 bg-muted rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-primary rounded-full"
+ className="h-full bg-primary rounded-full"
                     initial={{ width: '0%' }}
                     animate={{ width: isCompleted ? '100%' : '0%' }}
                     transition={{ duration: 0.4 }}
@@ -309,25 +309,25 @@ export default function CreateAssignmentPage() {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
           >
-            <h2 className="text-xl font-semibold mb-4">Select Template Board</h2>
+ <h2 className="text-xl font-semibold mb-4">Select Template Board</h2>
             {whiteboards.length === 0 ? (
               <Card>
-                <CardContent className="py-12 text-center">
+ <CardContent className="py-12 text-center">
                   <motion.div
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+ <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   </motion.div>
-                  <h3 className="text-lg font-medium mb-2">No boards yet</h3>
-                  <p className="text-muted-foreground mb-6">
+ <h3 className="text-lg font-medium mb-2">No boards yet</h3>
+ <p className="text-muted-foreground mb-6">
                     Create a whiteboard first to use as a template
                   </p>
                   <Button onClick={() => router.push('/')}>Create Board</Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {whiteboards.map((board, index) => (
                   <motion.div
                     key={board.id}
@@ -336,28 +336,28 @@ export default function CreateAssignmentPage() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
                     <Card
-                      className={`cursor-pointer transition-all hover:shadow-md ${
+ className={`cursor-pointer transition-all hover:shadow-md ${
                         selectedBoardId === board.id
                           ? 'ring-2 ring-primary'
                           : 'hover:bg-muted/50'
                       }`}
                       onClick={() => handleSelectBoard(board)}
                     >
-                      <CardContent className="p-0">
+ <CardContent className="p-0">
                         {board.preview ? (
                           <img
                             src={board.preview}
                             alt={board.title}
-                            className="w-full aspect-[16/10] object-cover rounded-t-lg"
+ className="w-full aspect-[16/10] object-cover rounded-t-lg"
                           />
                         ) : (
-                          <div className="w-full aspect-[16/10] bg-muted rounded-t-lg flex items-center justify-center">
-                            <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground" />
+ <div className="w-full aspect-[16/10] bg-muted rounded-t-lg flex items-center justify-center">
+ <BookOpen weight="duotone" className="h-12 w-12 text-muted-foreground" />
                           </div>
                         )}
-                        <div className="p-4">
-                          <h3 className="font-medium truncate">{board.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">
+ <div className="p-4">
+ <h3 className="font-medium truncate">{board.title}</h3>
+ <p className="text-sm text-muted-foreground mt-1">
                             Updated {formatDistance(new Date(board.updated_at), new Date(), { addSuffix: true })}
                           </p>
                         </div>
@@ -377,21 +377,21 @@ export default function CreateAssignmentPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="space-y-6 max-w-2xl"
+ className="space-y-6 max-w-2xl"
           >
             <div>
-              <h2 className="text-xl font-semibold mb-4">Configure Assignment</h2>
-              <div className="bg-muted/50 rounded-lg p-4 mb-6 flex items-center gap-3">
-                <BookOpen weight="duotone" className="h-5 w-5 text-muted-foreground shrink-0" />
+ <h2 className="text-xl font-semibold mb-4">Configure Assignment</h2>
+ <div className="bg-muted/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+ <BookOpen weight="duotone" className="h-5 w-5 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs text-muted-foreground">Template</p>
-                  <p className="font-medium">{selectedBoard.title}</p>
+ <p className="text-xs text-muted-foreground">Template</p>
+ <p className="font-medium">{selectedBoard.title}</p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-5">
-              <div className="space-y-2">
+ <div className="space-y-5">
+ <div className="space-y-2">
                 <Label htmlFor="title">Assignment Title *</Label>
                 <Input
                   id="title"
@@ -402,7 +402,7 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+ <div className="space-y-2">
                 <Label htmlFor="instructions">Instructions (optional)</Label>
                 <Textarea
                   id="instructions"
@@ -413,9 +413,9 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="due_date" className="flex items-center gap-2">
-                  <CalendarBlank weight="duotone" className="h-4 w-4" />
+ <div className="space-y-2">
+ <Label htmlFor="due_date" className="flex items-center gap-2">
+ <CalendarBlank weight="duotone" className="h-4 w-4" />
                   Due Date (optional)
                 </Label>
                 <Input
@@ -429,17 +429,17 @@ export default function CreateAssignmentPage() {
 
               {/* AI Settings Card */}
               <Card>
-                <CardContent className="pt-5 pb-4 space-y-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Sparkle weight="duotone" className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                    <Label className="text-base">AI Assistance</Label>
+ <CardContent className="pt-5 pb-4 space-y-4">
+ <div className="flex items-center gap-2 mb-1">
+ <Sparkle weight="duotone" className="h-4 w-4 text-purple-600 " />
+ <Label className="text-base">AI Assistance</Label>
                   </div>
-                  <p className="text-xs text-muted-foreground -mt-2">
+ <p className="text-xs text-muted-foreground -mt-2">
                     Control how students can use AI help on this assignment
                   </p>
 
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="allow-ai" className="text-sm cursor-pointer">
+ <div className="flex items-center justify-between">
+ <Label htmlFor="allow-ai" className="text-sm cursor-pointer">
                       Allow AI assistance
                     </Label>
                     <Switch
@@ -454,34 +454,34 @@ export default function CreateAssignmentPage() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="space-y-3 border-t pt-4"
+ className="space-y-3 border-t pt-4"
                     >
-                      <p className="text-xs text-muted-foreground">Available modes:</p>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
+ <p className="text-xs text-muted-foreground">Available modes:</p>
+ <div className="space-y-3">
+ <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Feedback</span>
-                            <p className="text-xs text-muted-foreground">Light hints pointing out where to look</p>
+ <span className="text-sm font-medium text-blue-600 ">Feedback</span>
+ <p className="text-xs text-muted-foreground">Light hints pointing out where to look</p>
                           </div>
                           <Switch
                             checked={allowedModes.includes('feedback')}
                             onCheckedChange={() => toggleMode('feedback')}
                           />
                         </div>
-                        <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Suggest</span>
-                            <p className="text-xs text-muted-foreground">Guided hints for the next step</p>
+ <span className="text-sm font-medium text-amber-600 ">Suggest</span>
+ <p className="text-xs text-muted-foreground">Guided hints for the next step</p>
                           </div>
                           <Switch
                             checked={allowedModes.includes('suggest')}
                             onCheckedChange={() => toggleMode('suggest')}
                           />
                         </div>
-                        <div className="flex items-center justify-between">
+ <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-medium text-green-600 dark:text-green-400">Solve</span>
-                            <p className="text-xs text-muted-foreground">Full worked solution (use sparingly)</p>
+ <span className="text-sm font-medium text-green-600 ">Solve</span>
+ <p className="text-xs text-muted-foreground">Full worked solution (use sparingly)</p>
                           </div>
                           <Switch
                             checked={allowedModes.includes('answer')}
@@ -490,9 +490,9 @@ export default function CreateAssignmentPage() {
                         </div>
                       </div>
 
-                      <div className="border-t pt-3">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="hint-limit" className="text-sm cursor-pointer">
+ <div className="border-t pt-3">
+ <div className="flex items-center justify-between">
+ <Label htmlFor="hint-limit" className="text-sm cursor-pointer">
                             Limit AI helps per student
                           </Label>
                           <Switch
@@ -505,17 +505,17 @@ export default function CreateAssignmentPage() {
                           />
                         </div>
                         {hasHintLimit && (
-                          <div className="mt-2 flex items-center gap-2">
+ <div className="mt-2 flex items-center gap-2">
                             <Input
                               type="number"
                               min={1}
                               max={50}
                               value={hintLimit || ''}
                               onChange={(e) => setHintLimit(parseInt(e.target.value) || null)}
-                              className="w-24"
+ className="w-24"
                               placeholder="e.g., 5"
                             />
-                            <span className="text-sm text-muted-foreground">hints maximum</span>
+ <span className="text-sm text-muted-foreground">hints maximum</span>
                           </div>
                         )}
                       </div>
@@ -525,7 +525,7 @@ export default function CreateAssignmentPage() {
               </Card>
             </div>
 
-            <div className="flex gap-3 pt-4">
+ <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setStep('select-template')}>
                 Back
               </Button>
@@ -543,52 +543,52 @@ export default function CreateAssignmentPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="space-y-6"
+ className="space-y-6"
           >
             {/* Summary Card */}
-            <Card className="bg-muted/30">
-              <CardContent className="pt-5 pb-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">Assignment Summary</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+ <Card className="bg-muted/30">
+ <CardContent className="pt-5 pb-4">
+ <h3 className="text-sm font-medium text-muted-foreground mb-3">Assignment Summary</h3>
+ <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Title:</span>
-                    <p className="font-medium">{title}</p>
+ <span className="text-muted-foreground">Title:</span>
+ <p className="font-medium">{title}</p>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Template:</span>
-                    <p className="font-medium">{selectedBoard?.title}</p>
+ <span className="text-muted-foreground">Template:</span>
+ <p className="font-medium">{selectedBoard?.title}</p>
                   </div>
                   {dueDate && (
                     <div>
-                      <span className="text-muted-foreground">Due:</span>
-                      <p className="font-medium">{new Date(dueDate).toLocaleDateString()}</p>
+ <span className="text-muted-foreground">Due:</span>
+ <p className="font-medium">{new Date(dueDate).toLocaleDateString()}</p>
                     </div>
                   )}
                   <div>
-                    <span className="text-muted-foreground">AI:</span>
-                    <p className="font-medium">{allowAI ? `Enabled (${allowedModes.length} modes)` : 'Disabled'}</p>
+ <span className="text-muted-foreground">AI:</span>
+ <p className="font-medium">{allowAI ? `Enabled (${allowedModes.length} modes)` : 'Disabled'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <div>
-              <h2 className="text-xl font-semibold mb-4">Select Classes</h2>
+ <h2 className="text-xl font-semibold mb-4">Select Classes</h2>
             </div>
 
             {classes.length === 0 ? (
               <Card>
-                <CardContent className="py-12 text-center">
-                  <UsersThree weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No classes yet</h3>
-                  <p className="text-muted-foreground mb-6">
+ <CardContent className="py-12 text-center">
+ <UsersThree weight="duotone" className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+ <h3 className="text-lg font-medium mb-2">No classes yet</h3>
+ <p className="text-muted-foreground mb-6">
                     Create a class first to assign work to students
                   </p>
                   <Button onClick={() => router.push('/teacher/classes')}>Create Class</Button>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+ <div className="space-y-3">
                 {classes.map((classData, index) => (
                   <motion.div
                     key={classData.id}
@@ -597,40 +597,40 @@ export default function CreateAssignmentPage() {
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
                     <Card
-                      className={`cursor-pointer transition-all ${
+ className={`cursor-pointer transition-all ${
                         selectedClassIds.includes(classData.id)
                           ? 'border-primary bg-primary/5'
                           : 'hover:bg-muted/50'
                       }`}
                       onClick={() => toggleClass(classData.id)}
                     >
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-medium">{classData.name}</h3>
+ <CardContent className="p-4 flex items-center justify-between">
+ <div className="flex-1">
+ <div className="flex items-center gap-3">
+ <h3 className="font-medium">{classData.name}</h3>
                             {classData.subject && (
                               <Badge variant="secondary">{classData.subject}</Badge>
                             )}
                             {classData.gc_course_id && (
-                              <Badge variant="outline" className="text-green-600 border-green-300 dark:text-green-400 dark:border-green-700 text-xs">
+ <Badge variant="outline" className="text-green-600 border-green-300 text-xs">
                                 GC
                               </Badge>
                             )}
                           </div>
                           {classData.grade_level && (
-                            <p className="text-sm text-muted-foreground mt-1">
+ <p className="text-sm text-muted-foreground mt-1">
                               {classData.grade_level}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+ <div className="flex items-center gap-4">
+ <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
                             selectedClassIds.includes(classData.id)
                               ? 'bg-primary border-primary'
                               : 'border-muted-foreground'
                           }`}>
                             {selectedClassIds.includes(classData.id) && (
-                              <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
+ <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
                             )}
                           </div>
                         </div>
@@ -643,12 +643,12 @@ export default function CreateAssignmentPage() {
 
             {/* Google Classroom Integration */}
             {selectedClassIds.some((id) => classes.find((c) => c.id === id)?.gc_course_id) && (
-              <Card className="bg-muted/30">
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-center justify-between">
+ <Card className="bg-muted/30">
+ <CardContent className="pt-5 pb-4">
+ <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-sm font-medium">Post to Google Classroom</span>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+ <span className="text-sm font-medium">Post to Google Classroom</span>
+ <p className="text-xs text-muted-foreground mt-0.5">
                         A link to this assignment will appear in your students&apos; Google Classroom
                       </p>
                     </div>
@@ -661,7 +661,7 @@ export default function CreateAssignmentPage() {
               </Card>
             )}
 
-            <div className="flex gap-3 pt-4">
+ <div className="flex gap-3 pt-4">
               <Button variant="outline" onClick={() => setStep('configure')}>
                 Back
               </Button>
@@ -671,7 +671,7 @@ export default function CreateAssignmentPage() {
               >
                 {publishing ? (
                   <>
-                    <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+ <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                     Publishing...
                   </>
                 ) : (

@@ -11,12 +11,12 @@ import {
   getSnapshot,
   loadSnapshot,
   Box,
-} from "tldraw";
-import { toRichText } from "@tldraw/tlschema";
-import React, { useCallback, useState, useRef, useEffect, useMemo, type ReactElement } from "react";
-import "tldraw/tldraw.css";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+} from"tldraw";
+import { toRichText } from"@tldraw/tlschema";
+import React, { useCallback, useState, useRef, useEffect, useMemo, type ReactElement } from"react";
+import"tldraw/tldraw.css";
+import { Button } from"@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from"@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+} from"@/components/ui/dialog";
+import { Label } from"@/components/ui/label";
 import {
   Tick01Icon,
   Cancel01Icon,
@@ -42,43 +42,43 @@ import {
   Mic02Icon,
   MicOff02Icon,
   Loading03Icon,
-} from "hugeicons-react";
+} from"hugeicons-react";
 // useDebounceActivity no longer used — auto-solve disabled
-import { StatusIndicator, type StatusIndicatorState } from "@/components/StatusIndicator";
-import { logger } from "@/lib/logger";
-import { supabase } from "@/lib/supabase";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles, Sun, Moon } from "lucide-react";
-import { sileo } from "sileo";
-import { useRealtimeBoard } from "@/hooks/useRealtimeBoard";
-import { getSubmissionByBoardId, updateSubmissionStatus } from "@/lib/api/assignments";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Check, Clock, ExternalLink, FileText, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { formatDistance } from "date-fns";
-import { CustomToolbar } from "@/components/board/CustomToolbar";
-import { WhiteboardOnboarding } from "@/components/board/WhiteboardOnboarding";
-import type { CanvasContext } from "@/hooks/useAITutor";
-import { FirstBoardTutorial } from "@/components/board/FirstBoardTutorial";
-import { celebrateMilestone } from "@/lib/celebrations";
-import { createClient } from "@/lib/supabase/client";
-import { cn } from "@/lib/utils";
-import { DocumentPanelContext } from "@/lib/contexts/document-panel-context";
-import { MyScriptMathOverlay } from "@/components/board/MyScriptMathOverlay";
-import { LassoSolveTool, type LassoSolveCompleteEvent } from "@/components/board/tools/LassoSolveTool";
-import { LassoActionPrompt } from "@/components/board/LassoActionPrompt";
-import { AdminPlanToggle } from "@/components/board/AdminPlanToggle";
-import { AITutorPanel } from "@/components/board/AITutorPanel";
-import { AITutorButton } from "@/components/board/AITutorButton";
-import { useAITutor } from "@/hooks/useAITutor";
-import { HintButton } from "@/components/board/HintButton";
-import { FeedbackCard } from "@/components/board/FeedbackCard";
-import { LaTeXShapeUtil } from "@/components/board/LaTeXShape";
-import { TopBar } from "@/components/board/TopBar";
-import { useAuth } from "@/components/auth/auth-provider";
+import { StatusIndicator, type StatusIndicatorState } from"@/components/StatusIndicator";
+import { logger } from"@/lib/logger";
+import { supabase } from"@/lib/supabase";
+import { useParams, useRouter, useSearchParams } from"next/navigation";
+import { Loader2, Volume2, VolumeX, Info, Eye, Users, Sparkles } from "lucide-react";
+import { sileo } from"sileo";
+import { useRealtimeBoard } from"@/hooks/useRealtimeBoard";
+import { getSubmissionByBoardId, updateSubmissionStatus } from"@/lib/api/assignments";
+import { Badge } from"@/components/ui/badge";
+import { BookOpen, Check, Clock, ExternalLink, FileText, PanelLeftClose, PanelLeftOpen } from"lucide-react";
+import { formatDistance } from"date-fns";
+import { CustomToolbar } from"@/components/board/CustomToolbar";
+import { WhiteboardOnboarding } from"@/components/board/WhiteboardOnboarding";
+import type { CanvasContext } from"@/hooks/useAITutor";
+import { FirstBoardTutorial } from"@/components/board/FirstBoardTutorial";
+import { celebrateMilestone } from"@/lib/celebrations";
+import { createClient } from"@/lib/supabase/client";
+import { cn } from"@/lib/utils";
+import { DocumentPanelContext } from"@/lib/contexts/document-panel-context";
+import { MyScriptMathOverlay } from"@/components/board/MyScriptMathOverlay";
+import { LassoSolveTool, type LassoSolveCompleteEvent } from"@/components/board/tools/LassoSolveTool";
+import { LassoActionPrompt } from"@/components/board/LassoActionPrompt";
+import { AdminPlanToggle } from"@/components/board/AdminPlanToggle";
+import { AITutorPanel } from"@/components/board/AITutorPanel";
+import { AITutorButton } from"@/components/board/AITutorButton";
+import { useAITutor } from"@/hooks/useAITutor";
+import { HintButton } from"@/components/board/HintButton";
+import { FeedbackCard } from"@/components/board/FeedbackCard";
+import { LaTeXShapeUtil } from"@/components/board/LaTeXShape";
+import { TopBar } from"@/components/board/TopBar";
+import { useAuth } from"@/components/auth/auth-provider";
 
 // Ensure the tldraw canvas background is pure white in both light and dark modes
-DefaultColorThemePalette.lightMode.background = "#FFFFFF";
-DefaultColorThemePalette.darkMode.background = "#FFFFFF";
+DefaultColorThemePalette.lightMode.background ="#FFFFFF";
+DefaultColorThemePalette.darkMode.background ="#FFFFFF";
 
 const hugeIconsOverrides: TLUiOverrides = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,20 +173,14 @@ function ImageActionButtons({
       }}
     >
       <Button
-        variant="default"
-        size="lg"
-        onClick={() => onAccept(currentImageId)}
-        className="shadow-[0_4px_16px_rgba(0,0,0,0.12)] bg-green-600 hover:bg-green-700 text-white rounded-xl px-5 transition-all duration-150 active:scale-[0.97]"
-      >
+        variant="default"        size="lg"        onClick={() => onAccept(currentImageId)}
+        className="shadow-[0_4px_16px_rgba(0,0,0,0.12)] bg-green-600 hover:bg-green-700 text-white rounded-xl px-5 transition-all duration-150 active:scale-[0.97]"      >
         <Tick01Icon size={18} strokeWidth={2.5} />
         <span className="ml-2 font-semibold">Accept Help</span>
       </Button>
       <Button
-        variant="secondary"
-        size="lg"
-        onClick={() => onReject(currentImageId)}
-        className="shadow-[0_4px_16px_rgba(0,0,0,0.08)] bg-white hover:bg-gray-50 rounded-xl px-5 border border-gray-200/80 transition-all duration-150 active:scale-[0.97]"
-      >
+        variant="secondary"        size="lg"        onClick={() => onReject(currentImageId)}
+        className="shadow-[0_4px_16px_rgba(0,0,0,0.08)] bg-white hover:bg-gray-50 rounded-xl px-5 border border-gray-200/80 transition-all duration-150 active:scale-[0.97]"      >
         <Cancel01Icon size={18} strokeWidth={2.5} />
         <span className="ml-2 font-semibold">Reject</span>
       </Button>
@@ -195,17 +189,12 @@ function ImageActionButtons({
 }
 
 type VoiceStatus =
-  | "idle"
-  | "connecting"
-  | "listening"
-  | "thinking"
-  | "callingTool"
-  | "error";
+  |"idle"  |"connecting"  |"listening"  |"thinking"  |"callingTool"  |"error";
 
 interface VoiceAgentControlsProps {
   onSessionChange: (active: boolean) => void;
   onSolveWithPrompt: (
-    mode: "feedback" | "suggest" | "answer",
+    mode:"feedback"|"suggest"|"answer",
     instructions?: string
   ) => Promise<boolean>;
 }
@@ -225,12 +214,12 @@ function VoiceAgentControls({
   const localStreamRef = useRef<MediaStream | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const statusMessages: Record<Exclude<VoiceStatus, "idle">, string> = {
-    connecting: "Connecting voice assistant...",
-    listening: "Listening...",
-    thinking: "Thinking...",
-    callingTool: "Working on your canvas...",
-    error: "Voice error",
+  const statusMessages: Record<Exclude<VoiceStatus,"idle">, string> = {
+    connecting:"Connecting voice assistant...",
+    listening:"Listening...",
+    thinking:"Thinking...",
+    callingTool:"Working on your canvas...",
+    error:"Voice error",
   };
 
   const setErrorStatus = useCallback((message: string) => {
@@ -274,7 +263,7 @@ function VoiceAgentControls({
 
     const viewportBounds = editor.getViewportPageBounds();
     const { blob } = await editor.toImage([...shapeIds], {
-      format: "png",
+      format:"png",
       bounds: viewportBounds,
       background: true,
       scale: 1,
@@ -304,7 +293,7 @@ function VoiceAgentControls({
       }
 
       try {
-        if (name === "analyze_workspace") {
+        if (name ==="analyze_workspace") {
           setStatus("callingTool");
           setStatusDetail("Analyzing your canvas...");
 
@@ -314,8 +303,8 @@ function VoiceAgentControls({
           }
 
           const res = await fetch("/api/voice/analyze-workspace", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+            method:"POST",
+            headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
               image,
               focus: args.focus ?? null,
@@ -327,13 +316,13 @@ function VoiceAgentControls({
           }
 
           const data = await res.json();
-          const analysis = data.analysis ?? "";
+          const analysis = data.analysis ??"";
 
           dc.send(
             JSON.stringify({
-              type: "conversation.item.create",
+              type:"conversation.item.create",
               item: {
-                type: "function_call_output",
+                type:"function_call_output",
                 call_id: callId,
                 output: JSON.stringify({
                   analysis,
@@ -344,22 +333,21 @@ function VoiceAgentControls({
 
           dc.send(
             JSON.stringify({
-              type: "response.create",
+              type:"response.create",
             }),
           );
 
           setStatus("thinking");
           setStatusDetail(null);
-        } else if (name === "draw_on_canvas") {
+        } else if (name ==="draw_on_canvas") {
           setStatus("callingTool");
           setStatusDetail("Updating your canvas...");
 
           const mode =
-            args.mode === "feedback" ||
-            args.mode === "suggest" ||
-            args.mode === "answer"
-              ? args.mode
-              : "suggest";
+            args.mode ==="feedback"||
+            args.mode ==="suggest"||
+            args.mode ==="answer"              ? args.mode
+              :"suggest";
 
           const success =
             (await onSolveWithPrompt(
@@ -369,9 +357,9 @@ function VoiceAgentControls({
 
           dc.send(
             JSON.stringify({
-              type: "conversation.item.create",
+              type:"conversation.item.create",
               item: {
-                type: "function_call_output",
+                type:"function_call_output",
                 call_id: callId,
                 output: JSON.stringify({
                   success,
@@ -383,7 +371,7 @@ function VoiceAgentControls({
 
           dc.send(
             JSON.stringify({
-              type: "response.create",
+              type:"response.create",
             }),
           );
 
@@ -395,13 +383,13 @@ function VoiceAgentControls({
 
         dc.send(
           JSON.stringify({
-            type: "conversation.item.create",
+            type:"conversation.item.create",
             item: {
-              type: "function_call_output",
+              type:"function_call_output",
               call_id: callId,
               output: JSON.stringify({
                 error:
-                  error instanceof Error ? error.message : "Tool execution failed",
+                  error instanceof Error ? error.message :"Tool execution failed",
               }),
             },
           }),
@@ -409,14 +397,13 @@ function VoiceAgentControls({
 
         dc.send(
           JSON.stringify({
-            type: "response.create",
+            type:"response.create",
           }),
         );
 
         setErrorStatus(
           `Tool ${name} failed: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
+            error instanceof Error ? error.message :"Unknown error"          }`,
         );
       }
     },
@@ -425,23 +412,23 @@ function VoiceAgentControls({
 
   const handleServerEvent = useCallback(
     (event: any) => {
-      if (!event || typeof event !== "object") return;
+      if (!event || typeof event !=="object") return;
 
       switch (event.type) {
-        case "response.created":
+        case"response.created":
           setStatus("thinking");
           setStatusDetail(null);
           break;
-        case "response.output_text.delta":
+        case"response.output_text.delta":
           // Streaming text tokens are available here if you want on-screen captions.
           break;
-        case "response.done": {
+        case"response.done": {
             const output = event.response?.output ?? [];
             for (const item of output) {
-              if (item.type === "function_call") {
+              if (item.type ==="function_call") {
                 handleFunctionCall(
                   item.name,
-                  item.arguments ?? "{}",
+                  item.arguments ??"{}",
                   item.call_id,
                 );
               }
@@ -459,31 +446,31 @@ function VoiceAgentControls({
       dc.onopen = () => {
         console.log("[Voice Agent] Data channel open, configuring session...");
         const sessionConfig = {
-          type: "session.update",
+          type:"session.update",
           session: {
-            modalities: ["text", "audio"],
+            modalities: ["text","audio"],
             instructions: `You are a helpful math tutor. Guide the student through problems without giving answers directly. Use Socratic questioning.`,
-            voice: "alloy",
-            input_audio_transcription: { model: "whisper-1" },
+            voice:"alloy",
+            input_audio_transcription: { model:"whisper-1"},
             tools: [
               {
-                type: "function",
-                name: "analyze_workspace",
-                description: "Analyzes what the student has written on the canvas.",
+                type:"function",
+                name:"analyze_workspace",
+                description:"Analyzes what the student has written on the canvas.",
                 parameters: {
-                  type: "object",
-                  properties: { focus: { type: "string" } },
+                  type:"object",
+                  properties: { focus: { type:"string"} },
                 },
               },
               {
-                type: "function",
-                name: "draw_on_canvas",
-                description: "Generates visual AI assistance on the canvas.",
+                type:"function",
+                name:"draw_on_canvas",
+                description:"Generates visual AI assistance on the canvas.",
                 parameters: {
-                  type: "object",
+                  type:"object",
                   properties: {
-                    mode: { type: "string", enum: ["feedback", "suggest", "answer"] },
-                    instructions: { type: "string" },
+                    mode: { type:"string", enum: ["feedback","suggest","answer"] },
+                    instructions: { type:"string"},
                   },
                   required: ["mode"],
                 },
@@ -541,20 +528,20 @@ function VoiceAgentControls({
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
 
-        const baseUrl = "https://api.openai.com/v1/realtime";
-        const model = "gpt-4o-realtime-preview-2024-12-17";
+        const baseUrl ="https://api.openai.com/v1/realtime";
+        const model ="gpt-4o-realtime-preview-2024-12-17";
         const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
-          method: "POST",
+          method:"POST",
           headers: {
             Authorization: `Bearer ${EPHEMERAL_KEY}`,
-            "Content-Type": "application/sdp",
+"Content-Type":"application/sdp",
           },
           body: offer.sdp,
         });
 
         if (!sdpResponse.ok) throw new Error("Realtime handshake failed");
         const answerSdp = await sdpResponse.text();
-        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+        await pc.setRemoteDescription({ type:"answer", sdp: answerSdp });
 
         setIsSessionActive(true);
         setStatus("listening");
@@ -562,7 +549,7 @@ function VoiceAgentControls({
         cleanupSession();
         setIsSessionActive(false);
         onSessionChange(false);
-        setErrorStatus(err instanceof Error ? err.message : "Unknown error");
+        setErrorStatus(err instanceof Error ? err.message :"Unknown error");
       }
     }, [cleanupSession, onSessionChange, setErrorStatus, setupDataChannel]);
 
@@ -587,30 +574,27 @@ function VoiceAgentControls({
     <>
       <audio ref={remoteAudioRef} autoPlay />
 
-      {isSessionActive && status !== "idle" && (
+      {isSessionActive && status !=="idle"&& (
         <div className="fixed top-0 left-0 right-0 z-[10000] flex flex-col items-center justify-center pt-4 pointer-events-none">
           <div className="flex items-center gap-2 bg-[#007ba5] text-white px-4 py-2 rounded-xl shadow-[0_4px_16px_rgba(0,123,165,0.3)] animate-pulse">
-            <Loading03Icon size={18} className="animate-spin" />
+            <Loading03Icon size={18} className="animate-spin"/>
             <span className="text-sm font-medium">
               {statusMessages[status]}
-              {statusDetail ? ` (${statusDetail})` : ""}
+              {statusDetail ? ` (${statusDetail})` :""}
             </span>
           </div>
 
           <div className="flex gap-4 mt-4 pointer-events-auto">
             <Button
-              variant="outline"
-              size="sm"
-              className="bg-white rounded-full px-4"
-              onClick={toggleMute}
+              variant="outline"              size="sm"              className="bg-white rounded-full px-4"              onClick={toggleMute}
             >
               {isMuted ? (
                 <>
-                  <VolumeX className="w-4 h-4 mr-2" /> Unmute Mic
+                  <VolumeX className="w-4 h-4 mr-2"/> Unmute Mic
                 </>
               ) : (
                 <>
-                  <Volume2 className="w-4 h-4 mr-2" /> Mute Mic
+                  <Volume2 className="w-4 h-4 mr-2"/> Mute Mic
                 </>
               )}
             </Button>
@@ -628,16 +612,14 @@ function VoiceAgentControls({
           <Button
             onClick={handleClick}
             variant={"outline"}
-            className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white hover:bg-gray-50 border-gray-200/80 transition-all duration-150 active:scale-[0.97]"
-            size="lg"
-          >
+            className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] bg-white hover:bg-gray-50 border-gray-200/80 transition-all duration-150 active:scale-[0.97]"            size="lg"          >
             {isSessionActive ? (
               <MicOff02Icon size={18} strokeWidth={2} />
             ) : (
               <Mic02Icon size={18} strokeWidth={2} />
             )}
             <span className="ml-2 font-medium">
-              {isSessionActive ? "End Session" : "Voice Mode"}
+              {isSessionActive ?"End Session":"Voice Mode"}
             </span>
           </Button>
         </div>
@@ -732,7 +714,7 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
         <div className="bg-card/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 mb-2 max-w-xs">
           <div className="flex items-center justify-between mb-3">
             <h4 className="font-semibold text-sm flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-sky-600" />
+              <Sparkles className="h-4 w-4 text-sky-600"/>
               AI Usage Summary
             </h4>
             <button onClick={() => setShowLegend(false)} className="text-muted-foreground hover:text-foreground">
@@ -750,8 +732,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
               <div className="space-y-1.5">
                 {aiStats.feedback > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-2 border-dashed border-sky-400" />
-                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                    <span className="w-5 border-t-2 border-dashed border-sky-400"/>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                       {aiStats.feedback} Light Hint{aiStats.feedback !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Dashed outline</span>
@@ -759,8 +741,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
                 )}
                 {aiStats.suggest > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-2 border-solid border-sky-500" />
-                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                    <span className="w-5 border-t-2 border-solid border-sky-500"/>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                       {aiStats.suggest} Guided Hint{aiStats.suggest !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Solid outline + glow</span>
@@ -768,8 +750,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
                 )}
                 {aiStats.answer > 0 && (
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="w-5 border-t-[3px] border-solid border-sky-700" />
-                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                    <span className="w-5 border-t-[3px] border-solid border-sky-700"/>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                       {aiStats.answer} Solution{aiStats.answer !== 1 ? 's' : ''}
                     </span>
                     <span className="text-muted-foreground">Thick outline + pulse</span>
@@ -787,9 +769,8 @@ function TeacherAIIndicator({ editor, onAIShapeCount }: { editor: any; onAIShape
       {!showLegend && aiShapes.length > 0 && (
         <button
           onClick={() => setShowLegend(true)}
-          className="bg-[#007ba5] text-white rounded-full p-3 shadow-lg hover:bg-[#006589] transition-colors"
-        >
-          <Sparkles className="h-5 w-5" />
+          className="bg-[#007ba5] text-white rounded-full p-3 shadow-lg hover:bg-[#006589] transition-colors"        >
+          <Sparkles className="h-5 w-5"/>
         </button>
       )}
     </div>
@@ -877,28 +858,21 @@ function DocumentPanel({
 
   return (
     <div
-      className="fixed right-0 top-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)] flex flex-col shadow-lg"
-      style={{ width }}
+      className="fixed right-0 top-0 h-full bg-white border-l border-gray-200 z-[var(--z-panel)] flex flex-col shadow-lg"      style={{ width }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-gray-50/80 shrink-0">
-        <FileText className="h-4 w-4 text-gray-500 shrink-0" />
+        <FileText className="h-4 w-4 text-gray-500 shrink-0"/>
         <span className="text-sm font-medium text-gray-800 truncate flex-1">{title}</span>
         <a
           href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
-          title="Open in new tab"
-        >
-          <ExternalLink className="h-4 w-4" />
+          target="_blank"          rel="noopener noreferrer"          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"          title="Open in new tab"        >
+          <ExternalLink className="h-4 w-4"/>
         </a>
         <button
           onClick={onClose}
-          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"
-          title="Close document panel"
-        >
-          <PanelLeftClose className="h-4 w-4" />
+          className="p-1 rounded-md hover:bg-gray-200 transition-colors text-gray-500"          title="Close document panel"        >
+          <PanelLeftClose className="h-4 w-4"/>
         </button>
       </div>
       {/* Body */}
@@ -906,35 +880,28 @@ function DocumentPanel({
         {canEmbed ? (
           <iframe
             src={embedUrl}
-            className="w-full h-full border-0"
-            allow="autoplay"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            title={title}
+            className="w-full h-full border-0"            allow="autoplay"            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"            title={title}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <FileText className="h-12 w-12 text-gray-300 mb-4" />
+            <FileText className="h-12 w-12 text-gray-300 mb-4"/>
             <p className="text-sm font-medium text-gray-700 mb-2">This document can&apos;t be previewed here</p>
             <p className="text-xs text-gray-500 mb-4">Open it in a new tab to view the full content</p>
             <a
               href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <ExternalLink className="h-4 w-4" />
+              target="_blank"              rel="noopener noreferrer"              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"            >
+              <ExternalLink className="h-4 w-4"/>
               Open Document
             </a>
           </div>
         )}
         {/* Overlay blocks iframe from stealing mouse events while resizing */}
-        {dragging && <div className="absolute inset-0" />}
+        {dragging && <div className="absolute inset-0"/>}
       </div>
       {/* Resize handle — left edge */}
       <div
         onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors"
-      />
+        className="absolute left-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors"      />
     </div>
   );
 }
@@ -944,7 +911,7 @@ type AssignmentMeta = {
   subject?: string;
   gradeLevel?: string;
   instructions?: string;
-  defaultMode?: "off" | /* "feedback" | */ "suggest" | "answer";
+  defaultMode?:"off"| /*"feedback"| */"suggest"|"answer";
   // AI restriction settings from teacher
   allowAI?: boolean;
   allowedModes?: string[];
@@ -995,22 +962,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off" | /* "feedback" | */ "suggest" | "answer">("suggest");
-  const [helpCheckStatus, setHelpCheckStatus] = useState<"idle" | "checking">("idle");
+  const [assistanceMode, setAssistanceMode] = useState<"off"| /*"feedback"| */"suggest"|"answer">("suggest");
+  const [helpCheckStatus, setHelpCheckStatus] = useState<"idle"|"checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
     const [aiTutorOpen, setAiTutorOpen] = useState(false);
     const [aiTutorImage, setAiTutorImage] = useState<string | null>(null);
     const [aiTutorAnswer, setAiTutorAnswer] = useState<string>("");
     const [isHintLoading, setIsHintLoading] = useState(false);
-    const [boardTheme, setBoardTheme] = useState<'light' | 'dark'>(() => {
-      try {
-        const pref = localStorage.getItem('agathon_theme') || 'system';
-        if (pref === 'dark') return 'dark';
-        if (pref === 'light') return 'light';
-        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } catch { return 'light'; }
-    });
     const [feedbackCard, setFeedbackCard] = useState<{
       summary: string;
       annotations: { type: string; content: string }[];
@@ -1200,16 +1159,16 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       if (!editor || !shouldEnableRealtime) return;
 
       // Show notification
-      sileo.info({ title: "Board updated by another user", description: "Reloading canvas...", duration: 2000 });
+      sileo.info({ title:"Board updated by another user", description:"Reloading canvas...", duration: 2000 });
 
       try {
         if (updatedBoard.data && Object.keys(updatedBoard.data).length > 0) {
           loadSnapshot(editor.store, updatedBoard.data);
-          logger.info({ boardId: id }, "Canvas reloaded from remote update");
+          logger.info({ boardId: id },"Canvas reloaded from remote update");
         }
       } catch (error) {
         console.error("Failed to reload canvas from remote update:", error);
-        sileo.error({ title: "Failed to sync changes" });
+        sileo.error({ title:"Failed to sync changes"});
       }
     }, [editor, id, shouldEnableRealtime]),
   });
@@ -1257,31 +1216,31 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
 
   // Helper function to get mode-aware status messages
-  const getStatusMessage = useCallback((mode: "off" | /* "feedback" | */ "suggest" | "answer", statusType: "generating" | "success") => {
-    if (statusType === "generating") {
+  const getStatusMessage = useCallback((mode:"off"| /*"feedback"| */"suggest"|"answer", statusType:"generating"|"success") => {
+    if (statusType ==="generating") {
       switch (mode) {
-        case "off":
-          return "";
-        // case "feedback":
-        //   return "Adding feedback...";
-        case "suggest":
-          return "Generating suggestion...";
-        case "answer":
-          return "Solving problem...";
+        case"off":
+          return"";
+        // case"feedback":
+        //   return"Adding feedback...";
+        case"suggest":
+          return"Generating suggestion...";
+        case"answer":
+          return"Solving problem...";
       }
-    } else if (statusType === "success") {
+    } else if (statusType ==="success") {
       switch (mode) {
-        case "off":
-          return "";
-        // case "feedback":
-        //   return "Feedback added";
-        case "suggest":
-          return "Suggestion added";
-        case "answer":
-          return "Solution added";
+        case"off":
+          return"";
+        // case"feedback":
+        //   return"Feedback added";
+        case"suggest":
+          return"Suggestion added";
+        case"answer":
+          return"Solution added";
       }
     }
-    return "";
+    return"";
   }, []);
 
   useEffect(() => {
@@ -1332,10 +1291,10 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   const generateSolution = useCallback(
     async (options?: {
-      modeOverride?: /* "feedback" | */ "suggest" | "answer";
+      modeOverride?: /*"feedback"| */"suggest"|"answer";
       promptOverride?: string;
       force?: boolean;
-      source?: "auto" | "voice";
+      source?:"auto"|"voice";
     }): Promise<boolean> => {
       // Block when we don't have an editor or a generation is already running.
       // Also block auto generations while a voice session is active, but allow
@@ -1343,7 +1302,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       if (
         !editor ||
         isProcessingRef.current ||
-        (isVoiceSessionActive && options?.source !== "voice")
+        (isVoiceSessionActive && options?.source !=="voice")
       ) {
         return false;
       }
@@ -1351,14 +1310,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       let mode = options?.modeOverride ?? assistanceMode;
 
       // Enforce AI restrictions for remote AI modes
-      if (mode !== "off") {
+      if (mode !=="off") {
         if (!aiAllowed) {
           logger.info('AI assistance is disabled for this assignment');
-          mode = "off";
+          mode ="off";
         } else if (!isModeAllowed(mode)) {
           logger.info({ mode }, 'This AI mode is not allowed for this assignment');
           sileo.error({ title: `${mode} mode is not allowed for this assignment` });
-          mode = "off";
+          mode ="off";
         }
       }
 
@@ -1396,7 +1355,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         }
         
         const { blob } = await editor.toImage(shapesToCapture, {
-          format: "png",
+          format:"png",
           bounds: viewportBounds,
           background: true,
           scale: 1,
@@ -1427,7 +1386,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         // This function only handles the AI modes (feedback, suggest, answer with detailed explanation)
 
         // If mode is off, we're done (MyScript handles quick solving separately)
-        if (mode === "off") {
+        if (mode ==="off") {
           setStatus("idle");
           setStatusMessage("");
           isProcessingRef.current = false;
@@ -1436,7 +1395,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         // Generate solution using AI (Gemini decides if help is needed)
         setStatus("generating");
-        setStatusMessage(getStatusMessage(mode, "generating"));
+        setStatusMessage(getStatusMessage(mode,"generating"));
 
           const body: Record<string, unknown> = {
             image: base64,
@@ -1451,7 +1410,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         // Let the backend know whether this was triggered automatically or
         // explicitly by the voice tutor.
-        body.source = options?.source ?? "auto";
+        body.source = options?.source ??"auto";
 
         const solutionResponse = await fetch('/api/generate-solution', {
           method: 'POST',
@@ -1564,7 +1523,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
           editor.createShape({
             id: shapeId,
-            type: "image",
+            type:"image",
             x: viewportBounds.x + (viewportBounds.width - w) / 2,
             y: viewportBounds.y + (viewportBounds.height - h) / 2,
             opacity: 0.8,
@@ -1682,7 +1641,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
         editor.createShape({
           id: shapeId,
-          type: "image",
+          type:"image",
           x: viewportBounds.x + (viewportBounds.width - shapeWidth) / 2,
           y: viewportBounds.y + (viewportBounds.height - shapeHeight) / 2,
           opacity: isFeedbackMode ? 1.0 : 0.3,
@@ -1708,7 +1667,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           
           // Show success message briefly, then return to idle
         setStatus("success");
-        setStatusMessage(getStatusMessage(mode, "success"));
+        setStatusMessage(getStatusMessage(mode,"success"));
         setTimeout(() => {
           setStatus("idle");
           setStatusMessage("");
@@ -2135,8 +2094,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(async () => {
         // If we're offline, skip auto-save to avoid noisy errors
-        if (typeof window !== "undefined" && window.navigator && !window.navigator.onLine) {
-          logger.warn({ id }, "Skipping auto-save while offline");
+        if (typeof window !=="undefined"&& window.navigator && !window.navigator.onLine) {
+          logger.warn({ id },"Skipping auto-save while offline");
           return;
         }
 
@@ -2168,8 +2127,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     : String(e),
                 id,
               },
-              "Failed to serialize board snapshot for auto-save"
-            );
+"Failed to serialize board snapshot for auto-save"            );
             return;
           }
           
@@ -2180,7 +2138,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             if (shapeIds.size > 0) {
               const viewportBounds = editor.getViewportPageBounds();
                 const { blob } = await editor.toImage([...shapeIds], {
-                  format: "png",
+                  format:"png",
                   bounds: viewportBounds,
                   background: true,
                   scale: 0.75,  // Increased from 0.5 for better preview quality (50% more detail)
@@ -2204,8 +2162,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                     : String(e),
                 id,
               },
-              "Thumbnail generation failed, continuing without preview"
-            );
+"Thumbnail generation failed, continuing without preview"            );
           }
 
           const updateData: any = { 
@@ -2220,8 +2177,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               console.warn(`Preview too large (${previewUrl.length} bytes), skipping`);
               logger.warn(
                 { id, length: previewUrl.length, maxLength: MAX_PREVIEW_LENGTH },
-                "Preview too large, skipping storing preview in database"
-              );
+"Preview too large, skipping storing preview in database"              );
             } else {
               updateData.preview = previewUrl;
             }
@@ -2260,8 +2216,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             // the database is briefly under load. Treat them as non-fatal and
             // avoid noisy console errors.
             const isTimeoutError =
-              (error as any)?.code === "57014" ||
-              /statement timeout/i.test(error.message ?? "");
+              (error as any)?.code ==="57014"||
+              /statement timeout/i.test(error.message ??"");
 
             if (isTimeoutError) {
               console.warn("Supabase auto-save timed out, skipping noisy error log.", {
@@ -2276,7 +2232,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   code: (error as any)?.code,
                   message: error.message,
                 },
-                "Supabase auto-save timed out (often due to navigation away); ignoring.",
+"Supabase auto-save timed out (often due to navigation away); ignoring.",
               );
 
               // Don't throw so the outer catch block doesn't treat this as a hard error.
@@ -2298,9 +2254,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
             console.error("Supabase update error:", errorDetails);
             throw new Error(
-              `Supabase error: ${error.message || "Unknown error"} (code: ${
-                (error as any)?.code || "N/A"
-              })`,
+              `Supabase error: ${error.message ||"Unknown error"} (code: ${
+                (error as any)?.code ||"N/A"              })`,
             );
           }
           
@@ -2308,7 +2263,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             console.warn("No rows updated - board may not exist:", id);
           }
           
-          logger.info({ id }, "Board auto-saved successfully");
+          logger.info({ id },"Board auto-saved successfully");
         } catch (error) {
           // Extract all error properties for proper logging
           const errorInfo: Record<string, any> = {
@@ -2343,8 +2298,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               error: errorInfo,
               id,
             },
-            "Error auto-saving board"
-          );
+"Error auto-saving board"          );
         }
       }, 2000);
     };
@@ -2378,7 +2332,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           <div className="bg-card border rounded-lg shadow-sm px-3 py-2 flex items-center gap-2">
             <div className="flex items-center gap-1">
               <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'} animate-pulse`} />
-              <Users className="w-4 h-4 text-muted-foreground" />
+              <Users className="w-4 h-4 text-muted-foreground"/>
             </div>
             <div className="flex flex-col">
               <p className="text-xs font-medium">
@@ -2395,12 +2349,12 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       {/* AI Content Stats for Teachers */}
       {isTeacherViewing && aiShapeCount > 0 && (
         <div className="fixed bottom-4 left-4 z-[var(--z-controls)] ios-safe-bottom ios-safe-left">
-          <div className="bg-sky-100 dark:bg-sky-900/30 border border-sky-300 dark:border-sky-700 rounded-lg shadow-sm px-4 py-3">
+          <div className="bg-sky-100 border border-sky-300 rounded-lg shadow-sm px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-3 h-3 rounded-full bg-sky-500" />
-              <span className="text-sm font-semibold text-sky-800 dark:text-sky-300">AI Usage Detected</span>
+              <div className="w-3 h-3 rounded-full bg-sky-500"/>
+              <span className="text-sm font-semibold text-sky-800">AI Usage Detected</span>
             </div>
-            <p className="text-xs text-sky-700 dark:text-sky-400">
+            <p className="text-xs text-sky-700">
               {aiShapeCount} AI-generated {aiShapeCount === 1 ? 'element' : 'elements'} on this canvas
             </p>
           </div>
@@ -2417,7 +2371,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         submissionStatus={submissionId ? (isSubmitted ? 'submitted' : 'in_progress') : null}
         isAssignmentBoard={isAssignmentBoard}
         assistanceMode={assistanceMode}
-        onModeChange={(value) => setAssistanceMode(value as "off" | /* "feedback" | */ "suggest" | "answer")}
+        onModeChange={(value) => setAssistanceMode(value as"off"| /*"feedback"| */"suggest"|"answer")}
         aiAllowed={aiAllowed}
         isModeAllowed={isModeAllowed}
         status={status}
@@ -2450,10 +2404,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
               {!docPanelOpen && (
                 <button
                   onClick={() => setDocPanelOpen?.(true)}
-                  className="fixed right-3 top-16 z-[var(--z-panel)] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-md p-2 hover:bg-muted transition-colors"
-                  title="Show document"
-                >
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  className="fixed right-3 top-16 z-[var(--z-panel)] bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-md p-2 hover:bg-muted transition-colors"                  title="Show document"                >
+                  <FileText className="h-4 w-4 text-muted-foreground"/>
                 </button>
               )}
             </>
@@ -2502,8 +2454,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           {/* Grouped floating controls — bottom-right, shifts when AI tutor panel is open */}
           {!isTeacherViewing && editor && (
             <div
-              className="fixed bottom-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2 transition-[right] duration-250 ease-out"
-              style={{ right: aiTutorOpen ? 396 : 16 }}
+              className="fixed bottom-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2 transition-[right] duration-250 ease-out"              style={{ right: aiTutorOpen ? 396 : 16 }}
             >
               <HintButton
                 isLoading={isHintLoading}
@@ -2534,18 +2485,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                   isOpen={aiTutorOpen}
                   messageCount={aiTutor.messages.length}
                 />
-                <button
-                  aria-label="Toggle theme"
-                  onClick={() => {
-                    const next = boardTheme === 'dark' ? 'light' : 'dark';
-                    localStorage.setItem('agathon_theme', next);
-                    try { window.dispatchEvent(new Event('agathon-pref-change')); } catch {}
-                    setBoardTheme(next);
-                  }}
-                  className="no-enlarge h-9 w-9 rounded-lg inline-flex items-center justify-center bg-white text-gray-600 border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors duration-150"
-                >
-                  {boardTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
               </div>
             </div>
           )}
@@ -3154,7 +3093,7 @@ export default function BoardPage() {
     return (
       <div className="flex h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-6 h-6 animate-spin text-[#007ba5]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#007ba5]"/>
           <p className="text-gray-400 text-sm font-medium">Loading canvas...</p>
         </div>
       </div>
@@ -3176,11 +3115,11 @@ export default function BoardPage() {
   const topOffset = bannerHeight + TOP_BAR_HEIGHT;
 
   return (
-    <div style={{ position: "fixed", inset: 0, top: topOffset }}>
+    <div style={{ position:"fixed", inset: 0, top: topOffset }}>
       {/* View-only banner */}
       {!canEdit && !submissionData && (
         <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-amber-50 border-b border-amber-200/60 text-amber-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Eye className="w-4 h-4 text-amber-600" />
+          <Eye className="w-4 h-4 text-amber-600"/>
           View Only — You don&apos;t have permission to edit this board
         </div>
       )}
@@ -3188,7 +3127,7 @@ export default function BoardPage() {
       {/* Submitted assignment banner */}
       {!canEdit && submissionData?.status === 'submitted' && !isTeacherViewing && (
         <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-green-50 border-b border-green-200/60 text-green-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Check className="w-4 h-4 text-green-600" />
+          <Check className="w-4 h-4 text-green-600"/>
           Assignment Submitted — Your work has been locked
         </div>
       )}
@@ -3196,7 +3135,7 @@ export default function BoardPage() {
       {/* Teacher viewing student board banner */}
       {isTeacherViewing && (
         <div className="fixed top-0 left-0 right-0 z-[var(--z-banner)] bg-sky-50 border-b border-sky-200/60 text-sky-800 px-4 py-2 text-center text-sm font-medium flex items-center justify-center gap-2">
-          <Eye className="w-4 h-4 text-[#007ba5]" />
+          <Eye className="w-4 h-4 text-[#007ba5]"/>
           Viewing {studentName}&apos;s submission — AI-generated content is highlighted in blue
         </div>
       )}
@@ -3205,22 +3144,21 @@ export default function BoardPage() {
 
       {/* Google Classroom submit button - shown for boards from GC assignments */}
       {assignmentMeta?.gcCourseId && assignmentMeta?.gcCourseworkId && !isTeacherViewing && (
-        <div className="fixed bottom-4 left-4 z-[var(--z-controls)]" style={{ pointerEvents: 'auto' }}>
+        <div className="fixed bottom-4 left-4 z-[var(--z-controls)]"style={{ pointerEvents: 'auto' }}>
           {gcSubmitted ? (
             <div className="bg-green-50 border border-green-200/80 rounded-xl px-4 py-2 flex items-center gap-2 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-              <Check className="w-4 h-4 text-green-600" />
+              <Check className="w-4 h-4 text-green-600"/>
               <span className="text-sm font-medium text-green-700">Submitted to Google Classroom</span>
             </div>
           ) : (
             <Button
               onClick={handleGoogleClassroomSubmit}
               disabled={gcSubmitting}
-              className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-green-600 hover:bg-green-700 text-white px-4 active:scale-[0.97] transition-all duration-150"
-            >
+              className="rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.08)] bg-green-600 hover:bg-green-700 text-white px-4 active:scale-[0.97] transition-all duration-150"            >
               {gcSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 animate-spin mr-2"/>
               ) : (
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-4 h-4 mr-2"/>
               )}
               {gcSubmitting ? 'Submitting...' : 'Submit to Google Classroom'}
             </Button>
@@ -3230,8 +3168,7 @@ export default function BoardPage() {
 
         <DocumentPanelContext.Provider value={docPanelOpen}>
         <Tldraw
-          licenseKey="tldraw-2027-03-20/WyJhMGx6eW52ZCIsWyIqLndoaXRlYm9hcmQtZGVsdGEtd2luZS52ZXJjZWwuYXBwIiwiKi53aGl0ZWJvYXJkLnJ1c2hpbGNob3ByYS5jb20iLCIqLmFnYXRob24uYXBwIl0sOSwiMjAyNy0wMy0yMCJd.SR8d1+DdnCpKQ4TKE5hTeYha+C8aeqMzwTCk+QbYngRGnXrd/qF5kWkeAwd3UGhxA5nK5QI5xK7JWU97H/D9vA"
-          tools={[LassoSolveTool]}
+          licenseKey="tldraw-2027-03-20/WyJhMGx6eW52ZCIsWyIqLndoaXRlYm9hcmQtZGVsdGEtd2luZS52ZXJjZWwuYXBwIiwiKi53aGl0ZWJvYXJkLnJ1c2hpbGNob3ByYS5jb20iLCIqLmFnYXRob24uYXBwIl0sOSwiMjAyNy0wMy0yMCJd.SR8d1+DdnCpKQ4TKE5hTeYha+C8aeqMzwTCk+QbYngRGnXrd/qF5kWkeAwd3UGhxA5nK5QI5xK7JWU97H/D9vA"          tools={[LassoSolveTool]}
           shapeUtils={[LaTeXShapeUtil]}
           overrides={hugeIconsOverrides}
           components={{
@@ -3276,7 +3213,7 @@ export default function BoardPage() {
                 loadSnapshot(editor.store, initialData);
               } catch (e) {
                 console.error("Failed to load snapshot:", e);
-                sileo.error({ title: "Failed to restore canvas state" });
+                sileo.error({ title:"Failed to restore canvas state"});
               }
             }
 

@@ -16,8 +16,8 @@ const CorcaEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+ <div className="flex-1 flex items-center justify-center">
+ <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     ),
   }
@@ -154,45 +154,45 @@ export default function MathEditorPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-white dark:bg-gray-950">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+ <div className="h-screen flex items-center justify-center bg-white ">
+ <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-950">
+ <div className="h-screen flex flex-col bg-white ">
       {/* Top navigation */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-white dark:bg-gray-950">
-        <div className="flex items-center gap-2">
+ <div className="flex items-center justify-between px-4 py-2 border-b bg-white ">
+ <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push('/math')}
-            className="h-9 w-9"
+ className="h-9 w-9"
           >
-            <ArrowLeft className="h-5 w-5" />
+ <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="h-6 w-px bg-gray-200 dark:bg-gray-800" />
-          <span className="text-sm text-gray-500">Math Documents</span>
-          <span className="text-sm text-gray-400">/</span>
-          <span className="text-sm font-medium truncate max-w-[200px]">{title || 'Untitled'}</span>
+ <div className="h-6 w-px bg-gray-200 " />
+ <span className="text-sm text-gray-500">Math Documents</span>
+ <span className="text-sm text-gray-400">/</span>
+ <span className="text-sm font-medium truncate max-w-[200px]">{title || 'Untitled'}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="gap-2 text-gray-500">
-            <Download className="h-4 w-4" />
+ <div className="flex items-center gap-2">
+ <Button variant="ghost" size="sm" className="gap-2 text-gray-500">
+ <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button variant="default" size="sm" className="gap-2">
-            <Share className="h-4 w-4" />
+ <Button variant="default" size="sm" className="gap-2">
+ <Share className="h-4 w-4" />
             Share
           </Button>
         </div>
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-hidden">
+ <div className="flex-1 overflow-hidden">
         <CorcaEditor
           title={title}
           blocks={blocks}

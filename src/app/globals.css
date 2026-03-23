@@ -1,12 +1,10 @@
-@import "tailwindcss";
-@source "../../node_modules/better-cmdk";
-@plugin "tailwindcss-animate";
-@import "tldraw/tldraw.css";
-@import "tw-animate-css";
-@import "mathlive/static.css";
-@import "mathlive/fonts.css";
-@custom-variant dark (&:is(.dark *));
-
+@import"tailwindcss";
+@source"../../node_modules/better-cmdk";
+@plugin"tailwindcss-animate";
+@import"tldraw/tldraw.css";
+@import"tw-animate-css";
+@import"mathlive/static.css";
+@import"mathlive/fonts.css";
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -139,60 +137,6 @@
   --sidebar-dark-border: oklch(0.92 0.003 260);
   --sidebar-dark-text: oklch(0.55 0.01 260);
   --sidebar-dark-text-active: oklch(0.16 0.005 260);
-}
-
-.dark {
-  --background: oklch(0.14 0.005 260);
-  --foreground: oklch(0.95 0.003 260);
-  --card: oklch(0.18 0.005 260);
-  --card-foreground: oklch(0.95 0.003 260);
-  --popover: oklch(0.18 0.005 260);
-  --popover-foreground: oklch(0.95 0.003 260);
-  --primary: oklch(0.62 0.11 225);
-  --primary-foreground: oklch(0.14 0.005 260);
-  --secondary: oklch(0.22 0.005 260);
-  --secondary-foreground: oklch(0.95 0.003 260);
-  --muted: oklch(0.22 0.005 260);
-  --muted-foreground: oklch(0.65 0.01 260);
-  --accent: oklch(0.25 0.03 225);
-  --accent-foreground: oklch(0.95 0.003 260);
-  --destructive: oklch(0.60 0.20 30);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.11 225);
-  --chart-1: oklch(0.62 0.11 225);
-  --chart-2: oklch(0.62 0.14 160);
-  --chart-3: oklch(0.60 0.14 280);
-  --chart-4: oklch(0.72 0.14 80);
-  --chart-5: oklch(0.62 0.18 30);
-  --sidebar: oklch(0.16 0.005 260);
-  --sidebar-foreground: oklch(0.95 0.003 260);
-  --sidebar-primary: oklch(0.62 0.11 225);
-  --sidebar-primary-foreground: oklch(0.14 0.005 260);
-  --sidebar-accent: oklch(0.25 0.03 225);
-  --sidebar-accent-foreground: oklch(0.95 0.003 260);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.62 0.11 225);
-
-  /* Dark mode accent colors */
-  --accent-green: oklch(0.62 0.14 155);
-  --accent-green-muted: oklch(0.22 0.04 155);
-  --accent-blue: oklch(0.62 0.11 225);
-  --accent-blue-muted: oklch(0.22 0.03 225);
-  --accent-purple: oklch(0.60 0.14 285);
-  --accent-purple-muted: oklch(0.22 0.04 285);
-  --accent-amber: oklch(0.72 0.14 80);
-  --accent-amber-muted: oklch(0.22 0.04 80);
-  --accent-red: oklch(0.62 0.18 30);
-  --accent-red-muted: oklch(0.22 0.04 30);
-
-  /* Dark sidebar colors */
-  --sidebar-dark: oklch(0.12 0.005 260);
-  --sidebar-dark-hover: oklch(0.20 0.03 225);
-  --sidebar-dark-active: oklch(0.25 0.04 225);
-  --sidebar-dark-border: oklch(0.22 0.005 260);
-  --sidebar-dark-text: oklch(0.60 0.01 260);
-  --sidebar-dark-text-active: oklch(0.95 0.003 260);
 }
 
 @layer base {

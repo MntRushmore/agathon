@@ -214,23 +214,23 @@ export function CorcaEditor({
   const graphableEquations = getGraphableEquations();
 
   return (
-    <div className={cn('flex h-full', isDarkMode ? 'dark bg-gray-950' : 'bg-white')}>
+ <div className={cn('flex h-full', isDarkMode ? 'dark bg-gray-950' : 'bg-white')}>
       {/* Main editor area */}
-      <div className="flex-1 flex flex-col min-w-0">
+ <div className="flex-1 flex flex-col min-w-0">
         {/* Document header */}
-        <div className="px-12 pt-8 pb-4">
+ <div className="px-12 pt-8 pb-4">
           <input
             type="text"
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="Untitled Document"
-            className={cn(
+ className={cn(
               'w-full text-4xl font-bold bg-transparent border-none outline-none',
-              'placeholder:text-gray-300 dark:placeholder:text-gray-700',
-              'dark:text-white'
+              'placeholder:text-gray-300 ',
+              ''
             )}
           />
-          <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
+ <div className="flex items-center gap-2 mt-2 text-sm text-gray-400">
             <span>Your Name</span>
             <span>·</span>
             <span>@username</span>
@@ -242,7 +242,7 @@ export function CorcaEditor({
         {/* Blocks */}
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto px-8"
+ className="flex-1 overflow-y-auto px-8"
         >
           {blocks.map((block, index) => (
             <RichTextBlock
@@ -265,40 +265,40 @@ export function CorcaEditor({
           ))}
 
           {/* Add block hint */}
-          <div className="py-8 px-12">
+ <div className="py-8 px-12">
             <button
               onClick={() => addBlock(undefined, 'rich')}
-              className={cn(
+ className={cn(
                 'flex items-center gap-3 text-sm transition-colors',
-                'text-gray-300 hover:text-gray-500 dark:text-gray-700 dark:hover:text-gray-500'
+                'text-gray-300 hover:text-gray-500  '
               )}
             >
-              <span className="w-8 text-right font-mono">{blocks.length + 1}.</span>
+ <span className="w-8 text-right font-mono">{blocks.length + 1}.</span>
               <span>Type here or click to add a new line...</span>
             </button>
           </div>
         </div>
 
         {/* Bottom toolbar */}
-        <div className="border-t bg-gray-50 dark:bg-gray-900 px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-              <MessageCircle className="h-4 w-4" />
+ <div className="border-t bg-gray-50 px-4 py-2 flex items-center justify-between">
+ <div className="flex items-center gap-3">
+ <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+ <MessageCircle className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-full"
+ className="h-9 w-9 rounded-full"
               onClick={() => setIsDarkMode(!isDarkMode)}
             >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+ {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-              <Download className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+ <Download className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
             <Button
               variant={showGraph ? 'default' : 'ghost'}
               size="sm"
@@ -307,9 +307,9 @@ export function CorcaEditor({
                 setShowGraph(!showGraph);
               }}
               disabled={graphableEquations.length === 0}
-              className="gap-2"
+ className="gap-2"
             >
-              <LineChart className="h-4 w-4" />
+ <LineChart className="h-4 w-4" />
               Graph
             </Button>
 
@@ -317,17 +317,17 @@ export function CorcaEditor({
               variant="ghost"
               size="icon"
               onClick={() => setShowSidebar(!showSidebar)}
-              className="h-9 w-9"
+ className="h-9 w-9"
             >
               {showSidebar ? (
-                <PanelRightClose className="h-4 w-4" />
+ <PanelRightClose className="h-4 w-4" />
               ) : (
-                <PanelRight className="h-4 w-4" />
+ <PanelRight className="h-4 w-4" />
               )}
             </Button>
 
-            <Button variant="default" size="sm" className="gap-2 bg-blue-500 hover:bg-blue-600">
-              <Share className="h-4 w-4" />
+ <Button variant="default" size="sm" className="gap-2 bg-blue-500 hover:bg-blue-600">
+ <Share className="h-4 w-4" />
               Share
             </Button>
           </div>

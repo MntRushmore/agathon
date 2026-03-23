@@ -155,20 +155,20 @@ export default function ClassDetailPage() {
 
   if (loading || !classData) {
     return (
-      <div className="max-w-[1100px] mx-auto px-8 py-8">
-        <div className="space-y-2 mb-8">
-          <Skeleton className="h-8 w-1/3" />
-          <Skeleton className="h-5 w-1/4" />
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="space-y-2 mb-8">
+ <Skeleton className="h-8 w-1/3" />
+ <Skeleton className="h-5 w-1/4" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+ <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+ <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
         </div>
-        <Skeleton className="h-10 w-1/2 mb-6" />
-        <div className="space-y-4">
+ <Skeleton className="h-10 w-1/2 mb-6" />
+ <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-lg" />
+ <Skeleton key={i} className="h-20 rounded-lg" />
           ))}
         </div>
       </div>
@@ -179,31 +179,31 @@ export default function ClassDetailPage() {
     {
       label: 'Students',
       value: members.length,
-      icon: <UsersThree weight="duotone" className="h-5 w-5 text-blue-600 dark:text-blue-400" />,
-      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+ icon: <UsersThree weight="duotone" className="h-5 w-5 text-blue-600 " />,
+      iconBg: 'bg-blue-100 ',
     },
     {
       label: 'Assignments',
       value: assignments.length,
-      icon: <FileText weight="duotone" className="h-5 w-5 text-green-600 dark:text-green-400" />,
-      iconBg: 'bg-green-100 dark:bg-green-900/30',
+ icon: <FileText weight="duotone" className="h-5 w-5 text-green-600 " />,
+      iconBg: 'bg-green-100 ',
     },
     {
       label: 'Completion Rate',
       value: `${completionRate}%`,
-      icon: <ChartBar weight="duotone" className="h-5 w-5 text-purple-600 dark:text-purple-400" />,
-      iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+ icon: <ChartBar weight="duotone" className="h-5 w-5 text-purple-600 " />,
+      iconBg: 'bg-purple-100 ',
     },
   ];
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-semibold">{classData.name}</h1>
+ <div className="mb-8">
+ <div className="flex items-start justify-between mb-4">
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-3 mb-2">
+ <h1 className="text-2xl font-semibold">{classData.name}</h1>
               <EditClassDialog
                 classData={classData}
                 onClassUpdated={(updated) => {
@@ -211,36 +211,36 @@ export default function ClassDetailPage() {
                   void loadClassData();
                 }}
                 trigger={(
-                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
-                    <PencilSimple weight="duotone" className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+ <PencilSimple weight="duotone" className="h-4 w-4" />
                   </Button>
                 )}
               />
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+ <div className="flex items-center gap-3 flex-wrap">
               {classData.grade_level && (
-                <span className="text-muted-foreground">{classData.grade_level}</span>
+ <span className="text-muted-foreground">{classData.grade_level}</span>
               )}
               {classData.subject && <Badge variant="secondary">{classData.subject}</Badge>}
             </div>
             {classData.description && (
-              <p className="text-muted-foreground mt-2">{classData.description}</p>
+ <p className="text-muted-foreground mt-2">{classData.description}</p>
             )}
           </div>
 
           {/* Join Code */}
-          <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-dashed border-border">
+ <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border border-dashed border-border">
             <div>
-              <span className="text-xs text-muted-foreground block mb-0.5">Join Code</span>
-              <code className="text-xl font-mono font-bold tracking-wider">
+ <span className="text-xs text-muted-foreground block mb-0.5">Join Code</span>
+ <code className="text-xl font-mono font-bold tracking-wider">
                 {classData.join_code}
               </code>
             </div>
-            <Button variant="outline" size="sm" onClick={handleCopyJoinCode} className="h-9">
+ <Button variant="outline" size="sm" onClick={handleCopyJoinCode} className="h-9">
               {copied ? (
-                <Check weight="bold" className="h-4 w-4 text-green-600" />
+ <Check weight="bold" className="h-4 w-4 text-green-600" />
               ) : (
-                <Copy weight="duotone" className="h-4 w-4" />
+ <Copy weight="duotone" className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -248,7 +248,7 @@ export default function ClassDetailPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+ <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {statsCards.map((stat, index) => (
           <motion.div
             key={stat.label}
@@ -257,13 +257,13 @@ export default function ClassDetailPage() {
             transition={{ duration: 0.3, delay: index * 0.06 }}
           >
             <Card>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-center justify-between">
+ <CardContent className="pt-5 pb-4">
+ <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
+ <p className="text-sm text-muted-foreground">{stat.label}</p>
+ <p className="text-2xl font-bold">{stat.value}</p>
                   </div>
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${stat.iconBg}`}>
+ <div className={`h-10 w-10 rounded-full flex items-center justify-center ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
                 </div>
@@ -275,13 +275,13 @@ export default function ClassDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="students" className="gap-2">
-            <UsersThree weight="duotone" className="h-4 w-4" />
+ <TabsList className="mb-6">
+ <TabsTrigger value="students" className="gap-2">
+ <UsersThree weight="duotone" className="h-4 w-4" />
             Students ({members.length})
           </TabsTrigger>
-          <TabsTrigger value="assignments" className="gap-2">
-            <BookOpen weight="duotone" className="h-4 w-4" />
+ <TabsTrigger value="assignments" className="gap-2">
+ <BookOpen weight="duotone" className="h-4 w-4" />
             Assignments ({assignments.length})
           </TabsTrigger>
         </TabsList>
@@ -292,16 +292,16 @@ export default function ClassDetailPage() {
 
         <TabsContent value="assignments">
           {assignments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
+ <div className="flex flex-col items-center justify-center py-12 text-center border rounded-lg">
               <motion.div
                 animate={{ y: [0, -4, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                className="rounded-full bg-muted p-4 mb-4"
+ className="rounded-full bg-muted p-4 mb-4"
               >
-                <BookOpen weight="duotone" className="h-8 w-8 text-muted-foreground" />
+ <BookOpen weight="duotone" className="h-8 w-8 text-muted-foreground" />
               </motion.div>
-              <h3 className="text-lg font-medium mb-2">No assignments yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md">
+ <h3 className="text-lg font-medium mb-2">No assignments yet</h3>
+ <p className="text-muted-foreground mb-6 max-w-md">
                 Create your first assignment to distribute work to your students.
               </p>
               <Button onClick={() => router.push('/teacher/assignments/create')}>
@@ -309,7 +309,7 @@ export default function ClassDetailPage() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
+ <div className="space-y-3">
               {assignments.map((assignment, index) => (
                 <motion.div
                   key={assignment.id}
@@ -318,13 +318,13 @@ export default function ClassDetailPage() {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <div
-                    className="border rounded-lg p-5 hover:bg-muted/50 transition-colors cursor-pointer"
+ className="border rounded-lg p-5 hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => router.push(`/teacher/classes/${classId}/assignments/${assignment.id}`)}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-medium mb-1">{assignment.title}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+ <div className="flex items-start justify-between">
+ <div className="flex-1 min-w-0">
+ <h3 className="text-lg font-medium mb-1">{assignment.title}</h3>
+ <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           {assignment.due_date && (
                             <span>
                               Due {formatDistance(new Date(assignment.due_date), new Date(), { addSuffix: true })}
@@ -336,13 +336,13 @@ export default function ClassDetailPage() {
                         </div>
                       </div>
                       {assignment.stats && (
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">
+ <div className="text-right">
+ <div className="text-2xl font-bold">
                             {assignment.stats.submitted}/{assignment.stats.total}
                           </div>
-                          <div className="mt-1 h-1.5 w-20 bg-muted rounded-full overflow-hidden">
+ <div className="mt-1 h-1.5 w-20 bg-muted rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-green-500 rounded-full transition-all duration-500"
+ className="h-full bg-green-500 rounded-full transition-all duration-500"
                               style={{
                                 width: assignment.stats.total > 0
                                   ? `${(assignment.stats.submitted / assignment.stats.total) * 100}%`
@@ -350,7 +350,7 @@ export default function ClassDetailPage() {
                               }}
                             />
                           </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">submitted</div>
+ <div className="text-xs text-muted-foreground mt-0.5">submitted</div>
                         </div>
                       )}
                     </div>

@@ -128,27 +128,27 @@ export function ImpersonationBar() {
   if (isSwitched && !switcherOpen) {
     return (
       <>
-        <div className="bg-amber-500 text-white px-4 py-1.5 text-center text-sm font-medium flex items-center justify-center gap-3 z-50 relative">
+ <div className="bg-amber-500 text-white px-4 py-1.5 text-center text-sm font-medium flex items-center justify-center gap-3 z-50 relative">
           <span>
             Signed in as <strong>{profile?.full_name || profile?.email || 'another user'}</strong>
-            {profile?.role && <span className="ml-1.5 opacity-80">({profile.role})</span>}
+ {profile?.role && <span className="ml-1.5 opacity-80">({profile.role})</span>}
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setSwitcherOpen(true)}
-            className="border-white/40 text-white hover:bg-white/10 h-6 text-xs px-2"
+ className="border-white/40 text-white hover:bg-white/10 h-6 text-xs px-2"
           >
-            <ArrowLeftRight className="h-3 w-3 mr-1" />
+ <ArrowLeftRight className="h-3 w-3 mr-1" />
             Switch
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleExit}
-            className="border-white/40 text-white hover:bg-white/10 h-6 text-xs px-2"
+ className="border-white/40 text-white hover:bg-white/10 h-6 text-xs px-2"
           >
-            <X className="h-3 w-3 mr-1" />
+ <X className="h-3 w-3 mr-1" />
             Back to Admin
           </Button>
         </div>
@@ -169,14 +169,14 @@ export function ImpersonationBar() {
   // When not switched: show the floating trigger button
   if (!switcherOpen) {
     return (
-      <div className="fixed bottom-4 left-4 z-50">
+ <div className="fixed bottom-4 left-4 z-50">
         <Button
           size="sm"
           variant="outline"
-          className="shadow-lg bg-background border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950 text-amber-700 dark:text-amber-400 gap-2"
+ className="shadow-lg bg-background border-amber-400 hover:bg-amber-50 text-amber-700 gap-2"
           onClick={() => setSwitcherOpen(true)}
         >
-          <ArrowLeftRight className="h-3.5 w-3.5" />
+ <ArrowLeftRight className="h-3.5 w-3.5" />
           Switch Profile
         </Button>
       </div>
@@ -286,36 +286,36 @@ function ProfileSwitcher({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/20">
+ <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/20">
       <div
         ref={panelRef}
-        className="bg-background border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+ className="bg-background border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
       >
-        <div className="p-3 border-b flex items-center gap-2">
-          <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+ <div className="p-3 border-b flex items-center gap-2">
+ <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <Input
             ref={searchRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search users by name or email..."
-            className="border-0 shadow-none focus-visible:ring-0 h-8 px-0"
+ className="border-0 shadow-none focus-visible:ring-0 h-8 px-0"
           />
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
-            <X className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onClose}>
+ <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="max-h-80 overflow-y-auto">
+ <div className="max-h-80 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+ <div className="flex items-center justify-center py-8">
+ <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No users found</p>
+ <p className="text-sm text-muted-foreground text-center py-8">No users found</p>
           ) : (
             sortedRoles.map((role) => (
               <div key={role}>
-                <div className="px-3 py-1.5 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0">
+ <div className="px-3 py-1.5 bg-muted/50 text-xs font-medium text-muted-foreground uppercase tracking-wider sticky top-0">
                   {role}s
                 </div>
                 {grouped[role].map((u) => (
@@ -323,19 +323,19 @@ function ProfileSwitcher({
                     key={u.id}
                     disabled={switching || u.id === currentUserId}
                     onClick={() => onSwitch(u.id)}
-                    className="w-full text-left px-3 py-2 hover:bg-muted/50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+ className="w-full text-left px-3 py-2 hover:bg-muted/50 flex items-center gap-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
+ <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
                       {(u.full_name || u.email)?.[0]?.toUpperCase() || '?'}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">
+ <div className="min-w-0 flex-1">
+ <p className="text-sm font-medium truncate">
                         {u.full_name || 'No name'}
                         {u.id === currentUserId && (
-                          <span className="text-xs text-muted-foreground ml-1.5">(you)</span>
+ <span className="text-xs text-muted-foreground ml-1.5">(you)</span>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+ <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                     </div>
                   </button>
                 ))}
@@ -345,11 +345,11 @@ function ProfileSwitcher({
         </div>
 
         {onStop && (
-          <div className="p-2 border-t">
+ <div className="p-2 border-t">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950"
+ className="w-full text-amber-600 hover:text-amber-700 hover:bg-amber-50 "
               onClick={onStop}
             >
               Return to admin profile

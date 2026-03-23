@@ -102,11 +102,11 @@ export default function AdminLogsPage() {
   };
 
   const getActionColor = (type: string): string => {
-    if (type.includes('delete')) return 'text-red-600 dark:text-red-400';
-    if (type.includes('create') || type.includes('activate')) return 'text-green-600 dark:text-green-400';
-    if (type.includes('change') || type.includes('modify')) return 'text-blue-600 dark:text-blue-400';
-    if (type.includes('impersonate')) return 'text-amber-600 dark:text-amber-400';
-    if (type.includes('deactivate')) return 'text-orange-600 dark:text-orange-400';
+    if (type.includes('delete')) return 'text-red-600 ';
+    if (type.includes('create') || type.includes('activate')) return 'text-green-600 ';
+    if (type.includes('change') || type.includes('modify')) return 'text-blue-600 ';
+    if (type.includes('impersonate')) return 'text-amber-600 ';
+    if (type.includes('deactivate')) return 'text-orange-600 ';
     return 'text-muted-foreground';
   };
 
@@ -131,30 +131,30 @@ export default function AdminLogsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-6 bg-muted w-48 animate-pulse" />
-        {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 bg-muted animate-pulse" />)}
+ <div className="space-y-6">
+ <div className="h-6 bg-muted w-48 animate-pulse" />
+ {[1, 2, 3, 4, 5].map((i) => <div key={i} className="h-16 bg-muted animate-pulse" />)}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+ <div className="space-y-6">
+ <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">System Logs</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{totalCount} total audit log entries</p>
+ <h1 className="text-xl font-semibold text-foreground">System Logs</h1>
+ <p className="text-muted-foreground text-sm mt-0.5">{totalCount} total audit log entries</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-          <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+ <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
+ <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
+ <div className="flex gap-3">
         <Select value={actionFilter} onValueChange={handleFilterChange}>
-          <SelectTrigger className="w-[200px] rounded-none h-9">
+ <SelectTrigger className="w-[200px] rounded-none h-9">
             <SelectValue placeholder="Filter by action" />
           </SelectTrigger>
           <SelectContent>
@@ -166,40 +166,40 @@ export default function AdminLogsPage() {
       </div>
 
       {/* Log Entries */}
-      <div className="bg-card border border-border divide-y divide-border">
+ <div className="bg-card border border-border divide-y divide-border">
         {logs.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground text-sm">
+ <div className="text-center py-16 text-muted-foreground text-sm">
             No log entries found
           </div>
         ) : (
           logs.map((log) => {
             const Icon = getActionIcon(log.action_type);
             return (
-              <div key={log.id} className="px-5 py-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
-                <div className={`mt-0.5 ${getActionColor(log.action_type)}`}>
-                  <Icon className="h-4 w-4" />
+ <div key={log.id} className="px-5 py-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+ <div className={`mt-0.5 ${getActionColor(log.action_type)}`}>
+ <Icon className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-medium ${getActionColor(log.action_type)}`}>
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-2 flex-wrap">
+ <span className={`text-sm font-medium ${getActionColor(log.action_type)}`}>
                       {formatActionType(log.action_type)}
                     </span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground uppercase tracking-wider">
+ <span className="text-[10px] font-medium px-1.5 py-0.5 bg-muted text-muted-foreground uppercase tracking-wider">
                       {log.target_type}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-0.5 truncate">
+ <p className="text-sm text-muted-foreground mt-0.5 truncate">
                     {getDetailsSummary(log)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+ <p className="text-xs text-muted-foreground mt-1">
                     by {log.admin?.full_name || log.admin?.email || 'Unknown'}
                   </p>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs text-muted-foreground">
+ <div className="text-right flex-shrink-0">
+ <p className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                   </p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-0.5 tabular-nums">
+ <p className="text-[10px] text-muted-foreground/60 mt-0.5 tabular-nums">
                     {format(new Date(log.created_at), 'MMM d, HH:mm')}
                   </p>
                 </div>
@@ -211,17 +211,17 @@ export default function AdminLogsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+ <div className="flex items-center justify-between">
+ <p className="text-xs text-muted-foreground">
             Page {currentPage} of {totalPages} ({totalCount} entries)
           </p>
-          <div className="flex items-center gap-1">
+ <div className="flex items-center gap-1">
             <Button
-              variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
+ variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <CaretLeft weight="duotone" className="h-4 w-4" />
+ <CaretLeft weight="duotone" className="h-4 w-4" />
             </Button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page: number;
@@ -239,7 +239,7 @@ export default function AdminLogsPage() {
                   key={page}
                   variant={currentPage === page ? 'default' : 'outline'}
                   size="sm"
-                  className="rounded-none h-7 w-7 p-0 text-xs"
+ className="rounded-none h-7 w-7 p-0 text-xs"
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -247,11 +247,11 @@ export default function AdminLogsPage() {
               );
             })}
             <Button
-              variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
+ variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              <CaretRight weight="duotone" className="h-4 w-4" />
+ <CaretRight weight="duotone" className="h-4 w-4" />
             </Button>
           </div>
         </div>

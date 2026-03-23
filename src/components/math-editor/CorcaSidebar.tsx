@@ -139,84 +139,84 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
   };
 
   return (
-    <div className="w-72 border-l bg-white dark:bg-gray-950 flex flex-col h-full overflow-hidden">
+ <div className="w-72 border-l bg-white flex flex-col h-full overflow-hidden">
       {/* Tab selector - Corca style icons */}
-      <div className="flex items-center gap-1 p-2 border-b bg-gray-50 dark:bg-gray-900">
+ <div className="flex items-center gap-1 p-2 border-b bg-gray-50 ">
         <Button
           variant={tab === 'function' ? 'default' : 'ghost'}
           size="icon"
-          className={cn(
+ className={cn(
             'h-9 w-9 rounded-lg',
             tab === 'function' && 'bg-blue-500 hover:bg-blue-600'
           )}
           onClick={() => setTab('function')}
         >
-          <Sigma className="h-4 w-4" />
+ <Sigma className="h-4 w-4" />
         </Button>
         <Button
           variant={tab === 'text' ? 'default' : 'ghost'}
           size="icon"
-          className="h-9 w-9 rounded-lg"
+ className="h-9 w-9 rounded-lg"
           onClick={() => setTab('text')}
         >
-          <Brackets className="h-4 w-4" />
+ <Brackets className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
-          <Pencil className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
+ <Pencil className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
-          <Grid3X3 className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg">
+ <Grid3X3 className="h-4 w-4" />
         </Button>
       </div>
 
       {tab === 'function' ? (
-        <div className="flex-1 overflow-y-auto">
+ <div className="flex-1 overflow-y-auto">
           {/* Function section header */}
-          <div className="p-3 border-b">
-            <div className="flex items-center justify-between">
+ <div className="p-3 border-b">
+ <div className="flex items-center justify-between">
               <button
                 onClick={() => toggleSection('FUNCTION')}
-                className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700"
+ className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700"
               >
-                {expandedSections.has('FUNCTION') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+ {expandedSections.has('FUNCTION') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 FUNCTION
               </button>
-              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                <Sigma className="h-3 w-3" />
-                <span className="text-xs font-medium">Summation</span>
-                <Button variant="ghost" size="icon" className="h-5 w-5 ml-1">
-                  <Search className="h-3 w-3" />
+ <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded">
+ <Sigma className="h-3 w-3" />
+ <span className="text-xs font-medium">Summation</span>
+ <Button variant="ghost" size="icon" className="h-5 w-5 ml-1">
+ <Search className="h-3 w-3" />
                 </Button>
               </div>
             </div>
 
             {/* Parameters */}
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">INDEX :</span>
-                <div className="flex items-center gap-1">
-                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 rounded font-mono text-sm">i</span>
+ <div className="mt-3 space-y-2">
+ <div className="flex items-center justify-between text-sm">
+ <span className="text-gray-500">INDEX :</span>
+ <div className="flex items-center gap-1">
+ <span className="px-2 py-0.5 bg-blue-100 text-blue-600 rounded font-mono text-sm">i</span>
                   <span>=</span>
-                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm">1</span>
+ <span className="px-2 py-0.5 bg-gray-100 rounded font-mono text-sm">1</span>
                 </div>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">LABEL :</span>
-                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm">n</span>
+ <div className="flex items-center justify-between text-sm">
+ <span className="text-gray-500">LABEL :</span>
+ <span className="px-2 py-0.5 bg-gray-100 rounded font-mono text-sm">n</span>
               </div>
             </div>
           </div>
 
           {/* Argument templates */}
-          <div className="p-3 border-b">
-            <span className="text-xs font-semibold text-gray-500">ARGUMENT</span>
-            <div className="grid grid-cols-4 gap-1 mt-2">
+ <div className="p-3 border-b">
+ <span className="text-xs font-semibold text-gray-500">ARGUMENT</span>
+ <div className="grid grid-cols-4 gap-1 mt-2">
               {ARGUMENT_TEMPLATES.map((tmpl, i) => (
                 <Button
                   key={i}
                   variant={i === 0 ? 'default' : 'outline'}
                   size="sm"
-                  className={cn(
+ className={cn(
                     'h-12 text-xs font-mono p-1',
                     i === 0 && 'bg-blue-500 hover:bg-blue-600'
                   )}
@@ -229,29 +229,29 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
           </div>
 
           {/* Parentheses */}
-          <div className="p-3 border-b">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-gray-500">SHOW PARENTHESES</span>
+ <div className="p-3 border-b">
+ <div className="flex items-center justify-between">
+ <span className="text-xs font-semibold text-gray-500">SHOW PARENTHESES</span>
               <button
                 onClick={() => setShowParentheses(!showParentheses)}
-                className={cn(
+ className={cn(
                   'w-10 h-5 rounded-full transition-colors',
                   showParentheses ? 'bg-blue-500' : 'bg-gray-300'
                 )}
               >
-                <div className={cn(
+ <div className={cn(
                   'w-4 h-4 bg-white rounded-full shadow transition-transform',
                   showParentheses ? 'translate-x-5' : 'translate-x-0.5'
                 )} />
               </button>
             </div>
-            <div className="flex gap-1 mt-2">
+ <div className="flex gap-1 mt-2">
               {PARENTHESES.map((p, i) => (
                 <Button
                   key={i}
                   variant={i === 0 ? 'default' : 'outline'}
                   size="sm"
-                  className={cn(
+ className={cn(
                     'flex-1 h-9 font-mono',
                     i === 0 && 'bg-blue-500 hover:bg-blue-600'
                   )}
@@ -264,32 +264,32 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
           </div>
 
           {/* Variables/Objects */}
-          <div className="p-3 border-b">
+ <div className="p-3 border-b">
             <button
               onClick={() => toggleSection('OBJECTS')}
-              className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700 w-full"
+ className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700 w-full"
             >
-              {expandedSections.has('OBJECTS') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+ {expandedSections.has('OBJECTS') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               OBJECTS
             </button>
 
             {expandedSections.has('OBJECTS') && (
-              <div className="mt-2 space-y-1">
+ <div className="mt-2 space-y-1">
                 {variables.length > 0 ? variables.map((v, i) => (
                   <button
                     key={i}
                     onClick={() => onInsertSymbol(v.symbol)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+ className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 text-left"
                   >
-                    <span className="text-blue-500 dark:text-blue-400 font-semibold">{`>`}</span>
-                    <span className={cn('font-semibold', v.color || 'text-blue-600 dark:text-blue-400')}>{v.symbol}</span>
-                    <span className="text-xs text-gray-500 truncate">· {v.description}</span>
+ <span className="text-blue-500 font-semibold">{`>`}</span>
+ <span className={cn('font-semibold', v.color || 'text-blue-600 ')}>{v.symbol}</span>
+ <span className="text-xs text-gray-500 truncate">· {v.description}</span>
                   </button>
                 )) : (
-                  <div className="text-xs text-gray-400 py-2">No variables defined yet</div>
+ <div className="text-xs text-gray-400 py-2">No variables defined yet</div>
                 )}
                 {variables.length > 6 && (
-                  <button className="text-xs text-blue-500 hover:underline w-full text-left px-2">
+ <button className="text-xs text-blue-500 hover:underline w-full text-left px-2">
                     See all {variables.length}
                   </button>
                 )}
@@ -298,27 +298,27 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
           </div>
 
           {/* Symbol categories */}
-          <div className="p-3">
+ <div className="p-3">
             <button
               onClick={() => toggleSection('SYMBOLS PALETTE')}
-              className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700 w-full"
+ className="flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-gray-700 w-full"
             >
-              {expandedSections.has('SYMBOLS PALETTE') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+ {expandedSections.has('SYMBOLS PALETTE') ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
               SYMBOLS PALETTE
             </button>
 
             {expandedSections.has('SYMBOLS PALETTE') && (
-              <div className="mt-2 space-y-3">
+ <div className="mt-2 space-y-3">
                 {Object.entries(FUNCTION_SYMBOLS).map(([category, symbols]) => (
                   <div key={category}>
-                    <span className="text-xs text-gray-400">{category}</span>
-                    <div className="grid grid-cols-6 gap-1 mt-1">
+ <span className="text-xs text-gray-400">{category}</span>
+ <div className="grid grid-cols-6 gap-1 mt-1">
                       {symbols.map((s, i) => (
                         <Button
                           key={i}
                           variant="ghost"
                           size="sm"
-                          className="h-8 text-base hover:bg-blue-50 dark:hover:bg-blue-950"
+ className="h-8 text-base hover:bg-blue-50 "
                           onClick={() => onInsertSymbol(s.latex)}
                         >
                           {s.display}
@@ -333,66 +333,66 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
         </div>
       ) : (
         /* Text formatting tab */
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="space-y-4">
+ <div className="flex-1 overflow-y-auto p-3">
+ <div className="space-y-4">
             {/* Font size */}
             <div>
-              <span className="text-xs font-semibold text-gray-500">TEXT SIZE</span>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-sm">16px</span>
-                <div className="w-4 h-4 rounded-full bg-black dark:bg-white" />
+ <span className="text-xs font-semibold text-gray-500">TEXT SIZE</span>
+ <div className="flex items-center gap-2 mt-2">
+ <span className="text-sm">16px</span>
+ <div className="w-4 h-4 rounded-full bg-black " />
               </div>
             </div>
 
             {/* Alignment */}
             <div>
-              <span className="text-xs font-semibold text-gray-500">ALIGNMENT</span>
-              <div className="flex gap-1 mt-2">
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <AlignLeft className="h-4 w-4" />
+ <span className="text-xs font-semibold text-gray-500">ALIGNMENT</span>
+ <div className="flex gap-1 mt-2">
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <AlignLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="default" size="icon" className="h-9 w-9 bg-blue-500">
-                  <AlignCenter className="h-4 w-4" />
+ <Button variant="default" size="icon" className="h-9 w-9 bg-blue-500">
+ <AlignCenter className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <AlignRight className="h-4 w-4" />
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <AlignRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {/* Formatting */}
             <div>
-              <span className="text-xs font-semibold text-gray-500">FORMAT</span>
-              <div className="flex gap-1 mt-2">
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Bold className="h-4 w-4" />
+ <span className="text-xs font-semibold text-gray-500">FORMAT</span>
+ <div className="flex gap-1 mt-2">
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <Bold className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Italic className="h-4 w-4" />
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <Italic className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Code className="h-4 w-4" />
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <Code className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" className="h-9 w-9">
-                  <Pencil className="h-4 w-4" />
+ <Button variant="outline" size="icon" className="h-9 w-9">
+ <Pencil className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {/* Math shortcuts */}
             <div>
-              <span className="text-xs font-semibold text-gray-500">MATH</span>
-              <div className="flex gap-1 mt-2">
-                <Button variant="outline" size="sm" className="flex-1 gap-1">
-                  <Braces className="h-4 w-4" />
+ <span className="text-xs font-semibold text-gray-500">MATH</span>
+ <div className="flex gap-1 mt-2">
+ <Button variant="outline" size="sm" className="flex-1 gap-1">
+ <Braces className="h-4 w-4" />
                   Group
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-1">
-                  <Superscript className="h-4 w-4" />
+ <Button variant="outline" size="sm" className="flex-1 gap-1">
+ <Superscript className="h-4 w-4" />
                   Exponent
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 gap-1">
-                  <Subscript className="h-4 w-4" />
+ <Button variant="outline" size="sm" className="flex-1 gap-1">
+ <Subscript className="h-4 w-4" />
                   Subscript
                 </Button>
               </div>
@@ -402,10 +402,10 @@ export function CorcaSidebar({ onInsertSymbol, variables, activeTab = 'function'
       )}
 
       {/* AI Helper at bottom */}
-      <div className="border-t p-3 bg-gray-50 dark:bg-gray-900">
-        <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border">
-          <span className="text-lg">🤖</span>
-          <span className="text-sm text-gray-500">Ask AI Helper anything...</span>
+ <div className="border-t p-3 bg-gray-50 ">
+ <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border">
+ <span className="text-lg">🤖</span>
+ <span className="text-sm text-gray-500">Ask AI Helper anything...</span>
         </div>
       </div>
     </div>
