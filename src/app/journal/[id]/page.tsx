@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent, type MutableRefObject } from 'react';
-import type { Editor } from '@tiptap/react';
+import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -62,9 +61,10 @@ import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
-import { NotionEditor } from '@/components/tiptap-templates/notion-like/notion-like-editor';
+import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
+import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -148,6 +148,21 @@ function renderMarkdown(text: string): string {
   });
 }
 
+// Dynamically import tldraw to avoid SSR issues
+const InlineWhiteboard = dynamic(
+  () => import('@/components/journal/InlineWhiteboard').then(mod => mod.InlineWhiteboard),
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
+);
+
+const InlineDesmos = dynamic(
+  () => import('@/components/journal/InlineDesmos').then(mod => mod.InlineDesmos),
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
+);
+
+const InlineChart = dynamic(
+  () => import('@/components/journal/InlineChart').then(mod => mod.InlineChart),
+  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
+);
 
 interface JournalData {
   id: string;
@@ -156,6 +171,166 @@ interface JournalData {
   content: any[];
   created_at: string;
   updated_at: string;
+}
+
+interface EmbeddedWhiteboard {
+  id: string;
+  data?: string;
+}
+
+interface EmbeddedDesmosGraph {
+  id: string;
+  expression: string;
+}
+
+// Component that renders content with embedded whiteboards and Desmos graphs
+function ContentWithEmbeds({
+  content,
+  onChange,
+  placeholder,
+  embeddedWhiteboards,
+  embeddedDesmos,
+  onWhiteboardSave,
+  onSlashCommand,
+  onDeleteWhiteboard,
+  onDeleteDesmos,
+  onChartSave,
+  onDeleteChart,
+}: {
+  content: string;
+  onChange: (content: string) => void;
+  placeholder: string;
+  embeddedWhiteboards: EmbeddedWhiteboard[];
+  embeddedDesmos: EmbeddedDesmosGraph[];
+  onWhiteboardSave: (id: string, data: string) => void;
+  onSlashCommand?: (commandId: string) => void;
+  onDeleteWhiteboard?: (id: string) => void;
+  onDeleteDesmos?: (id: string) => void;
+  onChartSave?: (id: string, data: ChartConfig) => void;
+  onDeleteChart?: (id: string) => void;
+}) {
+  // Extract placeholders from content for rendering embedded components
+  const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
+  const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
+  const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
+
+  // Build a unified, position-ordered list of all embeds
+  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
+  whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
+  desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
+  chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
+  allEmbeds.sort((a, b) => a.position - b.position);
+
+  // Remove placeholders from the content for the editor (they'll be rendered separately)
+  const editorContent = content
+    .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
+    .trim();
+
+  // Check if there are any embeds — shrink editor min-height when embeds exist
+  const hasEmbeds = allEmbeds.length > 0;
+
+  return (
+    <div className={hasEmbeds ? 'space-y-4' : 'space-y-6'}>
+      {/* Main editor for text content */}
+      <RichTextEditor
+        content={editorContent}
+        onChange={(newContent) => {
+          // Preserve the embedded placeholders when content changes
+          let fullContent = newContent;
+
+          // Re-add all embed placeholders at the end (in original order)
+          allEmbeds.forEach(({ match }) => {
+            if (!fullContent.includes(match[0])) {
+              fullContent += `\n\n${match[0]}`;
+            }
+          });
+
+          onChange(fullContent);
+        }}
+        placeholder={placeholder}
+        onSlashCommand={onSlashCommand}
+        className={hasEmbeds ? '[&_.ProseMirror]:!min-h-[120px]' : ''}
+      />
+
+      {/* Render all embeds in content order */}
+      {allEmbeds.map(({ type, match }) => {
+        if (type === 'whiteboard') {
+          const id = match[1];
+          const wb = embeddedWhiteboards.find(w => w.id === id);
+          return (
+            <div key={`wb-${id}`} className="my-2 group relative">
+              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <PenNib className="h-4 w-4" />
+                  <span>Whiteboard</span>
+                </div>
+                {onDeleteWhiteboard && (
+                  <button
+                    onClick={() => onDeleteWhiteboard(id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    title="Delete whiteboard"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <InlineWhiteboard
+                id={id}
+                initialData={wb?.data}
+                onSave={(data) => onWhiteboardSave(id, data)}
+                height={400}
+              />
+            </div>
+          );
+        }
+
+        if (type === 'desmos') {
+          const id = match[1];
+          const expression = match[2];
+          return (
+            <div key={`desmos-${id}`} className="my-2 group relative">
+              <div className="text-sm text-muted-foreground mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ChartLine className="h-4 w-4" />
+                  <span>Desmos Graph</span>
+                </div>
+                {onDeleteDesmos && (
+                  <button
+                    onClick={() => onDeleteDesmos(id)}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                    title="Delete graph"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              <InlineDesmos
+                expression={expression}
+                height={400}
+              />
+            </div>
+          );
+        }
+
+        // chart
+        const id = match[1];
+        const encodedData = match[2];
+        const chartConfig = decodeChartData(encodedData);
+        return (
+          <div key={`chart-${id}`} className="my-2">
+            <InlineChart
+              id={id}
+              initialData={chartConfig}
+              onSave={(chartId, data) => onChartSave?.(chartId, data)}
+              onDelete={(chartId) => onDeleteChart?.(chartId)}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // Slash command menu items
@@ -274,69 +449,6 @@ export default function JournalEditorPage() {
 
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
-
-  // TipTap editor ref for programmatic content insertion
-  const tiptapEditorRef = useRef<Editor | null>(null);
-
-  // Helper to insert markdown-like content at the end of the TipTap editor
-  const insertContentToEditor = useCallback((text: string) => {
-    const editor = tiptapEditorRef.current;
-    if (!editor) return;
-
-    // Move cursor to end of document, insert a newline, then insert the text as HTML
-    // Convert basic markdown to HTML for TipTap
-    const html = text
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      // Bold
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // Unordered lists - wrap consecutive items
-      .replace(/(?:^- .+$\n?)+/gm, (match) => {
-        const items = match.trim().split('\n').map(line => `<li>${line.replace(/^- /, '')}</li>`).join('');
-        return `<ul>${items}</ul>`;
-      })
-      // Ordered lists - wrap consecutive items
-      .replace(/(?:^\d+\. .+$\n?)+/gm, (match) => {
-        const items = match.trim().split('\n').map(line => `<li>${line.replace(/^\d+\. /, '')}</li>`).join('');
-        return `<ol>${items}</ol>`;
-      })
-      // Paragraphs from double newlines
-      .split(/\n\n+/)
-      .map(block => {
-        // Don't wrap blocks that are already HTML elements
-        if (block.match(/^<(h[1-6]|ul|ol|blockquote|hr|div|table|p)/)) return block;
-        return `<p>${block.replace(/\n/g, '<br>')}</p>`;
-      })
-      .join('');
-
-    editor
-      .chain()
-      .focus('end')
-      .insertContent('<p></p>' + html)
-      .run();
-  }, []);
-
-  const handleEditorReady = useCallback((editor: Editor | null) => {
-    tiptapEditorRef.current = editor;
-    if (editor) {
-      // Sync editor content changes to the content state for proactive AI and context
-      editor.on('update', () => {
-        const text = editor.getText();
-        setContent(text);
-      });
-    }
-  }, []);
-
-  // Get current editor text content (for AI context)
-  const getEditorContent = useCallback(() => {
-    const editor = tiptapEditorRef.current;
-    if (!editor) return content; // fallback to initial loaded content
-    return editor.getText();
-  }, [content]);
 
   // Function to detect if user is asking to create/make notes
   const isNotesRequest = (message: string): boolean => {
@@ -546,7 +658,7 @@ export default function JournalEditorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
-          content: getEditorContent() || customTopic || title,
+          content: content || customTopic || title,
           topic: customTopic || title,
         }),
       });
@@ -557,8 +669,9 @@ export default function JournalEditorPage() {
 
       const data = await response.json();
 
-      // Insert the generated content into the TipTap editor
-      insertContentToEditor(data.content);
+      // Set the generated content
+      const newContent = content ? content + '\n\n' + data.content : data.content;
+      setContent(newContent);
 
       sileo.dismiss(loadingId);
       sileo.success({ title: `${typeLabel} generated!` });
@@ -849,7 +962,8 @@ export default function JournalEditorPage() {
   // Apply proactive suggestion to content
   const handleApplySuggestion = () => {
     if (!proactiveSuggestion) return;
-    insertContentToEditor(proactiveSuggestion);
+    const newContent = content ? content + '\n\n' + proactiveSuggestion : proactiveSuggestion;
+    setContent(newContent);
     setProactiveSuggestion(null);
     sileo.success({ title: 'Suggestion applied!' });
   };
@@ -899,7 +1013,8 @@ export default function JournalEditorPage() {
     if (!showSlashMenu) {
       if (e.key === 'Enter' && commandInput.trim()) {
         // Add as plain text content
-        insertContentToEditor(commandInput);
+        const newContent = content ? content + '\n\n' + commandInput : commandInput;
+        setContent(newContent);
         setCommandInput('');
       }
       return;
@@ -993,7 +1108,7 @@ export default function JournalEditorPage() {
         default:
           insertText = '';
       }
-      insertContentToEditor(insertText);
+      setContent(prev => prev ? prev + '\n\n' + insertText : insertText);
     } else {
       // Handle other commands
       switch (commandId) {
@@ -1048,9 +1163,9 @@ export default function JournalEditorPage() {
     // Add to embedded whiteboards
     setEmbeddedWhiteboards(prev => [...prev, { id: whiteboardId }]);
 
-    // Add a placeholder in the content
-    const whiteboardPlaceholder = `[WHITEBOARD:${whiteboardId}]`;
-    insertContentToEditor(whiteboardPlaceholder);
+    // Add a placeholder in the content (use functional setState to avoid stale closures)
+    const whiteboardPlaceholder = `\n\n[WHITEBOARD:${whiteboardId}]\n`;
+    setContent(prev => prev ? prev + whiteboardPlaceholder : whiteboardPlaceholder);
     sileo.success({ title: 'Whiteboard added!' });
   };
 
@@ -1060,7 +1175,10 @@ export default function JournalEditorPage() {
 
     // Add a placeholder in the content (use functional setState to avoid stale closures)
     const desmosPlaceholder = `[DESMOS:${desmosId}:]`;
-    insertContentToEditor(desmosPlaceholder);
+    setContent(prev => {
+      if (prev.includes(desmosPlaceholder)) return prev;
+      return prev ? prev + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
+    });
     sileo.success({ title: 'Graph added! Type equations directly in the calculator.' });
   };
 
@@ -1083,8 +1201,9 @@ export default function JournalEditorPage() {
 
       if (error) throw error;
 
-      const subjournalLink = `[📓 Subjournal: ${data.title}](/journal/${data.id})`;
-      insertContentToEditor(subjournalLink);
+      const subjournalLink = `\n\n[📓 Subjournal: ${data.title}](/journal/${data.id})\n`;
+      const newContent = content ? content + subjournalLink : subjournalLink;
+      setContent(newContent);
       sileo.dismiss(loadingId);
       sileo.success({ title: 'Subjournal created!' });
     } catch (error) {
@@ -1122,8 +1241,9 @@ export default function JournalEditorPage() {
 
   // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
-    const journalLink = `https://agathon.app/journal/${linkedJournal.id}`;
-    insertContentToEditor(journalLink);
+    const journalLink = `\n\nhttps://agathon.app/journal/${linkedJournal.id}\n`;
+    const newContent = content ? content + journalLink : journalLink;
+    setContent(newContent);
     setShowJournalLinkModal(false);
     sileo.success({ title: 'Journal linked!' });
   };
@@ -1140,8 +1260,9 @@ export default function JournalEditorPage() {
     if (videoIdMatch && videoIdMatch[1]) {
       const videoId = videoIdMatch[1];
       // Embed as an iframe for inline playback
-      const embedCode = `<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;border-radius:12px;margin:16px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
-      insertContentToEditor(embedCode);
+      const embedCode = `\n\n<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;border-radius:12px;margin:16px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>\n`;
+      const newContent = content ? content + embedCode : embedCode;
+      setContent(newContent);
       setShowYoutubeModal(false);
       setYoutubeUrl('');
       sileo.success({ title: 'YouTube video embedded!' });
@@ -1157,7 +1278,13 @@ export default function JournalEditorPage() {
     const desmosId = `desmos-${Date.now()}`;
     const desmosPlaceholder = `[DESMOS:${desmosId}:${desmosExpression}]`;
 
-    insertContentToEditor(desmosPlaceholder);
+    // Check if this exact placeholder already exists (prevent duplicates)
+    if (content.includes(desmosPlaceholder)) {
+      return;
+    }
+
+    const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
+    setContent(newContent);
     setShowDesmosModal(false);
     setDesmosExpression('');
     sileo.success({ title: 'Desmos graph added!' });
@@ -1168,7 +1295,10 @@ export default function JournalEditorPage() {
     const chartId = `chart-${Date.now()}`;
     const encodedData = encodeChartData(DEFAULT_CHART_DATA);
     const chartPlaceholder = `[CHART:${chartId}:${encodedData}]`;
-    insertContentToEditor(chartPlaceholder);
+    setContent(prev => {
+      if (prev.includes(chartPlaceholder)) return prev;
+      return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
+    });
     sileo.success({ title: 'Chart added!' });
   };
 
@@ -1207,7 +1337,8 @@ export default function JournalEditorPage() {
             break;
         }
 
-        insertContentToEditor(embedCode);
+        const newContent = content ? content + embedCode : embedCode;
+        setContent(newContent);
         sileo.dismiss(loadingId);
         sileo.success({ title: `${fileType.charAt(0).toUpperCase() + fileType.slice(1)} uploaded!` });
       };
@@ -1271,7 +1402,7 @@ export default function JournalEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'flashcards',
-            content: getEditorContent() || topic,
+            content: content || topic,
             topic: topic,
             count: flashcardCount,
           }),
@@ -1308,7 +1439,7 @@ export default function JournalEditorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: isNotes ? 'notes' : 'chat',
-          content: getEditorContent() || '',
+          content: content || '',
           topic: userMessage,
         }),
       });
@@ -1359,7 +1490,8 @@ export default function JournalEditorPage() {
   // Accept pending content and add to document
   const handleAcceptContent = () => {
     if (!pendingContent || pendingMessageIndex === null) return;
-    insertContentToEditor(pendingContent);
+    const newContent = content ? content + '\n\n' + pendingContent : pendingContent;
+    setContent(newContent);
     // Mark the message as written
     setChatMessages(prev => prev.map((msg, idx) =>
       idx === pendingMessageIndex ? { ...msg, written: true } : msg
@@ -1371,7 +1503,8 @@ export default function JournalEditorPage() {
 
   // Reapply content (re-add content from a written message)
   const handleReapplyContent = (messageContent: string, messageIndex: number) => {
-    insertContentToEditor(messageContent);
+    const newContent = content ? content + '\n\n' + messageContent : messageContent;
+    setContent(newContent);
     sileo.success({ title: 'Content reapplied to journal!' });
   };
 
@@ -1403,8 +1536,9 @@ export default function JournalEditorPage() {
     const block = pendingBlocks.find(b => b.id === blockId);
     if (!block) return;
 
-    // Add block content to the TipTap editor
-    insertContentToEditor(block.content);
+    // Add block content to document
+    const newContent = content ? content + '\n\n' + block.content : block.content;
+    setContent(newContent);
 
     // Remove the block from pending
     setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
@@ -1422,9 +1556,10 @@ export default function JournalEditorPage() {
     const pendingOnly = pendingBlocks.filter(b => b.status === 'pending');
     if (pendingOnly.length === 0) return;
 
-    // Add all pending content to the TipTap editor
+    // Add all pending content to document
     const combinedContent = pendingOnly.map(b => b.content).join('\n\n');
-    insertContentToEditor(combinedContent);
+    const newContent = content ? content + '\n\n' + combinedContent : combinedContent;
+    setContent(newContent);
 
     // Clear all pending blocks to remove the UI
     setPendingBlocks([]);
@@ -2243,12 +2378,45 @@ export default function JournalEditorPage() {
           </div>
         )}
 
-        {/* Notion-like Rich Text Editor */}
+        {/* WYSIWYG Rich Text Editor with Embedded Components */}
         <div className="relative min-h-[60vh] pb-20">
-          <NotionEditor
-            room={params.id as string}
-            placeholder="Start writing or type '/' for commands..."
-            onEditorReady={handleEditorReady}
+          <ContentWithEmbeds
+            content={content}
+            onChange={setContent}
+            placeholder="Start writing or click a button above to generate notes... Type '/' for commands."
+            embeddedWhiteboards={embeddedWhiteboards}
+            embeddedDesmos={embeddedDesmos}
+            onWhiteboardSave={(id, data) => {
+              setEmbeddedWhiteboards(prev =>
+                prev.map(wb => wb.id === id ? { ...wb, data } : wb)
+              );
+            }}
+            onDeleteWhiteboard={(id) => {
+              // Remove from embedded whiteboards
+              setEmbeddedWhiteboards(prev => prev.filter(wb => wb.id !== id));
+              // Remove placeholder from content
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[WHITEBOARD:${id}\\]\\n*`, 'g'), '\n'));
+              sileo.success({ title: 'Whiteboard deleted' });
+            }}
+            onDeleteDesmos={(id) => {
+              // Remove placeholder from content
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+              sileo.success({ title: 'Graph deleted' });
+            }}
+            onChartSave={(id, data) => {
+              // Update the chart placeholder with new encoded data
+              setContent(prev => {
+                const regex = new RegExp(`\\[CHART:${id}:[^\\]]*\\]`);
+                const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
+                return prev.replace(regex, newPlaceholder);
+              });
+              sileo.success({ title: 'Chart saved!' });
+            }}
+            onDeleteChart={(id) => {
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+              sileo.success({ title: 'Chart deleted' });
+            }}
+            onSlashCommand={executeCommand}
           />
 
           {/* Proactive AI Suggestion Display */}
