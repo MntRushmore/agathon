@@ -5,7 +5,7 @@ import { RichTextBlock, RichBlock, RichTextBlockRef } from './RichTextBlock';
 import { CorcaSidebar } from './CorcaSidebar';
 import { GraphPanel } from './GraphPanel';
 import { Button } from '@/components/ui/button';
-import { LineChart, PanelRightClose, PanelRight, Share, Download, MessageCircle, Sun, Moon } from 'lucide-react';
+import { LineChart, PanelRightClose, PanelRight, Share, Download, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { detectMathSegments, hasMath } from '@/lib/math-detection';
 
@@ -39,7 +39,6 @@ export function CorcaEditor({
   const [showGraph, setShowGraph] = useState(false);
   const [graphedEquations, setGraphedEquations] = useState<string[]>([]);
   const [variables, setVariables] = useState<Array<{ symbol: string; description: string; color?: string }>>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Map<string, RichTextBlockRef>>(new Map());
 
@@ -214,7 +213,7 @@ export function CorcaEditor({
   const graphableEquations = getGraphableEquations();
 
   return (
- <div className={cn('flex h-full', isDarkMode ? 'dark bg-gray-950' : 'bg-white')}>
+ <div className={cn('flex h-full', 'bg-white')}>
       {/* Main editor area */}
  <div className="flex-1 flex flex-col min-w-0">
         {/* Document header */}
@@ -285,15 +284,7 @@ export function CorcaEditor({
  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
  <MessageCircle className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
- className="h-9 w-9 rounded-full"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-            >
- {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
- <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+<Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
  <Download className="h-4 w-4" />
             </Button>
           </div>
