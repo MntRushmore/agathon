@@ -6,11 +6,9 @@ import ReferralAnnouncement from '@/emails/ReferralAnnouncement';
 
 function generateReferralCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => chars[b % chars.length]).join('');
 }
 
 export async function POST() {
@@ -62,11 +60,6 @@ export async function POST() {
       return NextResponse.json({ error: 'Failed to fetch waitlist' }, { status: 500 });
     } else {
       entries = data;
-    }
-
-    if (error) {
-      console.error('Failed to fetch waitlist:', error);
-      return NextResponse.json({ error: 'Failed to fetch waitlist' }, { status: 500 });
     }
 
     if (!entries || entries.length === 0) {

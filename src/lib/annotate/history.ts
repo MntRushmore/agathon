@@ -1,13 +1,16 @@
 import type { AnnotationAction, HistoryState } from './types';
 
+const MAX_HISTORY_SIZE = 200;
+
 export function createEmptyHistory(): HistoryState {
   return { undoStack: [], redoStack: [] };
 }
 
 export function pushAction(history: HistoryState, action: AnnotationAction): HistoryState {
+  const newStack = [...history.undoStack, action];
   return {
-    undoStack: [...history.undoStack, action],
-    redoStack: [], // Clear redo on new action
+    undoStack: newStack.length > MAX_HISTORY_SIZE ? newStack.slice(-MAX_HISTORY_SIZE) : newStack,
+    redoStack: [],
   };
 }
 

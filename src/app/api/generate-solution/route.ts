@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { checkAndDeductCredits, CREDIT_COSTS } from '@/lib/ai/credits';
+import { checkAndDeductCredits, CREDIT_COSTS, grantCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 
 // Response structure for text-based feedback that can be rendered on canvas
@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
 
   solutionLogger.info({ requestId }, 'Solution generation request started');
+
+  let premiumDeducted = false;
+  let refundUserId = '';
+  const refundCreditCost = CREDIT_COSTS['generate-solution'];
 
   try {
     // Auth check - require login for all AI features
@@ -83,11 +87,21 @@ export async function POST(req: NextRequest) {
     const isEnterprisePlan = (profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise')
       && profile?.plan_status === 'active';
 
-    // Check if the user has enough credits (but don't deduct yet — wait for success)
+    // Deduct credits upfront to prevent TOCTOU race conditions
     const enterpriseCredits = profile?.credits ?? 0;
     const creditCost = CREDIT_COSTS['generate-solution'];
-    let shouldShowPremiumHandwriting = isEnterprisePlan && enterpriseCredits >= creditCost;
+    let shouldShowPremiumHandwriting = false;
     let creditBalance = enterpriseCredits;
+
+    if (isEnterprisePlan && enterpriseCredits >= creditCost) {
+      const deductResult = await checkAndDeductCredits(user.id, 'generate-solution');
+      shouldShowPremiumHandwriting = deductResult.usePremium;
+      creditBalance = deductResult.creditBalance;
+      if (deductResult.usePremium) {
+        premiumDeducted = true;
+        refundUserId = user.id;
+      }
+    }
 
     // Generate mode-specific prompt
     const getModePrompt = (
@@ -149,7 +163,7 @@ export async function POST(req: NextRequest) {
       if (!openrouterApiKey) {
         solutionLogger.error({ requestId }, 'OpenRouter API key missing');
         return NextResponse.json(
-          { error: 'OPENROUTER_API_KEY not configured' },
+          { error: 'Service temporarily unavailable' },
           { status: 500 }
         );
       }
@@ -370,7 +384,7 @@ No text before or after the JSON object.`;
       } catch (hackclubError) {
         solutionLogger.error({ requestId, error: hackclubError }, 'Hack Club AI error');
         return NextResponse.json(
-          { error: 'Failed to generate solution', details: hackclubError instanceof Error ? hackclubError.message : 'Unknown error' },
+          { error: 'Failed to generate solution' },
           { status: 500 }
         );
       }
@@ -384,10 +398,11 @@ No text before or after the JSON object.`;
     // handle it gracefully (like Reed's version does).
     const generationSucceeded = !!imageUrl || (feedback && feedback.annotations.length > 0);
 
-    // Deduct credits only after a successful premium image generation
-    if (shouldShowPremiumHandwriting && imageUrl) {
-      const result = await checkAndDeductCredits(user.id, 'generate-solution');
-      creditBalance = result.creditBalance;
+    // Refund credits if premium was deducted but no image was generated
+    if (premiumDeducted && !imageUrl) {
+      await grantCredits(user.id, refundCreditCost, 'refund', 'Refund: premium solution generation did not produce an image');
+      creditBalance += refundCreditCost;
+      premiumDeducted = false;
     }
 
     return NextResponse.json({
@@ -408,8 +423,15 @@ No text before or after the JSON object.`;
       error: error instanceof Error ? error.message : 'Unknown error',
     }, 'Error generating solution');
 
+    // Refund credits if they were deducted before the failure
+    if (premiumDeducted && refundUserId) {
+      await grantCredits(refundUserId, refundCreditCost, 'refund', 'Refund: solution generation failed').catch((refundErr) => {
+        solutionLogger.error({ requestId, error: refundErr instanceof Error ? refundErr.message : 'Unknown error', userId: refundUserId, credits: refundCreditCost }, 'Failed to refund credits after solution generation failure');
+      });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to generate solution', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to generate solution' },
       { status: 500 }
     );
   }

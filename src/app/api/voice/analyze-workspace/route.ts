@@ -90,26 +90,28 @@ export async function POST(req: NextRequest) {
       const data = await hackclubResponse.json();
       analysis = data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.text ?? '';
 
-      // Track AI usage for monitoring
+      // Track AI usage directly via Supabase insert
       try {
         if (data.usage) {
           const inputTokens = data.usage.prompt_tokens || 0;
           const outputTokens = data.usage.completion_tokens || 0;
           const { HACKCLUB_MODEL: hackclubModel } = await import('@/lib/ai/config');
 
-          await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/track-ai-usage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+          const { error: trackingError } = await supabase
+            .from('ai_usage')
+            .insert({
+              student_id: user.id,
               mode: 'voice_analysis',
               prompt: focus || 'Voice workspace analysis',
-              responseSummary: typeof analysis === 'string' ? analysis.slice(0, 500) : '',
-              inputTokens,
-              outputTokens,
-              totalCost: 0,
-              modelUsed: hackclubModel,
-            }),
-          });
+              response_summary: typeof analysis === 'string' ? analysis.slice(0, 500) : null,
+              input_tokens: inputTokens,
+              output_tokens: outputTokens,
+              total_cost: 0,
+              model_used: hackclubModel,
+            });
+          if (trackingError) {
+            voiceLogger.warn({ error: trackingError }, 'Failed to track AI usage');
+          }
         }
       } catch (trackError) {
         voiceLogger.warn({ error: trackError }, 'Failed to track voice analysis usage');

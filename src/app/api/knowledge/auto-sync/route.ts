@@ -38,16 +38,6 @@ export async function POST() {
       return NextResponse.json({ synced: false, reason: 'up_to_date' });
     }
 
-    // Trigger sync in the background by calling the sync endpoint internally
-    // We do it inline here to avoid an extra HTTP call
-    const { POST: syncHandler } = await import('../sync/route');
-    const fakeReq = new Request('http://localhost/api/knowledge/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', cookie: '' },
-      body: JSON.stringify({}),
-    });
-
-    // We can't easily forward auth cookies, so just return that sync is needed
     // The client will call /api/knowledge/sync directly
     return NextResponse.json({
       synced: false,

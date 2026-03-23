@@ -1,0 +1,300 @@
+DEAD CODE ANALYSIS - Agathon Codebase
+Generated: 2026-03-12
+Scope: src/ directory (excluding node_modules, .next, test files)
+
+All findings verified via grep across the entire codebase.
+Only HIGH-CONFIDENCE findings are listed.
+
+================================================================================
+CATEGORY 1: UNUSED FILES (never imported/referenced by any other file)
+================================================================================
+
+1. src/utils/imageProcessing.ts
+   - Exports: correctYellowedWhites
+   - Why dead: No file imports from this module. Zero references to "imageProcessing"
+     or "correctYellowedWhites" anywhere outside this file.
+
+2. src/components/AIHelpButton.tsx
+   - Exports: AIHelpButton component, AIHelpMode type
+   - Why dead: No file imports from "AIHelpButton". The component and its type
+     are defined but never used anywhere.
+
+3. src/components/onboarding/WelcomeDialog.tsx
+   - Exports: WelcomeDialog component
+   - Why dead: No file imports from "onboarding/WelcomeDialog".
+
+4. src/components/onboarding/EmptyStateCard.tsx
+   - Exports: EmptyStateCard component
+   - Why dead: No file imports from "onboarding/EmptyStateCard".
+
+5. src/components/credits/AIProviderIndicator.tsx
+   - Exports: AIProviderIndicator component
+   - Why dead: No file imports from "AIProviderIndicator".
+
+6. src/components/credits/CreditBadge.tsx
+   - Exports: CreditBadge component
+   - Why dead: No file imports from "CreditBadge".
+
+7. src/components/credits/NoCreditsDialog.tsx
+   - Exports: NoCreditsDialog component
+   - Why dead: No file imports from "NoCreditsDialog".
+
+8. src/components/journal/MarkdownRenderer.tsx
+   - Exports: MarkdownRenderer component
+   - Why dead: No file imports from "journal/MarkdownRenderer".
+
+9. src/components/journal/InlineDesmos.tsx
+   - Exports: InlineDesmos component
+   - Why dead: No file imports from "journal/InlineDesmos".
+
+10. src/components/journal/InlineWhiteboard.tsx
+    - Exports: InlineWhiteboard component
+    - Why dead: No file imports from "journal/InlineWhiteboard".
+
+11. src/components/journal/RichTextEditor.tsx (lines 404-416)
+    - Exports: RichTextEditor component, RichTextEditorProps interface
+    - Why dead: No file imports from "RichTextEditor". The entire file/component
+      is unused.
+
+12. src/components/board/MathEditorPanel.tsx
+    - Exports: MathEditorPanel component
+    - Why dead: No file imports from "MathEditorPanel".
+
+13. src/hooks/useCredits.ts
+    - Exports: useCredits hook
+    - Why dead: No file imports "useCredits". (Note: CreditBadge.tsx, which is
+      itself dead code, reimplements credit fetching inline instead of using
+      this hook.)
+
+14. src/hooks/use-scrolling.ts
+    - Exports: useScrolling hook
+    - Why dead: No file imports "useScrolling" or references "use-scrolling".
+
+================================================================================
+CATEGORY 2: UNUSED EXPORTS (exported but never imported elsewhere)
+================================================================================
+
+--- src/lib/tiptap-utils.ts ---
+
+15. Line 18: export const MAC_SYMBOLS
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+16. Line 209: export function findNodeAtPosition
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+17. Line 413: export function isAllowedUri
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/tiptap-advanced-utils.ts ---
+
+18. Line 147: export function getClosestNode
+    - Why dead: Only referenced in its own file (called by getClosestBlockNode,
+      getClosestNodeByName). Never imported by another file.
+
+19. Line 186: export function getClosestNodeByPos
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+20. Line 231: export function getClosestBlockNode
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+21. Line 238: export function getClosestNodeByName
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+22. Line 245: export function getAllMatchingNodes
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/tiptap-collab-utils.ts ---
+
+23. Line 18: export const USE_JWT_TOKEN_API_ENDPOINT
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+24. Line 68: export const removeEmptyParagraphs
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/plain-to-latex.ts ---
+
+25. Line 144: export function fromLatex
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+26. Line 184: export function isLatex
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+27. Line 191: export function normalizeLatex
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/celebrations.ts ---
+
+28. Line 111: export async function checkAndCelebrateMilestone
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/platform.ts ---
+
+29. Line 10: export function getPlatform
+    - Why dead: Only referenced in its own file (called internally by isIpadApp).
+      Never imported by another file.
+
+30. Line 15: export function isIpad
+    - Why dead: Only referenced in its own file (called internally by isIpadApp).
+      Never imported by another file.
+
+31. Line 20: export function isIpadApp
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+32. Line 102: export function sendToNativeApp
+    - Why dead: Only referenced in its own file (called internally by
+      setupNativeAppBridge, saveAuthTokenNative, clearAuthTokenNative).
+      Never imported by another file.
+
+33. Line 121: export function saveAuthTokenNative
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+34. Line 131: export function clearAuthTokenNative
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/math-detection.ts ---
+
+35. Line 8: export interface Segment
+    - Why dead: Never imported by another file. Files that import from
+      math-detection only import detectMathSegments and hasMath, not the type.
+
+36. Line 197: export function mergeSegments
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+37. Line 217: export function segmentsToText
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/annotate/drawing.ts ---
+
+38. Line 281: export const findStrokeAtPoint = findAnnotationAtPoint
+    - Why dead: Alias for findAnnotationAtPoint. Only referenced in its own
+      definition file. Never imported.
+
+--- src/lib/ai/vertex-auth.ts ---
+
+39. Line 67: export async function getVertexAccessToken
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+40. Line 97: export function isServiceAccountConfigured
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/ai/hackclub.ts ---
+
+41. Line 62: export const TEXT_ONLY_SYSTEM_ADDITION
+    - Why dead: Only used internally by createTextOnlySystemPrompt in same file.
+      Never imported by another file.
+
+42. Line 71: export function createTextOnlySystemPrompt
+    - Why dead: Only used internally by buildHackClubTextOnlyRequest in same file.
+      Never imported by another file.
+
+43. Line 79: export function transformMessagesForTextOnly
+    - Why dead: Only used internally by buildHackClubTextOnlyRequest in same file.
+      Never imported by another file.
+
+44. Line 147: export function buildHackClubTextOnlyRequest
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/ai/credits.ts ---
+
+45. Line 4: export interface CreditDeductionResult
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+46. Line 15: export type AIRouteKey
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/ai/hackclub.ts ---
+
+47. Line 11: export interface HackClubCompletionOptions
+    - Why dead: Only referenced in its own file (used as return type for
+      buildHackClubRequest). Never imported by another file.
+
+--- src/lib/hooks/useOnboarding.ts ---
+
+48. Line 7: export interface OnboardingState
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/cas-solver.ts ---
+
+49. Line 13: export interface QuickSolveResult
+    - Why dead: Only referenced in its own definition file. Never imported.
+
+--- src/lib/api/classes.ts ---
+
+50. Line 204: export async function leaveClass
+    - Why dead: Never imported by any file.
+
+51. Line 235: export async function isStudentEnrolled
+    - Why dead: Never imported by any file.
+
+--- src/lib/api/assignments.ts ---
+
+52. Line 238: export async function getStudentSubmission
+    - Why dead: Never imported by any file.
+
+--- src/lib/supabase/server.ts (re-exported via index.ts) ---
+
+53. Line 63: export async function getUserProfile
+    - Why dead: Exported from server.ts and re-exported from index.ts, but
+      never imported by any consuming file.
+
+--- src/components/ui/logo.tsx ---
+
+54. Line 66: export function LogoIcon
+    - Why dead: Never imported. All consumers import Logo, not LogoIcon.
+
+--- src/components/journal/InlineChart.tsx ---
+
+55. Line 13: export interface ChartDataPoint
+    - Why dead: Only referenced in its own file. Never imported by another file.
+
+56. Line 18: export interface ChartSeries
+    - Why dead: Only referenced in its own file. Never imported by another file.
+
+================================================================================
+CATEGORY 3: UNUSED VARIABLES/FUNCTIONS (internal dead code within files)
+================================================================================
+
+No high-confidence internal dead code found beyond the exports listed above.
+Functions like getComposio() and deductCredits() appear only in their own files
+but are used internally by other functions in the same module.
+
+================================================================================
+CATEGORY 4: UNREACHABLE CODE
+================================================================================
+
+No high-confidence unreachable code patterns found. The codebase does not contain
+obvious patterns of code after unconditional return/throw statements or
+always-false conditions.
+
+================================================================================
+SUMMARY
+================================================================================
+
+Total findings: 56
+
+By category:
+  - Unused files (entire file is dead):     14
+  - Unused exports:                         42
+  - Unused internal variables/functions:     0
+  - Unreachable code:                        0
+
+Key areas with significant dead code:
+  1. src/lib/platform.ts - 6 of 8 exports are unused (native app bridge code)
+  2. src/lib/ai/hackclub.ts - 4 of 7 exports are unused (text-only mode code)
+  3. src/lib/tiptap-advanced-utils.ts - 5 of 13 exports are unused
+  4. src/lib/plain-to-latex.ts - 3 of 4 exports are unused
+  5. src/lib/math-detection.ts - 3 of 5 exports are unused
+  6. src/components/credits/ - all 3 component files are entirely unused
+  7. src/components/onboarding/ - all 2 component files are entirely unused
+  8. src/lib/ai/vertex-auth.ts - all 2 exports are unused (Vertex AI auth)
+
+Recommendations:
+  - The credits/ and onboarding/ component directories appear to be feature code
+    that was written but never wired into the UI. Consider either integrating or
+    removing them.
+  - The Vertex AI auth module (vertex-auth.ts) and text-only HackClub functions
+    suggest a migration from Vertex AI to HackClub that left dead code behind.
+  - platform.ts native app bridge functions may be needed for a future mobile app
+    but are currently unused beyond setupNativeAppBridge and isNativeApp.
+  - Several tiptap utility functions were likely scaffolded by the TipTap template
+    but never used in this project's specific editor configuration.

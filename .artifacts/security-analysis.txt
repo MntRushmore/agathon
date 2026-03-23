@@ -1,0 +1,414 @@
+================================================================================
+AGATHON SECURITY-FOCUSED STATIC ANALYSIS REPORT
+================================================================================
+Date: 2026-03-12
+Branch: marcus-staging
+Scope: /Users/marcussypher/dev/agathon/src
+================================================================================
+
+
+================================================================================
+1. INJECTION VULNERABILITIES
+================================================================================
+
+[FINDING-01] XSS via renderMarkdown in Journal Page (DOMPurify mitigated)
+  File: src/app/journal/[id]/page.tsx
+  Lines: 73-148 (renderLatex + renderMarkdown), 1694, 2209
+  Severity: LOW
+  Description:
+    The renderMarkdown() function renders AI-generated chat messages via
+    dangerouslySetInnerHTML. However, it DOES apply DOMPurify.sanitize() at
+    line 143 with an explicit allowlist of tags and attributes. The renderLatex()
+    helper at line 73 passes user-facing content through KaTeX first (which
+    generates HTML), then the non-KaTeX portions are HTML-escaped at lines
+    107-110 before DOMPurify sanitization. This is a reasonable defense.
+  Risk: Low residual risk. The regex-based split at line 102 to separate
+    KaTeX output from user text could theoretically be bypassed if KaTeX ever
+    produces output not matching the regex pattern. However, DOMPurify at
+    line 143 serves as a second line of defense.
+  Suggested Fix:
+    Consider running DOMPurify on the KaTeX output separately before
+    concatenation, rather than relying on the regex split to correctly identify
+    all KaTeX-generated spans. Alternatively, use a proper HTML parser instead
+    of regex to separate trusted KaTeX output from untrusted user content.
+
+[FINDING-02] CSS Injection via AI Shape IDs in Board Page
+  File: src/app/board/[id]/page.tsx
+  Lines: 676-721, 728
+  Severity: LOW
+  Description:
+    Dynamic CSS rules are generated from AI shape data and injected via
+    <style dangerouslySetInnerHTML={{ __html: cssRules }} />. The shape IDs
+    are passed through CSS.escape() at line 690, which mitigates CSS injection.
+    The mode values (suggest/answer/feedback) are compared via switch/case
+    and not interpolated from user input.
+  Suggested Fix: No immediate action required. CSS.escape() is correct here.
+
+
+================================================================================
+2. AUTHENTICATION / AUTHORIZATION GAPS
+================================================================================
+
+[FINDING-03] Unauthenticated API Routes: Referral Endpoints
+  File: src/app/api/referral/leaderboard/route.ts (entire file)
+  File: src/app/api/referral/[code]/route.ts (entire file)
+  Severity: LOW
+  Description:
+    These endpoints use createServiceRoleClient() (bypasses RLS) and have
+    no authentication check. They expose public referral leaderboard data
+    and per-code referral stats including names and referral counts. The
+    leaderboard anonymizes names to "First L." format, and the per-code
+    endpoint exposes full names from the waitlist.
+  Suggested Fix:
+    The per-code route (src/app/api/referral/[code]/route.ts line 55) returns
+    the full name from the waitlist. Consider anonymizing it the same way the
+    leaderboard does, or removing the name field from this response. These
+    are public-facing referral pages so no auth is expected, but exposing
+    full names of waitlist members may be a PII concern.
+
+[FINDING-04] Unauthenticated API Route: Waitlist
+  File: src/app/api/waitlist/route.ts (entire file)
+  Severity: INFO
+  Description:
+    The waitlist POST endpoint has no authentication (by design - it's a
+    public signup form). It uses createServiceRoleClient() to bypass RLS.
+    Input validation is present (email regex, name check). The ref parameter
+    is sanitized (line 159: alphanumeric only via replace + toUpperCase).
+  Suggested Fix: No auth issue per se; this is intentionally public.
+    Consider adding rate limiting (see FINDING-11).
+
+[FINDING-05] Unauthenticated API Route: Validate Invite Code
+  File: src/app/api/auth/validate-invite/route.ts (entire file)
+  Severity: INFO
+  Description:
+    No authentication check. This is by design (used during signup flow
+    before user is authenticated). Uses parameterized RPC call, no injection
+    risk.
+  Suggested Fix: Consider rate limiting to prevent brute-force code guessing.
+
+[FINDING-06] Admin Switch-User: Token-Based Re-Authorization
+  File: src/app/api/admin/switch-user/route.ts
+  Lines: 38-53
+  Severity: MEDIUM
+  Description:
+    When an admin is already impersonating another user and wants to switch
+    again, the endpoint accepts an "adminAccessToken" in the request body
+    (line 13). This token is verified via supabase.auth.getUser() (line 40),
+    which is sound. However, the admin access token is stored client-side
+    and sent in the request body, which means it could be intercepted if
+    the client stores it insecurely (e.g., localStorage accessible to XSS).
+    The endpoint does properly verify the token and check admin role, and
+    it logs all impersonation actions to the audit log (line 82).
+  Suggested Fix:
+    Document the security implications of client-side token storage for the
+    switch-user flow. Consider using httpOnly cookies instead of request body
+    tokens for the admin token. Add a TTL/expiry check on the admin token.
+
+[FINDING-07] Middleware Does Not Protect API Routes for Teacher/Admin
+  File: src/middleware.ts
+  Lines: 101-146
+  Severity: LOW
+  Description:
+    The middleware protects page routes (/teacher/*, /admin*) via role checks,
+    but API routes (/api/teacher/*, /api/admin/*) are NOT explicitly listed
+    in the middleware protection. However, each API route handler individually
+    checks auth + role, so this is defense-in-depth rather than a gap. The
+    API routes are NOT in the publicPaths list, so they don't get a bypass,
+    but the middleware only redirects for page routes.
+  Suggested Fix:
+    The current approach (per-route auth checks) is adequate. For defense in
+    depth, consider adding /api/teacher/ and /api/admin/ to the middleware
+    with 401/403 responses. This would provide a single enforcement point.
+
+[FINDING-08] Admin Switch-User Users List: Relies on Service Role for Admin Check
+  File: src/app/api/admin/switch-user/users/route.ts
+  Lines: 20-31
+  Severity: LOW
+  Description:
+    The endpoint verifies admin status using createServiceRoleClient() to
+    look up the caller's profile (bypassing RLS). This is necessary because
+    the caller might be impersonating a non-admin user. The auth check at
+    line 14 ensures the caller is at least authenticated. This is acceptable
+    but means the admin check relies entirely on the profiles table data.
+  Suggested Fix: Acceptable as-is. The audit log in the switch-user route
+    provides accountability.
+
+
+================================================================================
+3. SECRETS / CREDENTIALS
+================================================================================
+
+[FINDING-09] No Hardcoded Secrets Found
+  Severity: INFO
+  Description:
+    All API keys and secrets are loaded from environment variables
+    (process.env.*). The grep for hardcoded secrets found only references
+    to error logging involving the word "token" in error messages, not
+    actual secret values. The .gitignore properly excludes .env files.
+    The pino logger at src/lib/logger.ts (line 6) redacts paths containing
+    password, token, secret, apiKey, authorization, and cookie.
+  Suggested Fix: No action needed. Good practice already in place.
+
+
+================================================================================
+4. INSECURE DATA HANDLING
+================================================================================
+
+[FINDING-10] Supabase Error Messages Leaked to Client
+  File: src/app/api/documents/route.ts
+  Lines: 19, 42
+  Severity: MEDIUM
+  Description:
+    The documents API route returns raw Supabase error.message directly
+    to the client in JSON responses:
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    This can leak internal database schema details, table names, column
+    names, constraint names, and other implementation details.
+  Suggested Fix:
+    Replace with a generic error message:
+      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
+    Use the existing error-utils.ts pattern (mapSupabaseError) or log the
+    detailed error server-side and return a generic message to clients.
+    Other routes already follow this pattern correctly.
+
+[FINDING-11] Knowledge Search Leaks Error Message
+  File: src/app/api/knowledge/search/route.ts
+  Line: 31
+  Severity: LOW
+  Description:
+    Returns titleErr.message directly to the client. Could expose internal
+    Supabase error details.
+  Suggested Fix: Return a generic "Search failed" message instead.
+
+[FINDING-12] Verbose Console Logging in API Routes
+  File: Multiple files in src/app/api/
+  Severity: LOW
+  Description:
+    Many API routes use console.log/console.error with potentially sensitive
+    data. For example:
+    - src/app/api/help/route.ts:43 logs user email and message content
+    - src/app/api/help/route.ts:46 logs email, page, and message
+    - src/app/api/waitlist/route.ts:160 logs referral tracking data
+    - src/app/api/polar/webhook/route.ts:108 logs user IDs and credit balances
+    The structured pino logger (src/lib/logger.ts) with redaction is used
+    in some routes but not all. Routes using console.* bypass the redaction.
+  Suggested Fix:
+    Migrate all API routes from console.log/console.error to the pino logger
+    (imported from @/lib/logger) which has built-in redaction for sensitive
+    fields. This is a low-severity issue since server logs are not exposed
+    to clients, but it is a best practice for production environments.
+
+[FINDING-13] Error Stack Traces in Structured Logs
+  File: src/app/api/ocr/route.ts (line 112)
+  File: src/app/api/voice/token/route.ts (line 92)
+  File: src/app/api/voice/analyze-workspace/route.ts (line 149)
+  File: src/app/api/check-help-needed/route.ts (line 160)
+  Severity: INFO
+  Description:
+    Error stack traces are included in pino logger output. These are
+    server-side logs only (not returned to clients), which is acceptable
+    for debugging. Listed for completeness.
+  Suggested Fix: No action needed for server-side logs. Ensure log
+    aggregation systems properly restrict access to these logs.
+
+
+================================================================================
+5. INSECURE DEPENDENCY PATTERNS
+================================================================================
+
+[FINDING-14] No eval(), Function(), or innerHTML Assignment Found
+  Severity: INFO
+  Description:
+    Grep for eval(), new Function(), and innerHTML= found no matches in
+    the codebase. All dynamic HTML rendering uses React's
+    dangerouslySetInnerHTML with DOMPurify sanitization (verified in all
+    instances). This is good practice.
+
+
+================================================================================
+6. CSRF / CORS ISSUES
+================================================================================
+
+[FINDING-15] No Custom CORS Configuration
+  Severity: INFO
+  Description:
+    No Access-Control-Allow-Origin headers are set in any route handler.
+    Next.js API routes by default do not add CORS headers, which means
+    they are same-origin only. This is the secure default. The CSP in
+    middleware.ts further restricts connect-src to specific domains.
+  Suggested Fix: No action needed. Same-origin policy is enforced by default.
+
+[FINDING-16] No Explicit CSRF Protection on Mutation Endpoints
+  Severity: LOW
+  Description:
+    POST/PATCH endpoints rely on Supabase auth cookies for authentication.
+    Next.js does not automatically include CSRF tokens. However, all mutation
+    endpoints require a valid Supabase auth session (verified server-side via
+    getUser()), and the session cookie uses SameSite=Lax by default in modern
+    browsers, which provides CSRF protection for top-level navigation POST
+    requests. The cookie-based auth with SameSite provides adequate protection.
+  Suggested Fix: For additional defense in depth, consider adding a custom
+    CSRF token header check for state-mutating API routes, especially the
+    admin endpoints. Low priority given SameSite cookie protection.
+
+
+================================================================================
+7. PATH TRAVERSAL
+================================================================================
+
+[FINDING-17] No Path Traversal Vectors Found
+  Severity: INFO
+  Description:
+    No file system operations using user input were found in the codebase.
+    The application does not serve user-uploaded files from the filesystem;
+    all data storage goes through Supabase. The referral code route parameter
+    is sanitized (alphanumeric only) before use.
+
+
+================================================================================
+8. UNSAFE DESERIALIZATION
+================================================================================
+
+[FINDING-18] JSON.parse on AI Responses Without Full Validation
+  File: src/app/api/generate-solution/route.ts (lines 357-365)
+  File: src/app/api/go-deeper/route.ts (lines 213-215)
+  File: src/app/api/check-help-needed/route.ts (lines 131-136)
+  File: src/app/api/command-chat/route.ts (lines 97-103)
+  Severity: LOW
+  Description:
+    JSON.parse is used on AI model responses. All instances are wrapped in
+    try/catch blocks with fallback handling, which prevents crashes. The
+    parsed data is used to extract specific expected fields (summary,
+    annotations, needsHelp, etc.) and the structure is validated before use.
+    No prototype pollution vectors were identified since the parsed objects
+    are destructured into known fields.
+  Suggested Fix: No immediate action needed. The try/catch + field
+    extraction pattern is adequate. For additional safety, consider using
+    a schema validation library (e.g., zod) to validate AI response shapes.
+
+
+================================================================================
+9. RATE LIMITING
+================================================================================
+
+[FINDING-19] No Rate Limiting on Any API Route
+  File: All files in src/app/api/
+  Severity: HIGH
+  Description:
+    No rate limiting is implemented on any API route. This includes:
+    - AI-powered endpoints that incur third-party API costs:
+      * /api/chat (Hack Club AI)
+      * /api/solve-math (Hack Club AI)
+      * /api/generate-solution (OpenRouter / Hack Club AI)
+      * /api/go-deeper (Hack Club AI)
+      * /api/check-help-needed (OpenRouter)
+      * /api/command-chat (Hack Club AI)
+      * /api/ocr (Mistral API)
+      * /api/tts (ElevenLabs API)
+      * /api/voice/token (OpenAI Realtime API)
+      * /api/voice/analyze-workspace (Hack Club AI)
+      * /api/journal/generate (Hack Club AI)
+      * /api/teacher/generate-feedback (Hack Club AI)
+    - Authentication endpoints susceptible to brute force:
+      * /api/auth/validate-invite (invite code guessing)
+      * /api/auth/redeem-invite
+    - Public unauthenticated endpoints:
+      * /api/waitlist (email enumeration, spam)
+      * /api/help (email spam)
+    - Admin endpoints (impersonation):
+      * /api/admin/switch-user
+      * /api/admin/send-referral-emails (mass email sending)
+
+    An authenticated attacker could run up significant third-party API costs
+    by rapidly calling AI endpoints. An unauthenticated attacker could spam
+    the waitlist endpoint or attempt to brute-force invite codes.
+  Suggested Fix:
+    Implement rate limiting using one of these approaches:
+    1. Vercel Edge Middleware rate limiting (if deployed on Vercel)
+    2. Upstash Redis-based rate limiter (@upstash/ratelimit)
+    3. Next.js middleware-level rate limiting
+    Recommended tiers:
+    - AI endpoints: 20-30 requests/minute per user
+    - Auth endpoints: 5-10 requests/minute per IP
+    - Public endpoints: 3-5 requests/minute per IP
+    - Admin email sending: 1 request/hour per user
+
+
+================================================================================
+10. CRYPTOGRAPHIC ISSUES
+================================================================================
+
+[FINDING-20] Math.random Used for Non-Security UUID Generation
+  File: src/contexts/user-context.tsx
+  Lines: 89, 99, 105
+  Severity: LOW
+  Description:
+    Math.random() is used for generating TipTap collaboration user IDs,
+    random usernames, and random colors. These are not security-sensitive
+    operations (cosmetic collaboration identifiers). The uuid() function
+    at line 86 uses Math.random() to generate UUIDs for collaboration
+    sessions, which is acceptable since these are not authentication tokens.
+    Note: The waitlist referral code generator (src/app/api/waitlist/route.ts
+    line 31) correctly uses crypto.getRandomValues() for the security-relevant
+    code generation.
+  Suggested Fix: For consistency and best practice, consider replacing
+    Math.random() UUID generation with crypto.randomUUID() which is available
+    in all modern runtimes. Low priority since these are not security-sensitive.
+
+[FINDING-21] HSTS and Security Headers Properly Configured
+  File: src/middleware.ts
+  Lines: 4-46
+  Severity: INFO
+  Description:
+    The middleware applies comprehensive security headers:
+    - Content-Security-Policy with restrictive directives
+    - X-Frame-Options: DENY
+    - X-Content-Type-Options: nosniff
+    - Referrer-Policy: strict-origin-when-cross-origin
+    - Permissions-Policy (camera, microphone, geolocation disabled)
+    - Strict-Transport-Security with 2-year max-age, includeSubDomains, preload
+    This is well-configured. Note: script-src includes 'unsafe-inline' which
+    is documented with a TODO to migrate to CSP nonces.
+  Suggested Fix: Follow through on the TODO at line 11 to implement CSP
+    nonces to eliminate 'unsafe-inline' from script-src.
+
+
+================================================================================
+SUMMARY
+================================================================================
+
+CRITICAL: 0
+HIGH:     1  (FINDING-19: No rate limiting)
+MEDIUM:   2  (FINDING-06: Admin token in request body,
+              FINDING-10: Supabase error messages leaked)
+LOW:      9  (FINDING-01, 02, 03, 07, 08, 11, 12, 16, 18, 20)
+INFO:     8  (FINDING-04, 05, 09, 13, 14, 15, 17, 21)
+
+PRIORITY RECOMMENDATIONS:
+1. [HIGH] Implement rate limiting on all API routes, prioritizing AI-powered
+   endpoints and public/auth endpoints (FINDING-19).
+2. [MEDIUM] Stop returning raw Supabase error.message to clients in the
+   documents route and knowledge search route (FINDING-10, FINDING-11).
+3. [MEDIUM] Review admin switch-user token storage approach; consider
+   httpOnly cookies (FINDING-06).
+4. [LOW] Anonymize full names in the referral stats endpoint (FINDING-03).
+5. [LOW] Migrate console.* logging to pino logger with redaction (FINDING-12).
+6. [LOW] Implement CSP nonces to remove 'unsafe-inline' (FINDING-21).
+
+POSITIVE OBSERVATIONS:
+- All dangerouslySetInnerHTML usages are properly sanitized with DOMPurify.
+- No eval(), Function(), or innerHTML= patterns found.
+- No hardcoded secrets; all credentials via environment variables.
+- Pino logger has built-in field redaction for sensitive data.
+- All authenticated API routes verify auth via supabase.auth.getUser().
+- All admin routes verify admin role after authentication.
+- All teacher routes verify teacher role after authentication.
+- Comprehensive security headers in middleware (CSP, HSTS, X-Frame-Options).
+- Supabase parameterized queries prevent SQL injection.
+- ILIKE wildcard characters properly escaped in knowledge search.
+- CSS.escape() used for dynamic CSS selector generation.
+- Error utility (error-utils.ts) maps internal errors to generic messages.
+- Webhook endpoints (Polar) use library-level signature verification.
+- Input validation present on most endpoints (length limits, type checks).
+- Prompt injection mitigation with <user_field> and <user_context> tags.
+================================================================================

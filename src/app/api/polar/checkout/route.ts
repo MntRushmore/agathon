@@ -1,5 +1,6 @@
 import { Checkout } from '@polar-sh/nextjs';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 // Credit pack product IDs - check if product is a credit pack
 const creditPackProducts = new Set([
@@ -19,6 +20,12 @@ const creditsCheckout = Checkout({
 });
 
 export async function GET(request: NextRequest) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   // Clean the product ID - trim whitespace/newlines that may come from env vars
   const rawProductId = request.nextUrl.searchParams.get('products');
   const productId = rawProductId?.trim();

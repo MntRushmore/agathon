@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'ELEVENLABS_API_KEY not configured' },
+      { error: 'Service temporarily unavailable' },
       { status: 500 },
     );
   }

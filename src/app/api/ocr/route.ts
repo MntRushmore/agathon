@@ -30,12 +30,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (typeof image !== 'string' || image.length > 10_000_000) {
+      ocrLogger.warn({ requestId, imageSize: typeof image === 'string' ? image.length : 0 }, 'Image data invalid or too large');
+      return NextResponse.json(
+        { error: 'Image data is invalid or too large' },
+        { status: 413 }
+      );
+    }
+
     ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
 
     if (!process.env.MISTRAL_API_KEY) {
       ocrLogger.error({ requestId }, 'MISTRAL_API_KEY not configured');
       return NextResponse.json(
-        { error: 'MISTRAL_API_KEY not configured' },
+        { error: 'Service temporarily unavailable' },
         { status: 500 }
       );
     }
@@ -105,10 +113,7 @@ export async function POST(req: NextRequest) {
     }, 'Error performing OCR');
 
     return NextResponse.json(
-      {
-        error: 'Failed to perform OCR',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Failed to perform OCR' },
       { status: 500 }
     );
   }

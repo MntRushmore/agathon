@@ -28,7 +28,6 @@ type WebhookOrderPayload = {
     };
     metadata?: {
       type?: string;
-      credits?: number;
     };
   };
 };
@@ -63,8 +62,8 @@ async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
     return;
   }
 
-  // Determine credits to grant - from metadata or product mapping
-  const creditsToGrant = order.metadata?.credits || creditPackMap[order.productId];
+  // Determine credits to grant from product mapping only
+  const creditsToGrant = creditPackMap[order.productId];
 
   if (!creditsToGrant) {
     console.warn('Polar webhook: unknown credit pack product', order.productId);

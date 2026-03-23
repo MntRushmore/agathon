@@ -16,12 +16,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
+    // Escape ILIKE wildcard characters in user input
+    const escapedQuery = query.replace(/[%_\\]/g, '\\$&');
+
     // Search title with ILIKE
     const { data: titleMatches, error: titleErr } = await supabase
       .from('knowledge_base')
       .select('id, source, source_id, title, content, metadata, synced_at')
       .eq('user_id', user.id)
-      .ilike('title', `%${query}%`)
+      .ilike('title', `%${escapedQuery}%`)
       .limit(limit);
 
     if (titleErr) {
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
       .from('knowledge_base')
       .select('id, source, source_id, title, content, metadata, synced_at')
       .eq('user_id', user.id)
-      .ilike('content', `%${query}%`)
+      .ilike('content', `%${escapedQuery}%`)
       .limit(limit);
 
     // Merge and deduplicate

@@ -30,11 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  const body = await request.json();
+  const { title, content } = await request.json();
 
   const { data, error } = await supabase
     .from('documents')
-    .insert([{ ...body, user_id: user.id }])
+    .insert([{ title, content, user_id: user.id }])
     .select()
     .single();
 
