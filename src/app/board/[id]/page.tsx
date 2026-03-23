@@ -1689,11 +1689,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         setStatus("error");
         setStatusMessage("");
         
-        // Clear error after 3 seconds
+        // Clear error after 6 seconds
         setTimeout(() => {
           setStatus("idle");
           setErrorMessage("");
-        }, 3000);
+        }, 6000);
 
         return false;
         } finally {
@@ -1887,7 +1887,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         setTimeout(() => {
           setStatus('idle');
           setErrorMessage('');
-        }, 3000);
+        }, 6000);
       } finally {
         isProcessingRef.current = false;
         isUpdatingImageRef.current = false;

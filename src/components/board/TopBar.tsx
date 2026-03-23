@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ArrowLeft01Icon } from 'hugeicons-react';
 import { BookOpen, Check, Info, ChevronDown, Sparkles, ShieldOff } from 'lucide-react';
@@ -143,6 +144,16 @@ export function TopBar({
   bannerOffset,
   isDocPanelOpen,
 }: TopBarProps) {
+  // Auto-open assignment instructions for 4 seconds on first load
+  const [assignmentPopoverOpen, setAssignmentPopoverOpen] = useState(false);
+  useEffect(() => {
+    if (isAssignmentBoard && assignmentInstructions) {
+      const openTimer = setTimeout(() => setAssignmentPopoverOpen(true), 800);
+      const closeTimer = setTimeout(() => setAssignmentPopoverOpen(false), 5000);
+      return () => { clearTimeout(openTimer); clearTimeout(closeTimer); };
+    }
+  }, [isAssignmentBoard, assignmentInstructions]);
+
   if (isVoiceSessionActive) return null;
 
   return (
@@ -169,7 +180,7 @@ export function TopBar({
 
         {/* Assignment pill */}
         {isAssignmentBoard && assignmentTitle && (
-          <Popover>
+          <Popover open={assignmentPopoverOpen} onOpenChange={setAssignmentPopoverOpen}>
             <PopoverTrigger asChild>
               <button className="no-enlarge flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200/80 hover:bg-gray-50 hover:border-gray-300/60 transition-all duration-150 max-w-[220px] group">
                 <BookOpen className="h-3.5 w-3.5 text-[#007ba5] flex-shrink-0" />
