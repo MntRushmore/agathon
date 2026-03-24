@@ -20,8 +20,10 @@ BEGIN
     ELSE 0
   END;
 
+  -- Silently preserve the higher status instead of raising an exception,
+  -- because track-ai-usage unconditionally sets 'in_progress' on all updates.
   IF new_order < old_order THEN
-    RAISE EXCEPTION 'Cannot transition submission status backward from % to %', OLD.status, NEW.status;
+    NEW.status := OLD.status;
   END IF;
 
   RETURN NEW;
