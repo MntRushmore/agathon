@@ -60,6 +60,12 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     }
   }, []);
 
+  // Codes that force student-only signup (no teacher option)
+  const STUDENT_ONLY_CODES = ['ISTEASCD'];
+
+  const cleanedCode = inviteCode.replace(/[-\s]/g, '').toUpperCase();
+  const isStudentOnly = STUDENT_ONLY_CODES.includes(cleanedCode);
+
   const handleCodeChange = (value: string) => {
     // Auto-format with dash
     const cleaned = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -70,6 +76,11 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
     setInviteCode(formatted);
     setCodeStatus('idle');
     setCodeError('');
+
+    // Force student role for restricted codes
+    if (STUDENT_ONLY_CODES.includes(cleaned)) {
+      setRole('student');
+    }
 
     // Auto-validate when 8 chars entered
     if (cleaned.length === 8) {
@@ -248,35 +259,41 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
           />
           <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
         </div>
-        <div className="space-y-2">
-          <Label>I am a:</Label>
-          <div className="flex gap-4">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="role"
-                value="student"
-                checked={role === 'student'}
-                onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
-                disabled={loading || codeStatus !== 'valid'}
-                className="h-4 w-4"
-              />
-              <span className="text-sm">Student</span>
-            </label>
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="role"
-                value="teacher"
-                checked={role === 'teacher'}
-                onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
-                disabled={loading || codeStatus !== 'valid'}
-                className="h-4 w-4"
-              />
-              <span className="text-sm">Teacher</span>
-            </label>
+        {isStudentOnly ? (
+          <p className="text-xs text-muted-foreground">
+            You&apos;ll be signed up as a student to explore the full Agathon experience.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <Label>I am a:</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="student"
+                  checked={role === 'student'}
+                  onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
+                  disabled={loading || codeStatus !== 'valid'}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">Student</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="role"
+                  value="teacher"
+                  checked={role === 'teacher'}
+                  onChange={(e) => setRole(e.target.value as 'student' | 'teacher')}
+                  disabled={loading || codeStatus !== 'valid'}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm">Teacher</span>
+              </label>
+            </div>
           </div>
-        </div>
+        )}
         <Button
           type="submit"
           className="w-full"
