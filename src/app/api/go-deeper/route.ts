@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-import { goDeeper } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 interface Step {
@@ -227,7 +226,7 @@ Only output JSON.`;
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      goDeeper.error({ err: parseError, content }, 'Failed to parse Go Deeper response');
+      console.error('Failed to parse Go Deeper response:', parseError, content);
       // Return a fallback response
       parsed = {
         steps: [
@@ -276,7 +275,7 @@ Only output JSON.`;
     return NextResponse.json(result);
 
   } catch (error) {
-    goDeeper.error({ err: error }, 'Go Deeper API error');
+    console.error('Go Deeper API error:', error);
     return NextResponse.json(
       { error: 'Failed to generate deeper explanation' },
       { status: 500 }

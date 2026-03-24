@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 import { searchKnowledgeBase, buildKnowledgeAwarePrompt, hasKnowledgeBase, getUpcomingAssignmentsContext } from '@/lib/ai/knowledge-agent';
-import { chatLogger } from '@/lib/logger';
 
 interface CanvasContext {
   subject?: string;
@@ -144,7 +143,7 @@ If the student replies, next step, move on to the next step of the problem witho
         }
       } catch (kbError) {
         // Knowledge base search is non-critical — continue without it
-        chatLogger.error({ err: kbError }, 'Knowledge base search error');
+        console.error('Knowledge base search error:', kbError);
       }
     }
 
@@ -178,14 +177,14 @@ If the student replies, next step, move on to the next step of the problem witho
         },
       });
     } catch (hackclubError) {
-      chatLogger.error({ err: hackclubError }, 'Hack Club AI error');
+      console.error('Hack Club AI error:', hackclubError);
       return new Response(
         JSON.stringify({ error: 'Failed to get response from AI' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
-    chatLogger.error({ err: error }, 'Chat API error');
+    console.error('Chat API error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

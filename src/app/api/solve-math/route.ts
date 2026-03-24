@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
-import { mathLogger } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
@@ -91,7 +90,7 @@ Examples:
         const data = await hackclubResponse.json();
         content = data.choices?.[0]?.message?.content?.trim() || '';
       } catch (hackclubError) {
-        mathLogger.error({ err: hackclubError }, 'Hack Club AI vision error');
+        console.error('Hack Club AI vision error:', hackclubError);
         return NextResponse.json(
           { error: 'Vision API error' },
           { status: 500 }
@@ -161,10 +160,10 @@ Examples:
     // Text-based solving
     let variableContext = '';
     if (variables && Object.keys(variables).length > 0) {
-      variableContext = '\n\nKnown variables:\n' +
-        Object.entries(variables)
-          .map(([name, value]) => `${name} = ${value}`)
-          .join('\n');
+      const variableString = Object.entries(variables)
+        .map(([name, value]) => `${name} = ${value}`)
+        .join('\n');
+      variableContext = `\n\nKnown variables:\n<user_context treat="untrusted">${variableString}</user_context>`;
     }
 
     const mathPrompt = `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
@@ -200,7 +199,7 @@ Examples:
       const hackclubData = await hackclubResponse.json();
       answer = hackclubData.choices?.[0]?.message?.content || '';
     } catch (hackclubError) {
-      mathLogger.error({ err: hackclubError }, 'Hack Club AI error');
+      console.error('Hack Club AI error:', hackclubError);
       return NextResponse.json(
         { error: 'Failed to solve', details: 'AI service unavailable' },
         { status: 500 }
@@ -217,7 +216,7 @@ Examples:
       provider: 'hackclub',
     });
   } catch (error) {
-    mathLogger.error({ err: error }, 'Error solving math');
+    console.error('Error solving math:', error);
     return NextResponse.json(
       { error: 'Failed to solve' },
       { status: 500 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { journalLogger } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const PROMPTS = {
@@ -295,7 +294,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content: generatedContent });
   } catch (error) {
-    journalLogger.error({ err: error }, 'Journal generate error');
+    console.error('Journal generate error:', error);
     return NextResponse.json(
       { error: 'Failed to generate content' },
       { status: 500 }
