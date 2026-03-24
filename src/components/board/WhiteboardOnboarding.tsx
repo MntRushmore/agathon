@@ -10,7 +10,7 @@ interface WhiteboardOnboardingProps {
 }
 
 interface HintAnchor {
-  left: number;
+  left?: number;
   top?: number;
   right?: number;
   bottom?: number;
