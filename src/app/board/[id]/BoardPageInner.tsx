@@ -2880,6 +2880,7 @@ export default function BoardPageInner() {
           h: tileSize,
         },
         isLocked: true,
+        meta: { isBackground: true },
       });
 
       // Send to back

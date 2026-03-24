@@ -136,6 +136,9 @@ class Lassooing extends StateNode {
       // Skip shapes that aren't user-drawn, typed text, or user-pasted images, and skip AI-generated content
       if (shape.type !== 'draw' && shape.type !== 'text' && shape.type !== 'image') continue;
       if (shape.meta?.aiGenerated) continue;
+      // Skip locked shapes and background images (e.g. graph paper / lined paper)
+      if (shape.isLocked) continue;
+      if (shape.meta?.isBackground) continue;
 
       const shapeBounds = this.editor.getShapePageBounds(shape);
       if (!shapeBounds) continue;
