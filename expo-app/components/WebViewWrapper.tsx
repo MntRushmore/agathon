@@ -206,11 +206,13 @@ export default function WebViewWrapper() {
       if (url.startsWith('agathon://') || url.includes('/auth/callback')) {
         // Extract the callback path and reload in WebView
         const callbackUrl = url.replace('agathon://', WEB_APP_URL);
-        if (webViewRef.current) {
-          webViewRef.current.injectJavaScript(`
-            window.location.href = '${callbackUrl}';
-            true;
-          `);
+        // Validate the URL matches our expected origin to prevent JS injection
+        const allowedOrigins = [WEB_APP_URL, 'https://agathon.app'];
+        const isAllowed = allowedOrigins.some(origin => callbackUrl.startsWith(origin));
+        if (webViewRef.current && isAllowed) {
+          webViewRef.current.injectJavaScript(
+            `window.location.href = ${JSON.stringify(callbackUrl)}; true;`
+          );
         }
       }
     };
@@ -281,8 +283,8 @@ export default function WebViewWrapper() {
         scrollEnabled={false}
         // File access
         allowFileAccess={true}
-        allowFileAccessFromFileURLs={true}
-        allowUniversalAccessFromFileURLs={true}
+        allowFileAccessFromFileURLs={false}
+        allowUniversalAccessFromFileURLs={false}
         // Viewport & scaling - critical for iPad
         scalesPageToFit={false}
         contentMode="mobile"
