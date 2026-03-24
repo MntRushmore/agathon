@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { classroomLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import {
   fetchStudentSubmissions,
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, isLate });
   } catch (error: unknown) {
-    console.error('Classroom submit error:', error);
+    classroomLogger.error({ err: error }, 'Classroom submit error');
 
     const msg = (error instanceof Error ? error.message : '').toLowerCase();
     if (msg.includes('unauthorized') || msg.includes('token') || msg.includes('expired')) {

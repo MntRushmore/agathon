@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { creditsLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getCreditBalance, getCreditHistory } from '@/lib/ai/credits';
 
@@ -19,7 +20,7 @@ export async function GET() {
       recentTransactions,
     });
   } catch (error) {
-    console.error('Error fetching credit balance:', error);
+    creditsLogger.error({ err: error }, 'Error fetching credit balance');
     return NextResponse.json(
       { error: 'Failed to fetch credit balance' },
       { status: 500 }

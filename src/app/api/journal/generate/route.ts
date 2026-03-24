@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { journalLogger } from '@/lib/logger';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -286,7 +287,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content: generatedContent });
   } catch (error) {
-    console.error('Journal generate error:', error);
+    journalLogger.error({ err: error }, 'Journal generate error');
     return NextResponse.json(
       { error: 'Failed to generate content' },
       { status: 500 }

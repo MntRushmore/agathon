@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const STRUGGLE_THRESHOLD_HINTS = 3;
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         .insert(usageData);
 
     if (usageError) {
-      console.error('Error tracking AI usage:', usageError);
+      logger.error({ err: usageError }, 'Error tracking AI usage');
       return NextResponse.json({ error: 'Failed to track usage' }, { status: 500 });
     }
 
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       .eq('id', submissionId);
 
     if (updateError) {
-      console.error('Error updating submission:', updateError);
+      logger.error({ err: updateError }, 'Error updating submission');
     }
 
     let isStruggling = false;
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
       helpCount: currentHelpCount,
     });
   } catch (error) {
-    console.error('Track AI usage error:', error);
+    logger.error({ err: error }, 'Track AI usage error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
