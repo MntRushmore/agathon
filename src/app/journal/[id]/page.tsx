@@ -67,7 +67,10 @@ import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
 import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Send, Star, Stars } from 'lucide-react';
+import ColoredAgathon from '@/components/svgs/ColoredAgathon';
+import FlashcardsColored from '@/components/svgs/FlashcardsColored';
+import ColoredJournal from '@/components/svgs/ColoredJournal';
 
 // Simple markdown renderer for chat messages with DOMPurify sanitization
 function renderMarkdown(text: string): string {
@@ -1348,7 +1351,7 @@ export default function JournalEditorPage() {
   const allCommands = getAllCommands();
 
   return (
-    <div className="min-h-screen bg-new-background flex p-[20px]">
+    <div className="min-h-screen bg-new-background flex p-[20px] w-[100%]">
       <JournalSidebar
         activeJournalId={params.id as string}
         onCollapseChange={setSidebarCollapsed}
@@ -1356,7 +1359,7 @@ export default function JournalEditorPage() {
 
       {/* Main editor column */}
       <div className={cn(
-        "bg-white shadow-lg rounded-[20px] flex flex-col flex-1 transition-all duration-300 ease-out min-h-screen min-w-0",
+        "bg-white shadow-lg rounded-[20px] flex flex-col flex-1 transition-all duration-300 ease-out min-h-screen min-w-0 w-[100%]!",
         sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
 
@@ -1408,7 +1411,7 @@ export default function JournalEditorPage() {
         </Dialog>
 
         {/* Header */}
-        <header className="fixed flex items-center justify-between px-5 py-3 z-[60] flex-shrink-0 w-[91%] bg-white rounded-[20px]">
+        <header className="sticky top-0 flex items-center justify-between px-5 py-3 z-[60] flex-shrink-0 bg-white rounded-[20px]">
           {/* Left */}
           <div className="flex items-center gap-3">
             <button
@@ -1437,6 +1440,7 @@ export default function JournalEditorPage() {
               {chatMessages.length > 0 && !chatPanelOpen && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-foreground rounded-full" />
               )}
+               - {title}
             </button>
 
           {/* Right */}
@@ -1510,11 +1514,11 @@ export default function JournalEditorPage() {
         </header>
 
         {/* Body: editor + optional chat panel side by side */}
-        <div className="flex flex-1 min-h-0 mt-[60px]">
+        <div className="flex flex-1 min-h-0">
 
           {/* Editor area */}
           <div className="flex-1 overflow-y-auto min-w-0">
-            <main className="px-8 py-8 max-w-3xl mx-auto">
+            <main className="px-8 pl-24 py-8 lg:max-w-[820px] xl:max-w-[1000px] 2xl:max-w-[1200px]">
 
               {/* Large serif title */}
               <div className="mb-8">
@@ -1522,44 +1526,44 @@ export default function JournalEditorPage() {
                   type="text"
                   value={title}
                   onChange={handleTitleChange}
-                  className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
+                  className="font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight text-[30px]!"
                   style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
                   placeholder="New Journal"
                 />
-                <div className="h-px bg-border mt-4" />
+                <div className="h-px bg-border mt-2" />
               </div>
 
               {/* Start with section */}
               {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
                 <div className="mb-8">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
-                  <div className="grid grid-cols-3 gap-px bg-border border border-border">
+                  <p className="text-xs font-semibold text-foreground/60 mb-3">Start with</p>
+                  <div className="grid grid-cols-3 gap-4">
                     <button
                       onClick={() => handleQuickAction('Agathon Method')}
                       disabled={isGenerating}
-                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                      className="cursor-pointer rounded-lg bg-[#8AB2FB]/21 hover:bg-[#8AB2FB]/50 p-4 text-left transition-colors disabled:opacity-50 group"
                     >
-                      <Sparkle  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                      <p className="text-sm font-medium text-foreground">Ask Agathon</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
+                      <ColoredAgathon/>
+                      <p className="text-sm font-medium text-foreground my-3">Ask Agathon</p>
+                      <p className="text-xs text-foreground/60">Generate study notes →</p>
                     </button>
                     <button
                       onClick={() => handleOpenInlineInput('Flashcards')}
                       disabled={isGenerating}
-                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                      className="rounded-lg bg-[#40D945]/21 hover:bg-[#40D945]/50 p-4 text-left transition-colors disabled:opacity-50 group"
                     >
-                      <Stack  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                      <p className="text-sm font-medium text-foreground">Flashcards</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
+                      <FlashcardsColored/>
+                      <p className="text-sm font-medium text-foreground my-3">Flashcards</p>
+                      <p className="text-xs text-foreground/60">Study with spaced repetition →</p>
                     </button>
                     <button
                       onClick={() => handleOpenInlineInput('Practice Problems')}
                       disabled={isGenerating}
-                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                      className="rounded-lg bg-[#EE8E3F]/21 hover:bg-[#EE8E3F]/50 p-4 text-left transition-colors disabled:opacity-50 group"
                     >
-                      <ClipboardText  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                      <p className="text-sm font-medium text-foreground">Practice</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
+                      <ColoredJournal/>
+                      <p className="text-sm font-medium text-foreground my-3">Practice</p>
+                      <p className="text-xs text-foreground/60">Generate practice problems →</p>
                     </button>
                   </div>
                 </div>
@@ -1732,7 +1736,7 @@ export default function JournalEditorPage() {
                       <button
                         onClick={handleAcceptAllBlocks}
                         disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                        className="rounded-md inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
                       >
                         <Check className="h-3.5 w-3.5" />
                         Accept All
@@ -1740,7 +1744,7 @@ export default function JournalEditorPage() {
                       <button
                         onClick={handleDenyAllBlocks}
                         disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                        className="rounded-md inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
                       >
                         <X className="h-3.5 w-3.5" />
                         Deny All
@@ -1792,7 +1796,7 @@ export default function JournalEditorPage() {
                             <div
                               className={cn(
                                 'text-sm leading-relaxed',
-                                block.status === 'denied' ? 'text-muted-foreground' : 'text-foreground/80'
+                                block.status === 'denied' ? 'text-new-foreground/60' : 'text-new-foreground/80'
                               )}
                               dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content.slice(0, 300) + (block.content.length > 300 ? '...' : '')) }}
                             />
@@ -1801,22 +1805,22 @@ export default function JournalEditorPage() {
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <button
                                 onClick={() => handleAcceptBlock(block.id)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                                className="rounded-md inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
                               >
                                 <Check className="h-3 w-3" />
                                 Accept
                               </button>
                               <button
                                 onClick={() => handleDenyBlock(block.id)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                className="rounded-md inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
                               >
                                 <X className="h-3 w-3" />
                                 Deny
                               </button>
                             </div>
                           )}
-                          {block.status === 'accepted' && <span className="text-xs text-green-600 dark:text-green-400 font-medium flex-shrink-0">Added</span>}
-                          {block.status === 'denied' && <span className="text-xs text-red-600 dark:text-red-400 font-medium flex-shrink-0">Removed</span>}
+                          {block.status === 'accepted' && <span className="rounded-sm text-xs text-green-600 dark:text-green-400 font-medium flex-shrink-0">Added</span>}
+                          {block.status === 'denied' && <span className="rounded-sm text-xs text-red-600 dark:text-red-400 font-medium flex-shrink-0">Removed</span>}
                         </div>
                       </div>
                     </div>
@@ -1909,8 +1913,8 @@ export default function JournalEditorPage() {
           {/* ── VS Code-style Chat Panel ── */}
           <div
             className={cn(
-              "fixed right-[20px] h-[90vh] flex flex-col border-l border-border bg-card transition-all duration-300 ease-out overflow-hidden flex-shrink-0",
-              chatPanelOpen ? "w-[340px]" : "w-0"
+              "fixed right-[20px] h-[89vh] flex flex-col border-l border-border bg-card transition-all duration-300 ease-out overflow-hidden flex-shrink-0",
+              chatPanelOpen ? "w-[300px] xl:w-[340px]" : "w-0"
             )}
           >
             {chatPanelOpen && (
@@ -1918,7 +1922,7 @@ export default function JournalEditorPage() {
                 {/* Panel header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                    <div className="w-6 h-6 bg-foreground rounded-md flex items-center justify-center">
                       <Sparkle className="h-3.5 w-3.5 text-background" />
                     </div>
                     <span className="text-sm font-semibold text-foreground">Agathon AI</span>
@@ -1950,12 +1954,12 @@ export default function JournalEditorPage() {
                   {chatMessages.length === 0 ? (
                     /* Empty state */
                     <div className="flex flex-col items-center justify-center h-full text-center py-8 gap-3">
-                      <div className="w-12 h-12 bg-muted flex items-center justify-center">
-                        <Sparkle  className="h-6 w-6 text-muted-foreground" />
+                      <div className="w-12 h-12 bg-new-background rounded-md flex items-center justify-center">
+                        <Sparkle  className="h-6 w-6 text-foreground" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground mb-1">Ask Agathon anything</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
+                        <p className="text-xs text-foreground/60 leading-relaxed">
                           Ask about concepts, request explanations, generate content, or get study help.
                         </p>
                       </div>
@@ -1972,7 +1976,7 @@ export default function JournalEditorPage() {
                               setChatInput(suggestion);
                               setTimeout(() => chatInputRef.current?.focus(), 50);
                             }}
-                            className="w-full text-left px-3 py-2 text-xs text-muted-foreground bg-muted hover:bg-accent hover:text-foreground border border-border transition-colors"
+                            className="w-full text-left px-3 py-2 text-xs text-foreground/60 bg-new-background hover:bg-new-background hover:text-foreground rounded-md transition-colors"
                           >
                             {suggestion}
                           </button>
@@ -1984,7 +1988,7 @@ export default function JournalEditorPage() {
                       <div key={idx}>
                         {msg.role === 'user' ? (
                           <div className="flex justify-end">
-                            <div className="bg-foreground text-background px-3 py-2 text-sm max-w-[85%] leading-relaxed">
+                            <div className="rounded-md bg-new-background text-new-foreground px-3 py-2 text-sm max-w-[85%] leading-relaxed">
                               {msg.content}
                             </div>
                           </div>
@@ -1992,7 +1996,8 @@ export default function JournalEditorPage() {
                           <div className="space-y-2">
                             <div className="flex gap-2.5">
                               <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <Sparkle className="h-3 w-3 text-background" />
+                                {/* <Sparkle className="h-3 w-3 text-background" /> */}
+                                <img src='/logo/agathon.png' className='h-3 w-3 rounded-md'/>
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div
@@ -2019,7 +2024,7 @@ export default function JournalEditorPage() {
                                     <div className="flex items-center gap-2">
                                       <button
                                         onClick={handleAcceptContent}
-                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
+                                        className="rounded-md inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
                                       >
                                         <Check className="h-3 w-3" />
                                         Add to Journal
@@ -2062,8 +2067,9 @@ export default function JournalEditorPage() {
                 </div>
 
                 {/* Chat input at bottom */}
-                <div className="flex-shrink-0 border-t border-border p-3">
-                  <div className="flex items-end gap-2 bg-muted border border-border px-3 py-2">
+                <div className="flex-shrink-0 p-3">
+                  <div className="flex items-center gap-2 bg-muted px-3 py-2 border border-border rounded-md">
+                    <Stars className='font-light' size={16}/>
                     <textarea
                       ref={chatInputRef}
                       value={chatInput}
@@ -2082,17 +2088,17 @@ export default function JournalEditorPage() {
                       placeholder={placeholderTexts[placeholderIndex]}
                       rows={1}
                       disabled={isChatting}
-                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0 resize-none leading-relaxed"
+                      className="!text-[.8rem] pt-[3px] rounded-md flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-foreground/60 placeholder:text-[.8rem] focus:ring-0 resize-none leading-relaxed"
                       style={{ minHeight: '24px', maxHeight: '120px' }}
                     />
                     <button
                       onClick={handleChatSubmit}
                       disabled={!chatInput.trim() || isChatting}
-                      className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-40 flex-shrink-0"
+                      className="rounded-sm w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-40 flex-shrink-0"
                     >
                       {isChatting
                         ? <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
-                        : <ArrowUp className="h-3.5 w-3.5" />
+                        : <Send className="h-3.5 w-3.5" />
                       }
                     </button>
                   </div>
@@ -2107,7 +2113,7 @@ export default function JournalEditorPage() {
       </div>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 px-6 py-3 pointer-events-none">
+      <footer className="fixed bottom-0 left-0 pl-28 py-3 pointer-events-none">
         <div className="flex justify-end">
           <span className="text-xs text-muted-foreground tabular-nums">
             {isSaving ? 'Saving...' : lastSaved ? `Last saved ${formatDistance(lastSaved, new Date(), { addSuffix: true })}` : ''}

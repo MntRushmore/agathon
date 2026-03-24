@@ -714,10 +714,10 @@ export function RichTextEditor({
   }
 
   return (
-    <div className={cn('relative flex gap-4', className)}>
+    <div className={cn('relative flex-col flex gap-4', className)}>
       {/* Left Sidebar Toolbar - sticky within editor */}
       <div className="sticky top-24 self-start z-40 flex-shrink-0">
-        <div className="flex flex-col items-center gap-1 bg-white rounded-xl shadow-lg border border-[#e2e4e8] p-1.5">
+        <div className="flex items-center gap-4 bg-new-background rounded-xl p-1.5">
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 1 }).run(); }}
             className={cn(
@@ -726,7 +726,7 @@ export function RichTextEditor({
             )}
             title="Heading 1"
           >
-            <TextHOne className="h-4 w-4" weight="duotone" />
+            <TextHOne className="h-5 w-5" weight='bold' />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 2 }).run(); }}
@@ -736,7 +736,7 @@ export function RichTextEditor({
             )}
             title="Heading 2"
           >
-            <TextHTwo className="h-4 w-4" weight="duotone" />
+            <TextHTwo className="h-5 w-5" weight='bold' />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: 3 }).run(); }}
@@ -746,9 +746,9 @@ export function RichTextEditor({
             )}
             title="Heading 3"
           >
-            <TextHThree className="h-4 w-4" weight="duotone" />
+            <TextHThree className="h-5 w-5" weight='bold' />
           </button>
-          <div className="w-5 h-px bg-[#e2e4e8] my-1" />
+          <div className="w-px h-5 bg-[#e2e4e8] my-1" />
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBulletList().run(); }}
             className={cn(
@@ -757,7 +757,7 @@ export function RichTextEditor({
             )}
             title="Bullet List"
           >
-            <ListBullets className="h-4 w-4" weight="duotone" />
+            <ListBullets className="h-5 w-5" weight='bold' />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleOrderedList().run(); }}
@@ -767,7 +767,7 @@ export function RichTextEditor({
             )}
             title="Numbered List"
           >
-            <ListNumbers className="h-4 w-4" weight="duotone" />
+            <ListNumbers className="h-5 w-5" weight='bold' />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleBlockquote().run(); }}
@@ -777,7 +777,7 @@ export function RichTextEditor({
             )}
             title="Quote"
           >
-            <Quotes className="h-4 w-4" weight="duotone" />
+            <Quotes className="h-5 w-5" weight='bold' />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().toggleCodeBlock().run(); }}
@@ -787,7 +787,7 @@ export function RichTextEditor({
             )}
             title="Code Block"
           >
-            <Code className="h-4 w-4" weight="duotone" />
+            <Code className="h-5 w-5" weight='bold' />
           </button>
         </div>
       </div>
