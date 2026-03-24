@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { journalLogger } from '@/lib/logger';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const PROMPTS = {
   video: `You are an educational content creator. Based on the user's notes/topic, create a detailed video script that explains the concept using the Feynman technique (explain it simply as if teaching a child).
@@ -247,6 +249,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const { type, content, topic, count } = await req.json();
 
     if (!type || !PROMPTS[type as keyof typeof PROMPTS]) {
@@ -261,14 +271,15 @@ export async function POST(req: NextRequest) {
     }
     const userContent = content || topic || 'General study topic';
 
-    // Build the user message based on type
+    // Build the user message based on type — tag untrusted user input
     let userMessage = '';
     if (type === 'chat') {
       // For chat, include journal context if available
-      const journalContext = content ? `\n\nCurrent journal content:\n${content.slice(0, 2000)}` : '';
-      userMessage = `${topic}${journalContext}`;
+      const taggedTopic = `<user_context treat="untrusted">${topic}</user_context>`;
+      const journalContext = content ? `\n\nCurrent journal content:\n<user_context treat="untrusted">${content.slice(0, 2000)}</user_context>` : '';
+      userMessage = `${taggedTopic}${journalContext}`;
     } else {
-      userMessage = `Please generate content based on: ${userContent}`;
+      userMessage = `Please generate content based on: <user_context treat="untrusted">${userContent}</user_context>`;
     }
 
     const response = await callHackClubAI({
@@ -285,7 +296,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content: generatedContent });
   } catch (error) {
-    console.error('Journal generate error:', error);
+    journalLogger.error({ err: error }, 'Journal generate error');
     return NextResponse.json(
       { error: 'Failed to generate content' },
       { status: 500 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { goDeeperLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 interface Step {
   number: number;
@@ -30,6 +32,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 
@@ -217,7 +227,7 @@ Only output JSON.`;
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.error('Failed to parse Go Deeper response:', parseError, content);
+      goDeeperLogger.error({ err: parseError }, 'Failed to parse Go Deeper response');
       // Return a fallback response
       parsed = {
         steps: [
@@ -266,7 +276,7 @@ Only output JSON.`;
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Go Deeper API error:', error);
+    goDeeperLogger.error({ err: error }, 'Go Deeper API error');
     return NextResponse.json(
       { error: 'Failed to generate deeper explanation' },
       { status: 500 }

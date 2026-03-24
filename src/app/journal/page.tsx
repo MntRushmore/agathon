@@ -37,7 +37,8 @@ export default function JournalsPage() {
       const { data, error } = await supabase
         .from('journals')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+      .limit(50);
 
       if (error) {
         console.error('Failed to load journals:', error);

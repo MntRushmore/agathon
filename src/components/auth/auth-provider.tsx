@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       try {
         sileo.error({ title: 'Failed to load profile' });
-      } catch (e) {}
+      } catch (e) { console.warn('Unexpected error:', e); }
     }
   };
 
@@ -204,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const message = mapSupabaseError(error);
       try {
         sileo.error({ title: message });
-      } catch (e) {}
+      } catch (e) { console.warn('Unexpected error:', e); }
     }
   };
 

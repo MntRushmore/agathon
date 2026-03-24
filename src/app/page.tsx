@@ -1,3 +1,4 @@
+// TODO: H6 — Decompose this monolith component into sub-components (see AUDIT_REPORT.md)
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
@@ -346,7 +347,8 @@ export default function Dashboard() {
         .from('whiteboards')
         .select('id, title, created_at, updated_at, preview, metadata')
         .eq('user_id', user?.id)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setWhiteboards(data || []);

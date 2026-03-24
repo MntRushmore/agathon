@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 
@@ -12,6 +13,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 },
+    );
+  }
+
+  const rateLimit = await checkRateLimit(user.id, 'tts');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
     );
   }
 

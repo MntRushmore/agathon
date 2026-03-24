@@ -3,6 +3,9 @@
 -- ============================================
 -- Creates tables for classes, enrollment, assignments, and submissions
 -- Adds RLS policies for role-based access control
+-- NOTE: Core tables (profiles, whiteboards, waitlist, board_shares, admin_audit_logs)
+-- were created outside of tracked migrations (via Supabase dashboard).
+-- TODO: M26 — Create 001_initial_schema.sql to make migrations reproducible.
 
 -- ============================================
 -- 1. CLASSES TABLE

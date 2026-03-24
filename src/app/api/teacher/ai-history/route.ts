@@ -60,13 +60,15 @@ export async function GET(req: NextRequest) {
       .from('ai_usage')
       .select('*')
       .eq('submission_id', submissionId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+    .limit(100);
 
     const { data: struggleIndicators } = await supabase
       .from('struggle_indicators')
       .select('*')
       .eq('submission_id', submissionId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+    .limit(100);
 
     const timeline: any[] = [];
 

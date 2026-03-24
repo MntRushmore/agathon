@@ -78,7 +78,8 @@ export default function CreateAssignmentPage() {
           .from('whiteboards')
           .select('*')
           .eq('user_id', user.id)
-          .order('updated_at', { ascending: false }),
+          .order('updated_at', { ascending: false })
+          .limit(50),
         getTeacherClasses(),
       ]);
 

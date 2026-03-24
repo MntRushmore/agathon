@@ -1,4 +1,5 @@
 'use client';
+// TODO: M23 — Wrap RichTextEditor in <ComponentErrorBoundary>
 
 import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';

@@ -1,3 +1,4 @@
+// TODO: L12 — Self-referral possible via multiple email signups. Consider IP-based deduplication.
 import { createServiceRoleClient } from '@/lib/supabase/server';
 import { getResend } from '@/lib/resend';
 import { NextRequest, NextResponse } from 'next/server';

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const STRUGGLE_THRESHOLD_HINTS = 3;
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
         .insert(usageData);
 
     if (usageError) {
-      console.error('Error tracking AI usage:', usageError);
+      logger.error({ err: usageError }, 'Error tracking AI usage');
       return NextResponse.json({ error: 'Failed to track usage' }, { status: 500 });
     }
 
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       .eq('id', submissionId);
 
     if (updateError) {
-      console.error('Error updating submission:', updateError);
+      logger.error({ err: updateError }, 'Error updating submission');
     }
 
     let isStruggling = false;
@@ -151,47 +152,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (conceptTags && conceptTags.length > 0 && assignmentId) {
-      for (const concept of conceptTags) {
-        const { data: existingConcept } = await supabase
-          .from('concept_mastery')
-          .select('*')
-          .eq('assignment_id', assignmentId)
-          .eq('concept_name', concept)
-          .eq('student_id', user.id)
-          .single();
+      // Batch upsert all concept tags in a single RPC call (eliminates N+1 queries)
+      const { error: upsertError } = await supabase.rpc('batch_upsert_concept_mastery', {
+        p_student_id: user.id,
+        p_assignment_id: assignmentId,
+        p_concepts: conceptTags,
+        p_mode: mode,
+        p_time_spent_seconds: timeSpentSeconds || 0,
+      });
 
-        if (existingConcept) {
-          const newHelpCount = existingConcept.ai_help_count + 1;
-          let masteryLevel = existingConcept.mastery_level;
-          
-          if (mode === 'answer') {
-            masteryLevel = 'struggling';
-          } else if (newHelpCount >= 3 && masteryLevel !== 'struggling') {
-            masteryLevel = 'learning';
-          }
-
-          await supabase
-            .from('concept_mastery')
-            .update({
-              ai_help_count: newHelpCount,
-              solve_mode_used: existingConcept.solve_mode_used || mode === 'answer',
-              mastery_level: masteryLevel,
-              time_spent_seconds: existingConcept.time_spent_seconds + (timeSpentSeconds || 0),
-            })
-            .eq('id', existingConcept.id);
-        } else {
-          await supabase
-            .from('concept_mastery')
-            .insert({
-              assignment_id: assignmentId,
-              concept_name: concept,
-              student_id: user.id,
-              ai_help_count: 1,
-              solve_mode_used: mode === 'answer',
-              mastery_level: mode === 'answer' ? 'struggling' : 'learning',
-              time_spent_seconds: timeSpentSeconds || 0,
-            });
-        }
+      if (upsertError) {
+        console.error('Failed to upsert concept mastery:', upsertError);
       }
     }
 
@@ -201,7 +172,7 @@ export async function POST(req: NextRequest) {
       helpCount: currentHelpCount,
     });
   } catch (error) {
-    console.error('Track AI usage error:', error);
+    logger.error({ err: error }, 'Track AI usage error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

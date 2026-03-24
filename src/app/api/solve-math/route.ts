@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { mathLogger } from '@/lib/logger';
 import { quickSolve, canQuickSolve } from '@/lib/cas-solver';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +15,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Authentication required', code: 'AUTH_REQUIRED' },
         { status: 401 }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'default');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 
@@ -81,7 +91,7 @@ Examples:
         const data = await hackclubResponse.json();
         content = data.choices?.[0]?.message?.content?.trim() || '';
       } catch (hackclubError) {
-        console.error('Hack Club AI vision error:', hackclubError);
+        mathLogger.error({ err: hackclubError }, 'Hack Club AI vision error');
         return NextResponse.json(
           { error: 'Vision API error' },
           { status: 500 }
@@ -151,10 +161,10 @@ Examples:
     // Text-based solving
     let variableContext = '';
     if (variables && Object.keys(variables).length > 0) {
-      variableContext = '\n\nKnown variables:\n' +
-        Object.entries(variables)
-          .map(([name, value]) => `${name} = ${value}`)
-          .join('\n');
+      const variableString = Object.entries(variables)
+        .map(([name, value]) => `${name} = ${value}`)
+        .join('\n');
+      variableContext = `\n\nKnown variables:\n<user_context treat="untrusted">${variableString}</user_context>`;
     }
 
     const mathPrompt = `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.
@@ -190,7 +200,7 @@ Examples:
       const hackclubData = await hackclubResponse.json();
       answer = hackclubData.choices?.[0]?.message?.content || '';
     } catch (hackclubError) {
-      console.error('Hack Club AI error:', hackclubError);
+      mathLogger.error({ err: hackclubError }, 'Hack Club AI error');
       return NextResponse.json(
         { error: 'Failed to solve', details: 'AI service unavailable' },
         { status: 500 }
@@ -207,7 +217,7 @@ Examples:
       provider: 'hackclub',
     });
   } catch (error) {
-    console.error('Error solving math:', error);
+    mathLogger.error({ err: error }, 'Error solving math');
     return NextResponse.json(
       { error: 'Failed to solve' },
       { status: 500 }

@@ -3,6 +3,7 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, CREDIT_COSTS, grantCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -40,6 +41,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Authentication required', code: 'AUTH_REQUIRED' },
         { status: 401 }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'image');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 

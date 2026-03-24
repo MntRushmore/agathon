@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(req: NextRequest) {
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
     const { data: logs, count, error } = await query;
 
     if (error) {
-      console.error('Audit logs query error:', error);
+      adminLogger.error({ err: error }, 'Audit logs query error');
       return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
     }
 
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
       totalPages: Math.ceil((count || 0) / limit),
     });
   } catch (error) {
-    console.error('Admin audit logs error:', error);
+    adminLogger.error({ err: error }, 'Admin audit logs error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

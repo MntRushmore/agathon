@@ -11,9 +11,11 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
       // TODO: migrate to CSP nonces (next.config.ts headers + middleware nonce) to drop 'unsafe-inline'.
       "script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.app",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      // TODO: M6 — img-src allows https: broadly because user-uploaded images may come from various origins.
+      // Restrict to specific domains once all image sources are inventoried.
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com https://cdn.tldraw.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://cdn.tldraw.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://cdn.tldraw.com https://ai.hackclub.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -55,6 +57,13 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/demo';
       return applySecurityHeaders(NextResponse.rewrite(url));
     }
+    // Allow static assets and demo paths, block everything else
+    if (!request.nextUrl.pathname.startsWith('/_next') &&
+        !request.nextUrl.pathname.startsWith('/demo')) {
+      return applySecurityHeaders(
+        new NextResponse('Not Found', { status: 404 })
+      );
+    }
     return applySecurityHeaders(NextResponse.next());
   }
 
@@ -64,6 +73,13 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/pitch';
       return applySecurityHeaders(NextResponse.rewrite(url));
+    }
+    // Allow static assets and pitch paths, block everything else
+    if (!request.nextUrl.pathname.startsWith('/_next') &&
+        !request.nextUrl.pathname.startsWith('/pitch')) {
+      return applySecurityHeaders(
+        new NextResponse('Not Found', { status: 404 })
+      );
     }
     return applySecurityHeaders(NextResponse.next());
   }
@@ -111,7 +127,7 @@ export async function middleware(request: NextRequest) {
       .single();
 
     // Enforce invite code redemption
-    if (profile && profile.invite_redeemed === false) {
+    if (!profile || profile.invite_redeemed === false) {
       const redirectUrl = new URL('/auth/complete-signup', request.url);
       return NextResponse.redirect(redirectUrl);
     }
