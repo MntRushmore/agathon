@@ -30,10 +30,10 @@ const CUSTOM_WELCOMES: Record<string, {
     founderMessage: [
       'Hey! 👋',
       'We\'re Rushil & Luca — two students who got tired of staring at problem sets alone at 2am with no help in sight. So we built Agathon.',
-      'What you\'re about to see is our AI-powered whiteboard: draw a problem, lasso it, and get instant step-by-step tutoring. It\'s the tutor we wish we\'d had.',
-      'This is still early — we\'re in alpha — but we\'d love for you to try it hands-on. Create a board, scribble a math problem, and circle it. The AI does the rest.',
+      'What you\'re about to see is our AI-powered whiteboard: draw any problem, lasso it, and get instant step-by-step tutoring. Math, physics, chemistry, circuits, anything you can sketch. It\'s the tutor we wish we\'d had.',
+      'This is still early, we\'re in alpha, but we\'d love for you to try it hands-on. Create a board, draw a problem, and circle it. The AI does the rest.',
     ],
-    founderSignoff: '— Rushil & Luca, Co-Founders',
+    founderSignoff: 'Rushil & Luca, Co-Founders',
   },
 };
 
@@ -146,11 +146,11 @@ function WelcomeStep({ userName, onNext, custom }: {
             </p>
             <p className="text-sm leading-relaxed text-foreground">
               You&apos;re one of our earliest users, and that means the world to us.
-              We&apos;d love to hear what you think — the good, the bad, all of it.
+              We&apos;d love to hear what you think. The good, the bad, all of it.
             </p>
             <div className="pt-1">
               <div className="text-sm font-medium text-foreground">
-                — Rushil &amp; Luca
+                Rushil &amp; Luca
               </div>
             </div>
           </>
@@ -181,12 +181,12 @@ function StoryStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
         </p>
         <p>
           We&apos;ve been there. As students ourselves, we knew there had to be a better way.
-          So we built Agathon — an AI-powered whiteboard where you can draw out problems,
+          So we built Agathon, an AI-powered whiteboard where you can draw out problems,
           get step-by-step guidance, and actually <span className="font-medium">learn by doing</span>,
           not just get answers.
         </p>
         <p>
-          The name comes from the ancient Greek word <span className="italic">agathon</span> (ἀγαθόν) — meaning
+          The name comes from the ancient Greek word <span className="italic">agathon</span> (ἀγαθόν), meaning
           &quot;the good.&quot; We want learning to feel good again.
         </p>
       </div>
@@ -223,8 +223,8 @@ function ComingSoonStep({ onComplete, onBack }: { onComplete: () => void; onBack
     },
     {
       icon: Sparkle,
-      title: 'More Subjects',
-      description: 'Expanding beyond math to physics, chemistry, and more.',
+      title: 'Not Just Math',
+      description: 'Draw anything. Physics diagrams, chemistry structures, circuits, or any problem you can sketch.',
     },
   ];
 
