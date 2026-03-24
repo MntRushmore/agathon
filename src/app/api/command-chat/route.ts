@@ -1,6 +1,8 @@
+import { NextResponse } from 'next/server';
 import { HACKCLUB_MODEL } from '@/lib/ai/config';
 import { callHackClubAI, type HackClubMessage } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are the Agathon assistant — a helpful AI built into an educational learning platform called Agathon.
 
@@ -21,6 +23,7 @@ When answering questions:
 - Use markdown for formatting`;
 
 export async function POST(req: Request) {
+  try {
   // Auth check - require login for all AI features
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -29,6 +32,14 @@ export async function POST(req: Request) {
     return new Response(
       JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const rateLimit = await checkRateLimit(user.id, 'chat');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
     );
   }
 
@@ -114,4 +125,11 @@ export async function POST(req: Request) {
       'X-Vercel-AI-Data-Stream': 'v1',
     },
   });
+  } catch (error) {
+    console.error('Command chat error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }

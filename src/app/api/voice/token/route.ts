@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { voiceLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /**
  * Creates an ephemeral Realtime session with OpenAI and returns the client secret
@@ -15,6 +16,14 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json(
       { error: 'Authentication required' },
       { status: 401 },
+    );
+  }
+
+  const rateLimit = await checkRateLimit(user.id, 'voice');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
     );
   }
 

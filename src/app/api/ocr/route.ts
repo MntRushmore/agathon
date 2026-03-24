@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ocrLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -20,6 +21,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rateLimit = await checkRateLimit(user.id, 'image');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const { image } = await req.json();
 
     if (!image) {
@@ -35,14 +44,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Image data is invalid or too large' },
         { status: 413 }
-      );
-    }
-
-    if (!image.startsWith('data:image/')) {
-      ocrLogger.warn({ requestId }, 'Image is not a data URL');
-      return NextResponse.json(
-        { error: 'Image must be a data URL' },
-        { status: 400 }
       );
     }
 

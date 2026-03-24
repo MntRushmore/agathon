@@ -1,5 +1,6 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 import { searchKnowledgeBase, buildKnowledgeAwarePrompt, hasKnowledgeBase, getUpcomingAssignmentsContext } from '@/lib/ai/knowledge-agent';
 
@@ -35,6 +36,14 @@ export async function POST(req: NextRequest) {
       return new Response(
         JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 

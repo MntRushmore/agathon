@@ -1,3 +1,4 @@
+// TODO: H6 — Decompose this monolith component into sub-components (see AUDIT_REPORT.md)
 "use client";
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';

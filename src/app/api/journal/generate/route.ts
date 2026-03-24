@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const PROMPTS = {
   video: `You are an educational content creator. Based on the user's notes/topic, create a detailed video script that explains the concept using the Feynman technique (explain it simply as if teaching a child).
@@ -244,6 +245,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 
