@@ -51,6 +51,7 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
+  ChatCircle,
 } from '@phosphor-icons/react';
 import {
   Dialog, DialogPanel, DialogTitle, DialogBackdrop,
@@ -66,50 +67,39 @@ import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
 import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
+import { ArrowLeft } from 'lucide-react';
 
 // Simple markdown renderer for chat messages with DOMPurify sanitization
 function renderMarkdown(text: string): string {
   let html = text
-    // Escape HTML
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    // Headers (order matters - check longer patterns first)
     .replace(/^###### (.+)$/gm, '<h6 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h6>')
     .replace(/^##### (.+)$/gm, '<h5 class="font-semibold text-[13px] mt-2 mb-0.5 text-foreground">$1</h5>')
     .replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-[13px] mt-2.5 mb-0.5 text-foreground">$1</h4>')
     .replace(/^### (.+)$/gm, '<h4 class="font-semibold text-[14px] mt-2.5 mb-0.5 text-foreground">$1</h4>')
     .replace(/^## (.+)$/gm, '<h3 class="font-semibold text-[15px] mt-3 mb-1 text-foreground">$1</h3>')
     .replace(/^# (.+)$/gm, '<h2 class="font-bold text-[16px] mt-3 mb-1 text-foreground">$1</h2>')
-    // Bold and italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Inline code
     .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-[12px] font-mono text-foreground/80">$1</code>')
-    // Unordered lists
     .replace(/^\* (.+)$/gm, '<li class="ml-3 list-disc text-foreground/80">$1</li>')
     .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc text-foreground/80">$1</li>')
-    // Ordered lists
     .replace(/^\d+\. (.+)$/gm, '<li class="ml-3 list-decimal text-foreground/80">$1</li>')
-    // Line breaks
     .replace(/\n\n/g, '</p><p class="mt-1.5">')
     .replace(/\n/g, '<br />');
 
-  // Wrap in paragraph
   html = '<p>' + html + '</p>';
-
-  // Clean up empty paragraphs
   html = html.replace(/<p><\/p>/g, '');
 
-  // Sanitize output to prevent XSS
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'h2', 'h3', 'h4', 'h5', 'h6', 'code', 'li', 'ul', 'ol'],
     ALLOWED_ATTR: ['class'],
   });
 }
 
-// Dynamically import tldraw to avoid SSR issues
 const InlineWhiteboard = dynamic(
   () => import('@/components/journal/InlineWhiteboard').then(mod => mod.InlineWhiteboard),
   { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
@@ -144,7 +134,6 @@ interface EmbeddedDesmosGraph {
   expression: string;
 }
 
-// Component that renders content with embedded whiteboards and Desmos graphs
 function ContentWithEmbeds({
   content,
   onChange,
@@ -170,44 +159,35 @@ function ContentWithEmbeds({
   onChartSave?: (id: string, data: ChartConfig) => void;
   onDeleteChart?: (id: string) => void;
 }) {
-  // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
   const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
   const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
 
-  // Build a unified, position-ordered list of all embeds
   const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
   whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
   desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
   chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
   allEmbeds.sort((a, b) => a.position - b.position);
 
-  // Remove placeholders from the content for the editor (they'll be rendered separately)
   const editorContent = content
     .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
     .trim();
 
-  // Check if there are any embeds — shrink editor min-height when embeds exist
   const hasEmbeds = allEmbeds.length > 0;
 
   return (
     <div className={hasEmbeds ? 'space-y-4' : 'space-y-6'}>
-      {/* Main editor for text content */}
       <RichTextEditor
         content={editorContent}
         onChange={(newContent) => {
-          // Preserve the embedded placeholders when content changes
           let fullContent = newContent;
-
-          // Re-add all embed placeholders at the end (in original order)
           allEmbeds.forEach(({ match }) => {
             if (!fullContent.includes(match[0])) {
               fullContent += `\n\n${match[0]}`;
             }
           });
-
           onChange(fullContent);
         }}
         placeholder={placeholder}
@@ -215,7 +195,6 @@ function ContentWithEmbeds({
         className={hasEmbeds ? '[&_.ProseMirror]:!min-h-[120px]' : ''}
       />
 
-      {/* Render all embeds in content order */}
       {allEmbeds.map(({ type, match }) => {
         if (type === 'whiteboard') {
           const id = match[1];
@@ -275,7 +254,6 @@ function ContentWithEmbeds({
           );
         }
 
-        // chart
         const id = match[1];
         const encodedData = match[2];
         const chartConfig = decodeChartData(encodedData);
@@ -367,7 +345,8 @@ export default function JournalEditorPage() {
   const [loading, setLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
+  // Chat panel state — replaces the old searchExpanded floating bar
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -376,7 +355,7 @@ export default function JournalEditorPage() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [topicInput, setTopicInput] = useState('');
 
-  // Command input state
+  // Command input state (slash menu still lives in main editor)
   const [commandInput, setCommandInput] = useState('');
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
@@ -405,13 +384,13 @@ export default function JournalEditorPage() {
   const [pendingContent, setPendingContent] = useState<string | null>(null);
   const [pendingMessageIndex, setPendingMessageIndex] = useState<number | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasAutoTitled = useRef(false);
 
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
 
-  // Function to detect if user is asking to create/make notes
   const isNotesRequest = (message: string): boolean => {
     const normalizedMsg = message.toLowerCase().trim();
     const notesPatterns = [
@@ -424,13 +403,10 @@ export default function JournalEditorPage() {
     return notesPatterns.some(pattern => pattern.test(normalizedMsg));
   };
 
-  // Function to parse AI response into content blocks (by headers or paragraphs)
   const parseContentIntoBlocks = (content: string): Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }> => {
-    // Split by headers (## or ###) to create logical sections
     const sections = content.split(/(?=^#{1,3}\s)/m).filter(s => s.trim());
 
     if (sections.length <= 1) {
-      // If no headers, split by double newlines to create paragraph blocks
       const paragraphs = content.split(/\n\n+/).filter(p => p.trim());
       return paragraphs.map((p, idx) => ({
         id: `block-${Date.now()}-${idx}`,
@@ -446,8 +422,8 @@ export default function JournalEditorPage() {
     }));
   };
 
-  // Cycling placeholder texts
   const placeholderTexts = [
+    'Ask anything...',
     'Ask to look something up',
     'Ask to find similar examples',
     'Ask to explain a concept',
@@ -455,7 +431,6 @@ export default function JournalEditorPage() {
     'Ask to simplify this topic',
   ];
 
-  // Cycle through placeholders
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholderTexts.length);
@@ -463,11 +438,11 @@ export default function JournalEditorPage() {
     return () => clearInterval(interval);
   }, [placeholderTexts.length]);
 
-  // Embedded content state (whiteboards, desmos graphs, etc.)
+  // Embedded content state
   const [embeddedWhiteboards, setEmbeddedWhiteboards] = useState<{ id: string; data?: string }[]>([]);
   const [embeddedDesmos, setEmbeddedDesmos] = useState<{ id: string; expression: string }[]>([]);
 
-  // Inline input state for quick actions (practice problems, flashcards, etc.)
+  // Inline input state
   const [activeInlineInput, setActiveInlineInput] = useState<string | null>(null);
   const [inlineInputValue, setInlineInputValue] = useState('');
   const [practiceCount, setPracticeCount] = useState(5);
@@ -488,8 +463,6 @@ export default function JournalEditorPage() {
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
   const proactiveDropdownRef = useRef<HTMLDivElement>(null);
   const lastAnalyzedContent = useRef<string>('');
-
-
 
   // Load journal
   useEffect(() => {
@@ -551,21 +524,19 @@ export default function JournalEditorPage() {
     [journal, supabase]
   );
 
-  // Save on changes
   useEffect(() => {
     if (journal && !loading) {
       saveJournal(title, content);
     }
   }, [title, content, journal, loading, saveJournal]);
 
-  // Auto-generate title from content when title is still default
+  // Auto-generate title from content
   useEffect(() => {
     if (hasAutoTitled.current) return;
     if (title !== 'New Journal') {
       hasAutoTitled.current = true;
       return;
     }
-    // Strip out embedded blocks like [WHITEBOARD:...], [DESMOS:...], etc.
     const plainText = content.replace(/\[(?:WHITEBOARD|DESMOS|CHART|IMAGE|AUDIO|VIDEO|PDF|YOUTUBE|JOURNAL_LINK):[^\]]*\]/g, '').trim();
     if (plainText.length < 30) return;
 
@@ -589,7 +560,7 @@ export default function JournalEditorPage() {
           setTitle(generated);
         }
       } catch {
-        // Silently fail — user can still type their own title
+        // Silently fail
       }
     };
 
@@ -601,7 +572,6 @@ export default function JournalEditorPage() {
     setTitle(e.target.value);
   };
 
-  // Generate AI content
   const generateAIContent = async (type: string, customTopic?: string) => {
     setIsGenerating(true);
     const typeLabels: Record<string, string> = {
@@ -624,13 +594,9 @@ export default function JournalEditorPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate content');
-      }
+      if (!response.ok) throw new Error('Failed to generate content');
 
       const data = await response.json();
-
-      // Set the generated content
       const newContent = content ? content + '\n\n' + data.content : data.content;
       setContent(newContent);
 
@@ -666,7 +632,6 @@ export default function JournalEditorPage() {
     setShowTopicModal(false);
 
     if (commandId) {
-      // Update the title to the topic (except for image generation)
       if (pendingAction !== 'Image') {
         setTitle(topicInput.trim());
       }
@@ -679,29 +644,21 @@ export default function JournalEditorPage() {
 
   const getActionPromptText = (action: string): string => {
     switch (action) {
-      case 'Agathon Method':
-        return 'What topic would you like Agathon to teach you about?';
-      case 'Flashcards':
-        return 'What topic would you like to create flashcards for?';
-      case 'Practice Problems':
-        return 'What topic would you like practice problems for?';
-      case 'Notes':
-        return 'What topic would you like notes on?';
-      case 'Image':
-        return 'What would you like to generate an image of?';
-      default:
-        return 'What topic would you like to explore?';
+      case 'Agathon Method': return 'What topic would you like Agathon to teach you about?';
+      case 'Flashcards': return 'What topic would you like to create flashcards for?';
+      case 'Practice Problems': return 'What topic would you like practice problems for?';
+      case 'Notes': return 'What topic would you like notes on?';
+      case 'Image': return 'What would you like to generate an image of?';
+      default: return 'What topic would you like to explore?';
     }
   };
 
-  // Handle inline input for quick actions (practice problems, flashcards)
   const handleInlineInputSubmit = async () => {
     if (!activeInlineInput || !inlineInputValue.trim()) return;
 
     const topic = inlineInputValue.trim();
 
     if (activeInlineInput === 'Flashcards') {
-      // Handle flashcards specially - show loading state and parse response
       setFlashcardTopic(topic);
       setIsGeneratingFlashcards(true);
       setFlashcards([]);
@@ -741,27 +698,24 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Helper to clean markdown from text
   const cleanMarkdown = (text: string): string => {
     return text
-      .replace(/^#+\s*/gm, '') // Remove headers
-      .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold
-      .replace(/\*(.+?)\*/g, '$1') // Remove italic
-      .replace(/`(.+?)`/g, '$1') // Remove inline code
-      .replace(/^[-•]\s*/gm, '') // Remove list markers
-      .replace(/^\d+\.\s*/gm, '') // Remove numbered list markers
-      .replace(/Card\s*\d+\s*:?\s*/gi, '') // Remove "Card X:" prefix
-      .replace(/Front\s*:?\s*/gi, '') // Remove "Front:" prefix
-      .replace(/Back\s*:?\s*/gi, '') // Remove "Back:" prefix
-      .replace(/\n+/g, ' ') // Replace newlines with spaces
+      .replace(/^#+\s*/gm, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/`(.+?)`/g, '$1')
+      .replace(/^[-•]\s*/gm, '')
+      .replace(/^\d+\.\s*/gm, '')
+      .replace(/Card\s*\d+\s*:?\s*/gi, '')
+      .replace(/Front\s*:?\s*/gi, '')
+      .replace(/Back\s*:?\s*/gi, '')
+      .replace(/\n+/g, ' ')
       .trim();
   };
 
-  // Parse flashcards from AI response
   const parseFlashcardsFromResponse = (responseContent: string): Array<{ question: string; answer: string }> => {
     const parsedCards: Array<{ question: string; answer: string }> = [];
 
-    // Primary approach: Split by card headers (### Card N) and extract Front/Back from each
     const cardSections = responseContent.split(/###?\s*Card\s*\d+\s*/i).filter(s => s.trim());
     if (cardSections.length > 0) {
       for (const section of cardSections) {
@@ -770,68 +724,53 @@ export default function JournalEditorPage() {
         if (frontMatch && backMatch) {
           const question = cleanMarkdown(frontMatch[1]);
           const answer = cleanMarkdown(backMatch[1]);
-          if (question && answer) {
-            parsedCards.push({ question, answer });
-          }
+          if (question && answer) parsedCards.push({ question, answer });
         }
       }
     }
 
-    // Format 2: **Q:** ... **A:** ...
     if (parsedCards.length === 0) {
       let match;
       const qaPattern = /\*\*Q(?:uestion)?[:\s]*\*\*\s*([\s\S]+?)\s*\*\*A(?:nswer)?[:\s]*\*\*\s*([\s\S]+?)(?=\*\*Q|\n\n\*\*|\n\n##|$)/gi;
       while ((match = qaPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
         const answer = cleanMarkdown(match[2]);
-        if (question && answer) {
-          parsedCards.push({ question, answer });
-        }
+        if (question && answer) parsedCards.push({ question, answer });
       }
     }
 
-    // Format 3: **Front:** ... **Back:** ... (without card headers)
     if (parsedCards.length === 0) {
       let match;
       const frontBackPattern = /\*\*Front[:\s]*\*\*\s*([\s\S]+?)\s*\*\*Back[:\s]*\*\*\s*([\s\S]+?)(?=\*\*Front|$)/gi;
       while ((match = frontBackPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
         const answer = cleanMarkdown(match[2]);
-        if (question && answer) {
-          parsedCards.push({ question, answer });
-        }
+        if (question && answer) parsedCards.push({ question, answer });
       }
     }
 
-    // Format 4: Numbered questions with answers on next line
     if (parsedCards.length === 0) {
       let match;
       const numberedPattern = /\d+\.\s*\*?\*?(.+?\?)\*?\*?\s*\n+\s*[-•]?\s*(.+?)(?=\n\d+\.|$)/g;
       while ((match = numberedPattern.exec(responseContent)) !== null) {
         const question = cleanMarkdown(match[1]);
         const answer = cleanMarkdown(match[2].split('\n')[0]);
-        if (question && answer) {
-          parsedCards.push({ question, answer });
-        }
+        if (question && answer) parsedCards.push({ question, answer });
       }
     }
 
-    // Fallback: Split by double newlines and alternate Q/A
     if (parsedCards.length === 0) {
       const lines = responseContent.split(/\n\n+/).filter(l => l.trim());
       for (let i = 0; i < lines.length - 1; i += 2) {
         const question = cleanMarkdown(lines[i]);
         const answer = cleanMarkdown(lines[i + 1] || '');
-        if (question && answer) {
-          parsedCards.push({ question, answer });
-        }
+        if (question && answer) parsedCards.push({ question, answer });
       }
     }
 
-    return parsedCards.slice(0, 20); // Limit to 20 flashcards
+    return parsedCards.slice(0, 20);
   };
 
-  // Flashcard navigation functions
   const handleNextFlashcard = () => {
     setIsFlashcardFlipped(false);
     setCurrentFlashcardIndex((prev) => (prev + 1) % flashcards.length);
@@ -856,7 +795,6 @@ export default function JournalEditorPage() {
     setFlashcardTopic('');
   };
 
-  // Proactive AI - analyze content and provide suggestions
   const analyzeContentForSuggestions = useCallback(
     debounce(async (currentContent: string) => {
       if (!proactiveAIEnabled || !currentContent || currentContent.length < 50) {
@@ -864,10 +802,8 @@ export default function JournalEditorPage() {
         return;
       }
 
-      // Don't re-analyze if content hasn't changed significantly
       if (currentContent === lastAnalyzedContent.current) return;
 
-      // Only analyze every ~200 characters of change
       const contentDiff = Math.abs(currentContent.length - lastAnalyzedContent.current.length);
       if (contentDiff < 100 && lastAnalyzedContent.current.length > 0) return;
 
@@ -880,7 +816,7 @@ export default function JournalEditorPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'proactive',
-            content: currentContent.slice(-1500), // Last 1500 chars for context
+            content: currentContent.slice(-1500),
             topic: title || 'Study notes',
           }),
         });
@@ -896,18 +832,16 @@ export default function JournalEditorPage() {
       } finally {
         setIsGeneratingSuggestion(false);
       }
-    }, 3000), // 3 second debounce
+    }, 3000),
     [proactiveAIEnabled, title]
   );
 
-  // Effect to trigger proactive analysis when content changes
   useEffect(() => {
     if (proactiveAIEnabled && content) {
       analyzeContentForSuggestions(content);
     }
   }, [content, proactiveAIEnabled, analyzeContentForSuggestions]);
 
-  // Click outside to close proactive dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (proactiveDropdownRef.current && !proactiveDropdownRef.current.contains(event.target as Node)) {
@@ -920,7 +854,6 @@ export default function JournalEditorPage() {
     }
   }, [showProactiveDropdown]);
 
-  // Apply proactive suggestion to content
   const handleApplySuggestion = () => {
     if (!proactiveSuggestion) return;
     const newContent = content ? content + '\n\n' + proactiveSuggestion : proactiveSuggestion;
@@ -929,21 +862,17 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Suggestion applied!' });
   };
 
-  // Dismiss proactive suggestion
   const handleDismissSuggestion = () => {
     setProactiveSuggestion(null);
   };
 
-  // Open inline input for an action
   const handleOpenInlineInput = (action: string) => {
     setActiveInlineInput(action);
     setInlineInputValue('');
-    setFlashcards([]); // Clear any existing flashcards when opening input
-    // Focus the input after it renders
+    setFlashcards([]);
     setTimeout(() => inlineInputRef.current?.focus(), 100);
   };
 
-  // Get all flat commands for navigation
   const getAllCommands = () => {
     const filtered = slashFilter.toLowerCase();
     return slashCommands.flatMap(cat =>
@@ -953,27 +882,9 @@ export default function JournalEditorPage() {
     );
   };
 
-  // Handle command input changes
-  const handleCommandInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCommandInput(value);
-
-    // Check for slash command
-    if (value.startsWith('/')) {
-      setSlashFilter(value.slice(1));
-      setShowSlashMenu(true);
-      setSelectedCommandIndex(0);
-    } else {
-      setShowSlashMenu(false);
-      setSlashFilter('');
-    }
-  };
-
-  // Handle keyboard navigation in slash menu
   const handleCommandKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!showSlashMenu) {
       if (e.key === 'Enter' && commandInput.trim()) {
-        // Add as plain text content
         const newContent = content ? content + '\n\n' + commandInput : commandInput;
         setContent(newContent);
         setCommandInput('');
@@ -985,27 +896,20 @@ export default function JournalEditorPage() {
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedCommandIndex(prev =>
-        prev < allCommands.length - 1 ? prev + 1 : 0
-      );
+      setSelectedCommandIndex(prev => prev < allCommands.length - 1 ? prev + 1 : 0);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedCommandIndex(prev =>
-        prev > 0 ? prev - 1 : allCommands.length - 1
-      );
+      setSelectedCommandIndex(prev => prev > 0 ? prev - 1 : allCommands.length - 1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const selectedCommand = allCommands[selectedCommandIndex];
-      if (selectedCommand) {
-        executeCommand(selectedCommand.id);
-      }
+      if (selectedCommand) executeCommand(selectedCommand.id);
     } else if (e.key === 'Escape') {
       setShowSlashMenu(false);
       setCommandInput('');
     }
   };
 
-  // Execute a slash command
   const executeCommand = async (commandId: string) => {
     setShowSlashMenu(false);
     setCommandInput('');
@@ -1014,77 +918,32 @@ export default function JournalEditorPage() {
     const formatCommands = ['text', 'h1', 'h2', 'h3', 'bullet', 'numbered', 'quote', 'divider', 'code', 'latex', 'table', 'details'];
 
     if (aiCommands.includes(commandId)) {
-      // For flashcards and practice problems, use inline input instead of modal
-      if (commandId === 'flashcards') {
-        handleOpenInlineInput('Flashcards');
-        return;
-      }
-      if (commandId === 'practice') {
-        handleOpenInlineInput('Practice Problems');
-        return;
-      }
-      // For other AI commands, show the topic modal
-      const actionMap: Record<string, string> = {
-        'notes': 'Notes',
-        'generate-image': 'Image',
-      };
+      if (commandId === 'flashcards') { handleOpenInlineInput('Flashcards'); return; }
+      if (commandId === 'practice') { handleOpenInlineInput('Practice Problems'); return; }
+      const actionMap: Record<string, string> = { 'notes': 'Notes', 'generate-image': 'Image' };
       handleQuickAction(actionMap[commandId] || 'Notes');
     } else if (formatCommands.includes(commandId)) {
-      // Insert formatting into content
       let insertText = '';
       switch (commandId) {
-        case 'h1':
-          insertText = '# ';
-          break;
-        case 'h2':
-          insertText = '## ';
-          break;
-        case 'h3':
-          insertText = '### ';
-          break;
-        case 'bullet':
-          insertText = '- ';
-          break;
-        case 'numbered':
-          insertText = '1. ';
-          break;
-        case 'quote':
-          insertText = '> ';
-          break;
-        case 'divider':
-          insertText = '\n---\n';
-          break;
-        case 'code':
-          insertText = '```\n\n```';
-          break;
-        case 'latex':
-          insertText = '$$\n\n$$';
-          break;
-        case 'table':
-          insertText = '\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n';
-          break;
-        case 'details':
-          insertText = '\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here...\n\n</details>\n';
-          break;
-        default:
-          insertText = '';
+        case 'h1': insertText = '# '; break;
+        case 'h2': insertText = '## '; break;
+        case 'h3': insertText = '### '; break;
+        case 'bullet': insertText = '- '; break;
+        case 'numbered': insertText = '1. '; break;
+        case 'quote': insertText = '> '; break;
+        case 'divider': insertText = '\n---\n'; break;
+        case 'code': insertText = '```\n\n```'; break;
+        case 'latex': insertText = '$$\n\n$$'; break;
+        case 'table': insertText = '\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n'; break;
+        case 'details': insertText = '\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here...\n\n</details>\n'; break;
       }
       setContent(prev => prev ? prev + '\n\n' + insertText : insertText);
     } else {
-      // Handle other commands
       switch (commandId) {
-        case 'whiteboard':
-          handleWhiteboardInsert();
-          break;
-        case 'desmos':
-          handleDesmosInsert();
-          break;
-        case 'chart':
-          handleChartInsert();
-          break;
-        case 'subjournal':
-          handleCreateSubjournal();
-          break;
+        case 'whiteboard': handleWhiteboardInsert(); break;
+        case 'desmos': handleDesmosInsert(); break;
+        case 'chart': handleChartInsert(); break;
+        case 'subjournal': handleCreateSubjournal(); break;
         case 'link-journal':
           setJournalSearchQuery('');
           setSearchedJournals([]);
@@ -1093,48 +952,27 @@ export default function JournalEditorPage() {
           break;
         case 'video-library':
           sileo.info({ title: 'Video Library - Browse your saved educational videos', duration: 3000 });
-          // For now, just show a message. Full implementation would need a video library system
           break;
-        case 'image':
-          imageInputRef.current?.click();
-          break;
-        case 'audio':
-          audioInputRef.current?.click();
-          break;
-        case 'video':
-          videoInputRef.current?.click();
-          break;
-        case 'youtube':
-          setYoutubeUrl('');
-          setShowYoutubeModal(true);
-          break;
-        case 'pdf':
-          pdfInputRef.current?.click();
-          break;
-        default:
-          sileo.info({ title: 'This feature is coming soon!' });
+        case 'image': imageInputRef.current?.click(); break;
+        case 'audio': audioInputRef.current?.click(); break;
+        case 'video': videoInputRef.current?.click(); break;
+        case 'youtube': setYoutubeUrl(''); setShowYoutubeModal(true); break;
+        case 'pdf': pdfInputRef.current?.click(); break;
+        default: sileo.info({ title: 'This feature is coming soon!' });
       }
     }
   };
 
-  // Handle whiteboard insertion - adds an inline whiteboard
   const handleWhiteboardInsert = async () => {
     const whiteboardId = `wb-${Date.now()}`;
-
-    // Add to embedded whiteboards
     setEmbeddedWhiteboards(prev => [...prev, { id: whiteboardId }]);
-
-    // Add a placeholder in the content (use functional setState to avoid stale closures)
     const whiteboardPlaceholder = `\n\n[WHITEBOARD:${whiteboardId}]\n`;
     setContent(prev => prev ? prev + whiteboardPlaceholder : whiteboardPlaceholder);
     sileo.success({ title: 'Whiteboard added!' });
   };
 
-  // Handle Desmos insertion - adds an inline Desmos graph directly
   const handleDesmosInsert = () => {
     const desmosId = `desmos-${Date.now()}`;
-
-    // Add a placeholder in the content (use functional setState to avoid stale closures)
     const desmosPlaceholder = `[DESMOS:${desmosId}:]`;
     setContent(prev => {
       if (prev.includes(desmosPlaceholder)) return prev;
@@ -1143,7 +981,6 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Graph added! Type equations directly in the calculator.' });
   };
 
-  // Handle subjournal creation
   const handleCreateSubjournal = async () => {
     if (!user || !journal) return;
 
@@ -1174,7 +1011,6 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Search journals for linking
   const searchJournals = async (query: string) => {
     if (!user) return;
 
@@ -1187,12 +1023,9 @@ export default function JournalEditorPage() {
         .order('updated_at', { ascending: false })
         .limit(10);
 
-      if (query.trim()) {
-        queryBuilder = queryBuilder.ilike('title', `%${query}%`);
-      }
+      if (query.trim()) queryBuilder = queryBuilder.ilike('title', `%${query}%`);
 
       const { data, error } = await queryBuilder;
-
       if (error) throw error;
       setSearchedJournals(data || []);
     } catch (error) {
@@ -1200,7 +1033,6 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
     const journalLink = `\n\nhttps://agathon.app/journal/${linkedJournal.id}\n`;
     const newContent = content ? content + journalLink : journalLink;
@@ -1209,18 +1041,15 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Journal linked!' });
   };
 
-  // Handle YouTube embed
   const handleYoutubeEmbed = () => {
     if (!youtubeUrl.trim()) return;
 
-    // Extract video ID from various YouTube URL formats
     const videoIdMatch = youtubeUrl.match(
       /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
     );
 
     if (videoIdMatch && videoIdMatch[1]) {
       const videoId = videoIdMatch[1];
-      // Embed as an iframe for inline playback
       const embedCode = `\n\n<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;max-width:100%;border-radius:12px;margin:16px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:12px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>\n`;
       const newContent = content ? content + embedCode : embedCode;
       setContent(newContent);
@@ -1232,17 +1061,13 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Handle Desmos graph embed
   const handleDesmosEmbed = () => {
     if (!desmosExpression.trim()) return;
 
     const desmosId = `desmos-${Date.now()}`;
     const desmosPlaceholder = `[DESMOS:${desmosId}:${desmosExpression}]`;
 
-    // Check if this exact placeholder already exists (prevent duplicates)
-    if (content.includes(desmosPlaceholder)) {
-      return;
-    }
+    if (content.includes(desmosPlaceholder)) return;
 
     const newContent = content ? content + `\n\n${desmosPlaceholder}\n` : `${desmosPlaceholder}\n`;
     setContent(newContent);
@@ -1251,7 +1076,6 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Desmos graph added!' });
   };
 
-  // Handle chart insertion - adds an inline chart
   const handleChartInsert = () => {
     const chartId = `chart-${Date.now()}`;
     const encodedData = encodeChartData(DEFAULT_CHART_DATA);
@@ -1263,12 +1087,10 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Chart added!' });
   };
 
-  // Handle file upload (converts to base64 and embeds)
   const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>, fileType: 'image' | 'audio' | 'video' | 'pdf') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (limit to 5MB for images, 10MB for others)
     const maxSize = fileType === 'image' ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
       sileo.error({ title: `File too large. Maximum size is ${fileType === 'image' ? '5MB' : '10MB'}` });
@@ -1284,18 +1106,10 @@ export default function JournalEditorPage() {
         let embedCode = '';
 
         switch (fileType) {
-          case 'image':
-            embedCode = `\n\n![${file.name}](${base64})\n`;
-            break;
-          case 'audio':
-            embedCode = `\n\n🎵 **Audio: ${file.name}**\n<audio controls src="${base64}"></audio>\n`;
-            break;
-          case 'video':
-            embedCode = `\n\n🎬 **Video: ${file.name}**\n<video controls width="100%" src="${base64}"></video>\n`;
-            break;
-          case 'pdf':
-            embedCode = `\n\n📄 **PDF: ${file.name}**\n[View PDF](${base64})\n`;
-            break;
+          case 'image': embedCode = `\n\n![${file.name}](${base64})\n`; break;
+          case 'audio': embedCode = `\n\n🎵 **Audio: ${file.name}**\n<audio controls src="${base64}"></audio>\n`; break;
+          case 'video': embedCode = `\n\n🎬 **Video: ${file.name}**\n<video controls width="100%" src="${base64}"></video>\n`; break;
+          case 'pdf': embedCode = `\n\n📄 **PDF: ${file.name}**\n[View PDF](${base64})\n`; break;
         }
 
         const newContent = content ? content + embedCode : embedCode;
@@ -1314,11 +1128,9 @@ export default function JournalEditorPage() {
       sileo.error({ title: `Failed to upload ${fileType}` });
     }
 
-    // Reset the input
     e.target.value = '';
   };
 
-  // Check if user is asking for flashcards
   const isFlashcardRequest = (message: string): boolean => {
     const normalizedMsg = message.toLowerCase().trim();
     const flashcardPatterns = [
@@ -1330,7 +1142,7 @@ export default function JournalEditorPage() {
     return flashcardPatterns.some(pattern => pattern.test(normalizedMsg));
   };
 
-  // Handle chat message - send to AI and show in chat panel
+  // Handle chat message submit
   const handleChatSubmit = async () => {
     if (!chatInput.trim() || isChatting) return;
 
@@ -1340,12 +1152,16 @@ export default function JournalEditorPage() {
     setChatInput('');
     setIsChatting(true);
 
-    // Add user message to chat
     setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
-    // If it's a flashcard request, use the flashcard flow
+    // Scroll to bottom after message added
+    setTimeout(() => {
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }, 50);
+
     if (isFlashcards) {
-      // Extract topic from the message (remove "flashcard" related words)
       const topic = userMessage
         .replace(/\b(create|make|generate|give me|need|flashcards?|study with|on|about|for)\b/gi, '')
         .trim() || content?.slice(0, 200) || 'the topic';
@@ -1355,7 +1171,6 @@ export default function JournalEditorPage() {
       setFlashcards([]);
       setCurrentFlashcardIndex(0);
       setIsFlashcardFlipped(false);
-      setSearchExpanded(false); // Close chat to show flashcards
 
       try {
         const response = await fetch('/api/journal/generate', {
@@ -1375,10 +1190,9 @@ export default function JournalEditorPage() {
         const parsedFlashcards = parseFlashcardsFromResponse(data.content);
         setFlashcards(parsedFlashcards);
 
-        // Add confirmation to chat
         setChatMessages(prev => [...prev, {
           role: 'assistant',
-          content: `I've created ${parsedFlashcards.length} flashcards for you! You can see them below.`
+          content: `I've created ${parsedFlashcards.length} flashcards for you! You can see them in the editor.`
         }]);
       } catch (error) {
         console.error('Flashcard generation error:', error);
@@ -1405,36 +1219,28 @@ export default function JournalEditorPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
+      if (!response.ok) throw new Error('Failed to get response');
 
       const data = await response.json();
 
       if (isNotes) {
-        // For notes requests, parse into blocks and show diff-style UI in document
         const blocks = parseContentIntoBlocks(data.content);
         setPendingBlocks(blocks);
-        // Add a simple confirmation to chat
         setChatMessages(prev => [...prev, {
           role: 'assistant',
-          content: `I've generated ${blocks.length} section${blocks.length > 1 ? 's' : ''} of notes. You can review and accept/deny each section in the document below.`
+          content: `I've generated ${blocks.length} section${blocks.length > 1 ? 's' : ''} of notes. Review and accept/deny each section in the editor.`
         }]);
-        // Close the chat panel to show the pending blocks
-        setSearchExpanded(false);
       } else {
-        // For regular chat, just add response to chat panel
+        const newMsgIndex = chatMessages.length + 1;
         setChatMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
 
-        // Check if the response looks like generated notes/content that could be added
         const looksLikeNotes = data.content.includes('#') || data.content.length > 200;
         if (looksLikeNotes) {
           setPendingContent(data.content);
-          setPendingMessageIndex(chatMessages.length + 1); // Index of the new assistant message
+          setPendingMessageIndex(newMsgIndex);
         }
       }
 
-      // Scroll to bottom of chat
       setTimeout(() => {
         if (chatContainerRef.current) {
           chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
@@ -1448,12 +1254,10 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Accept pending content and add to document
   const handleAcceptContent = () => {
     if (!pendingContent || pendingMessageIndex === null) return;
     const newContent = content ? content + '\n\n' + pendingContent : pendingContent;
     setContent(newContent);
-    // Mark the message as written
     setChatMessages(prev => prev.map((msg, idx) =>
       idx === pendingMessageIndex ? { ...msg, written: true } : msg
     ));
@@ -1462,14 +1266,12 @@ export default function JournalEditorPage() {
     sileo.success({ title: 'Content added to journal!' });
   };
 
-  // Reapply content (re-add content from a written message)
   const handleReapplyContent = (messageContent: string, messageIndex: number) => {
     const newContent = content ? content + '\n\n' + messageContent : messageContent;
     setContent(newContent);
     sileo.success({ title: 'Content reapplied to journal!' });
   };
 
-  // Copy message content to clipboard
   const handleCopyMessage = async (messageContent: string) => {
     try {
       await navigator.clipboard.writeText(messageContent);
@@ -1479,66 +1281,43 @@ export default function JournalEditorPage() {
     }
   };
 
-  // Dismiss pending content
   const handleDismissContent = () => {
     setPendingContent(null);
     setPendingMessageIndex(null);
   };
 
-  // Clear chat
   const handleClearChat = () => {
     setChatMessages([]);
     setPendingContent(null);
     setPendingMessageIndex(null);
   };
 
-  // Accept a single pending block
   const handleAcceptBlock = (blockId: string) => {
     const block = pendingBlocks.find(b => b.id === blockId);
     if (!block) return;
-
-    // Add block content to document
     const newContent = content ? content + '\n\n' + block.content : block.content;
     setContent(newContent);
-
-    // Remove the block from pending
     setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
     sileo.success({ title: 'Section added!' });
   };
 
-  // Deny a single pending block
   const handleDenyBlock = (blockId: string) => {
-    // Remove the block from pending
     setPendingBlocks(prev => prev.filter(b => b.id !== blockId));
   };
 
-  // Accept all pending blocks
   const handleAcceptAllBlocks = () => {
     const pendingOnly = pendingBlocks.filter(b => b.status === 'pending');
     if (pendingOnly.length === 0) return;
-
-    // Add all pending content to document
     const combinedContent = pendingOnly.map(b => b.content).join('\n\n');
     const newContent = content ? content + '\n\n' + combinedContent : combinedContent;
     setContent(newContent);
-
-    // Clear all pending blocks to remove the UI
     setPendingBlocks([]);
     sileo.success({ title: 'All sections added!' });
   };
 
-  // Deny all pending blocks
-  const handleDenyAllBlocks = () => {
-    // Clear all pending blocks to remove the UI
-    setPendingBlocks([]);
-  };
+  const handleDenyAllBlocks = () => setPendingBlocks([]);
+  const handleClearPendingBlocks = () => setPendingBlocks([]);
 
-  // Clear pending blocks (dismiss the diff UI)
-  const handleClearPendingBlocks = () => {
-    setPendingBlocks([]);
-  };
-
-  // Close slash menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => setShowSlashMenu(false);
     if (showSlashMenu) {
@@ -1547,28 +1326,12 @@ export default function JournalEditorPage() {
     }
   }, [showSlashMenu]);
 
-  // Ref for the chat bar container
-  const chatBarRef = useRef<HTMLDivElement>(null);
-
-  // Close chat when clicking outside
+  // Auto-focus chat input when panel opens
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (chatBarRef.current && !chatBarRef.current.contains(event.target as Node)) {
-        setSearchExpanded(false);
-      }
-    };
-
-    if (searchExpanded) {
-      // Use setTimeout to avoid immediate close on the same click that opens it
-      const timeoutId = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-      }, 100);
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
+    if (chatPanelOpen) {
+      setTimeout(() => chatInputRef.current?.focus(), 150);
     }
-  }, [searchExpanded]);
+  }, [chatPanelOpen]);
 
   if (loading) {
     return (
@@ -1585,858 +1348,771 @@ export default function JournalEditorPage() {
   const allCommands = getAllCommands();
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-new-background flex p-[20px]">
       <JournalSidebar
         activeJournalId={params.id as string}
         onCollapseChange={setSidebarCollapsed}
       />
+
+      {/* Main editor column */}
       <div className={cn(
-        "flex-1 transition-all duration-300 ease-out min-h-screen",
+        "bg-white shadow-lg rounded-[20px] flex flex-col flex-1 transition-all duration-300 ease-out min-h-screen min-w-0",
         sidebarCollapsed ? "ml-16" : "ml-56"
       )}>
 
-      {/* Topic Prompt Modal */}
-      <Dialog open={showTopicModal} onClose={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }} className="relative z-50">
-        <DialogBackdrop className="fixed inset-0 bg-black/30" />
-        <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-6">
-              <DialogTitle className="text-lg font-semibold text-foreground mb-2">
-                {pendingAction === 'Agathon Method' && 'Ask Agathon to teach you'}
-                {pendingAction === 'Flashcards' && 'Create flashcards'}
-                {pendingAction === 'Practice Problems' && 'Generate practice problems'}
-                {pendingAction === 'Notes' && 'Create notes'}
-                {pendingAction === 'Image' && 'Generate an image'}
-              </DialogTitle>
-              <p className="text-sm text-muted-foreground mb-4">
-                {getActionPromptText(pendingAction || '')}
-              </p>
-              <input
-                type="text"
-                autoFocus
-                value={topicInput}
-                onChange={(e) => setTopicInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && topicInput.trim()) {
-                    handleTopicSubmit();
-                  }
-                }}
-                placeholder="e.g., Addition, Fractions, Photosynthesis..."
-                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
-              />
-            </div>
-            <div className="flex gap-3 p-4 bg-muted border-t border-border">
-              <button
-                onClick={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }}
-                className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-accent transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleTopicSubmit}
-                disabled={!topicInput.trim()}
-                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Generate
-              </button>
-            </div>
-          </DialogPanel>
-        </div>
-      </Dialog>
+        {/* Topic Prompt Modal */}
+        <Dialog open={showTopicModal} onClose={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }} className="relative z-50">
+          <DialogBackdrop className="fixed inset-0 bg-black/30" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="p-6">
+                <DialogTitle className="text-lg font-semibold text-foreground mb-2">
+                  {pendingAction === 'Agathon Method' && 'Ask Agathon to teach you'}
+                  {pendingAction === 'Flashcards' && 'Create flashcards'}
+                  {pendingAction === 'Practice Problems' && 'Generate practice problems'}
+                  {pendingAction === 'Notes' && 'Create notes'}
+                  {pendingAction === 'Image' && 'Generate an image'}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {getActionPromptText(pendingAction || '')}
+                </p>
+                <input
+                  type="text"
+                  autoFocus
+                  value={topicInput}
+                  onChange={(e) => setTopicInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && topicInput.trim()) handleTopicSubmit();
+                  }}
+                  placeholder="e.g., Addition, Fractions, Photosynthesis..."
+                  className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
+                />
+              </div>
+              <div className="flex gap-3 p-4 bg-muted border-t border-border">
+                <button
+                  onClick={() => { setShowTopicModal(false); setPendingAction(null); setTopicInput(''); }}
+                  className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-accent transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleTopicSubmit}
+                  disabled={!topicInput.trim()}
+                  className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Generate
+                </button>
+              </div>
+            </DialogPanel>
+          </div>
+        </Dialog>
 
-      {/* Header controls */}
-      <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border">
-        {/* Left - Navigation */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/journal')}
-            className="p-2 hover:bg-muted transition-colors text-foreground"
-            title="Back to journals"
-          >
-            <CaretLeft weight="bold" className="h-5 w-5" />
-          </button>
-        </div>
+        {/* Header */}
+        <header className="fixed flex items-center justify-between px-5 py-3 z-[60] flex-shrink-0 w-[91%] bg-white rounded-[20px]">
+          {/* Left */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/journal')}
+              className="text-[.9rem] p-2 bg-new-background rounded-lg transition-colors text-foreground flex items-center gap-2"
+              title="Back to journals"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+          </div>
 
-        {/* Center - Chat/Command bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-          <div className="relative" ref={chatBarRef}>
-            {/* Main chat bar */}
-            <div className="flex flex-col">
-              <div
-                onClick={() => {
-                  if (!searchExpanded) {
-                    setSearchExpanded(true);
-                  }
-                }}
+           {/* Chat toggle button — VS Code style */}
+            <button
+              className={cn(
+                "p-2 font-semibold flex text-[.9rem] text-new-foreground cursor-pointer items-center transition-colors gap-[5px] relative bg-new-background rounded-lg",
+                chatPanelOpen
+                  ? "bg-new-background text-foreground"
+                  : "hover:bg-muted text-muted-foreground"
+              )}
+              onClick={() => setChatPanelOpen(prev => !prev)}
+              title="Toggle AI Chat"
+            >
+              Ask AI
+              <ChatCircle  className="h-4 w-4" />
+              {chatMessages.length > 0 && !chatPanelOpen && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-foreground rounded-full" />
+              )}
+            </button>
+
+          {/* Right */}
+          <div className="flex items-center gap-0.5 bg-new-background rounded-lg p-1">
+            {/* Proactive AI */}
+            <div className="relative" ref={proactiveDropdownRef}>
+              <button
                 className={cn(
-                  'flex items-center gap-2.5 border border-border px-3 cursor-pointer',
-                  'transition-all duration-300 ease-out',
-                  searchExpanded
-                    ? 'min-w-[560px] bg-card shadow-lg border-b-0 py-2'
-                    : 'min-w-[320px] bg-foreground/5 hover:bg-foreground/10 py-1.5'
+                  "p-2 transition-colors",
+                  proactiveAIEnabled ? "bg-accent text-foreground" : "hover:bg-muted text-muted-foreground"
                 )}
+                onClick={() => setShowProactiveDropdown(!showProactiveDropdown)}
               >
-                {searchExpanded ? (
-                  <>
-                    {isChatting ? (
-                      <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin flex-shrink-0" />
-                    ) : (
-                      <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
-                        <Plus weight="bold" className="h-4 w-4 text-foreground" />
+                <Lightbulb   className="h-5 w-5" />
+                {isGeneratingSuggestion && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-foreground animate-pulse" />
+                )}
+              </button>
+              {showProactiveDropdown && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border shadow-lg p-4 z-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb  className="h-4 w-4 text-foreground" />
+                      <span className="font-medium text-foreground text-sm">Proactive AI Mode</span>
+                    </div>
+                    <Switch
+                      checked={proactiveAIEnabled}
+                      onChange={setProactiveAIEnabled}
+                      className={cn(
+                        "relative w-10 h-5 rounded-full transition-colors",
+                        proactiveAIEnabled ? "bg-[#007ba5]" : "bg-[#c0c4cc]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
+                          proactiveAIEnabled ? "translate-x-0" : "-translate-x-5"
+                        )}
+                      />
+                    </Switch>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {proactiveAIEnabled
+                      ? "AI will suggest helpful additions as you write"
+                      : "Enable to get intelligent suggestions while writing"}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              className="p-2 hover:bg-muted transition-colors text-muted-foreground"
+              onClick={() => sileo.info({ title: 'Timer feature coming soon!' })}
+            >
+              <Timer  className="h-5 w-5" />
+            </button>
+
+            <button
+              className="p-2 hover:bg-muted transition-colors text-muted-foreground"
+              onClick={() => sileo.info({ title: 'More options coming soon!' })}
+            >
+              <DotsThree  className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => sileo.info({ title: 'Sharing is coming soon!' })}
+              className="rounded-md ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
+            >
+              Share
+            </button>
+          </div>
+        </header>
+
+        {/* Body: editor + optional chat panel side by side */}
+        <div className="flex flex-1 min-h-0 mt-[60px]">
+
+          {/* Editor area */}
+          <div className="flex-1 overflow-y-auto min-w-0">
+            <main className="px-8 py-8 max-w-3xl mx-auto">
+
+              {/* Large serif title */}
+              <div className="mb-8">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={handleTitleChange}
+                  className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
+                  style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
+                  placeholder="New Journal"
+                />
+                <div className="h-px bg-border mt-4" />
+              </div>
+
+              {/* Start with section */}
+              {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
+                <div className="mb-8">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
+                  <div className="grid grid-cols-3 gap-px bg-border border border-border">
+                    <button
+                      onClick={() => handleQuickAction('Agathon Method')}
+                      disabled={isGenerating}
+                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                    >
+                      <Sparkle  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground">Ask Agathon</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
+                    </button>
+                    <button
+                      onClick={() => handleOpenInlineInput('Flashcards')}
+                      disabled={isGenerating}
+                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                    >
+                      <Stack  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground">Flashcards</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
+                    </button>
+                    <button
+                      onClick={() => handleOpenInlineInput('Practice Problems')}
+                      disabled={isGenerating}
+                      className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+                    >
+                      <ClipboardText  className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground">Practice</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Inline Input for Practice Problems / Flashcards */}
+              {activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
+                <div className="mb-8 space-y-4">
+                  <div className="flex gap-px bg-border border border-border">
+                    <button
+                      onClick={() => handleQuickAction('Agathon Method')}
+                      disabled={isGenerating}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+                    >
+                      Ask Agathon
+                    </button>
+                    <button
+                      onClick={() => handleOpenInlineInput('Flashcards')}
+                      disabled={isGenerating}
+                      className={cn(
+                        "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
+                        activeInlineInput === 'Flashcards'
+                          ? "bg-foreground text-background"
+                          : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      Flashcards
+                    </button>
+                    <button
+                      onClick={() => handleOpenInlineInput('Practice Problems')}
+                      disabled={isGenerating}
+                      className={cn(
+                        "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
+                        activeInlineInput === 'Practice Problems'
+                          ? "bg-foreground text-background"
+                          : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      Practice
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-muted px-4 py-3 border border-border">
+                    <input
+                      ref={inlineInputRef}
+                      type="text"
+                      value={inlineInputValue}
+                      onChange={(e) => setInlineInputValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && inlineInputValue.trim()) handleInlineInputSubmit();
+                        else if (e.key === 'Escape') { setActiveInlineInput(null); setInlineInputValue(''); }
+                      }}
+                      placeholder={activeInlineInput === 'Practice Problems' ? 'What topic for practice problems?' : 'What topic for flashcards?'}
+                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
+                      disabled={isGenerating}
+                    />
+                    {(activeInlineInput === 'Practice Problems' || activeInlineInput === 'Flashcards') && (
+                      <div className="flex items-center gap-1 bg-card px-2 py-1 border border-border">
+                        <select
+                          value={activeInlineInput === 'Flashcards' ? flashcardCount : practiceCount}
+                          onChange={(e) => {
+                            if (activeInlineInput === 'Flashcards') setFlashcardCount(Number(e.target.value));
+                            else setPracticeCount(Number(e.target.value));
+                          }}
+                          className="bg-transparent border-none outline-none text-sm text-foreground focus:ring-0 pr-1"
+                        >
+                          {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
+                        </select>
                       </div>
                     )}
-                    <input
-                      ref={commandInputRef}
-                      type="text"
-                      autoFocus
-                      value={showSlashMenu ? commandInput : chatInput}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.startsWith('/')) {
-                          setCommandInput(value);
-                          setChatInput('');
-                          setSlashFilter(value.slice(1));
-                          setShowSlashMenu(true);
-                          setSelectedCommandIndex(0);
-                        } else {
-                          setChatInput(value);
-                          setCommandInput('');
-                          setShowSlashMenu(false);
-                          setSlashFilter('');
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (showSlashMenu) {
-                          handleCommandKeyDown(e);
-                        } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
-                          e.preventDefault();
-                          handleChatSubmit();
-                        } else if (e.key === 'Escape') {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }
-                      }}
-                      placeholder='Ask anything or type "/" for commands...'
-                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
-                      disabled={isChatting}
-                    />
-                    {chatInput.trim() && !showSlashMenu && (
-                      <button
-                        onClick={handleChatSubmit}
-                        disabled={isChatting}
-                        className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                    )}
-                    {chatMessages.length > 0 && !chatInput.trim() && (
-                      <button
-                        onClick={() => {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }}
-                        className="p-1.5 hover:bg-foreground/10 transition-colors"
-                      >
-                        <X className="h-4 w-4 text-foreground" />
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Sparkle weight="duotone" className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="flex-1 text-muted-foreground text-xs transition-opacity duration-500">
-                      {placeholderTexts[placeholderIndex]}
-                    </span>
-                    <div className="w-6 h-6 bg-foreground text-background flex items-center justify-center flex-shrink-0">
-                      <ArrowUp className="h-3 w-3" />
-                    </div>
-                  </>
-                )}
-              </div>
-              {/* Chat label below the bar - only show when expanded */}
-            </div>
+                    <button
+                      onClick={handleInlineInputSubmit}
+                      disabled={!inlineInputValue.trim() || isGenerating}
+                      className="w-8 h-8 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
 
-            {/* Chat conversation panel - only show when there are messages */}
-            {searchExpanded && !showSlashMenu && chatMessages.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-card border border-t-0 border-border shadow-xl overflow-hidden z-[100]">
-                {/* Chat messages */}
-                <div
-                  ref={chatContainerRef}
-                  className="max-h-[350px] overflow-y-auto px-4 py-3 space-y-3"
-                >
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx}>
-                      {msg.role === 'user' ? (
-                        <div className="flex justify-end mb-2">
-                          <div className="bg-muted text-foreground px-4 py-1.5 text-sm border border-border">
-                            {msg.content}
+              {/* Flashcard Loading State */}
+              {isGeneratingFlashcards && (
+                <div className="mb-8 space-y-4">
+                  <div className="flex gap-px bg-border border border-border">
+                    <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Ask Agathon</div>
+                    <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">Flashcards</div>
+                    <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Practice</div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="bg-card border border-border overflow-hidden">
+                      <div className="flex items-center justify-center py-20">
+                        <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mr-3" />
+                        <span className="text-foreground font-medium">Creating {flashcardCount} flashcards...</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">&quot;{flashcardTopic}&quot;</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Interactive Flashcard Display */}
+              {flashcards.length > 0 && !isGeneratingFlashcards && (
+                <div className="mb-8 space-y-4">
+                  <div className="flex gap-px bg-border border border-border">
+                    <button
+                      onClick={() => { setFlashcards([]); handleQuickAction('Agathon Method'); }}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      Ask Agathon
+                    </button>
+                    <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">
+                      Flashcards
+                    </div>
+                    <button
+                      onClick={() => { setFlashcards([]); handleOpenInlineInput('Practice Problems'); }}
+                      className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    >
+                      Practice
+                    </button>
+                  </div>
+
+                  <div
+                    onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)}
+                    className="bg-card border border-border min-h-[320px] flex items-center justify-center cursor-pointer hover:bg-accent transition-all"
+                  >
+                    <div className="px-12 py-16 text-center max-w-2xl">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
+                        {isFlashcardFlipped ? 'Answer' : 'Question'} — Click to flip
+                      </p>
+                      <p className="text-xl font-medium text-foreground leading-relaxed" style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}>
+                        {isFlashcardFlipped
+                          ? flashcards[currentFlashcardIndex]?.answer
+                          : flashcards[currentFlashcardIndex]?.question}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-px bg-border border border-border w-fit mx-auto">
+                    <button onClick={handleShuffleFlashcards} className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Shuffle">
+                      <Shuffle className="h-4 w-4" />
+                    </button>
+                    <button onClick={handlePrevFlashcard} className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Previous">
+                      <CaretLeft weight="bold" className="h-4 w-4" />
+                    </button>
+                    <span className="px-4 py-2.5 bg-card text-sm text-foreground font-medium tabular-nums min-w-[80px] text-center">
+                      {currentFlashcardIndex + 1} / {flashcards.length}
+                    </span>
+                    <button onClick={handleNextFlashcard} className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Next">
+                      <CaretRight weight="bold" className="h-4 w-4" />
+                    </button>
+                    <button onClick={handleDeleteFlashcards} className="p-2.5 bg-card text-red-600 dark:text-red-400 hover:bg-muted transition-colors" title="Delete flashcards">
+                      <Trash className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Blocks */}
+              {pendingBlocks.length > 0 && (
+                <div className="mb-8 space-y-2">
+                  <div className="flex items-center justify-between bg-muted px-4 py-3 border border-border">
+                    <div className="flex items-center gap-2">
+                      <Sparkle  className="h-4 w-4 text-foreground" />
+                      <span className="text-sm font-medium text-foreground">
+                        {pendingBlocks.filter(b => b.status === 'pending').length} section{pendingBlocks.filter(b => b.status === 'pending').length !== 1 ? 's' : ''} to review
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleAcceptAllBlocks}
+                        disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        Accept All
+                      </button>
+                      <button
+                        onClick={handleDenyAllBlocks}
+                        disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Deny All
+                      </button>
+                      <button
+                        onClick={handleClearPendingBlocks}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Dismiss all"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {pendingBlocks.map((block) => (
+                    <div
+                      key={block.id}
+                      className={cn(
+                        'relative border overflow-hidden transition-all duration-300',
+                        block.status === 'pending' ? 'bg-card border-border'
+                          : block.status === 'accepted' ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 opacity-60'
+                          : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-40 line-through'
+                      )}
+                    >
+                      <div className={cn(
+                        'absolute left-0 top-0 bottom-0 w-1',
+                        block.status === 'pending' ? 'bg-foreground'
+                          : block.status === 'accepted' ? 'bg-green-600'
+                          : 'bg-red-600'
+                      )} />
+                      <div className="pl-4 pr-3 py-3">
+                        <div className="flex items-start gap-3">
+                          {block.status === 'pending' && (
+                            <div className="w-5 h-5 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Plus className="h-3 w-3 text-background" />
+                            </div>
+                          )}
+                          {block.status === 'accepted' && (
+                            <div className="w-5 h-5 bg-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          {block.status === 'denied' && (
+                            <div className="w-5 h-5 bg-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <X className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div
+                              className={cn(
+                                'text-sm leading-relaxed',
+                                block.status === 'denied' ? 'text-muted-foreground' : 'text-foreground/80'
+                              )}
+                              dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content.slice(0, 300) + (block.content.length > 300 ? '...' : '')) }}
+                            />
+                          </div>
+                          {block.status === 'pending' && (
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                onClick={() => handleAcceptBlock(block.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                              >
+                                <Check className="h-3 w-3" />
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => handleDenyBlock(block.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                              >
+                                <X className="h-3 w-3" />
+                                Deny
+                              </button>
+                            </div>
+                          )}
+                          {block.status === 'accepted' && <span className="text-xs text-green-600 dark:text-green-400 font-medium flex-shrink-0">Added</span>}
+                          {block.status === 'denied' && <span className="text-xs text-red-600 dark:text-red-400 font-medium flex-shrink-0">Removed</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* WYSIWYG Rich Text Editor */}
+              <div className="relative min-h-[60vh] pb-20">
+                <ContentWithEmbeds
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Start writing or click a button above to generate notes... Type '/' for commands."
+                  embeddedWhiteboards={embeddedWhiteboards}
+                  embeddedDesmos={embeddedDesmos}
+                  onWhiteboardSave={(id, data) => {
+                    setEmbeddedWhiteboards(prev => prev.map(wb => wb.id === id ? { ...wb, data } : wb));
+                  }}
+                  onDeleteWhiteboard={(id) => {
+                    setEmbeddedWhiteboards(prev => prev.filter(wb => wb.id !== id));
+                    setContent(prev => prev.replace(new RegExp(`\\n*\\[WHITEBOARD:${id}\\]\\n*`, 'g'), '\n'));
+                    sileo.success({ title: 'Whiteboard deleted' });
+                  }}
+                  onDeleteDesmos={(id) => {
+                    setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+                    sileo.success({ title: 'Graph deleted' });
+                  }}
+                  onChartSave={(id, data) => {
+                    setContent(prev => {
+                      const regex = new RegExp(`\\[CHART:${id}:[^\\]]*\\]`);
+                      const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
+                      return prev.replace(regex, newPlaceholder);
+                    });
+                    sileo.success({ title: 'Chart saved!' });
+                  }}
+                  onDeleteChart={(id) => {
+                    setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+                    sileo.success({ title: 'Chart deleted' });
+                  }}
+                  onSlashCommand={executeCommand}
+                />
+
+                {/* Proactive AI Suggestion */}
+                {proactiveSuggestion && proactiveAIEnabled && (
+                  <div className="mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="bg-accent border border-border p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-muted flex items-center justify-center flex-shrink-0">
+                          <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                            {proactiveSuggestion}
+                          </p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={handleApplySuggestion}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background text-xs font-medium transition-colors hover:bg-foreground/90"
+                            >
+                              <Check className="h-3 w-3" />
+                              Add to notes
+                            </button>
+                            <button
+                              onClick={handleDismissSuggestion}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-muted text-muted-foreground text-xs font-medium border border-border transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                              Dismiss
+                            </button>
                           </div>
                         </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="flex gap-2.5">
-                            <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <Sparkle className="h-3 w-3 text-background" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Proactive AI Generating Indicator */}
+                {isGeneratingSuggestion && proactiveAIEnabled && !proactiveSuggestion && (
+                  <div className="mt-4 animate-in fade-in duration-200">
+                    <div className="bg-accent/50 border border-border px-4 py-3 flex items-center gap-3">
+                      <CircleNotch className="h-4 w-4 text-muted-foreground animate-spin" />
+                      <span className="text-sm text-muted-foreground">Thinking of suggestions...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+
+          {/* ── VS Code-style Chat Panel ── */}
+          <div
+            className={cn(
+              "fixed right-[20px] h-[90vh] flex flex-col border-l border-border bg-card transition-all duration-300 ease-out overflow-hidden flex-shrink-0",
+              chatPanelOpen ? "w-[340px]" : "w-0"
+            )}
+          >
+            {chatPanelOpen && (
+              <>
+                {/* Panel header */}
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 bg-foreground flex items-center justify-center">
+                      <Sparkle className="h-3.5 w-3.5 text-background" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">Agathon AI</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {chatMessages.length > 0 && (
+                      <button
+                        onClick={handleClearChat}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs flex items-center gap-1"
+                        title="Clear chat"
+                      >
+                        <Trash className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setChatPanelOpen(false)}
+                      className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Messages area */}
+                <div
+                  ref={chatContainerRef}
+                  className="flex-1 overflow-y-scroll px-4 py-4 space-y-4 min-h-0"
+                >
+                  {chatMessages.length === 0 ? (
+                    /* Empty state */
+                    <div className="flex flex-col items-center justify-center h-full text-center py-8 gap-3">
+                      <div className="w-12 h-12 bg-muted flex items-center justify-center">
+                        <Sparkle  className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground mb-1">Ask Agathon anything</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Ask about concepts, request explanations, generate content, or get study help.
+                        </p>
+                      </div>
+                      {/* Quick suggestion chips */}
+                      <div className="flex flex-col gap-1.5 w-full mt-2">
+                        {[
+                          'Explain this topic simply',
+                          'Create practice problems',
+                          'Summarize key points',
+                        ].map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            onClick={() => {
+                              setChatInput(suggestion);
+                              setTimeout(() => chatInputRef.current?.focus(), 50);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs text-muted-foreground bg-muted hover:bg-accent hover:text-foreground border border-border transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    chatMessages.map((msg, idx) => (
+                      <div key={idx}>
+                        {msg.role === 'user' ? (
+                          <div className="flex justify-end">
+                            <div className="bg-foreground text-background px-3 py-2 text-sm max-w-[85%] leading-relaxed">
+                              {msg.content}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div
-                                className="text-[13px] text-foreground/80 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                              />
-                              {/* Action buttons for assistant messages */}
-                              <div className="flex items-center gap-2 mt-2">
-                                {msg.written ? (
-                                  <>
-                                    <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-medium">
-                                      <Check className="h-3 w-3" />
-                                      Written!
-                                    </span>
-                                    <button
-                                      onClick={() => handleReapplyContent(msg.content, idx)}
-                                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
-                                      <ArrowsClockwise className="h-3 w-3" />
-                                      Reapply changes
-                                    </button>
-                                  </>
-                                ) : pendingMessageIndex === idx ? (
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={handleAcceptContent}
-                                      className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
-                                    >
-                                      <Check className="h-3 w-3" />
-                                      Add to Journal
-                                    </button>
-                                    <button
-                                      onClick={handleDismissContent}
-                                      className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
-                                      Dismiss
-                                    </button>
-                                  </div>
-                                ) : null}
-                                <button
-                                  onClick={() => handleCopyMessage(msg.content)}
-                                  className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
-                                  title="Copy to clipboard"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex gap-2.5">
+                              <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <Sparkle className="h-3 w-3 text-background" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div
+                                  className="text-[13px] text-foreground/80 leading-relaxed"
+                                  dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                                />
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  {msg.written ? (
+                                    <>
+                                      <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-medium">
+                                        <Check className="h-3 w-3" />
+                                        Written!
+                                      </span>
+                                      <button
+                                        onClick={() => handleReapplyContent(msg.content, idx)}
+                                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                      >
+                                        <ArrowsClockwise className="h-3 w-3" />
+                                        Reapply
+                                      </button>
+                                    </>
+                                  ) : pendingMessageIndex === idx ? (
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        onClick={handleAcceptContent}
+                                        className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
+                                      >
+                                        <Check className="h-3 w-3" />
+                                        Add to Journal
+                                      </button>
+                                      <button
+                                        onClick={handleDismissContent}
+                                        className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                      >
+                                        Dismiss
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                  <button
+                                    onClick={() => handleCopyMessage(msg.content)}
+                                    className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
+                                    title="Copy to clipboard"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    ))
+                  )}
+
+                  {/* Typing indicator */}
                   {isChatting && (
                     <div className="flex gap-2.5">
                       <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0">
                         <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
                       </div>
-                      <div className="text-[13px] text-muted-foreground">
+                      <div className="text-[13px] text-muted-foreground mt-1">
                         Thinking...
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Clear chat button at the bottom */}
-                <div className="border-t border-border px-4 py-2 flex justify-end bg-muted/50">
-                  <button
-                    onClick={handleClearChat}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
-                  >
-                    <X className="h-3 w-3" />
-                    Clear chat
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Slash Command Menu */}
-            {showSlashMenu && searchExpanded && (
-              <div className="absolute top-full left-0 right-0 z-[100] bg-card border border-t-0 border-border shadow-2xl py-2 max-h-[420px] overflow-y-auto">
-                {slashCommands.map((category, catIndex) => {
-                  const filteredItems = category.items.filter(item =>
-                    item.label.toLowerCase().includes(slashFilter.toLowerCase())
-                  );
-
-                  if (filteredItems.length === 0) return null;
-
-                  return (
-                    <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
-                      <div className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        {category.category}
-                      </div>
-                      {filteredItems.map((item) => {
-                        const globalIndex = allCommands.findIndex(c => c.id === item.id);
-                        const isSelected = globalIndex === selectedCommandIndex;
-                        const Icon = item.icon;
-
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => executeCommand(item.id)}
-                            className={cn(
-                              'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
-                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                            )}
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span className={cn(
-                              'text-sm',
-                              isSelected && 'font-medium'
-                            )}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right - Actions */}
-        <div className="flex items-center gap-0.5">
-          {/* Proactive AI Lightbulb Button with Dropdown */}
-          <div className="relative" ref={proactiveDropdownRef}>
-            <button
-              className={cn(
-                "p-2 transition-colors",
-                proactiveAIEnabled
-                  ? "bg-accent text-foreground"
-                  : "hover:bg-muted text-muted-foreground"
-              )}
-              onClick={() => setShowProactiveDropdown(!showProactiveDropdown)}
-            >
-              <Lightbulb weight="duotone" className="h-5 w-5" />
-              {isGeneratingSuggestion && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-foreground animate-pulse" />
-              )}
-            </button>
-            {showProactiveDropdown && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border shadow-lg p-4 z-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb weight="duotone" className="h-4 w-4 text-foreground" />
-                    <span className="font-medium text-foreground text-sm">Proactive AI Mode</span>
-                  </div>
-                  <Switch
-                    checked={proactiveAIEnabled}
-                    onChange={setProactiveAIEnabled}
-                    className={cn(
-                      "relative w-10 h-5 rounded-full transition-colors",
-                      proactiveAIEnabled ? "bg-[#007ba5]" : "bg-[#c0c4cc]"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
-                        proactiveAIEnabled ? "translate-x-0" : "-translate-x-5"
-                      )}
+                {/* Chat input at bottom */}
+                <div className="flex-shrink-0 border-t border-border p-3">
+                  <div className="flex items-end gap-2 bg-muted border border-border px-3 py-2">
+                    <textarea
+                      ref={chatInputRef}
+                      value={chatInput}
+                      onChange={(e) => {
+                        setChatInput(e.target.value);
+                        // Auto-resize
+                        e.target.style.height = 'auto';
+                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleChatSubmit();
+                        }
+                      }}
+                      placeholder={placeholderTexts[placeholderIndex]}
+                      rows={1}
+                      disabled={isChatting}
+                      className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0 resize-none leading-relaxed"
+                      style={{ minHeight: '24px', maxHeight: '120px' }}
                     />
-                  </Switch>
+                    <button
+                      onClick={handleChatSubmit}
+                      disabled={!chatInput.trim() || isChatting}
+                      className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-40 flex-shrink-0"
+                    >
+                      {isChatting
+                        ? <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
+                        : <ArrowUp className="h-3.5 w-3.5" />
+                      }
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+                    Enter to send · Shift+Enter for new line
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {proactiveAIEnabled
-                    ? "AI will suggest helpful additions as you write"
-                    : "Enable to get intelligent suggestions while writing"}
-                </p>
-              </div>
+              </>
             )}
           </div>
-          <button
-            className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => sileo.info({ title: 'Timer feature coming soon!' })}
-          >
-            <Timer weight="duotone" className="h-5 w-5" />
-          </button>
-          <button
-            className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => sileo.info({ title: 'More options coming soon!' })}
-          >
-            <DotsThree weight="duotone" className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => sileo.info({ title: 'Sharing is coming soon!' })}
-            className="ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
-          >
-            Share
-          </button>
         </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="px-8 py-8 max-w-3xl mx-auto">
-
-        {/* Large serif title */}
-        <div className="mb-8">
-          <input
-            type="text"
-            value={title}
-            onChange={handleTitleChange}
-            className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
-            style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
-            placeholder="New Journal"
-          />
-          <div className="h-px bg-border mt-4" />
-        </div>
-        {/* Start with section - only show when empty */}
-        {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
-          <div className="mb-8">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
-            <div className="grid grid-cols-3 gap-px bg-border border border-border">
-              <button
-                onClick={() => handleQuickAction('Agathon Method')}
-                disabled={isGenerating}
-                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
-              >
-                <Sparkle weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                <p className="text-sm font-medium text-foreground">Ask Agathon</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
-              </button>
-              <button
-                onClick={() => handleOpenInlineInput('Flashcards')}
-                disabled={isGenerating}
-                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
-              >
-                <Stack weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                <p className="text-sm font-medium text-foreground">Flashcards</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
-              </button>
-              <button
-                onClick={() => handleOpenInlineInput('Practice Problems')}
-                disabled={isGenerating}
-                className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
-              >
-                <ClipboardText weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
-                <p className="text-sm font-medium text-foreground">Practice</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Inline Input for Practice Problems / Flashcards */}
-        {activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
-          <div className="mb-8 space-y-4">
-            {/* Tabs for quick action selection */}
-            <div className="flex gap-px bg-border border border-border">
-              <button
-                onClick={() => handleQuickAction('Agathon Method')}
-                disabled={isGenerating}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-              >
-                Ask Agathon
-              </button>
-              <button
-                onClick={() => handleOpenInlineInput('Flashcards')}
-                disabled={isGenerating}
-                className={cn(
-                  "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
-                  activeInlineInput === 'Flashcards'
-                    ? "bg-foreground text-background"
-                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                Flashcards
-              </button>
-              <button
-                onClick={() => handleOpenInlineInput('Practice Problems')}
-                disabled={isGenerating}
-                className={cn(
-                  "flex-1 px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
-                  activeInlineInput === 'Practice Problems'
-                    ? "bg-foreground text-background"
-                    : "bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                Practice
-              </button>
-            </div>
-
-            {/* Inline input */}
-            <div className="flex items-center gap-2 bg-muted px-4 py-3 border border-border">
-              <input
-                ref={inlineInputRef}
-                type="text"
-                value={inlineInputValue}
-                onChange={(e) => setInlineInputValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && inlineInputValue.trim()) {
-                    handleInlineInputSubmit();
-                  } else if (e.key === 'Escape') {
-                    setActiveInlineInput(null);
-                    setInlineInputValue('');
-                  }
-                }}
-                placeholder={activeInlineInput === 'Practice Problems' ? 'What topic for practice problems?' : 'What topic for flashcards?'}
-                className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
-                disabled={isGenerating}
-              />
-              {/* Count selector */}
-              {(activeInlineInput === 'Practice Problems' || activeInlineInput === 'Flashcards') && (
-                <div className="flex items-center gap-1 bg-card px-2 py-1 border border-border">
-                  <select
-                    value={activeInlineInput === 'Flashcards' ? flashcardCount : practiceCount}
-                    onChange={(e) => {
-                      if (activeInlineInput === 'Flashcards') {
-                        setFlashcardCount(Number(e.target.value));
-                      } else {
-                        setPracticeCount(Number(e.target.value));
-                      }
-                    }}
-                    className="bg-transparent border-none outline-none text-sm text-foreground focus:ring-0 pr-1"
-                  >
-                    {[5, 10, 15, 20].map(n => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <button
-                onClick={handleInlineInputSubmit}
-                disabled={!inlineInputValue.trim() || isGenerating}
-                className="w-8 h-8 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Flashcard Loading State */}
-        {isGeneratingFlashcards && (
-          <div className="mb-8 space-y-4">
-            <div className="flex gap-px bg-border border border-border">
-              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Ask Agathon</div>
-              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">Flashcards</div>
-              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground opacity-50">Practice</div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="bg-card border border-border overflow-hidden">
-                <div className="flex items-center justify-center py-20">
-                  <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mr-3" />
-                  <span className="text-foreground font-medium">Creating {flashcardCount} flashcards...</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground">&quot;{flashcardTopic}&quot;</p>
-            </div>
-          </div>
-        )}
-
-        {/* Interactive Flashcard Display */}
-        {flashcards.length > 0 && !isGeneratingFlashcards && (
-          <div className="mb-8 space-y-4">
-            <div className="flex gap-px bg-border border border-border">
-              <button
-                onClick={() => { setFlashcards([]); handleQuickAction('Agathon Method'); }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                Ask Agathon
-              </button>
-              <div className="flex-1 px-4 py-2.5 text-sm font-medium bg-foreground text-background text-center">
-                Flashcards
-              </div>
-              <button
-                onClick={() => { setFlashcards([]); handleOpenInlineInput('Practice Problems'); }}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                Practice
-              </button>
-            </div>
-
-            {/* Flashcard */}
-            <div
-              onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)}
-              className="bg-card border border-border min-h-[320px] flex items-center justify-center cursor-pointer hover:bg-accent transition-all"
-            >
-              <div className="px-12 py-16 text-center max-w-2xl">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
-                  {isFlashcardFlipped ? 'Answer' : 'Question'} — Click to flip
-                </p>
-                <p className="text-xl font-medium text-foreground leading-relaxed" style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}>
-                  {isFlashcardFlipped
-                    ? flashcards[currentFlashcardIndex]?.answer
-                    : flashcards[currentFlashcardIndex]?.question}
-                </p>
-              </div>
-            </div>
-
-            {/* Flashcard Controls */}
-            <div className="flex items-center justify-center gap-px bg-border border border-border w-fit mx-auto">
-              <button
-                onClick={handleShuffleFlashcards}
-                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Shuffle"
-              >
-                <Shuffle className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handlePrevFlashcard}
-                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Previous"
-              >
-                <CaretLeft weight="bold" className="h-4 w-4" />
-              </button>
-              <span className="px-4 py-2.5 bg-card text-sm text-foreground font-medium tabular-nums min-w-[80px] text-center">
-                {currentFlashcardIndex + 1} / {flashcards.length}
-              </span>
-              <button
-                onClick={handleNextFlashcard}
-                className="p-2.5 bg-card text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                title="Next"
-              >
-                <CaretRight weight="bold" className="h-4 w-4" />
-              </button>
-              <button
-                onClick={handleDeleteFlashcards}
-                className="p-2.5 bg-card text-red-600 dark:text-red-400 hover:bg-muted transition-colors"
-                title="Delete flashcards"
-              >
-                <Trash className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Pending Blocks - Diff-style Accept/Deny UI */}
-        {pendingBlocks.length > 0 && (
-          <div className="mb-8 space-y-2">
-            {/* Header with Accept All / Deny All */}
-            <div className="flex items-center justify-between bg-muted px-4 py-3 border border-border">
-              <div className="flex items-center gap-2">
-                <Sparkle weight="duotone" className="h-4 w-4 text-foreground" />
-                <span className="text-sm font-medium text-foreground">
-                  {pendingBlocks.filter(b => b.status === 'pending').length} section{pendingBlocks.filter(b => b.status === 'pending').length !== 1 ? 's' : ''} to review
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleAcceptAllBlocks}
-                  disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Accept All
-                </button>
-                <button
-                  onClick={handleDenyAllBlocks}
-                  disabled={pendingBlocks.filter(b => b.status === 'pending').length === 0}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  <X className="h-3.5 w-3.5" />
-                  Deny All
-                </button>
-                <button
-                  onClick={handleClearPendingBlocks}
-                  className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                  title="Dismiss all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Individual blocks */}
-            {pendingBlocks.map((block) => (
-              <div
-                key={block.id}
-                className={cn(
-                  'relative border overflow-hidden transition-all duration-300',
-                  block.status === 'pending'
-                    ? 'bg-card border-border'
-                    : block.status === 'accepted'
-                    ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 opacity-60'
-                    : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 opacity-40 line-through'
-                )}
-              >
-                {/* Left accent bar */}
-                <div
-                  className={cn(
-                    'absolute left-0 top-0 bottom-0 w-1',
-                    block.status === 'pending'
-                      ? 'bg-foreground'
-                      : block.status === 'accepted'
-                      ? 'bg-green-600'
-                      : 'bg-red-600'
-                  )}
-                />
-
-                <div className="pl-4 pr-3 py-3">
-                  <div className="flex items-start gap-3">
-                    {/* Status icon */}
-                    {block.status === 'pending' && (
-                      <div className="w-5 h-5 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Plus className="h-3 w-3 text-background" />
-                      </div>
-                    )}
-                    {block.status === 'accepted' && (
-                      <div className="w-5 h-5 bg-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-                    {block.status === 'denied' && (
-                      <div className="w-5 h-5 bg-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <X className="h-3 w-3 text-white" />
-                      </div>
-                    )}
-
-                    {/* Content preview */}
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={cn(
-                          'text-sm leading-relaxed',
-                          block.status === 'denied' ? 'text-muted-foreground' : 'text-foreground/80'
-                        )}
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content.slice(0, 300) + (block.content.length > 300 ? '...' : '')) }}
-                      />
-                    </div>
-
-                    {/* Accept/Deny buttons */}
-                    {block.status === 'pending' && (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => handleAcceptBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
-                        >
-                          <Check className="h-3 w-3" />
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleDenyBlock(block.id)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                          Deny
-                        </button>
-                      </div>
-                    )}
-
-                    {block.status === 'accepted' && (
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium flex-shrink-0">Added</span>
-                    )}
-                    {block.status === 'denied' && (
-                      <span className="text-xs text-red-600 dark:text-red-400 font-medium flex-shrink-0">Removed</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* WYSIWYG Rich Text Editor with Embedded Components */}
-        <div className="relative min-h-[60vh] pb-20">
-          <ContentWithEmbeds
-            content={content}
-            onChange={setContent}
-            placeholder="Start writing or click a button above to generate notes... Type '/' for commands."
-            embeddedWhiteboards={embeddedWhiteboards}
-            embeddedDesmos={embeddedDesmos}
-            onWhiteboardSave={(id, data) => {
-              setEmbeddedWhiteboards(prev =>
-                prev.map(wb => wb.id === id ? { ...wb, data } : wb)
-              );
-            }}
-            onDeleteWhiteboard={(id) => {
-              // Remove from embedded whiteboards
-              setEmbeddedWhiteboards(prev => prev.filter(wb => wb.id !== id));
-              // Remove placeholder from content
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[WHITEBOARD:${id}\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Whiteboard deleted' });
-            }}
-            onDeleteDesmos={(id) => {
-              // Remove placeholder from content
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[DESMOS:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Graph deleted' });
-            }}
-            onChartSave={(id, data) => {
-              // Update the chart placeholder with new encoded data
-              setContent(prev => {
-                const regex = new RegExp(`\\[CHART:${id}:[^\\]]*\\]`);
-                const newPlaceholder = `[CHART:${id}:${encodeChartData(data)}]`;
-                return prev.replace(regex, newPlaceholder);
-              });
-              sileo.success({ title: 'Chart saved!' });
-            }}
-            onDeleteChart={(id) => {
-              setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
-              sileo.success({ title: 'Chart deleted' });
-            }}
-            onSlashCommand={executeCommand}
-          />
-
-          {/* Proactive AI Suggestion Display */}
-          {proactiveSuggestion && proactiveAIEnabled && (
-            <div className="mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="bg-accent border border-border p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-muted flex items-center justify-center flex-shrink-0">
-                    <Lightbulb className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                      {proactiveSuggestion}
-                    </p>
-                    <div className="flex items-center gap-2 mt-3">
-                      <button
-                        onClick={handleApplySuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground text-background text-xs font-medium transition-colors hover:bg-foreground/90"
-                      >
-                        <Check className="h-3 w-3" />
-                        Add to notes
-                      </button>
-                      <button
-                        onClick={handleDismissSuggestion}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-muted text-muted-foreground text-xs font-medium border border-border transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                        Dismiss
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Proactive AI Generating Indicator */}
-          {isGeneratingSuggestion && proactiveAIEnabled && !proactiveSuggestion && (
-            <div className="mt-4 animate-in fade-in duration-200">
-              <div className="bg-accent/50 border border-border px-4 py-3 flex items-center gap-3">
-                <CircleNotch className="h-4 w-4 text-muted-foreground animate-spin" />
-                <span className="text-sm text-muted-foreground">Thinking of suggestions...</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
+      </div>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 right-0 px-6 py-3">
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {isSaving ? (
-            'Saving...'
-          ) : lastSaved ? (
-            `Last saved ${formatDistance(lastSaved, new Date(), { addSuffix: true })}`
-          ) : (
-            ''
-          )}
-        </span>
+      <footer className="fixed bottom-0 left-0 right-0 px-6 py-3 pointer-events-none">
+        <div className="flex justify-end">
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {isSaving ? 'Saving...' : lastSaved ? `Last saved ${formatDistance(lastSaved, new Date(), { addSuffix: true })}` : ''}
+          </span>
+        </div>
       </footer>
 
       {/* YouTube Embed Modal */}
@@ -2447,35 +2123,27 @@ export default function JournalEditorPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <YoutubeLogo weight="duotone" className="h-5 w-5 text-muted-foreground" />
+                  <YoutubeLogo  className="h-5 w-5 text-muted-foreground" />
                   Embed YouTube Video
                 </DialogTitle>
                 <button onClick={() => setShowYoutubeModal(false)} className="p-1 hover:bg-muted transition-colors">
                   <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Paste a YouTube video URL to embed it in your journal.
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">Paste a YouTube video URL to embed it in your journal.</p>
               <input
                 type="text"
                 autoFocus
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && youtubeUrl.trim()) handleYoutubeEmbed();
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && youtubeUrl.trim()) handleYoutubeEmbed(); }}
                 placeholder="https://www.youtube.com/watch?v=..."
                 className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all"
               />
             </div>
             <div className="flex gap-3 p-4 bg-muted border-t border-border">
-              <button onClick={() => setShowYoutubeModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
-                Cancel
-              </button>
-              <button onClick={handleYoutubeEmbed} disabled={!youtubeUrl.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Embed
-              </button>
+              <button onClick={() => setShowYoutubeModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button onClick={handleYoutubeEmbed} disabled={!youtubeUrl.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Embed</button>
             </div>
           </DialogPanel>
         </div>
@@ -2525,9 +2193,7 @@ export default function JournalEditorPage() {
               </div>
             </div>
             <div className="flex gap-3 p-4 bg-muted border-t border-border">
-              <button onClick={() => setShowJournalLinkModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
-                Cancel
-              </button>
+              <button onClick={() => setShowJournalLinkModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
             </div>
           </DialogPanel>
         </div>
@@ -2548,63 +2214,30 @@ export default function JournalEditorPage() {
                   <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Enter a math expression to graph (e.g., y=x^2, sin(x), etc.)
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">Enter a math expression to graph (e.g., y=x^2, sin(x), etc.)</p>
               <input
                 type="text"
                 autoFocus
                 value={desmosExpression}
                 onChange={(e) => setDesmosExpression(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && desmosExpression.trim()) handleDesmosEmbed();
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && desmosExpression.trim()) handleDesmosEmbed(); }}
                 placeholder="y = x^2"
                 className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 focus:border-foreground/40 transition-all font-mono"
               />
             </div>
             <div className="flex gap-3 p-4 bg-muted border-t border-border">
-              <button onClick={() => setShowDesmosModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">
-                Cancel
-              </button>
-              <button onClick={handleDesmosEmbed} disabled={!desmosExpression.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Add Graph
-              </button>
+              <button onClick={() => setShowDesmosModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button onClick={handleDesmosEmbed} disabled={!desmosExpression.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Add Graph</button>
             </div>
           </DialogPanel>
         </div>
       </Dialog>
 
       {/* Hidden file inputs */}
-      <input
-        ref={imageInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => handleFileUpload(e, 'image')}
-      />
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*"
-        className="hidden"
-        onChange={(e) => handleFileUpload(e, 'audio')}
-      />
-      <input
-        ref={videoInputRef}
-        type="file"
-        accept="video/*"
-        className="hidden"
-        onChange={(e) => handleFileUpload(e, 'video')}
-      />
-      <input
-        ref={pdfInputRef}
-        type="file"
-        accept=".pdf"
-        className="hidden"
-        onChange={(e) => handleFileUpload(e, 'pdf')}
-      />
-      </div>
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'image')} />
+      <input ref={audioInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'audio')} />
+      <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'video')} />
+      <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileUpload(e, 'pdf')} />
     </div>
   );
 }

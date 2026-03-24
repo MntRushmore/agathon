@@ -1193,7 +1193,7 @@ export default function Dashboard() {
            mb-3">My Boards</h1>
         
           <div className="w-full mx-auto p-6 bg-white shadow rounded-[20px]">
-            <div className="flex items-center justify-between mb-8 mx-auto max-w-5xl">
+            <div className="flex items-center justify-between mb-8 mx-auto  ">
               <div>
                 <p className="text-sm text-new-foreground/60 mt-1">All your whiteboards in one place</p>
               </div>
@@ -1852,10 +1852,12 @@ export default function Dashboard() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
-          <div className="max-w-6xl mx-auto px-8 py-10">
-            <div className="flex items-center justify-between mb-8">
+
+            <h1 className="text-lg font-medium text-new-foreground tracking-tight -mt-8
+           mb-3">My Journals</h1>
+          <div className="w-full mx-auto px-8 py-10 bg-white shadow rounded-[20px] min-h-[90vh]">
+            <div className="flex items-center justify-between mb-8  ">
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">My Journals</h1>
                 <p className="text-sm text-muted-foreground mt-1">All your journals in one place</p>
               </div>
               <Button onClick={() => createJournal()} size="sm" className="gap-2">
