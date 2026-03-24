@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET() {
@@ -23,7 +24,8 @@ export async function GET() {
     const { data: codes, error } = await supabase
       .from('invite_codes')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+    .limit(200);
 
     if (error) {
       return NextResponse.json({ error: 'Failed to fetch codes' }, { status: 500 });
@@ -31,7 +33,7 @@ export async function GET() {
 
     return NextResponse.json({ codes });
   } catch (error) {
-    console.error('Admin invite codes GET error:', error);
+    adminLogger.error({ err: error }, 'Admin invite codes GET error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (insertError) {
-      console.error('Insert invite code error:', insertError);
+      adminLogger.error({ err: insertError }, 'Insert invite code error');
       return NextResponse.json({ error: 'Failed to create invite code' }, { status: 500 });
     }
 
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ code: inviteCode });
   } catch (error) {
-    console.error('Admin invite codes POST error:', error);
+    adminLogger.error({ err: error }, 'Admin invite codes POST error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -142,7 +144,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Admin invite codes PATCH error:', error);
+    adminLogger.error({ err: error }, 'Admin invite codes PATCH error');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
