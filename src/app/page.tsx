@@ -88,6 +88,7 @@ import { AgoraLandingPage } from "@/components/landing/AgoraLandingPage";
 import { TemplateSelectionDialog } from "@/components/board/TemplateSelectionDialog";
 import { DashboardWelcome } from "@/components/onboarding/DashboardWelcome";
 import { UpgradeLimitDialog } from "@/components/onboarding/UpgradeLimitDialog";
+import { WelcomeModal } from "@/components/auth/welcome-modal";
 
 type Whiteboard = {
   id: string;
@@ -248,6 +249,10 @@ export default function Dashboard() {
   // Demo video dialog state
   const [demoVideoOpen, setDemoVideoOpen] = useState(false);
 
+  // Welcome modal (catches users who missed it during signup, or ?welcome=true)
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeCode, setWelcomeCode] = useState('');
+
   // Usage limits (free plan)
   const [journalCount, setJournalCount] = useState(0);
   const FREE_BOARD_LIMIT = 3;
@@ -287,6 +292,22 @@ export default function Dashboard() {
       sileo.error({ title: 'Access denied. Only teachers can access the teacher dashboard.' });
     }
   }, [searchParams, router]);
+
+  // Show welcome modal if user hasn't seen it yet (from signup flow or ?welcome=CODE)
+  useEffect(() => {
+    if (!user || authLoading) return;
+    const welcomeParam = searchParams.get('welcome');
+    if (welcomeParam) {
+      setWelcomeCode(welcomeParam);
+      setShowWelcomeModal(true);
+      return;
+    }
+    const shouldShow = localStorage.getItem('agathon_show_welcome');
+    if (shouldShow === 'true') {
+      setWelcomeCode(localStorage.getItem('agathon_welcome_code') || '');
+      setShowWelcomeModal(true);
+    }
+  }, [user, authLoading, searchParams]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -2248,6 +2269,20 @@ export default function Dashboard() {
         limit={upgradeLimitType === 'board' ? FREE_BOARD_LIMIT : FREE_JOURNAL_LIMIT}
         onDelete={() => setActiveView(upgradeLimitType === 'board' ? 'boards' : 'journals')}
       />
+
+      {/* Welcome Modal (shown on first visit or via ?welcome=CODE) */}
+      {showWelcomeModal && (
+        <WelcomeModal
+          open={true}
+          onComplete={() => {
+            setShowWelcomeModal(false);
+            localStorage.removeItem('agathon_show_welcome');
+            localStorage.removeItem('agathon_welcome_code');
+          }}
+          userName={profile?.full_name ?? user?.user_metadata?.full_name ?? undefined}
+          inviteCode={welcomeCode}
+        />
+      )}
 
       {/* Demo Video Dialog */}
       <Dialog open={demoVideoOpen} onOpenChange={setDemoVideoOpen}>

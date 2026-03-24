@@ -14,7 +14,7 @@ interface WelcomeModalProps {
   inviteCode?: string;
 }
 
-const STEPS = ['welcome', 'story', 'video', 'coming-soon'] as const;
+const STEPS = ['welcome', 'story', 'coming-soon'] as const;
 type Step = (typeof STEPS)[number];
 
 /** Map of invite codes to custom welcome configurations */
@@ -91,9 +91,6 @@ export function WelcomeModal({ open, onComplete, userName, inviteCode }: Welcome
           )}
           {step === 'story' && (
             <StoryStep onNext={next} onBack={back} />
-          )}
-          {step === 'video' && (
-            <VideoStep onNext={next} onBack={back} />
           )}
           {step === 'coming-soon' && (
             <ComingSoonStep onComplete={onComplete} onBack={back} />
@@ -207,25 +204,44 @@ function StoryStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
   );
 }
 
-function VideoStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function ComingSoonStep({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
+  const features = [
+    {
+      icon: Brain,
+      title: 'Full AI Tutoring Experience',
+      description: 'Draw problems, lasso them, and get instant step-by-step guidance from your AI tutor.',
+    },
+    {
+      icon: Notebook,
+      title: 'Study Guides & Notes',
+      description: 'Auto-generated study materials from your whiteboard sessions.',
+    },
+    {
+      icon: Users,
+      title: 'Collaborative Boards',
+      description: 'Work through problems with classmates in real-time.',
+    },
+    {
+      icon: Sparkle,
+      title: 'More Subjects',
+      description: 'Expanding beyond math to physics, chemistry, and more.',
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 bg-muted rounded-full px-3 py-1 text-xs font-medium text-muted-foreground border border-border">
-          <Play size={12} weight="fill" />
-          Quick Demo
-        </div>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">See Agathon in Action</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">What&apos;s Coming Soon</h2>
         <p className="text-muted-foreground text-sm">
-          Watch how the AI whiteboard works — it&apos;s pretty magical.
+          Here&apos;s a sneak peek at the full AI experience we&apos;re building.
         </p>
       </div>
 
+      {/* Demo video preview */}
       <div className="rounded-xl overflow-hidden border border-border bg-muted">
         <video
           className="w-full"
           controls
-          autoPlay
           playsInline
           preload="metadata"
         >
@@ -234,70 +250,13 @@ function VideoStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
         </video>
       </div>
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-1 h-11">
-          Back
-        </Button>
-        <Button onClick={onNext} className="flex-1 h-11 gap-2">
-          Continue
-          <ArrowRight size={16} weight="bold" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function ComingSoonStep({ onComplete, onBack }: { onComplete: () => void; onBack: () => void }) {
-  const features = [
-    {
-      icon: Brain,
-      title: 'Smarter AI Tutor',
-      description: 'Even deeper understanding of your work with multi-step problem solving.',
-      color: 'green' as const,
-    },
-    {
-      icon: Notebook,
-      title: 'Study Guides & Notes',
-      description: 'Auto-generated study materials from your whiteboard sessions.',
-      color: 'blue' as const,
-    },
-    {
-      icon: Users,
-      title: 'Collaborative Boards',
-      description: 'Work through problems with classmates in real-time.',
-      color: 'purple' as const,
-    },
-    {
-      icon: Sparkle,
-      title: 'More Subjects',
-      description: 'Expanding beyond math to physics, chemistry, and more.',
-      color: 'amber' as const,
-    },
-  ];
-
-  const iconColors = {
-    green: 'icon-container icon-container-green',
-    blue: 'icon-container',
-    purple: 'icon-container',
-    amber: 'icon-container',
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">What&apos;s Coming Soon</h2>
-        <p className="text-muted-foreground text-sm">
-          We&apos;re just getting started. Here&apos;s what&apos;s on the horizon.
-        </p>
-      </div>
-
-      <div className="grid gap-3">
+      <div className="grid gap-2">
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border hover:bg-muted transition-colors"
+            className="flex items-start gap-3 p-2.5 rounded-xl bg-card border border-border"
           >
-            <div className={`mt-0.5 ${iconColors[feature.color]} icon-container-sm`}>
+            <div className="mt-0.5 icon-container icon-container-sm flex-shrink-0">
               <feature.icon size={16} weight="duotone" />
             </div>
             <div>

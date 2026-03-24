@@ -62,6 +62,9 @@ export default function CompleteSignupPage() {
 
       if (data.success) {
         setRedeemedCode(code);
+        // Store for dashboard welcome modal (in case user refreshes mid-flow)
+        localStorage.setItem('agathon_welcome_code', code);
+        localStorage.setItem('agathon_show_welcome', 'true');
         setStatus('welcome');
         sileo.success({ title: 'Account created successfully!' });
       } else {
@@ -111,6 +114,7 @@ export default function CompleteSignupPage() {
   };
 
   const handleWelcomeComplete = () => {
+    localStorage.removeItem('agathon_show_welcome');
     window.location.href = '/';
   };
 
