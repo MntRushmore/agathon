@@ -173,13 +173,13 @@ export default function AdminUsersPage() {
   const getRoleBadge = (role: UserRole) => {
     const config = {
       student: { cls: 'bg-muted text-muted-foreground', icon: GraduationCap, label: 'Student' },
-      teacher: { cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', icon: UsersThree, label: 'Teacher' },
-      admin: { cls: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', icon: ShieldCheck, label: 'Admin' },
+      teacher: { cls: 'bg-blue-100 text-blue-700  ', icon: UsersThree, label: 'Teacher' },
+      admin: { cls: 'bg-red-100 text-red-700  ', icon: ShieldCheck, label: 'Admin' },
     };
     const { cls, icon: Icon, label } = config[role];
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium ${cls}`}>
-        <Icon className="h-3 w-3" /> {label}
+ <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium ${cls}`}>
+ <Icon className="h-3 w-3" /> {label}
       </span>
     );
   };
@@ -196,33 +196,33 @@ export default function AdminUsersPage() {
   }, [users]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+ <div className="space-y-6">
+ <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Users</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
+ <h1 className="text-xl font-semibold text-foreground">Users</h1>
+ <p className="text-muted-foreground text-sm mt-0.5">
             {users.length} total &middot; {roleCounts.student} students &middot; {roleCounts.teacher} teachers &middot; {roleCounts.admin} admins
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
-          <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
+ <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="rounded-none h-8 text-xs">
+ <ArrowsClockwise weight="duotone" className={`w-3.5 h-3.5 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+ <div className="flex gap-3">
+ <div className="relative flex-1 max-w-sm">
+ <MagnifyingGlass weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 rounded-none h-9"
+ className="pl-9 rounded-none h-9"
           />
         </div>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-[150px] rounded-none h-9">
+ <SelectTrigger className="w-[150px] rounded-none h-9">
             <SelectValue placeholder="Filter by role" />
           </SelectTrigger>
           <SelectContent>
@@ -235,29 +235,29 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-card border border-border overflow-hidden">
+ <div className="bg-card border border-border overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">User</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">Email</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">Role</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">Credits</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">Status</TableHead>
-              <TableHead className="text-xs uppercase tracking-wider font-semibold">Joined</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+ <TableRow className="hover:bg-transparent">
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">User</TableHead>
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">Email</TableHead>
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">Role</TableHead>
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">Credits</TableHead>
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">Status</TableHead>
+ <TableHead className="text-xs uppercase tracking-wider font-semibold">Joined</TableHead>
+ <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
-                  <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mx-auto" />
+ <TableCell colSpan={7} className="text-center py-12">
+ <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
+ <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-sm">
                   No users found
                 </TableCell>
               </TableRow>
@@ -265,63 +265,63 @@ export default function AdminUsersPage() {
               paginatedUsers.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar className="h-7 w-7 rounded-none">
+ <div className="flex items-center gap-2.5">
+ <Avatar className="h-7 w-7 rounded-none">
                         <AvatarImage src={u.avatar_url || undefined} />
-                        <AvatarFallback className="rounded-none text-xs">{getInitials(u.full_name, u.email)}</AvatarFallback>
+ <AvatarFallback className="rounded-none text-xs">{getInitials(u.full_name, u.email)}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-medium">{u.full_name || 'Unknown'}</span>
+ <span className="text-sm font-medium">{u.full_name || 'Unknown'}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+ <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
                   <TableCell>{getRoleBadge(u.role)}</TableCell>
                   <TableCell>
                     <button
                       onClick={() => setCreditDialog({ open: true, userId: u.id, email: u.email, currentCredits: u.credits || 0 })}
-                      className="text-sm tabular-nums hover:underline"
+ className="text-sm tabular-nums hover:underline"
                     >
                       {u.credits || 0}
                     </button>
                   </TableCell>
                   <TableCell>
-                    <span className={`text-xs font-medium ${u.onboarding_completed ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}>
+ <span className={`text-xs font-medium ${u.onboarding_completed ? 'text-green-600 ' : 'text-muted-foreground'}`}>
                       {u.onboarding_completed ? 'Active' : 'New'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+ <TableCell className="text-sm text-muted-foreground">
                     {formatDistance(new Date(u.created_at), new Date(), { addSuffix: true })}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-none">
-                          <DotsThreeVertical weight="duotone" className="h-4 w-4" />
+ <Button variant="ghost" size="icon" className="h-7 w-7 rounded-none">
+ <DotsThreeVertical weight="duotone" className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="rounded-none">
+ <DropdownMenuContent align="end" className="rounded-none">
                         <DropdownMenuItem onClick={() => handleImpersonate(u.id)}>
-                          <Eye className="mr-2 h-4 w-4" /> Impersonate
+ <Eye className="mr-2 h-4 w-4" /> Impersonate
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setCreditDialog({ open: true, userId: u.id, email: u.email, currentCredits: u.credits || 0 })}>
-                          <Coins className="mr-2 h-4 w-4" /> Adjust Credits
+ <Coins className="mr-2 h-4 w-4" /> Adjust Credits
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'student')}>
-                          <GraduationCap className="mr-2 h-4 w-4" /> Set Student
+ <GraduationCap className="mr-2 h-4 w-4" /> Set Student
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'teacher')}>
-                          <UsersThree weight="duotone" className="mr-2 h-4 w-4" /> Set Teacher
+ <UsersThree weight="duotone" className="mr-2 h-4 w-4" /> Set Teacher
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleRoleChange(u.id, 'admin')}>
-                          <ShieldCheck weight="duotone" className="mr-2 h-4 w-4" /> Set Admin
+ <ShieldCheck weight="duotone" className="mr-2 h-4 w-4" /> Set Admin
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleResetOnboarding(u.id, u.email)}>
-                          <ArrowCounterClockwise weight="duotone" className="mr-2 h-4 w-4" /> Reset Onboarding
+ <ArrowCounterClockwise weight="duotone" className="mr-2 h-4 w-4" /> Reset Onboarding
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeleteUser(u.id, u.email)} className="text-destructive focus:text-destructive">
-                          <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
+ <DropdownMenuItem onClick={() => handleDeleteUser(u.id, u.email)} className="text-destructive focus:text-destructive">
+ <Trash weight="duotone" className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -335,17 +335,17 @@ export default function AdminUsersPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+ <div className="flex items-center justify-between">
+ <p className="text-xs text-muted-foreground">
             Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
           </p>
-          <div className="flex items-center gap-1">
+ <div className="flex items-center gap-1">
             <Button
-              variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
+ variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
             >
-              <CaretLeft weight="duotone" className="h-4 w-4" />
+ <CaretLeft weight="duotone" className="h-4 w-4" />
             </Button>
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page: number;
@@ -363,7 +363,7 @@ export default function AdminUsersPage() {
                   key={page}
                   variant={currentPage === page ? 'default' : 'outline'}
                   size="sm"
-                  className="rounded-none h-7 w-7 p-0 text-xs"
+ className="rounded-none h-7 w-7 p-0 text-xs"
                   onClick={() => setCurrentPage(page)}
                 >
                   {page}
@@ -371,11 +371,11 @@ export default function AdminUsersPage() {
               );
             })}
             <Button
-              variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
+ variant="outline" size="sm" className="rounded-none h-7 w-7 p-0"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
             >
-              <CaretRight weight="duotone" className="h-4 w-4" />
+ <CaretRight weight="duotone" className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -385,40 +385,40 @@ export default function AdminUsersPage() {
       <Dialog open={creditDialog.open} onOpenChange={(open) => {
         if (!open) setCreditDialog({ open: false, userId: '', email: '', currentCredits: 0 });
       }}>
-        <DialogContent className="rounded-none">
+ <DialogContent className="rounded-none">
           <DialogHeader>
             <DialogTitle>Adjust Credits</DialogTitle>
             <DialogDescription>{creditDialog.email}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Current balance</span>
-              <span className="font-semibold tabular-nums">{creditDialog.currentCredits}</span>
+ <div className="space-y-4 py-2">
+ <div className="flex items-center justify-between text-sm">
+ <span className="text-muted-foreground">Current balance</span>
+ <span className="font-semibold tabular-nums">{creditDialog.currentCredits}</span>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Amount to add (negative to deduct)</Label>
+ <div className="space-y-2">
+ <Label className="text-xs">Amount to add (negative to deduct)</Label>
               <Input
                 type="number"
                 value={creditAmount}
                 onChange={(e) => setCreditAmount(e.target.value)}
-                className="rounded-none"
+ className="rounded-none"
               />
             </div>
-            <div className="flex gap-2">
+ <div className="flex gap-2">
               {[50, 100, 500, 1000].map((amt) => (
-                <Button key={amt} variant="outline" size="sm" className="rounded-none text-xs flex-1"
+ <Button key={amt} variant="outline" size="sm" className="rounded-none text-xs flex-1"
                   onClick={() => setCreditAmount(String(amt))}>
                   +{amt}
                 </Button>
               ))}
             </div>
-            <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-              <span className="text-muted-foreground">New balance</span>
-              <span className="font-semibold tabular-nums">
+ <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
+ <span className="text-muted-foreground">New balance</span>
+ <span className="font-semibold tabular-nums">
                 {Math.max(0, creditDialog.currentCredits + (parseInt(creditAmount) || 0))}
               </span>
             </div>
-            <Button className="w-full rounded-none" onClick={handleAddCredits} disabled={updatingCredits}>
+ <Button className="w-full rounded-none" onClick={handleAddCredits} disabled={updatingCredits}>
               {updatingCredits ? 'Updating...' : 'Confirm'}
             </Button>
           </div>

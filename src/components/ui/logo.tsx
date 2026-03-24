@@ -36,26 +36,14 @@ export function Logo({ size = 'md', showText = false, className }: LogoProps) {
     );
   }
 
-  // Use the square logo (agathon.png is light bg, agathon1.png is dark bg)
+  // Use the square logo
   return (
     <div className={cn('inline-flex items-center overflow-hidden rounded-3xl', className)}>
-      {/* Light mode: show dark logo (agathon1.png - white A on black) */}
       <Image
         src="/logo/agathon1.png"
         alt="Agathon"
         width={width}
         height={height}
-        className="dark:hidden block"
-        style={{ width, height }}
-        priority
-      />
-      {/* Dark mode: show light logo (agathon.png - black A on white) */}
-      <Image
-        src="/logo/agathon.png"
-        alt="Agathon"
-        width={width}
-        height={height}
-        className="hidden dark:block"
         style={{ width, height }}
         priority
       />
@@ -71,15 +59,7 @@ export function LogoIcon({ className, size = 32 }: { className?: string; size?: 
         alt="Agathon"
         width={size}
         height={size}
-        className="dark:hidden rounded-lg"
-        style={{ width: size, height: size }}
-      />
-      <Image
-        src="/logo/agathon.png"
-        alt="Agathon"
-        width={size}
-        height={size}
-        className="hidden dark:block rounded-lg"
+        className="rounded-lg"
         style={{ width: size, height: size }}
       />
     </div>

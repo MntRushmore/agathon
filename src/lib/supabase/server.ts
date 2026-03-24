@@ -2,6 +2,9 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+// TODO: L14 — Consider storing user role in JWT custom claims via Supabase auth hook
+// to eliminate the extra profiles.select('role') query in every API route.
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 

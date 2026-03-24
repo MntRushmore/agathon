@@ -255,26 +255,26 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
   // MATH BLOCK
   if (block.type === 'math') {
     return (
-      <div className={cn(
+ <div className={cn(
         'group relative flex items-start gap-3 py-3 transition-colors',
-        isFocused ? 'bg-[#e0f2f7]/50 dark:bg-[#007ba5]/10' : ''
+        isFocused ? 'bg-[#e0f2f7]/50 ' : ''
       )}>
         {/* Line number */}
-        <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-3 font-mono">
+ <span className="w-8 text-right text-sm text-gray-300 select-none pt-3 font-mono">
           {lineNumber}.
         </span>
 
         {/* Math block - centered display style */}
-        <div className="flex-1 flex justify-center">
-          <div className={cn(
+ <div className="flex-1 flex justify-center">
+ <div className={cn(
             'relative inline-block px-6 py-4 rounded-lg transition-all',
-            'bg-gradient-to-r from-[#e0f2f7]/80 to-[#eef5fa]/80 dark:from-[#007ba5]/10 dark:to-[#007ba5]/5',
-            'border border-[#007ba5]/20 dark:border-[#007ba5]/30',
-            isFocused && 'ring-2 ring-[#007ba5]/50 dark:ring-[#007ba5]/30'
+            'bg-gradient-to-r from-[#e0f2f7]/80 to-[#eef5fa]/80  ',
+            'border border-[#007ba5]/20 ',
+            isFocused && 'ring-2 ring-[#007ba5]/50 '
           )}>
             {React.createElement('math-field', {
               ref: mathfieldRef,
-              className: cn(
+ className: cn(
                 'w-full min-w-[200px] text-xl bg-transparent border-none outline-none',
                 'focus:outline-none'
               ),
@@ -287,43 +287,43 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
 
             {/* Autocomplete popup - Corca style */}
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border dark:border-gray-700 overflow-hidden z-50">
+ <div className="absolute left-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border overflow-hidden z-50">
                 {/* Search term display */}
-                <div className="px-4 py-2 bg-[#e0f2f7] dark:bg-[#007ba5]/10 border-b dark:border-gray-700">
-                  <span className="font-mono text-sm">{searchTerm}</span>
+ <div className="px-4 py-2 bg-[#e0f2f7] border-b ">
+ <span className="font-mono text-sm">{searchTerm}</span>
                 </div>
 
                 {/* Suggestions list */}
-                <div className="max-h-64 overflow-y-auto">
+ <div className="max-h-64 overflow-y-auto">
                   {suggestions.map((suggestion, index) => (
                     <button
                       key={suggestion.trigger}
-                      className={cn(
+ className={cn(
                         'w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors',
                         index === selectedSuggestion
-                          ? 'bg-[#e0f2f7] dark:bg-[#007ba5]/20'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                          ? 'bg-[#e0f2f7] '
+                          : 'hover:bg-gray-50 '
                       )}
                       onClick={() => insertSuggestion(suggestion)}
                       onMouseEnter={() => setSelectedSuggestion(index)}
                     >
                       {/* Symbol */}
-                      <span className="w-10 h-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg text-xl font-serif">
+ <span className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg text-xl font-serif">
                         {suggestion.display}
                       </span>
 
                       {/* Label and category */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{suggestion.label}</span>
-                          <span className="text-xs text-gray-400">·</span>
-                          <span className="text-xs text-gray-500">{suggestion.category}</span>
+ <div className="flex-1 min-w-0">
+ <div className="flex items-center gap-2">
+ <span className="font-medium text-sm">{suggestion.label}</span>
+ <span className="text-xs text-gray-400">·</span>
+ <span className="text-xs text-gray-500">{suggestion.category}</span>
                         </div>
                       </div>
 
                       {/* Shortcut */}
                       {suggestion.shortcut && (
-                        <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">
+ <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono">
                           {suggestion.shortcut}
                         </span>
                       )}
@@ -332,9 +332,9 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
                 </div>
 
                 {/* Hint */}
-                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-t dark:border-gray-700">
-                  <span className="text-xs text-gray-500">
-                    Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-gray-700 rounded text-[10px] border mx-1">Enter</kbd>
+ <div className="px-4 py-2 bg-gray-50 border-t ">
+ <span className="text-xs text-gray-500">
+ Press <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px] border mx-1">Enter</kbd>
                     to insert from the suggest popup.
                   </span>
                 </div>
@@ -356,11 +356,11 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
     const level = block.level || 1;
 
     return (
-      <div className={cn(
+ <div className={cn(
         'group flex items-start gap-3 py-2 transition-colors',
-        isFocused ? 'bg-gray-50/50 dark:bg-gray-900/30' : ''
+        isFocused ? 'bg-gray-50/50 ' : ''
       )}>
-        <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-1 font-mono">
+ <span className="w-8 text-right text-sm text-gray-300 select-none pt-1 font-mono">
           {lineNumber}.
         </span>
         <textarea
@@ -374,10 +374,10 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={`Heading ${level}...`}
-          className={cn(
+ className={cn(
             'flex-1 bg-transparent border-none outline-none resize-none leading-tight',
             sizes[level],
-            'placeholder:text-gray-300 dark:placeholder:text-gray-700'
+            'placeholder:text-gray-300 '
           )}
           rows={1}
           autoFocus={autoFocus}
@@ -388,11 +388,11 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
 
   // PARAGRAPH BLOCK (default)
   return (
-    <div className={cn(
+ <div className={cn(
       'group flex items-start gap-3 py-1.5 transition-colors',
-      isFocused ? 'bg-gray-50/50 dark:bg-gray-900/30' : ''
+      isFocused ? 'bg-gray-50/50 ' : ''
     )}>
-      <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-0.5 font-mono">
+ <span className="w-8 text-right text-sm text-gray-300 select-none pt-0.5 font-mono">
         {lineNumber}.
       </span>
       <textarea
@@ -406,10 +406,10 @@ export const CorcaBlock = forwardRef<CorcaBlockRef, CorcaBlockProps>(({
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder="Type text, press $ for math equation, or # for heading..."
-        className={cn(
+ className={cn(
           'flex-1 bg-transparent border-none outline-none resize-none',
-          'text-base leading-relaxed text-gray-800 dark:text-gray-200',
-          'placeholder:text-gray-300 dark:placeholder:text-gray-600'
+          'text-base leading-relaxed text-gray-800 ',
+          'placeholder:text-gray-300 '
         )}
         rows={1}
         autoFocus={autoFocus}

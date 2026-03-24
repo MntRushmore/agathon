@@ -4,24 +4,8 @@ import {
   fetchStudentSubmissions,
   addSubmissionLink,
   turnInSubmission,
+  extractComposioItems,
 } from '@/lib/composio';
-
-function extractItems(response: unknown): Record<string, unknown>[] {
-  if (Array.isArray(response)) return response;
-  const resp = response as Record<string, unknown>;
-  if (resp?.data && Array.isArray(resp.data)) return resp.data as Record<string, unknown>[];
-  const rd = (resp?.data as Record<string, unknown>)?.response_data ?? (resp as Record<string, unknown>)?.response_data;
-  if (rd) {
-    if (Array.isArray(rd)) return rd;
-    if (typeof rd === 'object' && rd !== null) {
-      for (const key of Object.keys(rd)) {
-        const val = (rd as Record<string, unknown>)[key];
-        if (Array.isArray(val)) return val as Record<string, unknown>[];
-      }
-    }
-  }
-  return [];
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Find the student's submission for this coursework
     const subsResponse = await fetchStudentSubmissions(user.id, courseId, courseworkId);
-    const subs = extractItems(subsResponse);
+    const subs = extractComposioItems(subsResponse);
 
     if (subs.length === 0) {
       return NextResponse.json(
@@ -102,11 +86,20 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id);
 
     // Update the knowledge_base record to reflect turned-in state
+    // Fetch existing metadata first to avoid overwriting sync data
+    const { data: existingKb } = await supabase
+      .from('knowledge_base')
+      .select('metadata')
+      .eq('user_id', user.id)
+      .eq('source', 'google_classroom')
+      .eq('source_id', `cw_${courseworkId}`)
+      .maybeSingle();
+
     await supabase
       .from('knowledge_base')
       .update({
         metadata: {
-          ...(typeof studentSubmission === 'object' ? studentSubmission : {}),
+          ...(existingKb?.metadata ?? {}),
           submission_state: 'TURNED_IN',
         },
       })

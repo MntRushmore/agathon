@@ -11,3 +11,6 @@ export const OPENROUTER_IMAGE_MODEL = process.env.OPENROUTER_MODEL || 'google/ge
 
 /** Fast/cheap model for help-needed classification */
 export const HELP_DETECTION_MODEL = 'openai/gpt-4.1-mini';
+
+// TODO: L17 — Consider summarizing older conversation history beyond a threshold
+// (e.g., keep last 10 messages verbatim, summarize earlier ones) to reduce token costs.

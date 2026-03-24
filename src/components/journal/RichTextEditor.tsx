@@ -1,3 +1,5 @@
+// TODO: L16 — Split this 1,727-line component into smaller sub-components.
+// Consider lazy-loading table and math extensions with next/dynamic.
 'use client';
 
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';

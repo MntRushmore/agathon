@@ -240,8 +240,8 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
   if (block.type === 'heading') {
     const sizes = { 1: 'text-3xl font-bold', 2: 'text-2xl font-semibold', 3: 'text-xl font-medium' };
     return (
-      <div className={cn('group flex items-start gap-3 py-2', isFocused && 'bg-gray-50/50 dark:bg-gray-900/30')}>
-        <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-1 font-mono">
+ <div className={cn('group flex items-start gap-3 py-2', isFocused && 'bg-gray-50/50 ')}>
+ <span className="w-8 text-right text-sm text-gray-300 select-none pt-1 font-mono">
           {lineNumber}.
         </span>
         <input
@@ -253,7 +253,7 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
           onFocus={onFocus}
           onBlur={handleBlur}
           placeholder={`Heading ${block.level || 1}...`}
-          className={cn('flex-1 bg-transparent border-none outline-none', sizes[block.level || 1], 'placeholder:text-gray-300')}
+ className={cn('flex-1 bg-transparent border-none outline-none', sizes[block.level || 1], 'placeholder:text-gray-300')}
           autoFocus={autoFocus}
         />
       </div>
@@ -262,16 +262,16 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
 
   // RICH BLOCK - Live rendered math
   return (
-    <div className={cn('group flex items-start gap-3 py-1.5 relative', isFocused && 'bg-gray-50/50 dark:bg-gray-900/30')}>
+ <div className={cn('group flex items-start gap-3 py-1.5 relative', isFocused && 'bg-gray-50/50 ')}>
       {/* Line number */}
-      <span className="w-8 text-right text-sm text-gray-300 dark:text-gray-700 select-none pt-0.5 font-mono">
+ <span className="w-8 text-right text-sm text-gray-300 select-none pt-0.5 font-mono">
         {lineNumber}.
       </span>
 
       {/* Content */}
-      <div className="flex-1 min-h-[28px] relative">
+ <div className="flex-1 min-h-[28px] relative">
         {/* Live rendered content with inline math */}
-        <div className="flex items-center flex-wrap gap-0 min-h-[28px]">
+ <div className="flex items-center flex-wrap gap-0 min-h-[28px]">
           {segments.map((segment, i) => {
             if (segment.type === 'math') {
               const html = renderKatex(segment.content);
@@ -279,13 +279,13 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
                 return (
                   <span
                     key={i}
-                    className="inline-flex items-center mx-0.5 px-1 rounded bg-blue-50 dark:bg-blue-950/30"
+ className="inline-flex items-center mx-0.5 px-1 rounded bg-blue-50 "
                     dangerouslySetInnerHTML={{ __html: html }}
                   />
                 );
               }
             }
-            return <span key={i} className="whitespace-pre-wrap">{segment.content}</span>;
+ return <span key={i} className="whitespace-pre-wrap">{segment.content}</span>;
           })}
 
           {/* Invisible input overlaid for typing */}
@@ -297,14 +297,14 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
             onKeyDown={handleKeyDown}
             onFocus={onFocus}
             onBlur={handleBlur}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-text"
+ className="absolute inset-0 w-full h-full opacity-0 cursor-text"
             placeholder="Type text or math..."
             autoFocus={autoFocus}
           />
 
           {/* Show placeholder when empty */}
           {!block.content && (
-            <span className="text-gray-300 dark:text-gray-600 pointer-events-none">
+ <span className="text-gray-300 pointer-events-none">
               Type text or math like 3x+2=5...
             </span>
           )}
@@ -312,26 +312,26 @@ export const RichTextBlock = forwardRef<RichTextBlockRef, RichTextBlockProps>(({
 
         {/* Autocomplete popup - Corca style */}
         {showAutocomplete && filteredSuggestions.length > 0 && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 rounded-xl shadow-2xl border border-gray-700 py-2 min-w-[300px] max-w-[400px]">
+ <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 rounded-xl shadow-2xl border border-gray-700 py-2 min-w-[300px] max-w-[400px]">
             {filteredSuggestions.map((suggestion, i) => (
               <div
                 key={suggestion.trigger}
                 onClick={() => insertSuggestion(suggestion)}
-                className={cn(
+ className={cn(
                   'flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors',
                   i === autocompleteIndex ? 'bg-gray-800' : 'hover:bg-gray-800/50'
                 )}
               >
-                <span className="text-2xl text-blue-400 w-8 text-center">{suggestion.symbol}</span>
-                <span className="text-white font-medium">{suggestion.label}</span>
-                <span className="text-gray-500 text-sm ml-1">· {suggestion.category}</span>
+ <span className="text-2xl text-blue-400 w-8 text-center">{suggestion.symbol}</span>
+ <span className="text-white font-medium">{suggestion.label}</span>
+ <span className="text-gray-500 text-sm ml-1">· {suggestion.category}</span>
                 {suggestion.shortcut && (
-                  <span className="ml-auto text-gray-500 text-xs">{suggestion.shortcut}</span>
+ <span className="ml-auto text-gray-500 text-xs">{suggestion.shortcut}</span>
                 )}
               </div>
             ))}
-            <div className="px-4 py-1.5 text-xs text-gray-500 border-t border-gray-700 mt-1">
-              Press <kbd className="px-1 py-0.5 bg-gray-800 rounded mx-1">Enter</kbd> to insert
+ <div className="px-4 py-1.5 text-xs text-gray-500 border-t border-gray-700 mt-1">
+ Press <kbd className="px-1 py-0.5 bg-gray-800 rounded mx-1">Enter</kbd> to insert
             </div>
           </div>
         )}

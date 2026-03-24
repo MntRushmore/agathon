@@ -95,7 +95,14 @@ function formatSolution(solutions: any): string {
 /**
  * Quick solve using CAS - returns instant results for supported expressions
  */
+const MAX_EXPRESSION_LENGTH = 500;
+
 export function quickSolve(expression: string): QuickSolveResult {
+  if (expression.length > MAX_EXPRESSION_LENGTH) {
+    return { answer: '', success: false, error: 'Expression too long' };
+  }
+
+  // TODO: For true timeout protection, run nerdamer in a Worker thread
   try {
     // Clean the input
     const cleaned = latexToPlain(expression);

@@ -164,6 +164,15 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
         </p>
       </div>
 
+      {/* Lasso Solve hint - pointing UP to the lasso tool in toolbar */}
+      <div data-hint className="absolute top-16 left-[calc(50%-80px)] -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
+        <ArrowUp className="text-gray-300" />
+        <p className="text-gray-400 text-sm text-center mt-1">
+          <span className="text-gray-500 font-medium">Lasso Solve</span><br />
+          Circle a problem<br />for AI help
+        </p>
+      </div>
+
       {/* Back button hint - top left */}
       <div data-hint className="absolute top-16 left-6 flex flex-col items-start pointer-events-none opacity-0">
         <ArrowUp className="text-gray-300" />

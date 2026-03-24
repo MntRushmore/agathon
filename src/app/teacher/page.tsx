@@ -59,7 +59,7 @@ interface RecentActivity {
   timestamp: string;
   studentName?: string;
   assignmentTitle?: string;
-  className?: string;
+ className?: string;
 }
 
 interface SubmissionStatus {
@@ -256,7 +256,7 @@ export default function TeacherDashboardPage() {
               timestamp: s.submitted_at,
               studentName: s.student?.full_name || 'Student',
               assignmentTitle: s.assignment?.title,
-              className: s.assignment?.class?.name,
+ className: s.assignment?.class?.name,
             });
           }
         });
@@ -280,7 +280,7 @@ export default function TeacherDashboardPage() {
             message: `joined ${j.class?.name}`,
             timestamp: j.joined_at,
             studentName: j.student?.full_name || 'Student',
-            className: j.class?.name,
+ className: j.class?.name,
           });
         });
       }
@@ -311,7 +311,7 @@ export default function TeacherDashboardPage() {
       return <Badge variant="destructive">Past due</Badge>;
     }
     if (isToday(date)) {
-      return <Badge className="bg-amber-500">Due today</Badge>;
+ return <Badge className="bg-amber-500">Due today</Badge>;
     }
     if (isTomorrow(date)) {
       return <Badge variant="secondary">Due tomorrow</Badge>;
@@ -322,49 +322,49 @@ export default function TeacherDashboardPage() {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'submission':
-        return <CheckCircle weight="duotone" className="h-4 w-4 text-green-500" />;
+ return <CheckCircle weight="duotone" className="h-4 w-4 text-green-500" />;
       case 'join':
-        return <UsersThree weight="duotone" className="h-4 w-4 text-blue-500" />;
+ return <UsersThree weight="duotone" className="h-4 w-4 text-blue-500" />;
       case 'help_request':
-        return <WarningCircle weight="duotone" className="h-4 w-4 text-amber-500" />;
+ return <WarningCircle weight="duotone" className="h-4 w-4 text-amber-500" />;
       default:
-        return <Clock weight="duotone" className="h-4 w-4 text-muted-foreground" />;
+ return <Clock weight="duotone" className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-48" />
-            <Skeleton className="h-4 w-36" />
+ <div className="min-h-screen bg-background">
+ <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
+ <div className="space-y-2">
+ <Skeleton className="h-7 w-48" />
+ <Skeleton className="h-4 w-36" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map(i => (
               <Card key={i}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-24" />
-                      <Skeleton className="h-8 w-16" />
+ <CardContent className="pt-6">
+ <div className="flex items-center justify-between">
+ <div className="space-y-2">
+ <Skeleton className="h-4 w-24" />
+ <Skeleton className="h-8 w-16" />
                     </div>
-                    <Skeleton className="h-12 w-12 rounded-full" />
+ <Skeleton className="h-12 w-12 rounded-full" />
                   </div>
-                  <Skeleton className="h-3 w-32 mt-3" />
+ <Skeleton className="h-3 w-32 mt-3" />
                 </CardContent>
               </Card>
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+ <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <Skeleton className="h-5 w-40" />
+ <Skeleton className="h-5 w-40" />
                 </CardHeader>
-                <CardContent className="space-y-3">
+ <CardContent className="space-y-3">
                   {[1, 2, 3].map(i => (
-                    <Skeleton key={i} className="h-20 w-full rounded-lg" />
+ <Skeleton key={i} className="h-20 w-full rounded-lg" />
                   ))}
                 </CardContent>
               </Card>
@@ -372,15 +372,15 @@ export default function TeacherDashboardPage() {
             <div>
               <Card>
                 <CardHeader>
-                  <Skeleton className="h-5 w-32" />
+ <Skeleton className="h-5 w-32" />
                 </CardHeader>
-                <CardContent className="space-y-4">
+ <CardContent className="space-y-4">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="flex items-start gap-3">
-                      <Skeleton className="h-4 w-4 mt-0.5 rounded-full" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-3 w-20" />
+ <div key={i} className="flex items-start gap-3">
+ <Skeleton className="h-4 w-4 mt-0.5 rounded-full" />
+ <div className="flex-1 space-y-1.5">
+ <Skeleton className="h-4 w-full" />
+ <Skeleton className="h-3 w-20" />
                       </div>
                     </div>
                   ))}
@@ -394,34 +394,34 @@ export default function TeacherDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
-        <div className="flex items-center justify-between">
+ <div className="min-h-screen bg-background">
+ <div className="max-w-[1100px] mx-auto px-8 py-8 space-y-8">
+ <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold">
+ <h1 className="text-2xl font-semibold">
               Welcome back, {teacherName.split(' ')[0]}!
             </h1>
-            <p className="text-muted-foreground">
+ <p className="text-muted-foreground">
               {format(new Date(), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
           <Button asChild>
             <Link href="/teacher/assignments/create">
-              <Plus weight="duotone" className="h-4 w-4 mr-2" />
+ <Plus weight="duotone" className="h-4 w-4 mr-2" />
               New Assignment
             </Link>
           </Button>
         </div>
         <TooltipProvider>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               {
                 key: 'students',
                 label: 'Total Students',
                 value: stats.totalStudents,
                 subtitle: `Across ${stats.totalClasses} classes`,
-                icon: <UsersThree weight="duotone" className="h-6 w-6 text-blue-600" />,
-                iconBg: 'bg-blue-100 dark:bg-blue-900/30',
+ icon: <UsersThree weight="duotone" className="h-6 w-6 text-blue-600" />,
+                iconBg: 'bg-blue-100 ',
                 tooltip: 'Students currently enrolled in your active classes.',
                 onClick: () => router.push('/teacher/classes'),
                 cardClassName: 'hover:shadow-md transition-shadow cursor-pointer',
@@ -431,8 +431,8 @@ export default function TeacherDashboardPage() {
                 label: 'Active Assignments',
                 value: stats.activeAssignments,
                 subtitle: `${stats.pendingSubmissions} pending submissions`,
-                icon: <FileText weight="duotone" className="h-6 w-6 text-green-600" />,
-                iconBg: 'bg-green-100 dark:bg-green-900/30',
+ icon: <FileText weight="duotone" className="h-6 w-6 text-green-600" />,
+                iconBg: 'bg-green-100 ',
                 tooltip: 'Published assignments that are still in progress.',
                 onClick: () => router.push('/teacher/classes'),
                 cardClassName: 'hover:shadow-md transition-shadow cursor-pointer',
@@ -442,19 +442,19 @@ export default function TeacherDashboardPage() {
                 label: 'Need Attention',
                 value: stats.strugglingStudents,
                 subtitle: 'Students showing struggle indicators',
-                icon: <WarningCircle weight="duotone" className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />,
-                iconBg: stats.strugglingStudents > 0 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-muted',
+ icon: <WarningCircle weight="duotone" className={`h-6 w-6 ${stats.strugglingStudents > 0 ? 'text-amber-600' : 'text-muted-foreground'}`} />,
+                iconBg: stats.strugglingStudents > 0 ? 'bg-amber-100 ' : 'bg-muted',
                 tooltip: 'Students flagged for repeated hints or long time-on-task.',
                 onClick: undefined,
-                cardClassName: `transition-shadow ${stats.strugglingStudents > 0 ? 'border-amber-300 dark:border-amber-700' : ''}`,
+                cardClassName: `transition-shadow ${stats.strugglingStudents > 0 ? 'border-amber-300 ' : ''}`,
               },
               {
                 key: 'ai-assists',
                 label: 'AI Assists Today',
                 value: stats.aiAssistsToday,
                 subtitle: 'Across all assignments today',
-                icon: <Sparkle weight="duotone" className="h-6 w-6 text-purple-600" />,
-                iconBg: 'bg-purple-100 dark:bg-purple-900/30',
+ icon: <Sparkle weight="duotone" className="h-6 w-6 text-purple-600" />,
+                iconBg: 'bg-purple-100 ',
                 tooltip: 'AI hints, guided steps, and quick solves requested in the last 24 hours.',
                 onClick: undefined,
                 cardClassName: 'transition-shadow',
@@ -468,18 +468,18 @@ export default function TeacherDashboardPage() {
               >
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Card className={stat.cardClassName} onClick={stat.onClick}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
+ <Card className={stat.cardClassName} onClick={stat.onClick}>
+ <CardContent className="pt-6">
+ <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm text-muted-foreground">{stat.label}</p>
-                            <p className="text-3xl font-bold">{stat.value}</p>
+ <p className="text-sm text-muted-foreground">{stat.label}</p>
+ <p className="text-3xl font-bold">{stat.value}</p>
                           </div>
-                          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stat.iconBg}`}>
+ <div className={`h-12 w-12 rounded-full flex items-center justify-center ${stat.iconBg}`}>
                             {stat.icon}
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
+ <p className="text-xs text-muted-foreground mt-2">
                           {stat.subtitle}
                         </p>
                       </CardContent>
@@ -494,34 +494,34 @@ export default function TeacherDashboardPage() {
           </div>
         </TooltipProvider>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+ <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+ <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <CalendarBlank weight="duotone" className="h-5 w-5" />
+ <CardHeader className="flex flex-row items-center justify-between pb-2">
+ <CardTitle className="text-lg flex items-center gap-2">
+ <CalendarBlank weight="duotone" className="h-5 w-5" />
                   Recent Assignments
                 </CardTitle>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/teacher/classes">
-                    View all <CaretRight weight="duotone" className="h-4 w-4 ml-1" />
+ View all <CaretRight weight="duotone" className="h-4 w-4 ml-1" />
                   </Link>
                 </Button>
               </CardHeader>
               <CardContent>
                 {recentAssignments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText weight="duotone" className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-muted-foreground mb-4">No assignments yet</p>
+ <div className="text-center py-8">
+ <FileText weight="duotone" className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+ <p className="text-muted-foreground mb-4">No assignments yet</p>
                     <Button asChild>
                       <Link href="/teacher/assignments/create">
-                        <Plus weight="duotone" className="h-4 w-4 mr-2" />
+ <Plus weight="duotone" className="h-4 w-4 mr-2" />
                         Create your first assignment
                       </Link>
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+ <div className="space-y-3">
                     {recentAssignments.map((assignment, index) => (
                       <motion.div
                         key={assignment.id}
@@ -530,25 +530,25 @@ export default function TeacherDashboardPage() {
                         transition={{ duration: 0.3, delay: index * 0.06 }}
                       >
                         <div
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+ className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                           onClick={() => router.push(`/teacher/classes/${assignment.class.id}/assignments/${assignment.id}`)}
                         >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium">{assignment.title}</span>
+ <div className="flex-1">
+ <div className="flex items-center gap-2 mb-1">
+ <span className="font-medium">{assignment.title}</span>
                               {getDueDateBadge(assignment.due_date)}
                             </div>
-                            <p className="text-sm text-muted-foreground">
+ <p className="text-sm text-muted-foreground">
                               {assignment.class.name}
                             </p>
                           </div>
-                          <div className="text-right min-w-[80px]">
-                            <div className="text-lg font-semibold">
+ <div className="text-right min-w-[80px]">
+ <div className="text-lg font-semibold">
                               {assignment.submissionStats.submitted}/{assignment.submissionStats.total}
                             </div>
-                            <div className="mt-1 h-1.5 w-full bg-muted rounded-full overflow-hidden">
+ <div className="mt-1 h-1.5 w-full bg-muted rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+ className="h-full bg-green-500 rounded-full transition-all duration-500"
                                 style={{
                                   width: assignment.submissionStats.total > 0
                                     ? `${(assignment.submissionStats.submitted / assignment.submissionStats.total) * 100}%`
@@ -556,7 +556,7 @@ export default function TeacherDashboardPage() {
                                 }}
                               />
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">submitted</p>
+ <p className="text-xs text-muted-foreground mt-0.5">submitted</p>
                           </div>
                         </div>
                       </motion.div>
@@ -569,37 +569,37 @@ export default function TeacherDashboardPage() {
             <StrugglingStudentsPanel refreshInterval={60000} />
           </div>
 
-          <div className="space-y-6">
+ <div className="space-y-6">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Clock weight="duotone" className="h-5 w-5" />
+ <CardHeader className="pb-2">
+ <CardTitle className="text-lg flex items-center gap-2">
+ <Clock weight="duotone" className="h-5 w-5" />
                   Recent Activity
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {recentActivity.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Clock weight="duotone" className="h-8 w-8 mx-auto mb-2 opacity-50" />
+ <div className="text-center py-8 text-muted-foreground">
+ <Clock weight="duotone" className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recent activity</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+ <div className="space-y-4">
                     {recentActivity.map((activity, index) => (
                       <motion.div
                         key={activity.id}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.06 }}
-                        className="flex items-start gap-3"
+ className="flex items-start gap-3"
                       >
-                        <div className="mt-0.5">{getActivityIcon(activity.type)}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm">
-                            <span className="font-medium">{activity.studentName}</span>{' '}
+ <div className="mt-0.5">{getActivityIcon(activity.type)}</div>
+ <div className="flex-1 min-w-0">
+ <p className="text-sm">
+ <span className="font-medium">{activity.studentName}</span>{' '}
                             {activity.message}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+ <p className="text-xs text-muted-foreground">
                             {formatDistance(new Date(activity.timestamp), new Date(), { addSuffix: true })}
                           </p>
                         </div>
@@ -611,31 +611,31 @@ export default function TeacherDashboardPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
+ <CardHeader className="pb-2">
+ <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" className="w-full justify-start" asChild>
+ <CardContent className="space-y-2">
+ <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/assignments/create">
-                    <Plus weight="duotone" className="h-4 w-4 mr-2" />
+ <Plus weight="duotone" className="h-4 w-4 mr-2" />
                     Create Assignment
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+ <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/classes">
-                    <UsersThree weight="duotone" className="h-4 w-4 mr-2" />
+ <UsersThree weight="duotone" className="h-4 w-4 mr-2" />
                     Manage Classes
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+ <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/templates">
-                    <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
+ <BookOpenText weight="duotone" className="h-4 w-4 mr-2" />
                     Assignment Templates
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full justify-start" asChild>
+ <Button variant="outline" className="w-full justify-start" asChild>
                   <Link href="/teacher/settings">
-                    <GraduationCap weight="duotone" className="h-4 w-4 mr-2" />
+ <GraduationCap weight="duotone" className="h-4 w-4 mr-2" />
                     Google Classroom
                   </Link>
                 </Button>

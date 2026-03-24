@@ -12,10 +12,6 @@ export function NativeAppBridge() {
     // Setup native app bridge
     setupNativeAppBridge();
 
-    // Log native app status
-    if (isNativeApp()) {
-      console.log('Running in native app wrapper');
-    }
   }, []);
 
   // This component doesn't render anything

@@ -519,9 +519,15 @@ export function AITutorPanel({
 
             {/* Empty Analysis State */}
             {!isAnalysisLoading && !analysisError && !analysisData && (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-gray-300">
-                <p className="text-sm text-gray-400">
-                  Select a problem to explore
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center mb-3">
+                  <Brain className="w-5 h-5 text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500 mb-1">
+                  No problem selected
+                </p>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Use the <span className="font-medium text-gray-500">Lasso Solve</span> tool (L) to circle a problem on the canvas, then choose &ldquo;Suggest&rdquo; or &ldquo;Solve&rdquo; to see a step-by-step breakdown here.
                 </p>
               </div>
             )}

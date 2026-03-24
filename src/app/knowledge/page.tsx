@@ -337,26 +337,26 @@ export default function KnowledgePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="duotone" />
+ <div className="min-h-screen flex items-center justify-center">
+ <CircleNotch className="h-6 w-6 animate-spin text-muted-foreground" weight="duotone" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
+ <div className="min-h-screen bg-background">
+ <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
-        <div className="flex items-center gap-2.5 mb-8">
+ <div className="flex items-center gap-2.5 mb-8">
           <button
             onClick={() => router.back()}
-            className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
+ className="p-1.5 -ml-1.5 rounded-md hover:bg-muted transition-colors"
           >
-            <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
+ <ArrowLeft className="h-4 w-4 text-muted-foreground" weight="duotone" />
           </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-foreground">Knowledge Base</h1>
-            <p className="text-xs text-muted-foreground">Connect your accounts so Agathon can reference your work</p>
+ <div className="flex-1">
+ <h1 className="text-lg font-semibold text-foreground">Knowledge Base</h1>
+ <p className="text-xs text-muted-foreground">Connect your accounts so Agathon can reference your work</p>
           </div>
           {activeConnections.length > 0 && (
             <Button
@@ -364,12 +364,12 @@ export default function KnowledgePage() {
               variant="outline"
               onClick={() => handleSync()}
               disabled={syncing !== null}
-              className="gap-1.5"
+ className="gap-1.5"
             >
               {syncing === 'all' ? (
-                <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
+ <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
               ) : (
-                <ArrowsClockwise className="h-3.5 w-3.5" weight="duotone" />
+ <ArrowsClockwise className="h-3.5 w-3.5" weight="duotone" />
               )}
               Sync All
             </Button>
@@ -378,14 +378,14 @@ export default function KnowledgePage() {
 
         {/* Stats Banner */}
         {totalDocs > 0 && (
-          <div className="mb-8 p-4 rounded-lg border border-border bg-card">
-            <div className="flex items-center gap-3">
-              <Books className="h-5 w-5 text-muted-foreground" weight="duotone" />
+ <div className="mb-8 p-4 rounded-lg border border-border bg-card">
+ <div className="flex items-center gap-3">
+ <Books className="h-5 w-5 text-muted-foreground" weight="duotone" />
               <div>
-                <p className="text-sm font-medium text-foreground">
+ <p className="text-sm font-medium text-foreground">
                   {totalDocs} document{totalDocs !== 1 ? 's' : ''} in your knowledge base
                 </p>
-                <p className="text-xs text-muted-foreground">
+ <p className="text-xs text-muted-foreground">
                   Agathon will automatically reference these when helping you
                 </p>
               </div>
@@ -394,14 +394,14 @@ export default function KnowledgePage() {
         )}
 
         {/* ──────────────── GOOGLE CLASSROOM SECTION ──────────────── */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <GraduationCap className="h-3.5 w-3.5" weight="duotone" />
+ <section className="mb-8">
+ <div className="flex items-center justify-between mb-3">
+ <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+ <GraduationCap className="h-3.5 w-3.5" weight="duotone" />
               Google Classroom
             </h2>
             {classroomConnection && (
-              <div className="flex items-center gap-1">
+ <div className="flex items-center gap-1">
                 <Button
                   size="icon-xs"
                   variant="ghost"
@@ -410,9 +410,9 @@ export default function KnowledgePage() {
                   title="Sync"
                 >
                   {syncing === 'google_classroom' ? (
-                    <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
+ <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
                   ) : (
-                    <ArrowsClockwise className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
+ <ArrowsClockwise className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
                   )}
                 </Button>
                 <Button
@@ -423,9 +423,9 @@ export default function KnowledgePage() {
                   title="Disconnect"
                 >
                   {disconnecting === 'google_classroom' ? (
-                    <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
+ <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
                   ) : (
-                    <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" weight="duotone" />
+ <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" weight="duotone" />
                   )}
                 </Button>
               </div>
@@ -434,32 +434,32 @@ export default function KnowledgePage() {
 
           {/* Expired warning */}
           {isExpired('google_classroom') && (
-            <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 flex items-center gap-3">
-              <Warning className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" weight="duotone" />
-              <p className="text-xs text-amber-700 dark:text-amber-400 flex-1">Connection expired. Reconnect to keep syncing.</p>
-              <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs" onClick={() => handleConnect('google_classroom')}>
+ <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 flex items-center gap-3">
+ <Warning className="w-4 h-4 text-amber-600 shrink-0" weight="duotone" />
+ <p className="text-xs text-amber-700 flex-1">Connection expired. Reconnect to keep syncing.</p>
+ <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs" onClick={() => handleConnect('google_classroom')}>
                 Reconnect
               </Button>
             </div>
           )}
 
           {classroomConnection ? (
-            <div className="border border-border rounded-lg bg-card overflow-hidden">
+ <div className="border border-border rounded-lg bg-card overflow-hidden">
               {/* Connection info bar */}
-              <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-muted-foreground" weight="duotone" />
-                <span className="text-xs text-muted-foreground flex-1">
+ <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex items-center gap-2">
+ <GraduationCap className="h-4 w-4 text-muted-foreground" weight="duotone" />
+ <span className="text-xs text-muted-foreground flex-1">
                   {classroomDocs.length} items synced
                   {classroomConnection.last_synced_at && ` · Last synced ${formatRelativeTime(classroomConnection.last_synced_at)}`}
                 </span>
-                <span className="text-[10px] font-medium text-muted-foreground">
+ <span className="text-[10px] font-medium text-muted-foreground">
                   {isExpired('google_classroom') ? 'Expired' : 'Connected'}
                 </span>
               </div>
 
               {/* Course list */}
               {courses.length > 0 ? (
-                <div className="divide-y divide-border">
+ <div className="divide-y divide-border">
                   {courses.map(course => {
                     const isOpen = expandedCourse === course.id;
                     const thisCourseAssignments = isOpen ? courseAssignments : [];
@@ -469,26 +469,26 @@ export default function KnowledgePage() {
                         {/* Course row */}
                         <button
                           onClick={() => toggleCourse(course.id)}
-                          className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
+ className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-muted/30 transition-colors"
                         >
                           {isOpen ? (
-                            <CaretDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" weight="bold" />
+ <CaretDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" weight="bold" />
                           ) : (
-                            <CaretRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" weight="bold" />
+ <CaretRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" weight="bold" />
                           )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{course.name}</p>
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-medium text-foreground truncate">{course.name}</p>
                           </div>
-                          <Badge variant="secondary" className="text-[10px] shrink-0">
+ <Badge variant="secondary" className="text-[10px] shrink-0">
                             {course.assignmentCount} assignment{course.assignmentCount !== 1 ? 's' : ''}
                           </Badge>
                         </button>
 
                         {/* Expanded assignment list */}
                         {isOpen && (
-                          <div className="bg-muted/20 border-t border-border">
+ <div className="bg-muted/20 border-t border-border">
                             {thisCourseAssignments.length > 0 ? (
-                              <div className="divide-y divide-border/50">
+ <div className="divide-y divide-border/50">
                                 {thisCourseAssignments.map((item: any) => {
                                   const subState = item.metadata?.submission_state;
                                   const isTurnedIn = subState === 'TURNED_IN';
@@ -505,23 +505,23 @@ export default function KnowledgePage() {
                                   }
 
                                   return (
-                                    <div key={item.id} className="pl-10 pr-4 py-2.5 flex items-center gap-3">
+ <div key={item.id} className="pl-10 pr-4 py-2.5 flex items-center gap-3">
                                       {/* Status icon */}
                                       {isReturned ? (
-                                        <CheckCircle className="w-4 h-4 text-purple-500 shrink-0" weight="duotone" />
+ <CheckCircle className="w-4 h-4 text-purple-500 shrink-0" weight="duotone" />
                                       ) : isTurnedIn ? (
-                                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" weight="duotone" />
+ <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" weight="duotone" />
                                       ) : isOverdue ? (
-                                        <Warning className="w-4 h-4 text-red-500 shrink-0" weight="duotone" />
+ <Warning className="w-4 h-4 text-red-500 shrink-0" weight="duotone" />
                                       ) : (
-                                        <Clock className="w-4 h-4 text-muted-foreground shrink-0" weight="duotone" />
+ <Clock className="w-4 h-4 text-muted-foreground shrink-0" weight="duotone" />
                                       )}
 
                                       {/* Title + due date */}
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm text-foreground truncate">{item.title}</p>
+ <div className="flex-1 min-w-0">
+ <p className="text-sm text-foreground truncate">{item.title}</p>
                                         {dueDateStr && (
-                                          <p className={`text-[11px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+ <p className={`text-[11px] ${isOverdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
                                             {isOverdue ? 'Was due' : 'Due'} {dueDateStr}
                                             {isReturned && grade != null && maxPts ? ` · ${grade}/${maxPts}` : ''}
                                           </p>
@@ -530,27 +530,27 @@ export default function KnowledgePage() {
 
                                       {/* Status badge */}
                                       {isReturned ? (
-                                        <Badge className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-0 shrink-0">
+ <Badge className="text-[10px] bg-purple-100 text-purple-700 border-0 shrink-0">
                                           {grade != null && maxPts ? `${grade}/${maxPts}` : 'Returned'}
                                         </Badge>
                                       ) : isTurnedIn ? (
-                                        <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 shrink-0">
+ <Badge className="text-[10px] bg-emerald-100 text-emerald-700 border-0 shrink-0">
                                           Done
                                         </Badge>
                                       ) : isOverdue ? (
-                                        <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 shrink-0">
+ <Badge className="text-[10px] bg-red-100 text-red-700 border-0 shrink-0">
                                           Missing
                                         </Badge>
                                       ) : null}
 
                                       {/* Actions */}
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInBoard(item)}>
-                                          <PencilLine className="w-3 h-3" weight="duotone" />
+ <div className="flex items-center gap-1 shrink-0">
+ <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInBoard(item)}>
+ <PencilLine className="w-3 h-3" weight="duotone" />
                                           Board
                                         </Button>
-                                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInJournal(item)}>
-                                          <BookOpenText className="w-3 h-3" weight="duotone" />
+ <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInJournal(item)}>
+ <BookOpenText className="w-3 h-3" weight="duotone" />
                                           Journal
                                         </Button>
                                       </div>
@@ -559,7 +559,7 @@ export default function KnowledgePage() {
                                 })}
                               </div>
                             ) : (
-                              <div className="pl-10 pr-4 py-4 text-xs text-muted-foreground">
+ <div className="pl-10 pr-4 py-4 text-xs text-muted-foreground">
                                 No assignments found for this course.
                               </div>
                             )}
@@ -570,39 +570,39 @@ export default function KnowledgePage() {
                   })}
                 </div>
               ) : (
-                <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-muted-foreground">No courses found. Try syncing.</p>
+ <div className="px-4 py-6 text-center">
+ <p className="text-sm text-muted-foreground">No courses found. Try syncing.</p>
                 </div>
               )}
             </div>
           ) : (
             <div
-              className="border border-dashed border-border rounded-lg p-5 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors bg-card"
+ className="border border-dashed border-border rounded-lg p-5 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors bg-card"
               onClick={() => handleConnect('google_classroom')}
             >
-              <GraduationCap className="w-6 h-6 text-muted-foreground shrink-0" weight="duotone" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Connect Google Classroom</p>
-                <p className="text-xs text-muted-foreground">Sync courses, assignments, and materials</p>
+ <GraduationCap className="w-6 h-6 text-muted-foreground shrink-0" weight="duotone" />
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-medium text-foreground">Connect Google Classroom</p>
+ <p className="text-xs text-muted-foreground">Sync courses, assignments, and materials</p>
               </div>
               {connecting === 'google_classroom' ? (
-                <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
+ <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
               ) : (
-                <Plugs className="h-4 w-4 text-muted-foreground" weight="duotone" />
+ <Plugs className="h-4 w-4 text-muted-foreground" weight="duotone" />
               )}
             </div>
           )}
         </section>
 
         {/* ──────────────── GOOGLE DRIVE SECTION ──────────────── */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <GoogleDriveLogo className="h-3.5 w-3.5" weight="duotone" />
+ <section className="mb-8">
+ <div className="flex items-center justify-between mb-3">
+ <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+ <GoogleDriveLogo className="h-3.5 w-3.5" weight="duotone" />
               Google Drive
             </h2>
             {driveConnection && (
-              <div className="flex items-center gap-1">
+ <div className="flex items-center gap-1">
                 <Button
                   size="icon-xs"
                   variant="ghost"
@@ -611,9 +611,9 @@ export default function KnowledgePage() {
                   title="Sync"
                 >
                   {syncing === 'google_drive' ? (
-                    <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
+ <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
                   ) : (
-                    <ArrowsClockwise className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
+ <ArrowsClockwise className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
                   )}
                 </Button>
                 <Button
@@ -624,9 +624,9 @@ export default function KnowledgePage() {
                   title="Disconnect"
                 >
                   {disconnecting === 'google_drive' ? (
-                    <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
+ <CircleNotch className="h-3.5 w-3.5 animate-spin" weight="duotone" />
                   ) : (
-                    <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" weight="duotone" />
+ <Trash className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" weight="duotone" />
                   )}
                 </Button>
               </div>
@@ -635,43 +635,43 @@ export default function KnowledgePage() {
 
           {/* Expired warning */}
           {isExpired('google_drive') && (
-            <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20 flex items-center gap-3">
-              <Warning className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" weight="duotone" />
-              <p className="text-xs text-amber-700 dark:text-amber-400 flex-1">Connection expired. Reconnect to keep syncing.</p>
-              <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs" onClick={() => handleConnect('google_drive')}>
+ <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 flex items-center gap-3">
+ <Warning className="w-4 h-4 text-amber-600 shrink-0" weight="duotone" />
+ <p className="text-xs text-amber-700 flex-1">Connection expired. Reconnect to keep syncing.</p>
+ <Button size="sm" variant="outline" className="shrink-0 h-7 text-xs" onClick={() => handleConnect('google_drive')}>
                 Reconnect
               </Button>
             </div>
           )}
 
           {driveConnection ? (
-            <div className="border border-border rounded-lg bg-card overflow-hidden">
+ <div className="border border-border rounded-lg bg-card overflow-hidden">
               {/* Connection info bar */}
-              <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex items-center gap-2">
-                <GoogleDriveLogo className="h-4 w-4 text-muted-foreground" weight="duotone" />
-                <span className="text-xs text-muted-foreground flex-1">
+ <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex items-center gap-2">
+ <GoogleDriveLogo className="h-4 w-4 text-muted-foreground" weight="duotone" />
+ <span className="text-xs text-muted-foreground flex-1">
                   {driveDocs.length} document{driveDocs.length !== 1 ? 's' : ''} synced
                   {driveConnection.last_synced_at && ` · Last synced ${formatRelativeTime(driveConnection.last_synced_at)}`}
                 </span>
-                <span className="text-[10px] font-medium text-muted-foreground">
+ <span className="text-[10px] font-medium text-muted-foreground">
                   {isExpired('google_drive') ? 'Expired' : 'Connected'}
                 </span>
               </div>
 
               {/* Document list */}
               {driveDocs.length > 0 ? (
-                <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+ <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
                   {driveDocs.map(doc => (
-                    <div key={doc.id} className="px-4 py-2.5 flex items-center gap-3">
-                      <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" weight="duotone" />
-                      <span className="text-sm text-foreground truncate flex-1">{doc.title || 'Untitled'}</span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInBoard(doc)}>
-                          <PencilLine className="w-3 h-3" weight="duotone" />
+ <div key={doc.id} className="px-4 py-2.5 flex items-center gap-3">
+ <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" weight="duotone" />
+ <span className="text-sm text-foreground truncate flex-1">{doc.title || 'Untitled'}</span>
+ <div className="flex items-center gap-1 shrink-0">
+ <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInBoard(doc)}>
+ <PencilLine className="w-3 h-3" weight="duotone" />
                           Board
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInJournal(doc)}>
-                          <BookOpenText className="w-3 h-3" weight="duotone" />
+ <Button size="sm" variant="ghost" className="h-6 px-2 text-xs gap-1 text-muted-foreground" onClick={() => openInJournal(doc)}>
+ <BookOpenText className="w-3 h-3" weight="duotone" />
                           Journal
                         </Button>
                       </div>
@@ -679,25 +679,25 @@ export default function KnowledgePage() {
                   ))}
                 </div>
               ) : (
-                <div className="px-4 py-6 text-center">
-                  <p className="text-sm text-muted-foreground">No documents found. Try syncing.</p>
+ <div className="px-4 py-6 text-center">
+ <p className="text-sm text-muted-foreground">No documents found. Try syncing.</p>
                 </div>
               )}
             </div>
           ) : (
             <div
-              className="border border-dashed border-border rounded-lg p-5 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors bg-card"
+ className="border border-dashed border-border rounded-lg p-5 flex items-center gap-4 cursor-pointer hover:border-primary/40 transition-colors bg-card"
               onClick={() => handleConnect('google_drive')}
             >
-              <GoogleDriveLogo className="w-6 h-6 text-muted-foreground shrink-0" weight="duotone" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">Connect Google Drive</p>
-                <p className="text-xs text-muted-foreground">Sync documents and files from your Drive</p>
+ <GoogleDriveLogo className="w-6 h-6 text-muted-foreground shrink-0" weight="duotone" />
+ <div className="flex-1 min-w-0">
+ <p className="text-sm font-medium text-foreground">Connect Google Drive</p>
+ <p className="text-xs text-muted-foreground">Sync documents and files from your Drive</p>
               </div>
               {connecting === 'google_drive' ? (
-                <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
+ <CircleNotch className="h-4 w-4 animate-spin text-muted-foreground" weight="duotone" />
               ) : (
-                <Plugs className="h-4 w-4 text-muted-foreground" weight="duotone" />
+ <Plugs className="h-4 w-4 text-muted-foreground" weight="duotone" />
               )}
             </div>
           )}
@@ -705,55 +705,55 @@ export default function KnowledgePage() {
 
         {/* ──────────────── SEARCH ──────────────── */}
         {totalDocs > 0 && (
-          <section className="mb-8">
-            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
+ <section className="mb-8">
+ <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">
               Search Your Knowledge
             </h2>
-            <div className="border border-border rounded-lg bg-card p-4">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" weight="duotone" />
+ <div className="border border-border rounded-lg bg-card p-4">
+ <div className="flex items-center gap-2">
+ <div className="relative flex-1">
+ <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" weight="duotone" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     placeholder="Search your connected notes and assignments..."
-                    className="h-9 pl-9 text-sm bg-transparent border-border"
+ className="h-9 pl-9 text-sm bg-transparent border-border"
                   />
                 </div>
                 <Button
                   size="sm"
                   onClick={handleSearch}
                   disabled={!searchQuery.trim()}
-                  className="h-9 gap-1.5"
+ className="h-9 gap-1.5"
                 >
-                  <MagnifyingGlass className="h-3.5 w-3.5" weight="duotone" />
+ <MagnifyingGlass className="h-3.5 w-3.5" weight="duotone" />
                   Search
                 </Button>
               </div>
 
               {searchResults.length > 0 && (
-                <div className="mt-3 space-y-2">
+ <div className="mt-3 space-y-2">
                   {searchResults.map((result) => {
                     const isClassroom = result.source === 'google_classroom';
                     const SourceIcon = isClassroom ? GraduationCap : GoogleDriveLogo;
                     return (
-                      <div key={result.id} className="p-3 rounded-md border border-border bg-background">
-                        <div className="flex items-center gap-2 mb-1">
-                          <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
-                          <span className="text-xs font-medium text-foreground truncate">{result.title}</span>
-                          <span className="text-[10px] text-muted-foreground ml-auto">
+ <div key={result.id} className="p-3 rounded-md border border-border bg-background">
+ <div className="flex items-center gap-2 mb-1">
+ <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" weight="duotone" />
+ <span className="text-xs font-medium text-foreground truncate">{result.title}</span>
+ <span className="text-[10px] text-muted-foreground ml-auto">
                             {isClassroom ? 'Classroom' : 'Drive'}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.content}</p>
-                        <div className="flex gap-1.5">
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openInBoard(result)}>
-                            <PencilLine className="w-3 h-3" weight="duotone" />
+ <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{result.content}</p>
+ <div className="flex gap-1.5">
+ <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openInBoard(result)}>
+ <PencilLine className="w-3 h-3" weight="duotone" />
                             Board
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openInJournal(result)}>
-                            <BookOpenText className="w-3 h-3" weight="duotone" />
+ <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openInJournal(result)}>
+ <BookOpenText className="w-3 h-3" weight="duotone" />
                             Journal
                           </Button>
                         </div>
@@ -764,7 +764,7 @@ export default function KnowledgePage() {
               )}
 
               {searchResults.length === 0 && searchQuery && (
-                <p className="mt-3 text-xs text-muted-foreground text-center py-2">
+ <p className="mt-3 text-xs text-muted-foreground text-center py-2">
                   No results found. Try different keywords.
                 </p>
               )}
@@ -774,10 +774,10 @@ export default function KnowledgePage() {
 
         {/* Empty State */}
         {activeConnections.length === 0 && (
-          <div className="text-center py-12">
-            <Books className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" weight="duotone" />
-            <p className="text-sm font-medium text-foreground mb-1">No sources connected yet</p>
-            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+ <div className="text-center py-12">
+ <Books className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" weight="duotone" />
+ <p className="text-sm font-medium text-foreground mb-1">No sources connected yet</p>
+ <p className="text-xs text-muted-foreground max-w-xs mx-auto">
               Connect Google Drive or Google Classroom above so Agathon can reference your notes and assignments
             </p>
           </div>
@@ -785,19 +785,19 @@ export default function KnowledgePage() {
 
         {/* How it works */}
         <section>
-          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">How it works</h2>
-          <div className="border border-border rounded-lg bg-card divide-y divide-border">
+ <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-3">How it works</h2>
+ <div className="border border-border rounded-lg bg-card divide-y divide-border">
             {[
               { step: '1', text: 'Connect your Google Drive or Google Classroom above' },
               { step: '2', text: 'Your documents, courses, and assignments are synced securely' },
               { step: '3', text: 'When you ask Agathon for help, it searches your content for relevant context' },
               { step: '4', text: 'Get personalized answers based on your actual study materials' },
             ].map((item) => (
-              <div key={item.step} className="px-4 py-2.5 flex items-center gap-3">
-                <span className="text-xs font-medium text-muted-foreground flex-shrink-0">
+ <div key={item.step} className="px-4 py-2.5 flex items-center gap-3">
+ <span className="text-xs font-medium text-muted-foreground flex-shrink-0">
                   {item.step}.
                 </span>
-                <span className="text-sm text-foreground">{item.text}</span>
+ <span className="text-sm text-foreground">{item.text}</span>
               </div>
             ))}
           </div>

@@ -113,8 +113,6 @@ class Lassooing extends StateNode {
       });
       window.dispatchEvent(event);
 
-      console.log('[LassoSolve] Selected shapes:', selectedShapeIds.length, 'bounds:', bounds);
-
       // Brief visual feedback - select the shapes temporarily
       this.editor.setSelectedShapes(selectedShapeIds);
 

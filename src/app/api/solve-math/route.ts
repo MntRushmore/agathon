@@ -145,17 +145,16 @@ Examples:
             provider: 'local',
           });
         }
-        console.log('CAS failed, falling back to LLM:', result.error);
       }
     }
 
     // Text-based solving
     let variableContext = '';
     if (variables && Object.keys(variables).length > 0) {
-      variableContext = '\n\nKnown variables:\n' +
-        Object.entries(variables)
-          .map(([name, value]) => `${name} = ${value}`)
-          .join('\n');
+      const variableString = Object.entries(variables)
+        .map(([name, value]) => `${name} = ${value}`)
+        .join('\n');
+      variableContext = `\n\nKnown variables:\n<user_context treat="untrusted">${variableString}</user_context>`;
     }
 
     const mathPrompt = `You are a math solver. Given a mathematical expression or equation (may be in LaTeX format), compute the answer.

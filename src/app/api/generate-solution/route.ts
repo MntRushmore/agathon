@@ -60,6 +60,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (typeof image !== 'string' || !image.startsWith('data:')) {
+      solutionLogger.warn({ requestId }, 'Image is not a data URL');
+      return NextResponse.json(
+        { error: 'Image must be a data URL' },
+        { status: 400 }
+      );
+    }
+
     // Enforce Socratic mode if requested (Roadmap Item 8)
     let effectiveMode = mode;
     if (isSocratic && mode === 'answer') {

@@ -6,7 +6,6 @@ import { Toaster } from 'sileo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CommandPalette } from './CommandPalette';
 import { ImpersonationBar } from './admin/ImpersonationBar';
-import ThemeToggle from '@/components/ui/ThemeToggle';
 
 function useAnimationPreference() {
   useEffect(() => {
@@ -25,47 +24,12 @@ function useAnimationPreference() {
   }, []);
 }
 
-function useThemePreference() {
-  React.useEffect(() => {
-    const el = document.documentElement
-
-    const apply = () => {
-      const pref = localStorage.getItem('agathon_theme') || 'system'
-      if (pref === 'dark') {
-        el.classList.add('dark')
-      } else if (pref === 'light') {
-        el.classList.remove('dark')
-      } else {
-        const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)')
-        if (mq && mq.matches) el.classList.add('dark')
-        else el.classList.remove('dark')
-      }
-    }
-
-    apply()
-
-    const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => apply()
-    mq?.addEventListener?.('change', onChange)
-    window.addEventListener('storage', onChange)
-    window.addEventListener('agathon-pref-change', onChange)
-
-    return () => {
-      mq?.removeEventListener?.('change', onChange)
-      window.removeEventListener('storage', onChange)
-      window.removeEventListener('agathon-pref-change', onChange)
-    }
-  }, [])
-}
-
 export function AppProviders({ children }: { children: React.ReactNode }) {
   useAnimationPreference();
-  useThemePreference();
 
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <ThemeToggle />
         <ImpersonationBar />
         {children}
         <Toaster options={{ fill: '#1a1a1a', duration: 2000 }} />

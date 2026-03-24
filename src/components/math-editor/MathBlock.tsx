@@ -202,21 +202,21 @@ export function MathBlock({
   // Render based on block type
   if (block.type === 'math') {
     return (
-      <div className={cn(
+ <div className={cn(
         'group relative flex items-start gap-4 py-2 px-4 rounded-lg transition-colors',
-        isFocused ? 'bg-blue-50 dark:bg-blue-950/30' : 'hover:bg-gray-50 dark:hover:bg-gray-900/30'
+        isFocused ? 'bg-blue-50 ' : 'hover:bg-gray-50 '
       )}>
         {/* Line number */}
-        <span className="w-8 text-right text-sm text-gray-400 dark:text-gray-600 select-none pt-2">
+ <span className="w-8 text-right text-sm text-gray-400 select-none pt-2">
           {lineNumber}.
         </span>
 
         {/* Math field */}
-        <div className="flex-1 relative">
-          <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg px-4 py-3 border border-blue-200/50 dark:border-blue-800/30">
+ <div className="flex-1 relative">
+ <div className="bg-blue-50/50 rounded-lg px-4 py-3 border border-blue-200/50 ">
             {React.createElement('math-field', {
               ref: mathfieldRef,
-              className: 'w-full text-xl bg-transparent border-none outline-none math-field-custom',
+ className: 'w-full text-xl bg-transparent border-none outline-none math-field-custom',
               style: {
                 minHeight: '32px',
                 fontSize: '1.25rem',
@@ -226,27 +226,27 @@ export function MathBlock({
 
           {/* Autocomplete suggestions */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-gray-900 rounded-lg shadow-xl border dark:border-gray-700 overflow-hidden z-50">
+ <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border overflow-hidden z-50">
               {suggestions.map((suggestion, index) => (
                 <button
                   key={suggestion.trigger}
-                  className={cn(
+ className={cn(
                     'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
                     index === selectedSuggestion
-                      ? 'bg-blue-50 dark:bg-blue-950/50'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      ? 'bg-blue-50 '
+                      : 'hover:bg-gray-50 '
                   )}
                   onClick={() => insertSuggestion(suggestion)}
                 >
-                  <span className="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded text-lg font-mono">
+ <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-lg font-mono">
                     {suggestion.display}
                   </span>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{suggestion.label}</div>
-                    <div className="text-xs text-gray-500">{suggestion.category}</div>
+ <div className="flex-1">
+ <div className="font-medium text-sm">{suggestion.label}</div>
+ <div className="text-xs text-gray-500">{suggestion.category}</div>
                   </div>
                   {index === selectedSuggestion && (
-                    <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+ <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
                       Enter
                     </span>
                   )}
@@ -268,11 +268,11 @@ export function MathBlock({
     };
 
     return (
-      <div className={cn(
+ <div className={cn(
         'group flex items-start gap-4 py-2 px-4 rounded-lg transition-colors',
-        isFocused ? 'bg-gray-50 dark:bg-gray-900/50' : ''
+        isFocused ? 'bg-gray-50 ' : ''
       )}>
-        <span className="w-8 text-right text-sm text-gray-400 dark:text-gray-600 select-none pt-2">
+ <span className="w-8 text-right text-sm text-gray-400 select-none pt-2">
           {lineNumber}.
         </span>
         <textarea
@@ -283,10 +283,10 @@ export function MathBlock({
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder="Heading..."
-          className={cn(
+ className={cn(
             'flex-1 bg-transparent border-none outline-none resize-none',
             headingSizes[HeadingTag],
-            'placeholder:text-gray-300 dark:placeholder:text-gray-700'
+            'placeholder:text-gray-300 '
           )}
           rows={1}
           autoFocus={autoFocus}
@@ -297,11 +297,11 @@ export function MathBlock({
 
   // Text block (default)
   return (
-    <div className={cn(
+ <div className={cn(
       'group flex items-start gap-4 py-2 px-4 rounded-lg transition-colors',
-      isFocused ? 'bg-gray-50 dark:bg-gray-900/50' : ''
+      isFocused ? 'bg-gray-50 ' : ''
     )}>
-      <span className="w-8 text-right text-sm text-gray-400 dark:text-gray-600 select-none pt-1">
+ <span className="w-8 text-right text-sm text-gray-400 select-none pt-1">
         {lineNumber}.
       </span>
       <textarea
@@ -312,9 +312,9 @@ export function MathBlock({
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder="Type text, $ for math, or # for heading..."
-        className={cn(
+ className={cn(
           'flex-1 bg-transparent border-none outline-none resize-none text-base leading-relaxed',
-          'placeholder:text-gray-300 dark:placeholder:text-gray-700'
+          'placeholder:text-gray-300 '
         )}
         rows={1}
         autoFocus={autoFocus}

@@ -144,16 +144,13 @@ export function TemplateSelectionDialog({
 
         if (file.type === 'application/pdf') {
           try {
-            console.log('Converting PDF...');
             // Convert all PDF pages to images
             const images = await convertPdfToImages(dataUrl);
-            console.log(`PDF converted to ${images.length} images`);
             if (images.length === 0) {
               sileo.error({ title: 'PDF appears to be empty' });
               setUploading(false);
               return;
             }
-            console.log('Calling onTemplateSelect with images');
             onTemplateSelect('file-upload', images);
           } catch (error) {
             console.error('Error converting PDF:', error);
@@ -162,7 +159,6 @@ export function TemplateSelectionDialog({
           }
         } else {
           // Single image
-          console.log('Processing single image');
           onTemplateSelect('file-upload', dataUrl);
         }
       };

@@ -121,37 +121,37 @@ export default function TeacherSettingsPage() {
   const importedCourses = courses.filter((c) => c.importedClassId);
 
   return (
-    <div className="max-w-[1100px] mx-auto px-8 py-8">
+ <div className="max-w-[1100px] mx-auto px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold">Integrations</h1>
-          <p className="text-muted-foreground mt-1">
+ <div className="mb-8">
+ <h1 className="text-2xl font-semibold">Integrations</h1>
+ <p className="text-muted-foreground mt-1">
             Connect external services to your teacher account
           </p>
         </div>
 
         {/* Google Classroom Connection Status */}
-        <Card className="mb-6">
+ <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <svg viewBox="0 0 24 24" className="h-6 w-6 text-green-600" fill="currentColor">
+ <div className="flex items-center justify-between">
+ <div className="flex items-center gap-3">
+ <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+ <svg viewBox="0 0 24 24" className="h-6 w-6 text-green-600" fill="currentColor">
                     <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c1.66 0 3.22-.45 4.56-1.24l.44.44c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41l-.44-.44A8.96 8.96 0 0 0 21 12c0-4.97-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm-1-11h2v3h3v2h-3v3h-2v-3H8v-2h3V8z" />
                   </svg>
                 </div>
                 <div>
-                  <CardTitle className="text-lg">Google Classroom</CardTitle>
-                  <p className="text-sm text-muted-foreground">
+ <CardTitle className="text-lg">Google Classroom</CardTitle>
+ <p className="text-sm text-muted-foreground">
                     Import courses and post assignments
                   </p>
                 </div>
               </div>
               {loading ? (
-                <Skeleton className="h-6 w-24" />
+ <Skeleton className="h-6 w-24" />
               ) : connected ? (
-                <Badge variant="default" className="bg-green-600">
-                  <CheckCircle weight="bold" className="h-3 w-3 mr-1" />
+ <Badge variant="default" className="bg-green-600">
+ <CheckCircle weight="bold" className="h-3 w-3 mr-1" />
                   Connected
                 </Badge>
               ) : (
@@ -161,26 +161,26 @@ export default function TeacherSettingsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Skeleton className="h-10 w-40" />
+ <Skeleton className="h-10 w-40" />
             ) : !connected ? (
-              <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                <WarningCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" weight="bold" />
+ <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 ">
+ <WarningCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" weight="bold" />
                 <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+ <p className="text-sm font-medium text-amber-800 ">
                     Google Classroom is not connected
                   </p>
-                  <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+ <p className="text-sm text-amber-700 mt-1">
                     Connect your Google account to import courses and post assignments directly from Agathon.
                   </p>
                   <Button
                     size="sm"
-                    className="mt-3"
+ className="mt-3"
                     onClick={handleConnect}
                     disabled={connecting}
                   >
                     {connecting ? (
                       <>
-                        <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+ <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                         Connecting...
                       </>
                     ) : (
@@ -190,7 +190,7 @@ export default function TeacherSettingsPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
+ <p className="text-sm text-muted-foreground">
                 Google Classroom is connected and syncing your courses.
               </p>
             )}
@@ -201,61 +201,61 @@ export default function TeacherSettingsPage() {
         {connected && !loading && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Import Courses</CardTitle>
-              <p className="text-sm text-muted-foreground">
+ <CardTitle className="text-lg">Import Courses</CardTitle>
+ <p className="text-sm text-muted-foreground">
                 Select Google Classroom courses to import as Agathon classes
               </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+ <CardContent className="space-y-4">
               {courses.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
+ <p className="text-sm text-muted-foreground py-4 text-center">
                   No courses found in your Google Classroom account.
                 </p>
               ) : (
                 <>
                   {/* Importable courses */}
                   {importableCourses.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
+ <div className="space-y-2">
+ <p className="text-sm font-medium text-muted-foreground mb-2">
                         Available to import
                       </p>
                       {importableCourses.map((course) => (
                         <div
                           key={course.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+ className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                             selectedCourseIds.has(course.id)
                               ? 'border-primary bg-primary/5'
                               : 'hover:bg-muted/50'
                           }`}
                           onClick={() => toggleCourse(course.id)}
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{course.name}</p>
+ <div className="flex-1 min-w-0">
+ <p className="font-medium truncate">{course.name}</p>
                             {course.section && (
-                              <p className="text-sm text-muted-foreground">{course.section}</p>
+ <p className="text-sm text-muted-foreground">{course.section}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
                             {course.alternateLink && (
                               <a
                                 href={course.alternateLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="text-muted-foreground hover:text-foreground"
+ className="text-muted-foreground hover:text-foreground"
                               >
-                                <ArrowSquareOut weight="duotone" className="h-4 w-4" />
+ <ArrowSquareOut weight="duotone" className="h-4 w-4" />
                               </a>
                             )}
                             <div
-                              className={`h-5 w-5 rounded border-2 flex items-center justify-center ${
+ className={`h-5 w-5 rounded border-2 flex items-center justify-center ${
                                 selectedCourseIds.has(course.id)
                                   ? 'bg-primary border-primary'
                                   : 'border-muted-foreground'
                               }`}
                             >
                               {selectedCourseIds.has(course.id) && (
-                                <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
+ <Check weight="bold" className="h-3 w-3 text-primary-foreground" />
                               )}
                             </div>
                           </div>
@@ -263,13 +263,13 @@ export default function TeacherSettingsPage() {
                       ))}
 
                       <Button
-                        className="w-full mt-3"
+ className="w-full mt-3"
                         onClick={handleImport}
                         disabled={importing || selectedCourseIds.size === 0}
                       >
                         {importing ? (
                           <>
-                            <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
+ <CircleNotch weight="bold" className="h-4 w-4 mr-2 animate-spin" />
                             Importing...
                           </>
                         ) : (
@@ -281,24 +281,24 @@ export default function TeacherSettingsPage() {
 
                   {/* Already imported courses */}
                   {importedCourses.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
+ <div className="space-y-2">
+ <p className="text-sm font-medium text-muted-foreground mb-2">
                         Already imported
                       </p>
                       {importedCourses.map((course) => (
                         <div
                           key={course.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+ className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
                         >
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{course.name}</p>
+ <div className="flex-1 min-w-0">
+ <p className="font-medium truncate">{course.name}</p>
                             {course.section && (
-                              <p className="text-sm text-muted-foreground">{course.section}</p>
+ <p className="text-sm text-muted-foreground">{course.section}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">
-                              <Check weight="bold" className="h-3 w-3 mr-1" />
+ <div className="flex items-center gap-2">
+ <Badge variant="secondary" className="text-xs">
+ <Check weight="bold" className="h-3 w-3 mr-1" />
                               Imported
                             </Badge>
                             <Button

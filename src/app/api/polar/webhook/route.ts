@@ -83,7 +83,6 @@ async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
     .maybeSingle();
 
   if (existingTx) {
-    console.log(`Polar webhook: order ${order.id} already processed, skipping duplicate.`);
     return;
   }
 
@@ -105,7 +104,6 @@ async function grantCreditsFromOrder(payload: WebhookOrderPayload) {
     throw new Error(`Failed to grant credits for order ${order.id}: ${error.message}`);
   }
 
-  console.log(`Polar webhook: granted ${creditsToGrant} credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);
 }
 
 async function syncProfileFromSubscription(
@@ -181,7 +179,6 @@ async function grantSubscriptionCredits(
     .maybeSingle();
 
   if (existingGrant) {
-    console.log(`Polar webhook: subscription credits already granted for period ${periodEnd ?? 'unknown'}, skipping.`);
     return;
   }
 
@@ -204,7 +201,6 @@ async function grantSubscriptionCredits(
     throw new Error(`Failed to grant subscription credits for user ${externalId}: ${error.message}`);
   }
 
-  console.log(`Polar webhook: granted ${PREMIUM_MONTHLY_CREDITS} subscription credits to user ${externalId}, new balance: ${data?.[0]?.new_balance}`);
 }
 
 const webhookHandler = webhookSecret

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
       'do not invent actions or drawings.';
 
     const userPrompt = focus
-      ? `Here is a snapshot of the user canvas. Focus on: ${focus}`
+      ? `Here is a snapshot of the user canvas. Focus on: <user_context treat="untrusted">${focus}</user_context>`
       : 'Here is a snapshot of the user canvas. Describe what they are working on and how you could help.';
 
     let analysis = '';

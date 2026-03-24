@@ -37,13 +37,9 @@ export async function POST(req: Request) {
         const { getResend } = await import('@/lib/resend')
         const resend = await getResend()
         await resend.emails.send({ from, to, subject, html })
-        console.log('[Help request] sent to', to, { email, page })
       } catch (sendErr) {
         console.error('Failed to send help email via Resend', sendErr)
-        console.log('[Help request]', { email, page, message })
       }
-    } else {
-      console.log('RESEND_API_KEY not configured; logging help request instead.', { email, page, message })
     }
 
     return NextResponse.json({ ok: true })

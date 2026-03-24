@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// TODO: L1 — Add rate limiting to prevent brute-force invite code guessing.
+// Use checkRateLimit() from @/lib/rate-limit once H3 is merged.
+
 export async function POST(req: NextRequest) {
   try {
     const { code } = await req.json();

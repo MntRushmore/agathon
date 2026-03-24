@@ -113,7 +113,7 @@ export default function BillingPage() {
         }
       } catch (err) {
         logger.error({ err }, 'Failed to load usage');
-        try { sileo.error({ title: 'Failed to load usage. Please try again.' }); } catch (e) {}
+        try { sileo.error({ title: 'Failed to load usage. Please try again.' }); } catch (e) { console.warn('Unexpected error:', e); }
       } finally {
         setLoadingUsage(false);
       }

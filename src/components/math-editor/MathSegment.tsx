@@ -10,7 +10,7 @@ interface MathSegmentProps {
   content: string;
   onClick?: (e: React.MouseEvent) => void;
   isEditing?: boolean;
-  className?: string;
+ className?: string;
 }
 
 /**
@@ -21,7 +21,7 @@ export function MathSegment({
   content,
   onClick,
   isEditing = false,
-  className,
+ className,
 }: MathSegmentProps) {
   // Convert to LaTeX and render
   const { html, error } = useMemo(() => {
@@ -57,13 +57,13 @@ export function MathSegment({
     return (
       <span
         onClick={onClick}
-        className={cn(
+ className={cn(
           'inline-flex items-center px-1 py-0.5 rounded',
-          'font-mono text-blue-600 dark:text-blue-400',
-          'bg-blue-50 dark:bg-blue-950/30',
-          onClick && 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/50',
+          'font-mono text-blue-600 ',
+          'bg-blue-50 ',
+          onClick && 'cursor-pointer hover:bg-blue-100 ',
           isEditing && 'ring-2 ring-blue-400',
-          className
+ className
         )}
       >
         {content}
@@ -74,13 +74,13 @@ export function MathSegment({
   return (
     <span
       onClick={onClick}
-      className={cn(
+ className={cn(
         'inline-flex items-center align-middle',
         'mx-0.5 px-1 py-0.5 rounded',
-        'bg-blue-50/50 dark:bg-blue-950/20',
-        onClick && 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors',
-        isEditing && 'ring-2 ring-blue-400 bg-blue-100 dark:bg-blue-900/50',
-        className
+        'bg-blue-50/50 ',
+        onClick && 'cursor-pointer hover:bg-blue-100  transition-colors',
+        isEditing && 'ring-2 ring-blue-400 bg-blue-100 ',
+ className
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
@@ -106,12 +106,12 @@ export function InlineMath({ content, className }: { content: string; className?
   }, [content]);
 
   if (!html) {
-    return <span className={cn('font-mono', className)}>{content}</span>;
+ return <span className={cn('font-mono', className)}>{content}</span>;
   }
 
   return (
     <span
-      className={cn('inline-flex items-center align-middle', className)}
+ className={cn('inline-flex items-center align-middle', className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
