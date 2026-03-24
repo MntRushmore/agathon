@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { helpLogger } from '@/lib/logger'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -38,13 +39,13 @@ export async function POST(req: Request) {
         const resend = await getResend()
         await resend.emails.send({ from, to, subject, html })
       } catch (sendErr) {
-        console.error('Failed to send help email via Resend', sendErr)
+        helpLogger.error({ err: sendErr }, 'Failed to send help email via Resend')
       }
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Error in /api/help', err)
+    helpLogger.error({ err }, 'Error in /api/help')
     return NextResponse.json({ ok: false }, { status: 500 })
   }
 }
