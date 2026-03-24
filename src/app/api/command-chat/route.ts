@@ -21,6 +21,7 @@ When answering questions:
 - Use markdown for formatting`;
 
 export async function POST(req: Request) {
+  try {
   // Auth check - require login for all AI features
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -114,4 +115,11 @@ export async function POST(req: Request) {
       'X-Vercel-AI-Data-Stream': 'v1',
     },
   });
+  } catch (error) {
+    console.error('Command chat error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
