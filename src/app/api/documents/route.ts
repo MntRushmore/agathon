@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
+
+const log = logger.child({ module: 'documents' });
 
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
@@ -13,10 +16,12 @@ export async function GET(request: NextRequest) {
     .from('documents')
     .select('*')
     .eq('user_id', user.id)
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .limit(100);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    log.error({ err: error }, 'Failed to fetch documents');
+    return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -39,7 +44,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    log.error({ err: error }, 'Failed to create document');
+    return NextResponse.json({ error: 'Failed to create document' }, { status: 500 });
   }
 
   return NextResponse.json(data);
