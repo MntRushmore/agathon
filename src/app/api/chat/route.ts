@@ -1,7 +1,9 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
 import { searchKnowledgeBase, buildKnowledgeAwarePrompt, hasKnowledgeBase, getUpcomingAssignmentsContext } from '@/lib/ai/knowledge-agent';
+import { chatLogger } from '@/lib/logger';
 
 interface CanvasContext {
   subject?: string;
@@ -35,6 +37,14 @@ export async function POST(req: NextRequest) {
       return new Response(
         JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
       );
     }
 
@@ -134,7 +144,7 @@ If the student replies, next step, move on to the next step of the problem witho
         }
       } catch (kbError) {
         // Knowledge base search is non-critical — continue without it
-        console.error('Knowledge base search error:', kbError);
+        chatLogger.error({ err: kbError }, 'Knowledge base search error');
       }
     }
 
@@ -168,14 +178,14 @@ If the student replies, next step, move on to the next step of the problem witho
         },
       });
     } catch (hackclubError) {
-      console.error('Hack Club AI error:', hackclubError);
+      chatLogger.error({ err: hackclubError }, 'Hack Club AI error');
       return new Response(
         JSON.stringify({ error: 'Failed to get response from AI' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
-    console.error('Chat API error:', error);
+    chatLogger.error({ err: error }, 'Chat API error');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

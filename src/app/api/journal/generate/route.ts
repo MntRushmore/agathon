@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { journalLogger } from '@/lib/logger';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const PROMPTS = {
   video: `You are an educational content creator. Based on the user's notes/topic, create a detailed video script that explains the concept using the Feynman technique (explain it simply as if teaching a child).
@@ -247,6 +249,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rateLimit = await checkRateLimit(user.id, 'chat');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     const { type, content, topic, count } = await req.json();
 
     if (!type || !PROMPTS[type as keyof typeof PROMPTS]) {
@@ -285,7 +295,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content: generatedContent });
   } catch (error) {
-    console.error('Journal generate error:', error);
+    journalLogger.error({ err: error }, 'Journal generate error');
     return NextResponse.json(
       { error: 'Failed to generate content' },
       { status: 500 }

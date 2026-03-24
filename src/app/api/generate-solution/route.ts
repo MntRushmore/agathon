@@ -3,6 +3,7 @@ import { solutionLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkAndDeductCredits, CREDIT_COSTS, grantCredits } from '@/lib/ai/credits';
 import { callHackClubAI } from '@/lib/ai/hackclub';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // Response structure for text-based feedback that can be rendered on canvas
 interface FeedbackAnnotation {
@@ -43,6 +44,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const rateLimit = await checkRateLimit(user.id, 'image');
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
+      );
+    }
+
     // Parse the request body
     const {
       image,
@@ -56,14 +65,6 @@ export async function POST(req: NextRequest) {
       solutionLogger.warn({ requestId }, 'No image provided in request');
       return NextResponse.json(
         { error: 'No image provided' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof image !== 'string' || !image.startsWith('data:')) {
-      solutionLogger.warn({ requestId }, 'Image is not a data URL');
-      return NextResponse.json(
-        { error: 'Image must be a data URL' },
         { status: 400 }
       );
     }

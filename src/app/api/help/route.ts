@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { helpLogger } from '@/lib/logger'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -9,6 +11,14 @@ export async function POST(req: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const rateLimit = await checkRateLimit(user.id, 'chat')
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
+      )
     }
 
     const body = await req.json()
@@ -38,13 +48,13 @@ export async function POST(req: Request) {
         const resend = await getResend()
         await resend.emails.send({ from, to, subject, html })
       } catch (sendErr) {
-        console.error('Failed to send help email via Resend', sendErr)
+        helpLogger.error({ err: sendErr }, 'Failed to send help email via Resend')
       }
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Error in /api/help', err)
+    helpLogger.error({ err }, 'Error in /api/help')
     return NextResponse.json({ ok: false }, { status: 500 })
   }
 }

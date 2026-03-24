@@ -1,6 +1,8 @@
+import { NextResponse } from 'next/server';
 import { HACKCLUB_MODEL } from '@/lib/ai/config';
 import { callHackClubAI, type HackClubMessage } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const SYSTEM_PROMPT = `You are the Agathon assistant — a helpful AI built into an educational learning platform called Agathon.
 
@@ -30,6 +32,14 @@ export async function POST(req: Request) {
     return new Response(
       JSON.stringify({ error: 'Authentication required', code: 'AUTH_REQUIRED' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const rateLimit = await checkRateLimit(user.id, 'chat');
+  if (!rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.reset - Date.now()) / 1000)) } }
     );
   }
 
