@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
     if (assignment.due_date) {
       const d = new Date(assignment.due_date);
       dueDate = {
-        year: d.getFullYear(),
-        month: d.getMonth() + 1,
-        day: d.getDate(),
-        hours: d.getHours(),
-        minutes: d.getMinutes(),
+        year: d.getUTCFullYear(),
+        month: d.getUTCMonth() + 1,
+        day: d.getUTCDate(),
+        hours: d.getUTCHours(),
+        minutes: d.getUTCMinutes(),
       };
     }
 

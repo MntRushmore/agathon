@@ -8,6 +8,8 @@ export interface CreditDeductionResult {
 }
 
 // Cost per AI operation (in credits) — only enterprise features remain credit-gated
+// TODO: M7 — Consider adding credit costs for expensive operations (TTS, voice, OCR)
+// Currently only generate-solution is credit-gated. See AUDIT_REPORT.md for details.
 export const CREDIT_COSTS = {
   'generate-solution': 2,
 } as const;

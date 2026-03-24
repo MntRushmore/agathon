@@ -92,7 +92,8 @@ export default function TemplatesPage() {
         .from('assignment_templates')
         .select('*')
         .eq('teacher_id', user.id)
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+      .limit(50);
 
       if (error) throw error;
       setTemplates(data || []);

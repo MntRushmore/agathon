@@ -39,7 +39,8 @@ export default function MathDocumentsPage() {
       const { data, error } = await supabase
         .from('math_whiteboards')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+      .limit(50);
 
       if (error) {
         console.error('Failed to load math whiteboards:', error);

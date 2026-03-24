@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { adminLogger } from '@/lib/logger';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (linkError || !linkData?.properties?.hashed_token) {
-      console.error('Error generating link:', linkError);
+      adminLogger.error({ err: linkError }, 'Error generating link');
       return NextResponse.json({ error: 'Failed to generate sign-in token' }, { status: 500 });
     }
 
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       email: targetUser.user.email,
     });
   } catch (error) {
-    console.error('Switch user error:', error);
+    adminLogger.error({ err: error }, 'Switch user error');
     return NextResponse.json({ error: 'Failed to switch user' }, { status: 500 });
   }
 }

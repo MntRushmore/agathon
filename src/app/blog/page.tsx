@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: 'Blog',
   description: 'Agathon — Blog',

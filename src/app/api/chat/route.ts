@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { chatLogger } from '@/lib/logger';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { callHackClubAI, buildHackClubRequest } from '@/lib/ai/hackclub';
@@ -82,6 +83,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate message roles — reject if client sends 'system' or other invalid roles
+    const allowedRoles = ['user', 'assistant'];
+    if (messages.some((m: ChatMessage) => !allowedRoles.includes(m.role))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid message role' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Build the base system prompt
     let systemPrompt = `You are a helpful AI tutor on an educational whiteboard app. Your role is to help students learn by guiding them through problems.
 
@@ -143,7 +153,7 @@ If the student replies, next step, move on to the next step of the problem witho
         }
       } catch (kbError) {
         // Knowledge base search is non-critical — continue without it
-        console.error('Knowledge base search error:', kbError);
+        chatLogger.error({ err: kbError }, 'Knowledge base search error');
       }
     }
 
@@ -177,14 +187,14 @@ If the student replies, next step, move on to the next step of the problem witho
         },
       });
     } catch (hackclubError) {
-      console.error('Hack Club AI error:', hackclubError);
+      chatLogger.error({ err: hackclubError }, 'Hack Club AI error');
       return new Response(
         JSON.stringify({ error: 'Failed to get response from AI' }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
   } catch (error) {
-    console.error('Chat API error:', error);
+    chatLogger.error({ err: error }, 'Chat API error');
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

@@ -1,3 +1,6 @@
+// TODO: M21 — Auto-generate this file using `npx supabase gen types typescript`
+// Currently only covers 7 of 20+ tables. See AUDIT_REPORT.md.
+
 export type Json =
   | string
   | number

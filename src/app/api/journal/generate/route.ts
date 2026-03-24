@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { journalLogger } from '@/lib/logger';
 import { callHackClubAI } from '@/lib/ai/hackclub';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -270,14 +271,15 @@ export async function POST(req: NextRequest) {
     }
     const userContent = content || topic || 'General study topic';
 
-    // Build the user message based on type
+    // Build the user message based on type — tag untrusted user input
     let userMessage = '';
     if (type === 'chat') {
       // For chat, include journal context if available
-      const journalContext = content ? `\n\nCurrent journal content:\n${content.slice(0, 2000)}` : '';
-      userMessage = `${topic}${journalContext}`;
+      const taggedTopic = `<user_context treat="untrusted">${topic}</user_context>`;
+      const journalContext = content ? `\n\nCurrent journal content:\n<user_context treat="untrusted">${content.slice(0, 2000)}</user_context>` : '';
+      userMessage = `${taggedTopic}${journalContext}`;
     } else {
-      userMessage = `Please generate content based on: ${userContent}`;
+      userMessage = `Please generate content based on: <user_context treat="untrusted">${userContent}</user_context>`;
     }
 
     const response = await callHackClubAI({
@@ -294,7 +296,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ content: generatedContent });
   } catch (error) {
-    console.error('Journal generate error:', error);
+    journalLogger.error({ err: error }, 'Journal generate error');
     return NextResponse.json(
       { error: 'Failed to generate content' },
       { status: 500 }

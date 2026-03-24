@@ -1,6 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
 
+export const revalidate = 3600;
+
 export const metadata = {
   title: 'About',
   description: 'About Agathon',

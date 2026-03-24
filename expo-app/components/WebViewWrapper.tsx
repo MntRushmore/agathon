@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, ActivityIndicator, Text, Linking } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -118,6 +118,13 @@ export default function WebViewWrapper() {
 
   // Handle messages from the web app
   const handleMessage = async (event: any) => {
+    // M9: Validate the message comes from our app
+    const expectedDomain = new URL(WEB_APP_URL).hostname;
+    if (event.nativeEvent.url && !event.nativeEvent.url.includes(expectedDomain)) {
+      console.warn('Rejected message from unexpected origin:', event.nativeEvent.url);
+      return;
+    }
+
     try {
       const message = JSON.parse(event.nativeEvent.data);
 
@@ -128,13 +135,13 @@ export default function WebViewWrapper() {
 
         case 'SAVE_TOKEN':
           // Save auth token to native storage
-          await AsyncStorage.setItem('auth_token', message.token);
+          await SecureStore.setItemAsync('auth_token', message.token);
           console.log('Auth token saved');
           break;
 
         case 'LOAD_TOKEN':
           // Load auth token from native storage
-          const token = await AsyncStorage.getItem('auth_token');
+          const token = await SecureStore.getItemAsync('auth_token');
           if (token && webViewRef.current) {
             webViewRef.current.postMessage(JSON.stringify({
               type: 'TOKEN_LOADED',
@@ -145,7 +152,7 @@ export default function WebViewWrapper() {
 
         case 'CLEAR_TOKEN':
           // Clear auth token
-          await AsyncStorage.removeItem('auth_token');
+          await SecureStore.deleteItemAsync('auth_token');
           console.log('Auth token cleared');
           break;
 
@@ -161,7 +168,7 @@ export default function WebViewWrapper() {
   useEffect(() => {
     async function loadToken() {
       try {
-        const token = await AsyncStorage.getItem('auth_token');
+        const token = await SecureStore.getItemAsync('auth_token');
         if (token) {
           console.log('Auth token loaded from storage');
         }
