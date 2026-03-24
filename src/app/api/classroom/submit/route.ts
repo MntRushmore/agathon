@@ -54,6 +54,23 @@ export async function POST(req: NextRequest) {
     const studentSubmission = subs[0];
     const gcSubmissionId = studentSubmission.id as string;
 
+    // M12: Check if assignment has a due date and whether submission is late
+    // We don't block late submissions but flag them
+    let isLate = false;
+    {
+      const { data: assignmentData } = await supabase
+        .from('knowledge_base')
+        .select('metadata')
+        .eq('source', 'google_classroom')
+        .eq('source_id', `cw_${courseworkId}`)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const dueDate = (assignmentData?.metadata as Record<string, unknown>)?.dueDate;
+      if (dueDate && typeof dueDate === 'string') {
+        isLate = new Date(dueDate) < new Date();
+      }
+    }
+
     if (studentSubmission.state === 'TURNED_IN') {
       return NextResponse.json(
         { error: 'Assignment already turned in on Google Classroom', alreadySubmitted: true },
@@ -107,7 +124,7 @@ export async function POST(req: NextRequest) {
       .eq('source', 'google_classroom')
       .eq('source_id', `cw_${courseworkId}`);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, isLate });
   } catch (error: unknown) {
     console.error('Classroom submit error:', error);
 
