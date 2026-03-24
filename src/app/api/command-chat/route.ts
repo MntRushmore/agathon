@@ -61,6 +61,15 @@ export async function POST(req: Request) {
     }
   }
 
+  // Validate message roles — reject if client sends 'system' or other invalid roles
+  const allowedRoles = ['user', 'assistant'];
+  if (messages.some((m: { role: string }) => !allowedRoles.includes(m.role))) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid message role' }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   const hackclubMessages: HackClubMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...messages.map((m: { role: string; content: string }) => ({

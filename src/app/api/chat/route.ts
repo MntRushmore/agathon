@@ -45,6 +45,15 @@ export async function POST(req: NextRequest) {
       isSocratic?: boolean;
     };
 
+    // Validate message roles — reject if client sends 'system' or other invalid roles
+    const allowedRoles = ['user', 'assistant'];
+    if (messages.some((m: ChatMessage) => !allowedRoles.includes(m.role))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid message role' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Input validation
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(
