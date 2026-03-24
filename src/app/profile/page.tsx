@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { createClient } from '@/lib/supabase';
 import { sileo } from 'sileo';
 import { mapSupabaseError } from '@/lib/error-utils';
@@ -101,6 +102,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DesignUpgradeBanner />
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">

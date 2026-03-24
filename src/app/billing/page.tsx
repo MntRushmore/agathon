@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { logger } from '@/lib/logger';
 import { sileo } from 'sileo';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -163,6 +164,7 @@ export default function BillingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DesignUpgradeBanner />
       <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
         <div className="flex items-center gap-2.5 mb-8">

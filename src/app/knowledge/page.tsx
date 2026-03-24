@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -345,6 +346,7 @@ export default function KnowledgePage() {
 
   return (
  <div className="min-h-screen bg-background">
+      <DesignUpgradeBanner />
  <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
  <div className="flex items-center gap-2.5 mb-8">

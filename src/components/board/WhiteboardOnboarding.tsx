@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, type CSSProperties } from 'react';
 import { useEditor } from 'tldraw';
 import { cn } from '@/lib/utils';
 import { animate, stagger } from 'animejs';
 
 interface WhiteboardOnboardingProps {
   onDismiss: () => void;
+}
+
+interface HintAnchor {
+  left?: number;
+  top?: number;
+  right?: number;
+  bottom?: number;
 }
 
 // Clean arrow pointing up (towards top bar)
@@ -72,6 +79,65 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(true);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [anchors, setAnchors] = useState<{
+    tool: HintAnchor;
+    lasso: HintAnchor;
+    back: HintAnchor;
+    ai: HintAnchor;
+  }>({
+    tool: { left: 960, top: 64 },
+    lasso: { left: 880, top: 64 },
+    back: { left: 24, top: 64 },
+    ai: { right: 24, bottom: 96 },
+  });
+
+  const measureAnchors = useCallback(() => {
+    const toolbar = document.querySelector('[data-topbar-tools]') as HTMLElement | null;
+    const penButton = document.querySelector('[aria-label="Pen"]') as HTMLElement | null;
+    const lassoButton = document.querySelector('[aria-label="Lasso Solve"]') as HTMLElement | null;
+    const backButton = document.querySelector('[aria-label="Go back"]') as HTMLElement | null;
+    const aiButton = document.querySelector('[aria-label="Open AI Tutor"]') as HTMLElement | null;
+
+    const toolbarRect = toolbar?.getBoundingClientRect();
+    const penRect = penButton?.getBoundingClientRect();
+    const lassoRect = lassoButton?.getBoundingClientRect();
+    const backRect = backButton?.getBoundingClientRect();
+    const aiRect = aiButton?.getBoundingClientRect();
+
+    const topOffset = (rect?: DOMRect) => (rect ? rect.bottom + 12 : 64);
+
+    setAnchors({
+      tool: {
+        left: penRect?.left != null
+          ? penRect.left + penRect.width / 2
+          : toolbarRect?.left != null
+            ? toolbarRect.left + toolbarRect.width * 0.62
+            : window.innerWidth / 2,
+        top: topOffset(penRect ?? toolbarRect),
+      },
+      lasso: {
+        left: lassoRect?.left != null
+          ? lassoRect.left + lassoRect.width / 2
+          : toolbarRect?.left != null
+            ? toolbarRect.left + toolbarRect.width * 0.18
+            : window.innerWidth / 2 - 80,
+        top: topOffset(lassoRect ?? toolbarRect),
+      },
+      back: {
+        left: backRect?.left ?? 24,
+        top: topOffset(backRect),
+      },
+      ai: aiRect
+        ? {
+            left: aiRect.left + aiRect.width / 2,
+            bottom: Math.max(window.innerHeight - aiRect.top + 8, 72),
+          }
+        : {
+            right: 24,
+            bottom: 96,
+          },
+    });
+  }, []);
 
   // Check on mount if canvas already has shapes
   useEffect(() => {
@@ -123,6 +189,26 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
     });
   }, [isVisible]);
 
+  useEffect(() => {
+    if (!shouldRender) return;
+
+    let frameId = window.requestAnimationFrame(measureAnchors);
+    const intervalId = window.setInterval(measureAnchors, 250);
+
+    const handleViewportChange = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(measureAnchors);
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearInterval(intervalId);
+      window.removeEventListener('resize', handleViewportChange);
+    };
+  }, [measureAnchors, shouldRender]);
+
   const handleDismiss = useCallback(() => {
     setIsVisible(false);
     setTimeout(() => {
@@ -132,6 +218,34 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
   }, [onDismiss]);
 
   if (!shouldRender) return null;
+
+  const toolHintStyle: CSSProperties = {
+    left: anchors.tool.left,
+    top: anchors.tool.top,
+    transform: 'translateX(-50%)',
+  };
+
+  const lassoHintStyle: CSSProperties = {
+    left: anchors.lasso.left,
+    top: anchors.lasso.top,
+    transform: 'translateX(-50%)',
+  };
+
+  const backHintStyle: CSSProperties = {
+    left: anchors.back.left,
+    top: anchors.back.top,
+  };
+
+  const aiHintStyle: CSSProperties = anchors.ai.left != null
+    ? {
+        left: anchors.ai.left,
+        bottom: anchors.ai.bottom,
+        transform: 'translateX(-50%)',
+      }
+    : {
+        right: anchors.ai.right,
+        bottom: anchors.ai.bottom,
+      };
 
   return (
     <div
@@ -157,7 +271,7 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
       </div>
 
       {/* Toolbar hint - pointing UP to the top bar tools */}
-      <div data-hint className="absolute top-16 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
+      <div data-hint className="absolute flex flex-col items-center pointer-events-none opacity-0" style={toolHintStyle}>
         <ArrowUp className="text-gray-300" />
         <p className="text-gray-400 text-sm text-center mt-1">
           Pick a tool &amp;<br />start drawing
@@ -165,7 +279,7 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
       </div>
 
       {/* Lasso Solve hint - pointing UP to the lasso tool in toolbar */}
-      <div data-hint className="absolute top-16 left-[calc(50%-80px)] -translate-x-1/2 flex flex-col items-center pointer-events-none opacity-0">
+      <div data-hint className="absolute flex flex-col items-center pointer-events-none opacity-0" style={lassoHintStyle}>
         <ArrowUp className="text-gray-300" />
         <p className="text-gray-400 text-sm text-center mt-1">
           <span className="text-gray-500 font-medium">Lasso Solve</span><br />
@@ -174,7 +288,7 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
       </div>
 
       {/* Back button hint - top left */}
-      <div data-hint className="absolute top-16 left-6 flex flex-col items-start pointer-events-none opacity-0">
+      <div data-hint className="absolute flex flex-col items-start pointer-events-none opacity-0" style={backHintStyle}>
         <ArrowUp className="text-gray-300" />
         <p className="text-gray-400 text-sm mt-1">
           Back to<br />dashboard
@@ -182,7 +296,7 @@ export function WhiteboardOnboarding({ onDismiss }: WhiteboardOnboardingProps) {
       </div>
 
       {/* AI Chat hint - bottom right pointing to chat button */}
-      <div data-hint className="absolute bottom-24 right-6 flex flex-col items-center pointer-events-none opacity-0">
+      <div data-hint className="absolute flex flex-col items-center pointer-events-none opacity-0" style={aiHintStyle}>
         <p className="text-gray-400 text-sm text-center mb-1">
           Ask AI<br />for help
         </p>
