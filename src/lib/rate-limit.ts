@@ -43,6 +43,11 @@ export async function checkRateLimit(
 ): Promise<{ success: boolean; remaining: number; reset: number }> {
   const limiter = getLimiter(tier);
   if (!limiter) return { success: true, remaining: -1, reset: 0 };
-  const result = await limiter.limit(userId);
-  return { success: result.success, remaining: result.remaining, reset: result.reset };
+  try {
+    const result = await limiter.limit(userId);
+    return { success: result.success, remaining: result.remaining, reset: result.reset };
+  } catch (error) {
+    console.error('Rate limit check failed, allowing request:', error);
+    return { success: true, remaining: -1, reset: 0 };
+  }
 }
