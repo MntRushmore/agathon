@@ -57,7 +57,7 @@ export default function SignupPage() {
           </div>
 
           {/* Sign Up Form */}
-          <SignUpForm onSuccess={() => router.push('/')} />
+          <SignUpForm />
 
           {/* Login link */}
           <p className="text-center text-sm text-muted-foreground mt-6">
