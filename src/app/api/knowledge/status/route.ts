@@ -15,7 +15,7 @@ export async function GET() {
       .from('connected_accounts')
       .select('*')
       .eq('user_id', user.id)
-      .in('status', ['active', 'expired']);
+      .in('status', ['active', 'expired', 'initiated']);
 
     // Get knowledge base stats
     const { data: docs } = await supabase

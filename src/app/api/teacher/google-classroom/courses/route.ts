@@ -29,7 +29,7 @@ export async function GET() {
       .select('status')
       .eq('user_id', user.id)
       .eq('provider', 'google_classroom')
-      .in('status', ['active', 'expired'])
+      .in('status', ['active', 'expired', 'initiated'])
       .single();
 
     if (!dbConnection) {

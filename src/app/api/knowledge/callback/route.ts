@@ -23,7 +23,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify the connection actually succeeded on the Composio side
-    const connection = await getConnectionStatus(user.id, provider);
+    // Composio may not have indexed the connection immediately after OAuth redirect,
+    // so retry a few times with a delay before giving up.
+    let connection = await getConnectionStatus(user.id, provider);
+    if (!connection) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        connection = await getConnectionStatus(user.id, provider);
+        if (connection) break;
+      }
+    }
     if (!connection) {
       // OAuth was cancelled or failed — mark as failed and redirect with error
       await supabase

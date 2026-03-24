@@ -37,7 +37,7 @@ export default function TeacherSettingsPage() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [searchParams]);
 
   const fetchCourses = async () => {
     setLoading(true);

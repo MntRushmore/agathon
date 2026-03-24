@@ -1127,7 +1127,7 @@ export default function Dashboard() {
  <div className="flex items-center justify-between mb-1.5">
  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Boards</span>
  <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
-                      {isAdmin ? '\u221E' : `${FREE_BOARD_LIMIT - whiteboards.length}/${FREE_BOARD_LIMIT} remaining`}
+                      {isAdmin ? '\u221E' : `${whiteboards.length}/${FREE_BOARD_LIMIT} used`}
                     </span>
                   </div>
                   {!isAdmin && (
@@ -1143,7 +1143,7 @@ export default function Dashboard() {
  <div className="flex items-center justify-between mb-1.5">
  <span className="text-[13px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Journals</span>
  <span className="text-[10px]" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)' }}>
-                      {isAdmin ? '\u221E' : `${FREE_JOURNAL_LIMIT - journalCount}/${FREE_JOURNAL_LIMIT} remaining`}
+                      {isAdmin ? '\u221E' : `${journalCount}/${FREE_JOURNAL_LIMIT} used`}
                     </span>
                   </div>
                   {!isAdmin && (
