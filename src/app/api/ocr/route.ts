@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!image.startsWith('data:image/')) {
+      ocrLogger.warn({ requestId }, 'Image is not a data URL');
+      return NextResponse.json(
+        { error: 'Image must be a data URL' },
+        { status: 400 }
+      );
+    }
+
     ocrLogger.debug({ requestId, imageSize: image.length }, 'Image received');
 
     if (!process.env.MISTRAL_API_KEY) {
