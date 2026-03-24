@@ -99,7 +99,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
           <div className="flex items-center gap-1 mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
             <button
               onClick={handleCopy}
-              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               title="Copy message"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -107,8 +107,8 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
             <button
               onClick={() => setFeedback(feedback === 'up' ? null : 'up')}
               className={cn(
-                'p-1 rounded hover:bg-gray-100 transition-colors',
-                feedback === 'up' ? 'text-green-500' : 'text-gray-400 hover:text-gray-600'
+                'p-1 rounded hover:bg-muted transition-colors',
+                feedback === 'up' ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'
               )}
               title="Helpful"
             >
@@ -117,8 +117,8 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
             <button
               onClick={() => setFeedback(feedback === 'down' ? null : 'down')}
               className={cn(
-                'p-1 rounded hover:bg-gray-100 transition-colors',
-                feedback === 'down' ? 'text-red-500' : 'text-gray-400 hover:text-gray-600'
+                'p-1 rounded hover:bg-muted transition-colors',
+                feedback === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-foreground'
               )}
               title="Not helpful"
             >

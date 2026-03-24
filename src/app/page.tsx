@@ -86,6 +86,8 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import { AgoraLandingPage } from "@/components/landing/AgoraLandingPage";
 import { TemplateSelectionDialog } from "@/components/board/TemplateSelectionDialog";
+import { DashboardWelcome } from "@/components/onboarding/DashboardWelcome";
+import { UpgradeLimitDialog } from "@/components/onboarding/UpgradeLimitDialog";
 
 type Whiteboard = {
   id: string;
@@ -238,6 +240,13 @@ export default function Dashboard() {
   // Quick capture state
   const [quickNoteOpen, setQuickNoteOpen] = useState(false);
   const [quickNoteContent, setQuickNoteContent] = useState('');
+
+  // Upgrade limit dialog state
+  const [upgradeLimitOpen, setUpgradeLimitOpen] = useState(false);
+  const [upgradeLimitType, setUpgradeLimitType] = useState<'board' | 'journal'>('board');
+
+  // Demo video dialog state
+  const [demoVideoOpen, setDemoVideoOpen] = useState(false);
 
   // Usage limits (free plan)
   const [journalCount, setJournalCount] = useState(0);
@@ -431,7 +440,8 @@ export default function Dashboard() {
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
+      setUpgradeLimitType('board');
+      setUpgradeLimitOpen(true);
       setTemplateDialogOpen(false);
       return;
     }
@@ -486,7 +496,8 @@ export default function Dashboard() {
     }
 
     if (!isAdmin && whiteboards.length >= FREE_BOARD_LIMIT) {
-      sileo.error({ title: `You've reached the limit of ${FREE_BOARD_LIMIT} boards. Delete one to create a new board.` });
+      setUpgradeLimitType('board');
+      setUpgradeLimitOpen(true);
       return;
     }
 
@@ -535,7 +546,8 @@ export default function Dashboard() {
       return;
     }
     if (!isAdmin && journals.length >= FREE_JOURNAL_LIMIT) {
-      sileo.error({ title: `You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.` });
+      setUpgradeLimitType('journal');
+      setUpgradeLimitOpen(true);
       return;
     }
     try {
@@ -2002,6 +2014,17 @@ export default function Dashboard() {
               })}
             </div>
 
+            {/* First-visit welcome guide */}
+            {user && recentItems.length === 0 && (
+              <div style={{ padding: '30px 70px 0 70px' }}>
+                <DashboardWelcome
+                  onCreateBoard={() => createWhiteboard()}
+                  onCreateJournal={() => createJournal()}
+                  onWatchDemo={() => setDemoVideoOpen(true)}
+                />
+              </div>
+            )}
+
             {/* Divider line */}
             <div style={{ margin: '30px 70px 0 70px', height: 1, backgroundColor: 'rgba(227, 227, 227, 0.6)' }} />
 
@@ -2216,6 +2239,41 @@ export default function Dashboard() {
         onTemplateSelect={handleTemplateSelect}
         creating={creating}
       />
+
+      {/* Upgrade Limit Dialog */}
+      <UpgradeLimitDialog
+        open={upgradeLimitOpen}
+        onOpenChange={setUpgradeLimitOpen}
+        type={upgradeLimitType}
+        limit={upgradeLimitType === 'board' ? FREE_BOARD_LIMIT : FREE_JOURNAL_LIMIT}
+        onDelete={() => setActiveView(upgradeLimitType === 'board' ? 'boards' : 'journals')}
+      />
+
+      {/* Demo Video Dialog */}
+      <Dialog open={demoVideoOpen} onOpenChange={setDemoVideoOpen}>
+        <DialogContent className="sm:max-w-3xl p-0 gap-0 bg-card border border-border overflow-hidden">
+          <div className="p-4 pb-0">
+            <DialogTitle className="text-lg" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Agathon Demo</DialogTitle>
+            <DialogDescription className="text-sm" style={{ color: 'rgba(6, 49, 58, 0.6)' }}>
+              See how the AI whiteboard works
+            </DialogDescription>
+          </div>
+          <div className="p-4">
+            <div className="rounded-xl overflow-hidden border border-border bg-muted">
+              {demoVideoOpen && (
+                <video
+                  className="w-full"
+                  controls
+                  autoPlay
+                  playsInline
+                >
+                  <source src="/videos/demo.mp4" type="video/mp4" />
+                </video>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

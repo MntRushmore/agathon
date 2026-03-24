@@ -67,6 +67,8 @@ import { MyScriptMathOverlay } from"@/components/board/MyScriptMathOverlay";
 import { LassoSolveTool, type LassoSolveCompleteEvent } from"@/components/board/tools/LassoSolveTool";
 import { LassoActionPrompt } from"@/components/board/LassoActionPrompt";
 import { AdminPlanToggle } from"@/components/board/AdminPlanToggle";
+import { FeatureNudge } from"@/components/onboarding/FeatureNudge";
+import { Selection as SelectionIcon, ChatCircleDots } from"@phosphor-icons/react";
 import { AITutorPanel } from"@/components/board/AITutorPanel";
 import { AITutorButton } from"@/components/board/AITutorButton";
 import { useAITutor } from"@/hooks/useAITutor";
@@ -3243,6 +3245,30 @@ export default function BoardPage() {
             onComplete={() => setShowTutorial(false)}
             onSkip={() => setShowTutorial(false)}
           />
+        )}
+
+        {/* Feature discovery nudges — show after tutorial is done */}
+        {!showTutorial && (
+          <>
+            <FeatureNudge
+              nudgeId="lasso-solve"
+              title="Try Lasso Solve"
+              description="Draw a circle around your work to get instant AI help — hints, solutions, or a chat."
+              icon={SelectionIcon}
+              position="bottom-left"
+              delay={8000}
+              autoDismissAfter={15000}
+            />
+            <FeatureNudge
+              nudgeId="ai-chat"
+              title="Chat with your AI Tutor"
+              description="Click the chat button to ask questions, get explanations, or work through problems step by step."
+              icon={ChatCircleDots}
+              position="bottom-left"
+              delay={45000}
+              autoDismissAfter={12000}
+            />
+          </>
         )}
     </div>
   );

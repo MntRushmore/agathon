@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { createClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,6 +110,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <DesignUpgradeBanner />
       <div className="max-w-2xl mx-auto px-6 pt-8 pb-16">
         {/* Header */}
         <div className="flex items-center gap-2.5 mb-8">

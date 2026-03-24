@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -128,6 +129,7 @@ export default function CreditsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[oklch(0.97_0.003_260)] via-background to-background">
+      <DesignUpgradeBanner />
       <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3">

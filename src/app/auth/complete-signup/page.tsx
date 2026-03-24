@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/auth-provider';
+import { WelcomeModal } from '@/components/auth/welcome-modal';
 import { sileo } from 'sileo';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,8 +13,9 @@ import { Label } from '@/components/ui/label';
 export default function CompleteSignupPage() {
   const router = useRouter();
   const { user, profile, loading: authLoading } = useAuth();
-  const [status, setStatus] = useState<'loading' | 'need_code' | 'redeeming' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'need_code' | 'redeeming' | 'success' | 'welcome' | 'error'>('loading');
   const [inviteCode, setInviteCode] = useState('');
+  const [redeemedCode, setRedeemedCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -59,9 +61,9 @@ export default function CompleteSignupPage() {
       localStorage.removeItem('agathon_pending_invite_code');
 
       if (data.success) {
-        setStatus('success');
+        setRedeemedCode(code);
+        setStatus('welcome');
         sileo.success({ title: 'Account created successfully!' });
-        setTimeout(() => window.location.href = '/', 1500);
       } else {
         setStatus('need_code');
         setErrorMessage(data.error || 'Invalid invite code. Please try again.');
@@ -108,6 +110,10 @@ export default function CompleteSignupPage() {
     }
   };
 
+  const handleWelcomeComplete = () => {
+    window.location.href = '/';
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="w-full max-w-sm mx-auto p-6">
@@ -123,6 +129,14 @@ export default function CompleteSignupPage() {
             <p className="mt-4 text-foreground font-medium">You&apos;re all set!</p>
             <p className="mt-1 text-muted-foreground text-sm">Redirecting...</p>
           </div>
+        )}
+        {status === 'welcome' && (
+          <WelcomeModal
+            open={true}
+            onComplete={handleWelcomeComplete}
+            userName={profile?.full_name ?? user?.user_metadata?.full_name ?? undefined}
+            inviteCode={redeemedCode}
+          />
         )}
         {status === 'need_code' && (
           <div className="space-y-6">

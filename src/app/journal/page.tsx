@@ -9,6 +9,9 @@ import { Plus, BookOpen, ChevronLeft } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
 import { Logo } from '@/components/ui/logo';
+import { JournalOnboarding } from '@/components/onboarding/JournalOnboarding';
+import { UpgradeLimitDialog } from '@/components/onboarding/UpgradeLimitDialog';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 
 interface Journal {
   id: string;
@@ -25,6 +28,7 @@ export default function JournalsPage() {
 
   const [journals, setJournals] = useState<Journal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [upgradeLimitOpen, setUpgradeLimitOpen] = useState(false);
 
   useEffect(() => {
     async function loadJournals() {
@@ -55,7 +59,7 @@ export default function JournalsPage() {
     if (!user) return;
 
     if (profile?.role !== 'admin' && journals.length >= FREE_JOURNAL_LIMIT) {
-      sileo.error({ title: `You've reached the limit of ${FREE_JOURNAL_LIMIT} journals. Delete one to create a new journal.` });
+      setUpgradeLimitOpen(true);
       return;
     }
 
@@ -88,8 +92,9 @@ export default function JournalsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 overflow-y-auto" style={{ touchAction: 'pan-y' }}>
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background overflow-y-auto" style={{ touchAction: 'pan-y' }}>
+      <DesignUpgradeBanner />
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -115,6 +120,9 @@ export default function JournalsPage() {
           <h1 className="text-2xl font-semibold text-foreground">Journals</h1>
           <p className="text-sm text-muted-foreground mt-1">Your study notes and writings</p>
         </div>
+
+        {/* First-visit journal onboarding */}
+        <JournalOnboarding />
 
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>
@@ -160,6 +168,14 @@ export default function JournalsPage() {
           </div>
         )}
       </div>
+
+      {/* Upgrade Limit Dialog */}
+      <UpgradeLimitDialog
+        open={upgradeLimitOpen}
+        onOpenChange={setUpgradeLimitOpen}
+        type="journal"
+        limit={FREE_JOURNAL_LIMIT}
+      />
     </div>
   );
 }

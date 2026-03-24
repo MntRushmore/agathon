@@ -57,6 +57,7 @@ import {
   Switch,
   TabGroup, TabList, Tab, TabPanels, TabPanel,
 } from '@headlessui/react';
+import { DesignUpgradeBanner } from '@/components/ui/design-upgrade-banner';
 import { debounce } from 'lodash';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
@@ -1624,7 +1625,9 @@ export default function JournalEditorPage() {
   const allCommands = getAllCommands();
 
   return (
- <div className="min-h-screen bg-background flex">
+ <div className="min-h-screen bg-background flex flex-col">
+      <DesignUpgradeBanner />
+      <div className="flex flex-1">
       <JournalSidebar
         activeJournalId={params.id as string}
         onCollapseChange={setSidebarCollapsed}
@@ -2643,6 +2646,7 @@ export default function JournalEditorPage() {
  className="hidden"
         onChange={(e) => handleFileUpload(e, 'pdf')}
       />
+      </div>
       </div>
     </div>
   );
