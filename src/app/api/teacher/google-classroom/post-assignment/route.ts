@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     if (assignmentError || !assignment) {
       console.error('Assignment fetch error:', assignmentError);
-      return NextResponse.json({ error: 'Assignment not found', details: assignmentError?.message }, { status: 404 });
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
     const classData = (assignment as any).classes;
@@ -66,11 +66,11 @@ export async function POST(req: NextRequest) {
     if (assignment.due_date) {
       const d = new Date(assignment.due_date);
       dueDate = {
-        year: d.getFullYear(),
-        month: d.getMonth() + 1,
-        day: d.getDate(),
-        hours: d.getHours(),
-        minutes: d.getMinutes(),
+        year: d.getUTCFullYear(),
+        month: d.getUTCMonth() + 1,
+        day: d.getUTCDate(),
+        hours: d.getUTCHours(),
+        minutes: d.getUTCMinutes(),
       };
     }
 
@@ -88,10 +88,9 @@ export async function POST(req: NextRequest) {
         dueDate
       );
     } catch (composioError) {
-      console.error('Composio createClassroomCoursework error:', composioError);
+      console.error('Composio error posting assignment:', composioError);
       return NextResponse.json({
-        error: 'Failed to create assignment in Google Classroom',
-        details: composioError instanceof Error ? composioError.message : String(composioError),
+        error: 'Failed to post assignment to Google Classroom',
       }, { status: 502 });
     }
 
@@ -112,10 +111,9 @@ export async function POST(req: NextRequest) {
       gcCourseworkId: gcCourseworkId ? String(gcCourseworkId) : null,
     });
   } catch (error) {
-    console.error('Error posting assignment to GC:', error);
+    console.error('Error posting assignment to Google Classroom:', error);
     return NextResponse.json({
       error: 'Failed to post assignment to Google Classroom',
-      details: error instanceof Error ? error.message : String(error),
     }, { status: 500 });
   }
 }
