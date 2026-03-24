@@ -2110,6 +2110,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             return;
           }
 
+          // TODO: M19 — Use incremental/delta saves instead of full snapshot deep clone.
+          // Currently JSON.parse(JSON.stringify(snapshot)) on every save is expensive for large boards.
           // Ensure the snapshot is JSON-serializable before sending to Supabase
           let safeSnapshot: unknown = snapshot;
           try {
