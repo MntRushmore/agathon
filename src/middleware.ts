@@ -59,7 +59,8 @@ export async function middleware(request: NextRequest) {
     }
     // Allow static assets and demo paths, block everything else
     if (!request.nextUrl.pathname.startsWith('/_next') &&
-        !request.nextUrl.pathname.startsWith('/demo')) {
+        !request.nextUrl.pathname.startsWith('/demo') &&
+        !request.nextUrl.pathname.startsWith('/videos/')) {
       return applySecurityHeaders(
         new NextResponse('Not Found', { status: 404 })
       );
