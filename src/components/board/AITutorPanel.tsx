@@ -570,27 +570,47 @@ export function AITutorPanel({
                 <Brain className="w-3 h-3" />
                 Socratic
               </button>
-              {messages.length > 0 && (
+              <div className="flex items-center gap-1">
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Clear
+                  </button>
+                )}
                 <button
-                  onClick={clearChat}
+                  onClick={onClose}
                   className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                  title="Close panel"
                 >
-                  <Trash2 className="w-3 h-3" />
-                  Clear
+                  <X className="w-3 h-3" />
+                  Close
                 </button>
-              )}
+              </div>
             </>
           ) : (
-            <div className="flex items-center">
-              {analysisData && resetAnalysis && (
-                <button
-                  onClick={resetAnalysis}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  New Analysis
-                </button>
-              )}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center">
+                {analysisData && resetAnalysis && (
+                  <button
+                    onClick={resetAnalysis}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    New Analysis
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs text-gray-400 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+                title="Close panel"
+              >
+                <X className="w-3 h-3" />
+                Close
+              </button>
             </div>
           )}
         </div>
