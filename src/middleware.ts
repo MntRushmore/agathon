@@ -122,28 +122,40 @@ export async function middleware(request: NextRequest) {
   if (user && !isPublicPath) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('invite_redeemed, role')
+      .select('invite_redeemed, role, trial_expires_at')
       .eq('id', user.id)
       .single();
+
+    // Lazily revoke expired trial access
+    if (profile?.invite_redeemed && profile.trial_expires_at) {
+      const trialExpired = new Date(profile.trial_expires_at) < new Date();
+      if (trialExpired) {
+        // Fire-and-forget: revoke in DB, then redirect
+        await supabase.rpc('revoke_expired_trial', { p_user_id: user.id });
+        const redirectUrl = new URL('/auth/complete-signup', request.url);
+        redirectUrl.searchParams.set('reason', 'trial_expired');
+        return applySecurityHeaders(NextResponse.redirect(redirectUrl));
+      }
+    }
 
     // Enforce invite code redemption
     if (!profile || profile.invite_redeemed === false) {
       const redirectUrl = new URL('/auth/complete-signup', request.url);
-      return NextResponse.redirect(redirectUrl);
+      return applySecurityHeaders(NextResponse.redirect(redirectUrl));
     }
 
     // Protect teacher routes - require teacher role
     if (request.nextUrl.pathname.startsWith('/teacher/') && profile?.role !== 'teacher') {
       const redirectUrl = new URL('/', request.url);
       redirectUrl.searchParams.set('error', 'teacher_only');
-      return NextResponse.redirect(redirectUrl);
+      return applySecurityHeaders(NextResponse.redirect(redirectUrl));
     }
 
     // Protect admin routes - require admin role
     if (request.nextUrl.pathname.startsWith('/admin') && profile?.role !== 'admin') {
       const redirectUrl = new URL('/', request.url);
       redirectUrl.searchParams.set('error', 'admin_only');
-      return NextResponse.redirect(redirectUrl);
+      return applySecurityHeaders(NextResponse.redirect(redirectUrl));
     }
   }
 

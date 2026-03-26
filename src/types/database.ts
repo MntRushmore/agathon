@@ -185,6 +185,7 @@ export interface InviteCode {
   max_uses: number;
   current_uses: number;
   is_active: boolean;
+  is_trial: boolean;
   expires_at: string | null;
   created_at: string;
   updated_at: string;
