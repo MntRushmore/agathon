@@ -280,26 +280,36 @@ export function TopBar({
                 className="w-auto"
               >
                 <TabsList className="h-8 gap-0.5 p-0.5 bg-gray-100/60 border border-gray-200/40 shadow-none rounded-lg">
-                  <TabsTrigger
-                    value="off"
-                    className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white font-medium transition-all duration-150"
-                  >
-                    Off
-                  </TabsTrigger>
-                  {isModeAllowed('suggest') && (
+                  {isModeAllowed('solve') && (
                     <TabsTrigger
-                      value="suggest"
-                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
-                    >
-                      Suggest
-                    </TabsTrigger>
-                  )}
-                  {isModeAllowed('answer') && (
-                    <TabsTrigger
-                      value="answer"
-                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                      value="solve"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white font-medium transition-all duration-150"
                     >
                       Solve
+                    </TabsTrigger>
+                  )}
+                  {isModeAllowed('step-by-step') && (
+                    <TabsTrigger
+                      value="step-by-step"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                    >
+                      Steps
+                    </TabsTrigger>
+                  )}
+                  {isModeAllowed('socratic') && (
+                    <TabsTrigger
+                      value="socratic"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                    >
+                      Socratic
+                    </TabsTrigger>
+                  )}
+                  {isModeAllowed('example') && (
+                    <TabsTrigger
+                      value="example"
+                      className="no-enlarge h-7 px-2.5 text-[11px] rounded-md data-[state=active]:shadow-sm data-[state=active]:bg-white hide-mobile font-medium transition-all duration-150"
+                    >
+                      Example
                     </TabsTrigger>
                   )}
                 </TabsList>

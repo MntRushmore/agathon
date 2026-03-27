@@ -73,7 +73,6 @@ import { Selection as SelectionIcon, ChatCircleDots } from"@phosphor-icons/react
 import { AITutorPanel } from"@/components/board/AITutorPanel";
 import { AITutorButton } from"@/components/board/AITutorButton";
 import { useAITutor } from"@/hooks/useAITutor";
-import { HintButton } from"@/components/board/HintButton";
 import { FeedbackCard } from"@/components/board/FeedbackCard";
 import { LaTeXShapeUtil } from"@/components/board/LaTeXShape";
 import { TopBar } from"@/components/board/TopBar";
@@ -912,7 +911,7 @@ type AssignmentMeta = {
   subject?: string;
   gradeLevel?: string;
   instructions?: string;
-  defaultMode?:"off"| /*"feedback"| */"suggest"|"answer";
+  defaultMode?:"solve"|"step-by-step"|"socratic"|"example";
   // AI restriction settings from teacher
   allowAI?: boolean;
   allowedModes?: string[];
@@ -963,7 +962,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [isVoiceSessionActive, setIsVoiceSessionActive] = useState(false);
-  const [assistanceMode, setAssistanceMode] = useState<"off"| /*"feedback"| */"suggest"|"answer">("suggest");
+  const [assistanceMode, setAssistanceMode] = useState<"solve"|"step-by-step"|"socratic"|"example">("solve");
   const [helpCheckStatus, setHelpCheckStatus] = useState<"idle"|"checking">("idle");
     const [helpCheckReason, setHelpCheckReason] = useState<string>("");
     const [isLandscape, setIsLandscape] = useState(false);
@@ -1130,12 +1129,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Determine if AI is allowed and which modes based on assignment restrictions
   const aiAllowed = assignmentRestrictions?.allowAI !== false; // Default to true if not set
-  const allowedModes = assignmentRestrictions?.allowedModes || [/* 'feedback', */ 'suggest', 'answer'];
+  const allowedModes = assignmentRestrictions?.allowedModes || ['solve', 'step-by-step', 'socratic', 'example'];
 
   // Check if a specific mode is allowed
   const isModeAllowed = (mode: string) => {
-    if (!aiAllowed) return mode === 'off';
-    if (mode === 'off') return true; // Off is always allowed
+    if (!aiAllowed) return false;
     return allowedModes.includes(mode);
   };
 
@@ -1217,28 +1215,20 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
 
   // Helper function to get mode-aware status messages
-  const getStatusMessage = useCallback((mode:"off"| /*"feedback"| */"suggest"|"answer", statusType:"generating"|"success") => {
+  const getStatusMessage = useCallback((mode:"solve"|"step-by-step"|"socratic"|"example", statusType:"generating"|"success") => {
     if (statusType ==="generating") {
       switch (mode) {
-        case"off":
-          return"";
-        // case"feedback":
-        //   return"Adding feedback...";
-        case"suggest":
-          return"Generating suggestion...";
-        case"answer":
-          return"Solving problem...";
+        case"solve": return"Solving problem...";
+        case"step-by-step": return"Generating next step...";
+        case"socratic": return"Generating questions...";
+        case"example": return"Generating example...";
       }
-    } else if (statusType ==="success") {
+    } else {
       switch (mode) {
-        case"off":
-          return"";
-        // case"feedback":
-        //   return"Feedback added";
-        case"suggest":
-          return"Suggestion added";
-        case"answer":
-          return"Solution added";
+        case"solve": return"Solution added";
+        case"step-by-step": return"Step added";
+        case"socratic": return"Questions added";
+        case"example": return"Example added";
       }
     }
     return"";
@@ -1250,7 +1240,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
     } else {
       // Fall back to user's preferred AI mode from settings
       const stored = localStorage.getItem('agathon_pref_ai_mode');
-      if (/* stored === 'feedback' || */ stored === 'suggest' || stored === 'answer') {
+      if (stored === 'solve' || stored === 'step-by-step' || stored === 'socratic' || stored === 'example') {
         setAssistanceMode(stored);
       }
     }
@@ -1292,7 +1282,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   const generateSolution = useCallback(
     async (options?: {
-      modeOverride?: /*"feedback"| */"suggest"|"answer";
+      modeOverride?: "solve"|"step-by-step"|"socratic"|"example";
       promptOverride?: string;
       force?: boolean;
       source?:"auto"|"voice";
@@ -1310,16 +1300,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
       let mode = options?.modeOverride ?? assistanceMode;
 
-      // Enforce AI restrictions for remote AI modes
-      if (mode !=="off") {
-        if (!aiAllowed) {
-          logger.info('AI assistance is disabled for this assignment');
-          mode ="off";
-        } else if (!isModeAllowed(mode)) {
-          logger.info({ mode }, 'This AI mode is not allowed for this assignment');
-          sileo.error({ title: `${mode} mode is not allowed for this assignment` });
-          mode ="off";
-        }
+      // Enforce AI restrictions
+      if (!aiAllowed) {
+        logger.info('AI assistance is disabled for this assignment');
+        return false;
+      } else if (!isModeAllowed(mode)) {
+        logger.info({ mode }, 'This AI mode is not allowed for this assignment');
+        sileo.error({ title: `${mode} mode is not allowed for this assignment` });
+        return false;
       }
 
       // Check if canvas has content
@@ -1386,22 +1374,13 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         // Quick solve is now handled by MyScriptMathOverlay (real-time as you write)
         // This function only handles the AI modes (feedback, suggest, answer with detailed explanation)
 
-        // If mode is off, we're done (MyScript handles quick solving separately)
-        if (mode ==="off") {
-          setStatus("idle");
-          setStatusMessage("");
-          isProcessingRef.current = false;
-          return false;
-        }
-
-        // Generate solution using AI (Gemini decides if help is needed)
+        // Generate solution using AI
         setStatus("generating");
         setStatusMessage(getStatusMessage(mode,"generating"));
 
           const body: Record<string, unknown> = {
             image: base64,
             mode,
-            isSocratic: assignmentRestrictions?.socraticMode ?? false,
           };
 
 
@@ -1711,11 +1690,11 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
 
   // Generate solution for specific lassoed shapes
   const generateSolutionForShapes = useCallback(
-    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }, modeOverride?: /* 'feedback' | */ 'suggest' | 'answer') => {
+    async (shapeIds: TLShapeId[], bounds: { x: number; y: number; width: number; height: number }, modeOverride?: 'solve' | 'step-by-step' | 'socratic' | 'example') => {
       if (!editor || shapeIds.length === 0 || isProcessingRef.current) return;
 
       // Use explicit modeOverride from lasso prompt, fall back to current assistanceMode
-      let mode = modeOverride ?? (assistanceMode === 'off' ? 'answer' : assistanceMode);
+      let mode = modeOverride ?? assistanceMode;
 
       // Enforce AI restrictions
       if (!aiAllowed) {
@@ -1933,7 +1912,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
   // Enterprise: Suggest/Solve generate handwritten AI writing on canvas; Chat opens AI tutor
   // Free: all actions open the AI Tutor chat sidebar
   const handleLassoAction = useCallback(
-    async (action: /* 'feedback' | */ 'suggest' | 'answer' | 'chat') => {
+    async (action: 'solve' | 'step-by-step' | 'socratic' | 'example' | 'chat') => {
       if (!lassoPrompt || !editor) return;
       const { shapeIds, bounds } = lassoPrompt;
       setLassoPrompt(null);
@@ -1945,34 +1924,26 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
       }
 
       // Free users (or enterprise 'chat' action): open the AI Tutor chat sidebar
-      try {
-        const captureBounds = new Box(
-          bounds.x - 20,
-          bounds.y - 20,
-          bounds.width + 40,
-          bounds.height + 40,
-        );
-        const result = await editor.toImage(shapeIds, {
-          format: 'png',
-          bounds: captureBounds,
-          background: true,
-          scale: 1,
-          padding: 0,
-        });
-        if (result.blob) {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(result.blob);
-          });
-          setAiTutorImage(base64);
-          setAiTutorOpen(true);
-        }
-      } catch (err) {
-        logger.error({ err }, 'Failed to capture lasso shapes for AI Tutor');
+      // Set the selected mode and switch to the chat tab — do NOT call setAiTutorImage
+      // (that triggers fetchAnalysis which always runs the Analysis tab regardless of mode)
+      if (action !== 'chat') {
+        aiTutor.setMode(action);
+      }
+      aiTutor.setActiveTab('chat');
+      setAiTutorOpen(true);
+
+      // Auto-send a trigger message so the AI starts working immediately
+      if (action !== 'chat') {
+        const triggerMessages: Record<string, string> = {
+          solve: 'Please solve this problem.',
+          'step-by-step': 'Please start walking me through this problem. Give me only Step 1.',
+          socratic: 'Please start guiding me through this problem with questions.',
+          example: 'Please show me a similar example problem, starting with Step 1.',
+        };
+        setTimeout(() => aiTutor.sendMessage(triggerMessages[action]), 100);
       }
     },
-    [lassoPrompt, editor, isEnterprise, generateSolutionForShapes],
+    [lassoPrompt, editor, isEnterprise, generateSolutionForShapes, aiTutor.setMode, aiTutor.setActiveTab, aiTutor.sendMessage],
   );
 
   // Cancel in-flight requests when user edits the canvas
@@ -2371,7 +2342,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         submissionStatus={submissionId ? (isSubmitted ? 'submitted' : 'in_progress') : null}
         isAssignmentBoard={isAssignmentBoard}
         assistanceMode={assistanceMode}
-        onModeChange={(value) => setAssistanceMode(value as"off"| /*"feedback"| */"suggest"|"answer")}
+        onModeChange={(value) => setAssistanceMode(value as"solve"|"step-by-step"|"socratic"|"example")}
         aiAllowed={aiAllowed}
         isModeAllowed={isModeAllowed}
         status={status}
@@ -2456,29 +2427,6 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
             <div
               className="fixed bottom-4 z-[var(--z-panel)] ios-safe-bottom ios-safe-right flex flex-col items-end gap-2 transition-[right] duration-250 ease-out"              style={{ right: aiTutorOpen ? 396 : 16 }}
             >
-              <HintButton
-                isLoading={isHintLoading}
-                onClick={async () => {
-                  if (isHintLoading) return;
-                  const shapeIds = editor.getCurrentPageShapeIds();
-                  if (shapeIds.size === 0) {
-                    sileo.info({ title: 'Draw something first to get a hint!' });
-                    return;
-                  }
-                  if (isEnterprise) {
-                    setIsHintLoading(true);
-                    try {
-                      await generateSolution({ modeOverride: 'suggest', force: true });
-                    } finally {
-                      setIsHintLoading(false);
-                    }
-                  } else {
-                    setAiTutorOpen(true);
-                    aiTutor.setActiveTab('chat');
-                    aiTutor.sendMessage('Give me a hint about what to do next on my canvas.');
-                  }
-                }}
-              />
               <div className="flex items-center gap-2">
                 <AITutorButton
                   onClick={() => setAiTutorOpen(true)}

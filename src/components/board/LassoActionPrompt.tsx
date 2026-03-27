@@ -8,7 +8,7 @@ import { animate, stagger } from 'animejs';
 
 interface LassoActionPromptProps {
   position: { x: number; y: number };
-  onAction: (action: /* 'feedback' | */ 'suggest' | 'answer' | 'chat') => void;
+  onAction: (action: 'solve' | 'step-by-step' | 'socratic' | 'example' | 'chat') => void;
   onDismiss: () => void;
   isClosing?: boolean;
 }
@@ -64,43 +64,53 @@ export function LassoActionPrompt({ position, onAction, onDismiss, isClosing }: 
       style={{ left: position.x, top: position.y, transform: 'translate(-50%, 8px)' }}
     >
       <div className="flex items-center gap-0.5 bg-white border border-gray-200/80 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.08)] px-1.5 py-1">
-        {/* Feedback button disabled — kept for potential re-enable
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               data-lasso-btn
-              onClick={() => onAction('feedback')}
-              className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
-            >
-              Feedback
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={8}>Get feedback without answers</TooltipContent>
-        </Tooltip>
-        */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              data-lasso-btn
-              onClick={() => onAction('suggest')}
-              className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
-            >
-              Suggest
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={8}>Get hints to guide your thinking</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              data-lasso-btn
-              onClick={() => onAction('answer')}
+              onClick={() => onAction('solve')}
               className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
             >
               Solve
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom" sideOffset={8}>Get the full worked-out solution</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              data-lasso-btn
+              onClick={() => onAction('step-by-step')}
+              className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
+            >
+              Steps
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>Walk through one step at a time</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              data-lasso-btn
+              onClick={() => onAction('socratic')}
+              className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
+            >
+              Socratic
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>Get guiding questions to find the answer yourself</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              data-lasso-btn
+              onClick={() => onAction('example')}
+              className="px-2.5 py-1.5 min-h-[44px] sm:min-h-0 text-xs font-medium text-gray-700 rounded hover:bg-gray-100 transition-colors whitespace-nowrap opacity-0"
+            >
+              Example
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={8}>See a similar worked example</TooltipContent>
         </Tooltip>
         <div className="w-px h-4 bg-gray-200" />
         <Tooltip>
