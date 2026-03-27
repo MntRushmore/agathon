@@ -16,6 +16,7 @@ export interface CanvasContext {
 }
 
 export type AITutorTab = 'chat' | 'analysis';
+export type TutorMode = 'solve' | 'step-by-step' | 'socratic' | 'example';
 
 interface Step {
   number: number;
@@ -52,7 +53,7 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
   // Chat state
   const [messages, setMessages] = useState<Message[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [isSocratic, setIsSocratic] = useState(false);
+  const [mode, setMode] = useState<TutorMode>('solve');
   const [chatError, setChatError] = useState<string | null>(null);
   const chatAbortRef = useRef<AbortController | null>(null);
 
@@ -101,7 +102,7 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: apiMessages, canvasContext, isSocratic }),
+          body: JSON.stringify({ messages: apiMessages, canvasContext, mode }),
           signal: chatAbortRef.current.signal,
         });
 
@@ -163,10 +164,17 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
         setIsChatLoading(false);
       }
     },
-    [messages, isChatLoading, isSocratic, getCanvasContext]
+    [messages, isChatLoading, mode, getCanvasContext]
   );
 
   const clearChat = useCallback(() => {
+    setMessages([]);
+    setChatError(null);
+    if (chatAbortRef.current) chatAbortRef.current.abort();
+  }, []);
+
+  const setModeAndClearChat = useCallback((newMode: TutorMode) => {
+    setMode(newMode);
     setMessages([]);
     setChatError(null);
     if (chatAbortRef.current) chatAbortRef.current.abort();
@@ -375,8 +383,8 @@ export function useAITutor({ getCanvasContext }: UseAITutorOptions) {
     // Chat
     messages,
     isChatLoading,
-    isSocratic,
-    setIsSocratic,
+    mode,
+    setMode: setModeAndClearChat,
     chatError,
     sendMessage,
     checkWork,

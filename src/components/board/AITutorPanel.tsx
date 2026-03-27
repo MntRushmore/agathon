@@ -21,8 +21,7 @@ import { ChatMessage } from '@/components/chat/ChatMessage';
 import { LatexRenderer } from '@/components/chat/LatexRenderer';
 import { useAnimatedUnmount } from '@/hooks/useAnimatedUnmount';
 import { animate, stagger } from 'animejs';
-import type { AITutorTab, GoDeepData } from '@/hooks/useAITutor';
-import type { Message } from '@/hooks/useAITutor';
+import type { AITutorTab, GoDeepData, Message, TutorMode } from '@/hooks/useAITutor';
 
 interface ConversationMessage {
   id: string;
@@ -39,8 +38,8 @@ interface AITutorPanelProps {
   // Chat
   messages: Message[];
   isChatLoading: boolean;
-  isSocratic: boolean;
-  setIsSocratic: (v: boolean) => void;
+  mode: TutorMode;
+  setMode: (m: TutorMode) => void;
   sendMessage: (content: string) => void;
   checkWork: () => void;
   clearChat: () => void;
@@ -66,8 +65,8 @@ export function AITutorPanel({
   setActiveTab,
   messages,
   isChatLoading,
-  isSocratic,
-  setIsSocratic,
+  mode,
+  setMode,
   sendMessage,
   checkWork,
   clearChat,
@@ -270,7 +269,12 @@ export function AITutorPanel({
             <div className="flex flex-col h-full">
               <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
                 <p className="text-sm text-gray-400 text-center">
-                  Ask anything about your work on the canvas.
+                  {{
+                    solve: 'Ask me to solve a problem on your canvas.',
+                    'step-by-step': 'Ask me to walk you through a problem, one step at a time.',
+                    socratic: "I'll guide you with questions — ask me about any problem on your canvas.",
+                    example: "I'll create a similar example problem and walk through it. Ask me to begin.",
+                  }[mode]}
                 </p>
               </div>
               <div className="px-4 pb-4 space-y-1.5">
@@ -539,15 +543,21 @@ export function AITutorPanel({
 
       {/* Input Area */}
       <div className="border-t border-gray-100 p-3">
-        {/* Next Step button — hidden on analysis tab when no analysis data */}
-        {(activeTab === 'chat' || analysisData) && (
+        {/* Next Step button — chat tab: only for step-by-step and example modes; analysis tab: when data exists */}
+        {activeTab === 'chat' && (mode === 'step-by-step' || mode === 'example') && (
           <button
-            onClick={() =>
-              activeTab === 'chat'
-                ? sendMessage('Help with the next step')
-                : sendAnalysisFollowUp('Help with the next step')
-            }
-            disabled={activeTab === 'chat' ? isChatLoading : isAnalysisStreaming}
+            onClick={() => sendMessage('Next step')}
+            disabled={isChatLoading}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-[#007ba5]/5 hover:bg-[#007ba5]/10 border border-[#007ba5]/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ArrowRight className="w-3 h-3" />
+            Next Step
+          </button>
+        )}
+        {activeTab === 'analysis' && analysisData && (
+          <button
+            onClick={() => sendAnalysisFollowUp('Help with the next step')}
+            disabled={isAnalysisStreaming}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 mb-2 rounded-lg text-xs font-medium text-[#007ba5] bg-[#007ba5]/5 hover:bg-[#007ba5]/10 border border-[#007ba5]/15 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <ArrowRight className="w-3 h-3" />
@@ -558,18 +568,33 @@ export function AITutorPanel({
         <div className="flex items-center justify-between mb-2">
           {activeTab === 'chat' ? (
             <>
-              <button
-                onClick={() => setIsSocratic(!isSocratic)}
-                className={cn(
-                  'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors',
-                  isSocratic
-                    ? 'text-sky-700 bg-sky-50'
-                    : 'text-gray-400 hover:text-gray-500'
-                )}
+              {/* 4-mode selector */}
+              <div
+                className="flex items-center gap-0.5 bg-gray-100/80 rounded-lg p-0.5"
+                title="Switching modes clears the chat"
               >
-                <Brain className="w-3 h-3" />
-                Socratic
-              </button>
+                {(
+                  [
+                    { value: 'solve',        label: 'Solve'    },
+                    { value: 'step-by-step', label: 'Steps'    },
+                    { value: 'socratic',     label: 'Socratic' },
+                    { value: 'example',      label: 'Example'  },
+                  ] as const
+                ).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setMode(value)}
+                    className={cn(
+                      'px-2 py-0.5 text-[11px] font-medium rounded transition-all duration-150 leading-tight',
+                      mode === value
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-400 hover:text-gray-600'
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-1">
                 {messages.length > 0 && (
                   <button

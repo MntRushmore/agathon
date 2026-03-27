@@ -2421,8 +2421,8 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
                 setActiveTab={aiTutor.setActiveTab}
                 messages={aiTutor.messages}
                 isChatLoading={aiTutor.isChatLoading}
-                isSocratic={aiTutor.isSocratic}
-                setIsSocratic={aiTutor.setIsSocratic}
+                mode={aiTutor.mode}
+                setMode={aiTutor.setMode}
                 sendMessage={aiTutor.sendMessage}
                 checkWork={aiTutor.checkWork}
                 clearChat={aiTutor.clearChat}
