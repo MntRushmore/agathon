@@ -15,7 +15,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
       // Restrict to specific domains once all image sources are inventoried.
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com https://cdn.tldraw.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://cdn.tldraw.com https://ai.hackclub.com",
+      "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://cdn.tldraw.com https://ai.hackclub.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
