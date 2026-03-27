@@ -90,6 +90,7 @@ import { TemplateSelectionDialog } from "@/components/board/TemplateSelectionDia
 import { DashboardWelcome } from "@/components/onboarding/DashboardWelcome";
 import { UpgradeLimitDialog } from "@/components/onboarding/UpgradeLimitDialog";
 import { WelcomeModal } from "@/components/auth/welcome-modal";
+import { setPendingUpload } from "@/lib/uploadStore";
 
 type Whiteboard = {
   id: string;
@@ -491,10 +492,9 @@ export default function Dashboard() {
 
       sileo.success({ title: 'Board created' });
 
-      // Store file data in sessionStorage if present (too large for URL)
+      // Store file data in memory if present (avoids sessionStorage quota limits)
       if (fileData) {
-        const dataToStore = JSON.stringify(fileData);
-        sessionStorage.setItem('uploadedFile', dataToStore);
+        setPendingUpload(fileData);
         router.push(`/board/${data.id}?hasUpload=true`);
       } else {
         router.push(`/board/${data.id}`);

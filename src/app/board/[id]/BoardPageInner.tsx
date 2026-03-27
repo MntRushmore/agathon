@@ -62,6 +62,7 @@ import type { CanvasContext } from"@/hooks/useAITutor";
 import { FirstBoardTutorial } from"@/components/board/FirstBoardTutorial";
 import { celebrateMilestone } from"@/lib/celebrations";
 import { createClient } from"@/lib/supabase/client";
+import { getPendingUpload, clearPendingUpload } from"@/lib/uploadStore";
 import { cn } from"@/lib/utils";
 import { DocumentPanelContext } from"@/lib/contexts/document-panel-context";
 import { MyScriptMathOverlay } from"@/components/board/MyScriptMathOverlay";
@@ -2497,6 +2498,7 @@ export default function BoardPageInner() {
   const [docPanelOpen, setDocPanelOpen] = useState(false);
   const [gcSubmitting, setGcSubmitting] = useState(false);
   const [gcSubmitted, setGcSubmitted] = useState(false);
+  const pendingUploadDataRef = useRef<string | string[] | null>(null);
 
   // Open doc panel once assignmentMeta loads with a documentUrl
   useEffect(() => {
@@ -2844,18 +2846,20 @@ export default function BoardPageInner() {
   useEffect(() => {
     const hasUpload = searchParams.get('hasUpload');
 
-    if (!hasUpload) {
-      return;
+    // Capture upload data into ref the first time we see hasUpload
+    if (hasUpload) {
+      const storeData = getPendingUpload();
+      if (storeData) {
+        pendingUploadDataRef.current = storeData;
+        clearPendingUpload();
+        router.replace(`/board/${id}`);
+      }
     }
 
-    // Check if data is in sessionStorage (if not, we already processed it)
-    const storedData = sessionStorage.getItem('uploadedFile');
-    if (!storedData) {
+    // Nothing to load
+    if (!pendingUploadDataRef.current) {
       return;
     }
-
-    // Clear URL param immediately to prevent re-triggering
-    router.replace(`/board/${id}`);
 
     let attempts = 0;
     const maxAttempts = 20;
@@ -2868,7 +2872,11 @@ export default function BoardPageInner() {
       if (editor && !loading && !hasLoaded) {
         hasLoaded = true;
         clearInterval(intervalId);
-        loadUploadedFiles(editor);
+        const uploadData = pendingUploadDataRef.current;
+        if (uploadData) {
+          pendingUploadDataRef.current = null;
+          loadUploadedFiles(editor, uploadData);
+        }
       } else if (attempts >= maxAttempts) {
         clearInterval(intervalId);
         if (!hasLoaded) {
@@ -2877,19 +2885,10 @@ export default function BoardPageInner() {
       }
     }, 100);
 
-    const loadUploadedFiles = async (editor: any) => {
+    const loadUploadedFiles = async (editor: any, uploadData: string | string[]) => {
       try {
-        // Retrieve from sessionStorage
-        const storedData = sessionStorage.getItem('uploadedFile');
-        if (!storedData) {
-          return;
-        }
-
-        // Clear from sessionStorage
-        sessionStorage.removeItem('uploadedFile');
-
         // Parse the data
-        const parsed = JSON.parse(storedData);
+        const parsed = uploadData;
         let imageUrls: string[];
 
         // Check if it's an array (multi-page PDF) or single image
