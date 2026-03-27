@@ -1,7 +1,7 @@
 'use client';
 
 import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle, createShapeId } from 'tldraw';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -17,11 +17,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from '@/components/ui/tooltip';
 import { useDocumentPanelOpen } from '@/lib/contexts/document-panel-context';
 
 interface ToolButtonProps {
@@ -35,47 +30,87 @@ interface ToolButtonProps {
   vertical?: boolean;
 }
 
+/** Portaled tooltip that escapes any overflow:hidden/auto ancestor */
+function ButtonTooltip({ label, shortcut, anchorRef, vertical }: {
+  label: string;
+  shortcut?: string;
+  anchorRef: React.RefObject<HTMLElement | null>;
+  vertical?: boolean;
+}) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const el = anchorRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (vertical) {
+      setPos({ x: rect.right + 8, y: rect.top + rect.height / 2 });
+    } else {
+      setPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 });
+    }
+  }, [anchorRef, vertical]);
+
+  if (!pos) return null;
+
+  return createPortal(
+    <div
+      className="fixed z-[99999] pointer-events-none bg-gray-900 text-white text-[11px] font-medium rounded-md px-2 py-1 whitespace-nowrap shadow-sm"
+      style={vertical
+        ? { left: pos.x, top: pos.y, transform: 'translateY(-50%)' }
+        : { left: pos.x, top: pos.y, transform: 'translateX(-50%)' }
+      }
+    >
+      {label}
+      {shortcut && <span className="ml-1.5 opacity-50 font-mono text-[10px]">{shortcut}</span>}
+    </div>,
+    document.body
+  );
+}
+
 function ToolButton({ icon, shortcut, isActive, onClick, label, hasDropdown, className, vertical }: ToolButtonProps) {
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.stopPropagation();
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleMouseEnter = () => {
+    timerRef.current = setTimeout(() => setShowTooltip(true), 500);
   };
+  const handleMouseLeave = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setShowTooltip(false);
+  };
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={onClick}
-          onPointerDown={handlePointerDown}
-          onTouchStart={(e) => e.stopPropagation()}
-          className={cn(
-            'no-enlarge relative flex items-center justify-center',
-            'rounded-lg transition-all duration-150',
-            'hover:bg-gray-100/80 active:scale-[0.92]',
-            'touch-manipulation select-none',
-            vertical ? 'w-10 h-10' : 'h-9 w-9',
-            isActive && 'bg-[#007ba5]/10 text-[#007ba5] shadow-[inset_0_0_0_1px_rgba(0,123,165,0.15)]',
-            !isActive && 'text-gray-500 hover:text-gray-700',
-            className
-          )}
-          aria-label={label}
-        >
-          <div className="flex items-center justify-center">
-            {icon}
-          </div>
-          {hasDropdown && (
-            vertical ? (
-              <ChevronRight className="absolute right-0.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gray-400" />
-            ) : (
-              <ChevronDown className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-gray-400" />
-            )
-          )}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side={vertical ? 'right' : 'bottom'} sideOffset={8} className="rounded-lg px-2.5 py-1.5 text-xs font-medium">
-        <span>{label}</span>
-        {shortcut && <kbd className="ml-1.5 text-[10px] opacity-50 bg-gray-100 px-1 py-0.5 rounded font-mono">{shortcut}</kbd>}
-      </TooltipContent>
-    </Tooltip>
+    <>
+      <button
+        ref={btnRef}
+        onClick={onClick}
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn(
+          'no-enlarge relative flex items-center justify-center',
+          'rounded-lg transition-all duration-150',
+          'hover:bg-gray-100/80 active:scale-[0.92]',
+          'touch-manipulation select-none',
+          vertical ? 'w-10 h-10' : 'h-9 w-9',
+          isActive && 'bg-[#007ba5]/10 text-[#007ba5] shadow-[inset_0_0_0_1px_rgba(0,123,165,0.15)]',
+          !isActive && 'text-gray-500 hover:text-gray-700',
+          className
+        )}
+        aria-label={label}
+      >
+        <div className="flex items-center justify-center">{icon}</div>
+        {hasDropdown && (
+          vertical
+            ? <ChevronRight className="absolute right-0.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-gray-400" />
+            : <ChevronDown className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 text-gray-400" />
+        )}
+      </button>
+      {showTooltip && <ButtonTooltip label={label} shortcut={shortcut} anchorRef={btnRef} vertical={vertical} />}
+    </>
   );
 }
 
@@ -192,6 +227,52 @@ function Separator({ vertical }: { vertical: boolean }) {
   return vertical
     ? <div className="h-px w-7 bg-gray-200/70 mx-auto my-1" />
     : <div className="w-px h-5 bg-gray-200/70 mx-1.5" />;
+}
+
+function UndoRedoButton({ icon, label, shortcut, enabled, onClick, vertical }: {
+  icon: React.ReactNode;
+  label: string;
+  shortcut: string;
+  enabled: boolean;
+  onClick: () => void;
+  vertical?: boolean;
+}) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const handleMouseEnter = () => {
+    timerRef.current = setTimeout(() => setShowTooltip(true), 500);
+  };
+  const handleMouseLeave = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setShowTooltip(false);
+  };
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={onClick}
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        disabled={!enabled}
+        className={cn(
+          'no-enlarge flex items-center justify-center rounded-md transition-all duration-150',
+          'active:scale-[0.92] touch-manipulation',
+          vertical ? 'w-10 h-10' : 'w-9 h-9',
+          enabled ? 'text-gray-500 hover:bg-gray-50' : 'text-gray-300 cursor-not-allowed'
+        )}
+        aria-label={label}
+      >
+        {icon}
+      </button>
+      {showTooltip && <ButtonTooltip label={label} shortcut={shortcut} anchorRef={btnRef} vertical={vertical} />}
+    </>
+  );
 }
 
 /** The tool buttons rendered as an inline flex row (no wrapper container) */
@@ -379,52 +460,8 @@ function ToolButtonsInline({
 
       {/* Undo/Redo */}
       <div className="flex items-center gap-0.5 flex-shrink-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => editor.undo()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              disabled={!canUndo}
-              className={cn(
-                'no-enlarge w-9 h-9 flex items-center justify-center rounded-md transition-all duration-150',
-                'active:scale-[0.92] touch-manipulation',
-                canUndo
-                  ? 'text-gray-500 hover:bg-gray-50'
-                  : 'text-gray-300 cursor-not-allowed'
-              )}
-              aria-label="Undo"
-            >
-              <Undo2 className="w-[17px] h-[17px]" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={8}>
-            Undo <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">Ctrl+Z</kbd>
-          </TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => editor.redo()}
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-              disabled={!canRedo}
-              className={cn(
-                'no-enlarge w-9 h-9 flex items-center justify-center rounded-md transition-all duration-150',
-                'active:scale-[0.92] touch-manipulation',
-                canRedo
-                  ? 'text-gray-500 hover:bg-gray-50'
-                  : 'text-gray-300 cursor-not-allowed'
-              )}
-              aria-label="Redo"
-            >
-              <Redo2 className="w-[17px] h-[17px]" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={8}>
-            Redo <kbd className="ml-1.5 text-[10px] opacity-60 bg-gray-100 px-1 py-0.5 rounded">Ctrl+Shift+Z</kbd>
-          </TooltipContent>
-        </Tooltip>
+        <UndoRedoButton icon={<Undo2 className="w-[17px] h-[17px]" />} label="Undo" shortcut="Ctrl+Z" enabled={canUndo} onClick={() => editor.undo()} />
+        <UndoRedoButton icon={<Redo2 className="w-[17px] h-[17px]" />} label="Redo" shortcut="Ctrl+Shift+Z" enabled={canRedo} onClick={() => editor.redo()} />
       </div>
 
       {/* Math Keyboard - positioned below the top bar */}
@@ -719,48 +756,8 @@ export function CustomToolbar() {
 
         {/* Undo/Redo */}
         <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => editor.undo()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                disabled={!canUndo}
-                className={cn(
-                  'no-enlarge w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150',
-                  'active:scale-[0.92] touch-manipulation',
-                  canUndo
-                    ? 'text-gray-500 hover:bg-gray-50'
-                    : 'text-gray-300 cursor-not-allowed'
-                )}
-                aria-label="Undo"
-              >
-                <Undo2 className="w-[17px] h-[17px]" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>Undo</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => editor.redo()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                disabled={!canRedo}
-                className={cn(
-                  'no-enlarge w-10 h-10 flex items-center justify-center rounded-md transition-all duration-150',
-                  'active:scale-[0.92] touch-manipulation',
-                  canRedo
-                    ? 'text-gray-500 hover:bg-gray-50'
-                    : 'text-gray-300 cursor-not-allowed'
-                )}
-                aria-label="Redo"
-              >
-                <Redo2 className="w-[17px] h-[17px]" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8}>Redo</TooltipContent>
-          </Tooltip>
+          <UndoRedoButton icon={<Undo2 className="w-[17px] h-[17px]" />} label="Undo" shortcut="Ctrl+Z" enabled={canUndo} onClick={() => editor.undo()} vertical />
+          <UndoRedoButton icon={<Redo2 className="w-[17px] h-[17px]" />} label="Redo" shortcut="Ctrl+Shift+Z" enabled={canRedo} onClick={() => editor.redo()} vertical />
         </div>
       </div>
 
