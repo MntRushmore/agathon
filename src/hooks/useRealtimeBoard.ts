@@ -1,131 +1,141 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase";
 
 interface UseRealtimeBoardProps {
-  boardId: string;
-  userId: string;
-  onBoardUpdate?: (data: any) => void;
+	boardId: string;
+	userId: string;
+	onBoardUpdate?: (data: any) => void;
 }
 
 interface ActiveUser {
-  userId: string;
-  userName: string;
-  lastSeen: string;
+	userId: string;
+	userName: string;
+	lastSeen: string;
 }
 
-export function useRealtimeBoard({ boardId, userId, onBoardUpdate }: UseRealtimeBoardProps) {
-  const supabase = createClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const onBoardUpdateRef = useRef(onBoardUpdate);
-  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+export function useRealtimeBoard({
+	boardId,
+	userId,
+	onBoardUpdate,
+}: UseRealtimeBoardProps) {
+	const supabase = createClient();
+	const channelRef = useRef<RealtimeChannel | null>(null);
+	const onBoardUpdateRef = useRef(onBoardUpdate);
+	const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
+	const [isConnected, setIsConnected] = useState(false);
 
-  // Keep callback ref up to date without re-subscribing
-  useEffect(() => {
-    onBoardUpdateRef.current = onBoardUpdate;
-  }, [onBoardUpdate]);
+	// Keep callback ref up to date without re-subscribing
+	useEffect(() => {
+		onBoardUpdateRef.current = onBoardUpdate;
+	}, [onBoardUpdate]);
 
-  useEffect(() => {
-    if (!boardId || !userId) return;
+	useEffect(() => {
+		if (!boardId || !userId) return;
 
-    // Create a channel for this board
-    const channel = supabase.channel(`board:${boardId}`, {
-      config: {
-        presence: {
-          key: userId,
-        },
-      },
-    });
+		// Create a channel for this board
+		const channel = supabase.channel(`board:${boardId}`, {
+			config: {
+				presence: {
+					key: userId,
+				},
+			},
+		});
 
-    channelRef.current = channel;
+		channelRef.current = channel;
 
-    // Subscribe to board updates
-    channel
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'whiteboards',
-        filter: `id=eq.${boardId}`,
-      }, (payload) => {
-        // Only notify if update was from another user
-        onBoardUpdateRef.current?.(payload.new);
-      })
-      // Track presence (who's online)
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users: ActiveUser[] = [];
+		// Subscribe to board updates
+		channel
+			.on(
+				"postgres_changes",
+				{
+					event: "UPDATE",
+					schema: "public",
+					table: "whiteboards",
+					filter: `id=eq.${boardId}`,
+				},
+				(payload) => {
+					// Only notify if update was from another user
+					onBoardUpdateRef.current?.(payload.new);
+				},
+			)
+			// Track presence (who's online)
+			.on("presence", { event: "sync" }, () => {
+				const state = channel.presenceState();
+				const users: ActiveUser[] = [];
 
-        Object.keys(state).forEach((key) => {
-          const presences = state[key];
-          if (presences && presences.length > 0) {
-            const presence = presences[0] as any;
-            users.push({
-              userId: key,
-              userName: presence.userName || 'Anonymous',
-              lastSeen: presence.lastSeen || new Date().toISOString(),
-            });
-          }
-        });
+				Object.keys(state).forEach((key) => {
+					const presences = state[key];
+					if (presences && presences.length > 0) {
+						const presence = presences[0] as any;
+						users.push({
+							userId: key,
+							userName: presence.userName || "Anonymous",
+							lastSeen: presence.lastSeen || new Date().toISOString(),
+						});
+					}
+				});
 
-        setActiveUsers(users);
-      })
-      .subscribe(async (status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+				setActiveUsers(users);
+			})
+			.subscribe(async (status) => {
+				setIsConnected(status === "SUBSCRIBED");
 
-        if (status === 'SUBSCRIBED') {
-          // Track our presence
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', userId)
-              .single();
+				if (status === "SUBSCRIBED") {
+					// Track our presence
+					try {
+						const {
+							data: { user },
+						} = await supabase.auth.getUser();
+						const { data: profile } = await supabase
+							.from("profiles")
+							.select("full_name")
+							.eq("id", userId)
+							.single();
 
-            await channel.track({
-              userId,
-              userName: profile?.full_name || user?.email || 'Anonymous',
-              lastSeen: new Date().toISOString(),
-            });
-          } catch {
-            // Profile fetch failed — track with fallback name
-            await channel.track({
-              userId,
-              userName: 'Anonymous',
-              lastSeen: new Date().toISOString(),
-            });
-          }
-        }
-      });
+						await channel.track({
+							userId,
+							userName: profile?.full_name || user?.email || "Anonymous",
+							lastSeen: new Date().toISOString(),
+						});
+					} catch {
+						// Profile fetch failed — track with fallback name
+						await channel.track({
+							userId,
+							userName: "Anonymous",
+							lastSeen: new Date().toISOString(),
+						});
+					}
+				}
+			});
 
-    // Cleanup on unmount
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-    };
-  }, [boardId, userId]);
+		// Cleanup on unmount
+		return () => {
+			if (channelRef.current) {
+				channelRef.current.unsubscribe();
+				channelRef.current = null;
+			}
+		};
+	}, [boardId, userId, supabase.from, supabase.auth.getUser, supabase.channel]);
 
-  // Send heartbeat every 30 seconds
-  useEffect(() => {
-    if (!isConnected || !channelRef.current) return;
+	// Send heartbeat every 30 seconds
+	useEffect(() => {
+		if (!isConnected || !channelRef.current) return;
 
-    const interval = setInterval(() => {
-      channelRef.current?.track({
-        userId,
-        lastSeen: new Date().toISOString(),
-      });
-    }, 30000);
+		const interval = setInterval(() => {
+			channelRef.current?.track({
+				userId,
+				lastSeen: new Date().toISOString(),
+			});
+		}, 30000);
 
-    return () => clearInterval(interval);
-  }, [isConnected, userId]);
+		return () => clearInterval(interval);
+	}, [isConnected, userId]);
 
-  return {
-    activeUsers: activeUsers.filter(u => u.userId !== userId), // Exclude self
-    isConnected,
-  };
+	return {
+		activeUsers: activeUsers.filter((u) => u.userId !== userId), // Exclude self
+		isConnected,
+	};
 }
