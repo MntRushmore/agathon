@@ -1,7 +1,7 @@
 "use client";
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase";
 
 interface UseRealtimeBoardProps {
@@ -21,7 +21,7 @@ export function useRealtimeBoard({
 	userId,
 	onBoardUpdate,
 }: UseRealtimeBoardProps) {
-	const supabase = createClient();
+	const supabase = useMemo(() => createClient(), []);
 	const channelRef = useRef<RealtimeChannel | null>(null);
 	const onBoardUpdateRef = useRef(onBoardUpdate);
 	const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
