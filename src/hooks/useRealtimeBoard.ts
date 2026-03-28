@@ -8,6 +8,7 @@ interface UseRealtimeBoardProps {
 	boardId: string;
 	userId: string;
 	onBoardUpdate?: (data: any) => void;
+	onError?: (error: string) => void;
 }
 
 interface ActiveUser {
@@ -16,21 +17,33 @@ interface ActiveUser {
 	lastSeen: string;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
+
 export function useRealtimeBoard({
 	boardId,
 	userId,
 	onBoardUpdate,
+	onError,
 }: UseRealtimeBoardProps) {
 	const supabase = useMemo(() => createClient(), []);
 	const channelRef = useRef<RealtimeChannel | null>(null);
 	const onBoardUpdateRef = useRef(onBoardUpdate);
+	const onErrorRef = useRef(onError);
+	const retryCountRef = useRef(0);
+	const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
 	const [isConnected, setIsConnected] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-	// Keep callback ref up to date without re-subscribing
+	// Keep callback refs up to date without re-subscribing
 	useEffect(() => {
 		onBoardUpdateRef.current = onBoardUpdate;
 	}, [onBoardUpdate]);
+
+	useEffect(() => {
+		onErrorRef.current = onError;
+	}, [onError]);
 
 	useEffect(() => {
 		if (!boardId || !userId) return;
@@ -80,10 +93,12 @@ export function useRealtimeBoard({
 
 				setActiveUsers(users);
 			})
-			.subscribe(async (status) => {
-				setIsConnected(status === "SUBSCRIBED");
-
+			.subscribe(async (status, err) => {
 				if (status === "SUBSCRIBED") {
+					setIsConnected(true);
+					setError(null);
+					retryCountRef.current = 0;
+
 					// Track our presence
 					const { data: userData, error: userError } =
 						await supabase.auth.getUser();
@@ -108,17 +123,42 @@ export function useRealtimeBoard({
 						userName: profile?.full_name || user?.email || "Anonymous",
 						lastSeen: new Date().toISOString(),
 					});
+				} else if (
+					status === "CHANNEL_ERROR" ||
+					status === "TIMED_OUT" ||
+					status === "CLOSED"
+				) {
+					setIsConnected(false);
+					const message =
+						err?.message ??
+						`Realtime subscription ${status.toLowerCase().replace("_", " ")}`;
+					setError(message);
+					onErrorRef.current?.(message);
+
+					// Retry with exponential back-off
+					if (retryCountRef.current < MAX_RETRIES) {
+						const delay =
+							RETRY_DELAY_MS * 2 ** retryCountRef.current;
+						retryCountRef.current += 1;
+						retryTimeoutRef.current = setTimeout(() => {
+							channel.subscribe();
+						}, delay);
+					}
 				}
 			});
 
-		// Cleanup on unmount
-		return () => {
-			if (channelRef.current) {
-				channelRef.current.unsubscribe();
-				channelRef.current = null;
-			}
-		};
-	}, [boardId, userId, supabase.from, supabase.auth.getUser, supabase.channel]);
+			// Cleanup on unmount
+			return () => {
+				if (retryTimeoutRef.current) {
+					clearTimeout(retryTimeoutRef.current);
+					retryTimeoutRef.current = null;
+				}
+				if (channelRef.current) {
+					channelRef.current.unsubscribe();
+					channelRef.current = null;
+				}
+			};
+			}, [boardId, userId, supabase.from, supabase.auth.getUser, supabase.channel]);
 
 	// Send heartbeat every 30 seconds
 	useEffect(() => {
@@ -137,5 +177,6 @@ export function useRealtimeBoard({
 	return {
 		activeUsers: activeUsers.filter((u) => u.userId !== userId), // Exclude self
 		isConnected,
+		error,
 	};
 }
