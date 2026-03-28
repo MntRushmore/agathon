@@ -85,29 +85,29 @@ export function useRealtimeBoard({
 
 				if (status === "SUBSCRIBED") {
 					// Track our presence
-					try {
-						const {
-							data: { user },
-						} = await supabase.auth.getUser();
-						const { data: profile } = await supabase
-							.from("profiles")
-							.select("full_name")
-							.eq("id", userId)
-							.single();
-
+					const { data: userData, error: userError } =
+						await supabase.auth.getUser();
+					const user = userData?.user ?? null;
+					if (userError) {
+						// Authentication/user fetch failed — track with fallback name
 						await channel.track({
 							userId,
-							userName: profile?.full_name || user?.email || "Anonymous",
+							userName: user?.email || "Anonymous",
 							lastSeen: new Date().toISOString(),
 						});
-					} catch {
-						// Profile fetch failed — track with fallback name
-						await channel.track({
-							userId,
-							userName: "Anonymous",
-							lastSeen: new Date().toISOString(),
-						});
+						return;
 					}
+					const { data: profile } = await supabase
+						.from("profiles")
+						.select("full_name")
+						.eq("id", userId)
+						.single();
+
+					await channel.track({
+						userId,
+						userName: profile?.full_name || user?.email || "Anonymous",
+						lastSeen: new Date().toISOString(),
+					});
 				}
 			});
 
