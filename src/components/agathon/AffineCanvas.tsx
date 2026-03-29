@@ -1,20 +1,19 @@
 'use client';
 
 /**
- * AffineCanvas — embeds BlockSuite's EdgelessEditor / PageEditor web components.
+ * AffineCanvas — owns the full BlockSuite doc + editor lifecycle.
  *
- * Uses the exact same setup as BlockSuite's own playground examples:
- *   const doc = createEmptyDoc().init();
- *   const editor = new EdgelessEditor();
- *   editor.doc = doc;
- *   document.body.append(editor);
+ * Critical ordering:
+ *   1. Load effects (registers all custom elements + block schemas)
+ *   2. createEmptyDoc().init()  — schemas must already be registered
+ *   3. Optionally restore YJS state
+ *   4. Mount edgeless-editor / page-editor element
  *
- * The editor renders its own full UI (top bar, toolbar, canvas) — we just
- * provide a container div and let BlockSuite handle everything inside it.
+ * This ordering prevents "SuperClass is not a subclass of BlockModel" which
+ * happens when the doc is created before schemas are registered.
  */
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import type { ActiveTool } from './EditorToolbar';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BSDoc = any;
@@ -23,68 +22,37 @@ export type CanvasMode = 'page' | 'edgeless';
 
 export interface AffineCanvasHandle {
   getTextContent(): string;
-  getDoc(): BSDoc | null;
-  switchMode(mode: CanvasMode): void;
-  setTool(tool: ActiveTool): void;
 }
 
 interface AffineCanvasProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  doc: any;
+  boardId: string;
+  savedYjsState?: string;
   mode?: CanvasMode;
-  activeTool?: ActiveTool;
   className?: string;
+  onDocReady?: (doc: BSDoc) => void;
   onSelectionChange?: (text: string) => void;
 }
 
-// Map our toolbar tool IDs → BlockSuite edgeless tool type strings
-const TOOL_MAP: Partial<Record<ActiveTool, string>> = {
-  default:   'default',
-  pan:       'pan',
-  frame:     'affine:frame',
-  connector: 'connector',
-  note:      'affine:note',
-  pen:       'brush',
-  eraser:    'eraser',
-  shape:     'affine:shape',
-  text:      'affine:edgeless-text',
-  sticky:    'affine:note',
-  mindmap:   'mindmap',
-};
-
-let effectsLoaded = false;
-async function ensureEffects() {
-  if (effectsLoaded) return;
-  effectsLoaded = true;
-  // Import theme CSS
-  await import('@toeverything/theme/style.css');
-  // Register all BlockSuite custom elements
-  await import('@blocksuite/presets/effects');
-  await import('@blocksuite/blocks/effects');
-}
-
-type EditorEl = HTMLElement & { doc: BSDoc };
-
-function trySetTool(container: HTMLDivElement, tool: ActiveTool) {
-  const bsTool = TOOL_MAP[tool];
-  if (!bsTool) return;
-  try {
-    // BlockSuite's edgeless root exposes a `tools` controller
-    const root = container.querySelector('affine-edgeless-root') as HTMLElement & {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools?: { setEdgelessTool?: (t: { type: string }) => void };
-    };
-    root?.tools?.setEdgelessTool?.({ type: bsTool });
-  } catch { /* ignore — tool may not be registered in this mode */ }
+// Load effects exactly once — this registers all block schemas + custom elements
+let effectsPromise: Promise<void> | null = null;
+function loadEffects(): Promise<void> {
+  if (!effectsPromise) {
+    effectsPromise = (async () => {
+      await import('@blocksuite/presets/effects');
+      await import('@blocksuite/blocks/effects');
+    })();
+  }
+  return effectsPromise;
 }
 
 const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
-  ({ doc, mode = 'edgeless', activeTool = 'default', className, onSelectionChange }, ref) => {
+  ({ boardId, savedYjsState, mode = 'edgeless', className, onDocReady, onSelectionChange }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
-    const editorRef = useRef<EditorEl | null>(null);
+    const docRef = useRef<BSDoc>(null);
 
     useImperativeHandle(ref, () => ({
       getTextContent() {
+        const doc = docRef.current;
         if (!doc) return '';
         try {
           const blocks = doc.getBlockByFlavour?.('affine:paragraph') ?? [];
@@ -94,56 +62,63 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
             .join('\n');
         } catch { return ''; }
       },
-      getDoc() { return doc; },
-      switchMode(m: CanvasMode) {
-        // Swap the editor element
-        const container = containerRef.current;
-        if (!container) return;
-        mountEditor(container, doc, m, activeTool, onSelectionChange).then((el) => {
-          editorRef.current = el;
-        });
-      },
-      setTool(t: ActiveTool) {
-        if (containerRef.current) trySetTool(containerRef.current, t);
-      },
     }));
 
     useEffect(() => {
       const container = containerRef.current;
-      if (!container || !doc) return;
+      if (!container) return;
       let destroyed = false;
 
-      ensureEffects().then(() => {
-        if (destroyed || !container) return;
-        mountEditor(container, doc, mode, activeTool, onSelectionChange).then((el) => {
-          if (!destroyed) editorRef.current = el;
-        });
-      });
+      (async () => {
+        // Step 1: register all block schemas + custom elements
+        await loadEffects();
+        if (destroyed) return;
+
+        // Step 2: create doc (schemas are now registered — no version mismatch)
+        const { createEmptyDoc } = await import('@blocksuite/presets');
+        const doc = createEmptyDoc().init();
+        docRef.current = doc;
+
+        // Step 3: restore saved YJS state if present
+        if (savedYjsState) {
+          try {
+            const { applyUpdate } = await import('yjs');
+            const bytes = Uint8Array.from(atob(savedYjsState), (c) => c.charCodeAt(0));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const yjsDoc = (doc as any).spaceDoc ?? (doc as any).doc;
+            if (yjsDoc) applyUpdate(yjsDoc, bytes);
+          } catch (e) {
+            console.warn('[AffineCanvas] YJS restore failed, using fresh doc:', e);
+          }
+        }
+
+        if (destroyed) return;
+        onDocReady?.(doc);
+
+        // Step 4: mount the native BlockSuite editor element
+        const tag = mode === 'edgeless' ? 'edgeless-editor' : 'page-editor';
+        const el = document.createElement(tag) as HTMLElement & { doc: BSDoc };
+        el.doc = doc;
+        el.style.cssText = 'width:100%;height:100%;display:block;';
+
+        if (onSelectionChange) {
+          el.addEventListener('selectionchange', () => {
+            const sel = window.getSelection();
+            if (sel?.toString().trim()) onSelectionChange(sel.toString().trim());
+          });
+        }
+
+        container.appendChild(el);
+      })();
 
       return () => {
         destroyed = true;
         container.innerHTML = '';
-        editorRef.current = null;
+        docRef.current = null;
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [doc]);
-
-    // Mode changes: remount with new element type
-    useEffect(() => {
-      const container = containerRef.current;
-      if (!container || !doc || !editorRef.current) return;
-      container.innerHTML = '';
-      editorRef.current = null;
-      mountEditor(container, doc, mode, activeTool, onSelectionChange).then((el) => {
-        editorRef.current = el;
-      });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode]);
-
-    // Tool changes: forward to BlockSuite without remounting
-    useEffect(() => {
-      if (containerRef.current) trySetTool(containerRef.current, activeTool);
-    }, [activeTool]);
+    // boardId as dep so switching boards remounts cleanly
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [boardId, mode]);
 
     return (
       <div
@@ -154,38 +129,6 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
     );
   }
 );
-
-async function mountEditor(
-  container: HTMLDivElement,
-  doc: BSDoc,
-  mode: CanvasMode,
-  activeTool: ActiveTool,
-  onSelectionChange?: (text: string) => void,
-): Promise<EditorEl> {
-  container.innerHTML = '';
-  const tag = mode === 'edgeless' ? 'edgeless-editor' : 'page-editor';
-  const el = document.createElement(tag) as EditorEl;
-  el.doc = doc;
-  // Fill the container
-  el.style.cssText = 'width:100%;height:100%;display:block;';
-
-  if (onSelectionChange) {
-    el.addEventListener('selectionchange', () => {
-      const sel = window.getSelection();
-      if (sel?.toString().trim()) onSelectionChange(sel.toString().trim());
-    });
-  }
-
-  container.appendChild(el);
-
-  // After mount, set initial tool
-  if (mode === 'edgeless') {
-    // Give the Lit element one frame to initialise before forwarding the tool
-    requestAnimationFrame(() => trySetTool(container, activeTool));
-  }
-
-  return el;
-}
 
 AffineCanvas.displayName = 'AffineCanvas';
 export default AffineCanvas;

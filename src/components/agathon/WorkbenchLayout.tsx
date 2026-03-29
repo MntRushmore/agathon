@@ -1,21 +1,10 @@
 'use client';
 
-/**
- * WorkbenchLayout — Agathon × BlockSuite workbench.
- *
- * BlockSuite's edgeless-editor / page-editor web components render their own
- * full native UI (top chrome, toolbar, canvas). We let them fill the screen
- * completely and overlay only our Socratic AI panel + inline affordance on top.
- *
- * The "Ask AI" button is injected into the bottom-right corner so it doesn't
- * clash with BlockSuite's own toolbar.
- */
-
 import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
-import type { AffineCanvasHandle, CanvasMode } from './AffineCanvas';
+import type { AffineCanvasHandle } from './AffineCanvas';
 import SocraticPanel from './SocraticPanel';
 import InlineAIAffordance from './InlineAIAffordance';
 
@@ -25,24 +14,26 @@ type BSDoc = any;
 const AffineCanvas = dynamic(() => import('./AffineCanvas'), { ssr: false });
 
 interface WorkbenchLayoutProps {
-  doc: BSDoc;
+  boardId: string;
+  savedYjsState?: string;
   title: string;
   subject?: string;
   onBack: () => void;
   onTitleChange?: (title: string) => void;
+  onDocReady?: (doc: BSDoc) => void;
   isSaving?: boolean;
   activeUsers?: { id: string; name: string; color: string }[];
 }
 
 export default function WorkbenchLayout({
-  doc,
+  boardId,
+  savedYjsState,
   subject,
+  onDocReady,
 }: WorkbenchLayoutProps) {
-  const [mode] = useState<CanvasMode>('edgeless');
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string | undefined>();
   const [inlineAI, setInlineAI] = useState<{ text: string; x: number; y: number } | null>(null);
-
   const canvasRef = useRef<AffineCanvasHandle>(null);
 
   const getCanvasContext = useCallback((): string => {
@@ -65,24 +56,22 @@ export default function WorkbenchLayout({
   }, []);
 
   return (
-    // Full-screen — BlockSuite renders its own chrome inside
     <div className="relative w-full h-screen overflow-hidden">
-
-      {/* BlockSuite editor fills everything — shrinks right when AI panel opens */}
+      {/* BlockSuite fills everything — it renders its own top bar + toolbar */}
       <div
         className="absolute inset-0 transition-all duration-300 ease-out"
         style={{ right: isAIPanelOpen ? 360 : 0 }}
       >
         <AffineCanvas
           ref={canvasRef}
-          doc={doc}
-          mode={mode}
+          boardId={boardId}
+          savedYjsState={savedYjsState}
+          onDocReady={onDocReady}
           onSelectionChange={handleSelectionChange}
           className="w-full h-full"
         />
       </div>
 
-      {/* Socratic AI panel — slides in from right */}
       <SocraticPanel
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
@@ -92,7 +81,6 @@ export default function WorkbenchLayout({
         onClearSelection={() => setSelectedText(undefined)}
       />
 
-      {/* Inline AI bubble above selected text */}
       {inlineAI && !isAIPanelOpen && (
         <InlineAIAffordance
           text={inlineAI.text}
@@ -103,13 +91,13 @@ export default function WorkbenchLayout({
         />
       )}
 
-      {/* Ask AI FAB — bottom-right, doesn't overlap BlockSuite's toolbar */}
+      {/* Ask Agathon FAB — bottom right, clear of BlockSuite's toolbar */}
       <AnimatePresence>
         {!isAIPanelOpen && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 0, scale: 0.85 }}
             transition={{ duration: 0.15 }}
             onClick={() => setIsAIPanelOpen(true)}
             className={cn(
@@ -133,7 +121,6 @@ function SparkleIcon() {
   return (
     <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" />
-      <path d="M5 16l.73 2.27L8 19l-2.27.73L5 22l-.73-2.27L2 19l2.27-.73L5 16zM19 3l.5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5L19 3z" />
     </svg>
   );
 }
