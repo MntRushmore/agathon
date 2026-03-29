@@ -15,6 +15,11 @@
   "dependencies": {
     "@aarkue/tiptap-math-extension": "^1.4.0",
     "@ai-sdk/openai": "^1.0.0",
+    "@blocksuite/blocks": "^0.19.5",
+    "@blocksuite/global": "^0.22.4",
+    "@blocksuite/icons": "^2.1.75",
+    "@blocksuite/presets": "^0.19.5",
+    "@blocksuite/store": "^0.22.4",
     "@composio/core": "^0.6.3",
     "@floating-ui/dom": "^1.7.4",
     "@headlessui/react": "^2.2.9",
