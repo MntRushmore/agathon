@@ -10,14 +10,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { supabase } from '@/lib/supabase';
 import { createClient } from '@/lib/supabase/client';
+
+const supabase = createClient();
 import { Loader2 } from 'lucide-react';
 import { sileo } from 'sileo';
-import { createEmptyDoc } from '@blocksuite/presets';
-
-// Use `any` for BSDoc to avoid @blocksuite/store version-mismatch between
-// root package and the nested copy inside @blocksuite/block-std.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BSDoc = any;
 
@@ -34,11 +31,36 @@ const WorkbenchLayout = dynamic(() => import('@/components/agathon/WorkbenchLayo
   ),
 });
 
-function initFreshDoc(d: BSDoc) {
-  const rootId = d.addBlock('affine:page', {});
-  d.addBlock('affine:surface', {}, rootId);
-  const noteId = d.addBlock('affine:note', {}, rootId);
-  d.addBlock('affine:paragraph', {}, noteId);
+/**
+ * Create a BlockSuite doc safely.
+ * - For fresh boards: use createEmptyDoc().init() which handles the correct
+ *   block insertion order (affine:page → affine:surface → affine:note → affine:paragraph)
+ * - For boards with saved YJS state: apply the binary update before calling load()
+ *   so the surface/block tree is already populated when the editor mounts
+ */
+async function createBSDoc(savedYjsState?: string): Promise<BSDoc> {
+  const { createEmptyDoc } = await import('@blocksuite/presets');
+
+  if (savedYjsState) {
+    try {
+      const { applyUpdate } = await import('yjs');
+      // Create a fresh collection/doc via presets (correct schema version)
+      const { doc, init } = createEmptyDoc();
+      // Apply saved YJS state BEFORE init() populates blocks —
+      // if the state already contains the block tree, init() is a no-op
+      const bytes = Uint8Array.from(atob(savedYjsState), (c) => c.charCodeAt(0));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const yjsDoc = (doc as any).spaceDoc ?? (doc as any).doc ?? doc;
+      applyUpdate(yjsDoc, bytes);
+      return doc.load ? (doc.load(), doc) : init();
+    } catch (e) {
+      console.warn('YJS restore failed, starting fresh:', e);
+    }
+  }
+
+  // Fresh doc — use init() which handles page → surface → note → paragraph
+  const { init } = createEmptyDoc();
+  return init();
 }
 
 export default function BoardPageInner() {
@@ -62,9 +84,7 @@ export default function BoardPageInner() {
     async function loadBoard() {
       try {
         if (id.startsWith('temp-')) {
-          const { doc: d } = createEmptyDoc();
-          d.load();
-          initFreshDoc(d);
+          const d = await createBSDoc();
           setBoardTitle('Scratch pad');
           setDoc(d);
           setLoading(false);
@@ -82,23 +102,7 @@ export default function BoardPageInner() {
         setBoardTitle(data.title || 'Untitled board');
         setSubject(data.metadata?.subject);
 
-        const { doc: d } = createEmptyDoc();
-        d.load();
-
-        if (data.data?.yjsState) {
-          try {
-            const { applyUpdate } = await import('yjs');
-            const state = Uint8Array.from(atob(data.data.yjsState), (c) => c.charCodeAt(0));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            applyUpdate((d as any).spaceDoc ?? (d as any).doc, state);
-          } catch (yjsErr) {
-            console.warn('Could not restore YJS state, starting fresh:', yjsErr);
-            initFreshDoc(d);
-          }
-        } else {
-          initFreshDoc(d);
-        }
-
+        const d = await createBSDoc(data.data?.yjsState);
         setDoc(d);
       } catch (e) {
         console.error('Error loading board:', e);
@@ -118,7 +122,8 @@ export default function BoardPageInner() {
       setIsSaving(true);
       const { encodeStateAsUpdate } = await import('yjs');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const update = encodeStateAsUpdate((d as any).spaceDoc ?? (d as any).doc);
+      const yjsDoc = (d as any).spaceDoc ?? (d as any).doc ?? d;
+      const update = encodeStateAsUpdate(yjsDoc);
       const yjsState = btoa(String.fromCharCode(...update));
       const sb = createClient();
       await sb.from('whiteboards').update({ data: { yjsState } }).eq('id', boardId);

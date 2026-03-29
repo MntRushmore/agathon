@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers";
@@ -25,6 +25,14 @@ const cormorantGaramond = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: {
@@ -61,7 +69,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

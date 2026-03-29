@@ -7,15 +7,14 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      // Next.js requires 'unsafe-inline' for hydration bootstrap scripts.
-      // TODO: migrate to CSP nonces (next.config.ts headers + middleware nonce) to drop 'unsafe-inline'.
-      "script-src 'self' 'unsafe-inline' https://vercel.live https://*.vercel.app",
+      // 'unsafe-inline' required for Next.js hydration bootstrap.
+      // 'unsafe-eval' required by BlockSuite (Lit web components) and React dev tools.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.vercel.app",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      // TODO: M6 — img-src allows https: broadly because user-uploaded images may come from various origins.
-      // Restrict to specific domains once all image sources are inventoried.
+      // img-src allows https: broadly for user-uploaded images from various origins.
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data: https://fonts.gstatic.com https://cdn.tldraw.com",
-      "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://cdn.tldraw.com https://ai.hackclub.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://api.openai.com https://vercel.live https://*.vercel.app https://ai.hackclub.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
