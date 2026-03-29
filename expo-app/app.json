@@ -41,7 +41,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-router",
+      "expo-document-picker",
+      "expo-secure-store"
     ],
     "scheme": "agathon",
     "extra": {

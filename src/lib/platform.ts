@@ -130,3 +130,23 @@ export function clearAuthTokenNative() {
     type: 'CLEAR_TOKEN'
   });
 }
+
+/**
+ * Tell the native app to open a board natively.
+ * Returns true if handled natively, false if the web app should handle it.
+ */
+export function openBoardNative(boardId: string): boolean {
+  if (!isNativeApp()) return false;
+  sendToNativeApp({ type: 'OPEN_BOARD', boardId });
+  return true;
+}
+
+/**
+ * Tell the native app to open the PDF annotator natively.
+ * Returns true if handled natively, false if the web app should handle it.
+ */
+export function openAnnotatorNative(): boolean {
+  if (!isNativeApp()) return false;
+  sendToNativeApp({ type: 'OPEN_ANNOTATOR' });
+  return true;
+}
