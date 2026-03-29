@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       : '';
 
     const canvasRules = `\n\n**CANVAS RULES (apply in all modes):**
+- ALWAYS generate an updated image — you MUST add your response directly onto the canvas. Never respond with text only.
 - DO NOT remove, modify, move, transform, or touch ANY existing content in the image. Leave everything exactly as-is and only add to it.
 - Try to match the student's handwriting style.
 - NEVER change the background color. Keep it white.${alwaysImageRule}`;

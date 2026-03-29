@@ -1771,7 +1771,7 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
         const imageUrl = solutionData.imageUrl as string | null | undefined;
 
         const hasAnnotations = feedback?.annotations && feedback.annotations.length > 0;
-        const hasFeedbackContent = hasAnnotations || (isPremium && imageUrl);
+        const hasFeedbackContent = hasAnnotations || (isPremium && imageUrl) || (isPremium && solutionData.textContent);
 
         if (!hasFeedbackContent) {
           setStatus('idle');
@@ -1853,6 +1853,14 @@ function BoardContent({ id, assignmentMeta, boardTitle, isSubmitted, isAssignmen
           // Store for AI Tutor analysis
           setAiTutorImage(base64);
           setAiTutorAnswer(feedback.summary || '');
+        } else if (isPremium && solutionData.textContent) {
+          // Premium fallback: model returned text instead of image — show as FeedbackCard
+          const screenPoint = editor.pageToScreen({ x: responseX, y: responseY });
+          setFeedbackCard({
+            summary: solutionData.textContent,
+            annotations: [],
+            position: { x: screenPoint.x, y: screenPoint.y },
+          });
         }
 
         // Track AI usage

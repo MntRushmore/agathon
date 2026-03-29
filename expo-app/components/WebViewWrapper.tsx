@@ -1,367 +1,237 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { StyleSheet, View, ActivityIndicator, Text, Linking } from 'react-native';
+import { StyleSheet, View, Text, Linking } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import * as SecureStore from 'expo-secure-store';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 
-// Production Agathon URL - update this to your actual production URL
 const WEB_APP_URL = process.env.EXPO_PUBLIC_WEB_APP_URL || 'https://agathon.app';
 
-// URL patterns that should open in external browser (OAuth flows)
 const EXTERNAL_URL_PATTERNS = [
   'accounts.google.com',
   'github.com/login',
   'appleid.apple.com',
 ];
 
-export default function WebViewWrapper() {
-  const webViewRef = useRef<WebView>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const NATIVE_BOARD_PATTERN = /\/board\/([a-zA-Z0-9_-]+)/;
+const NATIVE_ANNOTATE_PATTERN = /\/annotate(?:\/|\?|$)/;
 
-  // JavaScript to inject into the web page - optimized for iPad
+export default function WebViewWrapper() {
+  const router = useRouter();
+  const webViewRef = useRef<WebView>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Track last intercepted boardId so we don't double-push
+  const lastInterceptedRef = useRef<string | null>(null);
+
   const injectedJavaScript = `
     (function() {
-      // Prevent default touch behaviors that interfere with canvas
+      // Prevent double-tap zoom
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) { e.preventDefault(); }
+        lastTouchEnd = now;
+      }, { passive: false });
+
       document.addEventListener('gesturestart', function(e) {
         e.preventDefault();
       }, { passive: false });
 
-      // Prevent double-tap zoom on iPad
-      let lastTouchEnd = 0;
-      document.addEventListener('touchend', function(e) {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-          e.preventDefault();
-        }
-        lastTouchEnd = now;
-      }, { passive: false });
+      // Fix viewport
+      const vp = document.querySelector('meta[name="viewport"]');
+      if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
 
-      // Prevent pinch zoom on canvas areas
-      document.addEventListener('touchmove', function(e) {
-        if (e.touches.length > 1) {
-          // Allow pinch on tldraw canvas (it handles its own zoom)
-          const target = e.target;
-          const isTldrawCanvas = target.closest('.tl-canvas') || target.closest('[data-testid="canvas"]');
-          if (!isTldrawCanvas) {
-            e.preventDefault();
-          }
-        }
-      }, { passive: false });
-
-      // Fix viewport for iPad
-      const viewport = document.querySelector('meta[name="viewport"]');
-      if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-      }
-
-      // Detect Apple Pencil and send pressure data
-      window.addEventListener('pointermove', (e) => {
-        if (e.pointerType === 'pen') {
-          window.ReactNativeWebView?.postMessage(JSON.stringify({
-            type: 'APPLE_PENCIL_DETECTED',
-            pressure: e.pressure,
-            tiltX: e.tiltX,
-            tiltY: e.tiltY
-          }));
-        }
-      });
-
-      // Send device info to web app
-      const screenWidth = window.screen.width;
-      const screenHeight = window.screen.height;
-      const isIPad = Math.min(screenWidth, screenHeight) >= 768;
-
-      window.ReactNativeWebView?.postMessage(JSON.stringify({
-        type: 'DEVICE_INFO',
-        isNativeApp: true,
-        platform: 'ios',
-        isIpad: isIPad,
-        screenWidth: screenWidth,
-        screenHeight: screenHeight
-      }));
-
-      // Mark the window as native app for detection
+      // Mark as native app
       window.__NATIVE_APP__ = true;
       window.__PLATFORM__ = 'ios';
-      window.__IS_IPAD__ = isIPad;
+      window.__IS_IPAD__ = true;
+      document.body.classList.add('native-app', 'platform-ios', 'platform-ipad');
 
-      // Fix for iOS keyboard pushing content
-      if (isIPad) {
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        document.body.style.height = '100%';
-        document.body.style.overflow = 'hidden';
+      // Notify native of current URL on every navigation
+      function notifyNav(url) {
+        try {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'NAVIGATE', url: url }));
+        } catch(e) {}
       }
 
-      // Ensure touch-action is set correctly for drawing
+      // Intercept SPA navigation
+      const _push = history.pushState.bind(history);
+      const _replace = history.replaceState.bind(history);
+      history.pushState = function(s, t, url) {
+        _push(s, t, url);
+        notifyNav(typeof url === 'string' ? url : window.location.href);
+      };
+      history.replaceState = function(s, t, url) {
+        _replace(s, t, url);
+        notifyNav(typeof url === 'string' ? url : window.location.href);
+      };
+      window.addEventListener('popstate', function() {
+        notifyNav(window.location.href);
+      });
+
+      // Also notify current URL on load
+      notifyNav(window.location.href);
+
+      // iOS scroll/overflow fix
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.body.style.overflow = 'hidden';
+
       const style = document.createElement('style');
-      style.textContent = \`
-        .tl-canvas, [data-testid="canvas"] {
-          touch-action: none !important;
-        }
-        body {
-          overscroll-behavior: none;
-          -webkit-overflow-scrolling: auto;
-        }
-        * {
-          -webkit-tap-highlight-color: transparent;
-        }
-      \`;
+      style.textContent = '* { -webkit-tap-highlight-color: transparent; } body { overscroll-behavior: none; }';
       document.head.appendChild(style);
 
-      console.log('Native app bridge initialized for iPad:', isIPad);
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'DEVICE_INFO', isNativeApp: true, platform: 'ios', isIpad: true,
+      }));
     })();
     true;
   `;
 
-  // Handle messages from the web app
-  const handleMessage = async (event: any) => {
-    // M9: Validate the message comes from our app
-    const expectedDomain = new URL(WEB_APP_URL).hostname;
-    if (event.nativeEvent.url && !event.nativeEvent.url.includes(expectedDomain)) {
-      console.warn('Rejected message from unexpected origin:', event.nativeEvent.url);
-      return;
-    }
+  const navigateToBoard = useCallback((boardId: string) => {
+    if (lastInterceptedRef.current === boardId) return;
+    lastInterceptedRef.current = boardId;
+    // Small timeout to let the WebView settle before we navigate away
+    setTimeout(() => {
+      router.push({ pathname: '/native-board', params: { boardId } });
+      // Send the WebView back to dashboard
+      webViewRef.current?.injectJavaScript('window.history.back(); true;');
+      // Reset after a delay so the same board can be re-opened
+      setTimeout(() => { lastInterceptedRef.current = null; }, 2000);
+    }, 50);
+  }, [router]);
 
-    try {
-      const message = JSON.parse(event.nativeEvent.data);
+  const handleMessage = useCallback(async (event: any) => {
+    let message: any;
+    try { message = JSON.parse(event.nativeEvent.data); } catch { return; }
 
-      switch (message.type) {
-        case 'APPLE_PENCIL_DETECTED':
-          console.log('Apple Pencil detected - Pressure:', message.pressure);
-          break;
-
-        case 'SAVE_TOKEN':
-          // Save auth token to native storage
-          await SecureStore.setItemAsync('auth_token', message.token);
-          console.log('Auth token saved');
-          break;
-
-        case 'LOAD_TOKEN':
-          // Load auth token from native storage
-          const token = await SecureStore.getItemAsync('auth_token');
-          if (token && webViewRef.current) {
-            webViewRef.current.postMessage(JSON.stringify({
-              type: 'TOKEN_LOADED',
-              token: token
-            }));
-          }
-          break;
-
-        case 'CLEAR_TOKEN':
-          // Clear auth token
-          await SecureStore.deleteItemAsync('auth_token');
-          console.log('Auth token cleared');
-          break;
-
-        default:
-          console.log('Unknown message type:', message.type);
+    switch (message.type) {
+      case 'NAVIGATE': {
+        const url: string = message.url || '';
+        const boardMatch = url.match(NATIVE_BOARD_PATTERN);
+        if (boardMatch) {
+          navigateToBoard(boardMatch[1]);
+          return;
+        }
+        if (NATIVE_ANNOTATE_PATTERN.test(url)) {
+          router.push('/native-annotator');
+          webViewRef.current?.injectJavaScript('window.history.back(); true;');
+          return;
+        }
+        break;
       }
-    } catch (error) {
-      console.error('Error handling message:', error);
-    }
-  };
-
-  // Load auth token on mount
-  useEffect(() => {
-    async function loadToken() {
-      try {
+      case 'SAVE_TOKEN':
+        await SecureStore.setItemAsync('auth_token', message.token);
+        break;
+      case 'LOAD_TOKEN': {
         const token = await SecureStore.getItemAsync('auth_token');
         if (token) {
-          console.log('Auth token loaded from storage');
+          webViewRef.current?.injectJavaScript(
+            `window.dispatchEvent(new CustomEvent('native-token',{detail:${JSON.stringify({ token })}})); true;`
+          );
         }
-      } catch (error) {
-        console.error('Error loading token:', error);
+        break;
       }
+      case 'CLEAR_TOKEN':
+        await SecureStore.deleteItemAsync('auth_token');
+        break;
     }
-    loadToken();
+  }, [navigateToBoard, router]);
+
+  // Handle OAuth deep links
+  useEffect(() => {
+    const handleDeepLink = ({ url }: { url: string }) => {
+      if (url.startsWith('agathon://') || url.includes('/auth/callback')) {
+        const callbackUrl = url.replace('agathon://', WEB_APP_URL);
+        if (callbackUrl.startsWith('https://')) {
+          webViewRef.current?.injectJavaScript(`window.location.href=${JSON.stringify(callbackUrl)}; true;`);
+        }
+      }
+    };
+    const sub = Linking.addEventListener('url', handleDeepLink);
+    Linking.getInitialURL().then(url => { if (url) handleDeepLink({ url }); });
+    return () => sub.remove();
   }, []);
 
-  // Handle OAuth and external URL navigation
-  const shouldOpenExternally = useCallback((url: string): boolean => {
-    return EXTERNAL_URL_PATTERNS.some(pattern => url.includes(pattern));
-  }, []);
-
+  // onShouldStartLoadWithRequest: catches full-page navigations (hard navigations, not SPA)
   const handleNavigationRequest = useCallback((request: WebViewNavigation): boolean => {
     const { url } = request;
 
-    // Check if this URL should be opened in external browser (OAuth flows)
-    if (shouldOpenExternally(url)) {
-      // Open OAuth URLs in system browser for proper auth flow
-      WebBrowser.openBrowserAsync(url, {
-        showInRecents: true,
-        dismissButtonStyle: 'close',
-      }).catch((err) => {
-        console.error('Failed to open browser:', err);
-        // Fallback to system linking
-        Linking.openURL(url);
-      });
-      return false; // Prevent WebView from loading this URL
+    // Let the initial page load through
+    if (url === WEB_APP_URL || url === WEB_APP_URL + '/') return true;
+
+    // External auth URLs
+    if (EXTERNAL_URL_PATTERNS.some(p => url.includes(p))) {
+      WebBrowser.openBrowserAsync(url, { showInRecents: true, dismissButtonStyle: 'close' })
+        .catch(() => Linking.openURL(url));
+      return false;
     }
 
-    // Allow all other URLs to load in WebView
+    // Block hard navigation to board pages — handled natively
+    const boardMatch = url.match(NATIVE_BOARD_PATTERN);
+    if (boardMatch && url.includes('agathon.app')) {
+      navigateToBoard(boardMatch[1]);
+      return false;
+    }
+
     return true;
-  }, [shouldOpenExternally]);
+  }, [navigateToBoard]);
 
-  // Handle deep links back from OAuth
-  useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      const { url } = event;
-      // Check if this is a callback URL from OAuth
-      if (url.startsWith('agathon://') || url.includes('/auth/callback')) {
-        // Extract the callback path and reload in WebView
-        const callbackUrl = url.replace('agathon://', WEB_APP_URL);
-        // Validate the URL matches our expected origin to prevent JS injection
-        const allowedOrigins = [WEB_APP_URL, 'https://agathon.app'];
-        const isAllowed = allowedOrigins.some(origin => callbackUrl.startsWith(origin));
-        if (webViewRef.current && isAllowed) {
-          webViewRef.current.injectJavaScript(
-            `window.location.href = ${JSON.stringify(callbackUrl)}; true;`
-          );
-        }
-      }
-    };
-
-    // Listen for deep links
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Check if app was opened via deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleDeepLink({ url });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+  if (error) {
+    return (
+      <View style={styles.error}>
+        <Text style={styles.errorTitle}>Failed to load Agathon</Text>
+        <Text style={styles.errorDetail}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom', 'left', 'right']}>
-      {loading && (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#0C5E70" />
-          <Text style={styles.loadingText}>Loading Agathon...</Text>
-        </View>
-      )}
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load app</Text>
-          <Text style={styles.errorDetails}>{error}</Text>
-          <Text style={styles.errorHint}>
-            Make sure the web app is running at: {WEB_APP_URL}
-          </Text>
-        </View>
-      )}
-
+    <View style={styles.container}>
       <WebView
         ref={webViewRef}
         source={{ uri: WEB_APP_URL }}
         style={styles.webview}
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => {
-          setLoading(false);
-          setError(null);
-        }}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          setError(nativeEvent.description || 'Unknown error');
-          setLoading(false);
-        }}
+        onError={(e) => setError(e.nativeEvent.description || 'Unknown error')}
         injectedJavaScript={injectedJavaScript}
+        injectedJavaScriptBeforeContentLoaded={`
+          window.__NATIVE_APP__ = true;
+          window.__PLATFORM__ = 'ios';
+          window.__IS_IPAD__ = true;
+          true;
+        `}
         onMessage={handleMessage}
-        // Handle OAuth and external URL navigation
         onShouldStartLoadWithRequest={handleNavigationRequest}
-        // Navigation
         allowsBackForwardNavigationGestures={false}
-        // Media
-        allowsInlineMediaPlayback={true}
-        mediaPlaybackRequiresUserAction={false}
-        // JavaScript & Storage
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        sharedCookiesEnabled={true}
-        // Critical for iPad touch/scroll handling
+        allowsInlineMediaPlayback
+        javaScriptEnabled
+        domStorageEnabled
+        sharedCookiesEnabled
         bounces={false}
         scrollEnabled={false}
-        // File access
-        allowFileAccess={true}
+        allowFileAccess
         allowFileAccessFromFileURLs={false}
         allowUniversalAccessFromFileURLs={false}
-        // Viewport & scaling - critical for iPad
         scalesPageToFit={false}
         contentMode="mobile"
-        // Performance
-        cacheEnabled={true}
-        incognito={false}
-        // Touch handling - let the web app handle all touch events
+        cacheEnabled
         overScrollMode="never"
         nestedScrollEnabled={false}
-        // iPad-specific optimizations
         automaticallyAdjustContentInsets={false}
         contentInset={{ top: 0, left: 0, bottom: 0, right: 0 }}
         automaticallyAdjustsScrollIndicatorInsets={false}
-        // Prevent text selection interfering with drawing
         textInteractionEnabled={false}
-        // Hardware acceleration
         androidLayerType="hardware"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  loader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    zIndex: 1000,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-    backgroundColor: '#fff',
-  },
-  errorText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  errorDetails: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  errorHint: {
-    fontSize: 12,
-    color: '#999',
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  webview: { flex: 1, backgroundColor: '#fff' },
+  error: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#fff' },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: '#111', marginBottom: 8 },
+  errorDetail: { fontSize: 14, color: '#666', textAlign: 'center' },
 });
