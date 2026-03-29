@@ -52,6 +52,8 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
+  ShareNetwork,
+  SlidersHorizontal,
 } from '@phosphor-icons/react';
 import {
   Dialog, DialogPanel, DialogTitle, DialogBackdrop,
@@ -66,6 +68,9 @@ import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
+import { decodeDatabaseData, encodeDatabaseData, DEFAULT_DATABASE_CONFIG, type DatabaseConfig } from '@/components/journal/InlineDatabase';
+import { ShareDialog } from '@/components/ui/share-dialog';
+import { DocPropertiesPanel, type DocProperties } from '@/components/ui/doc-properties-panel';
 import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
@@ -166,6 +171,11 @@ const InlineChart = dynamic(
  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
 );
 
+const InlineDatabase = dynamic(
+  () => import('@/components/journal/InlineDatabase').then(mod => mod.InlineDatabase),
+  { ssr: false, loading: () => <div className="h-[200px] bg-muted animate-pulse rounded-2xl" /> }
+);
+
 interface JournalData {
   id: string;
   user_id: string;
@@ -198,6 +208,8 @@ function ContentWithEmbeds({
   onDeleteDesmos,
   onChartSave,
   onDeleteChart,
+  onDatabaseSave,
+  onDeleteDatabase,
 }: {
   content: string;
   onChange: (content: string) => void;
@@ -210,17 +222,21 @@ function ContentWithEmbeds({
   onDeleteDesmos?: (id: string) => void;
   onChartSave?: (id: string, data: ChartConfig) => void;
   onDeleteChart?: (id: string) => void;
+  onDatabaseSave?: (id: string, data: DatabaseConfig) => void;
+  onDeleteDatabase?: (id: string) => void;
 }) {
   // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
   const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
   const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
+  const databaseMatches = [...content.matchAll(/\[DATABASE:([^:\]]+):([^\]]*)\]/g)];
 
   // Build a unified, position-ordered list of all embeds
-  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
+  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart' | 'database'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
   whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
   desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
   chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
+  databaseMatches.forEach(m => allEmbeds.push({ type: 'database', match: m, position: m.index ?? 0 }));
   allEmbeds.sort((a, b) => a.position - b.position);
 
   // Remove placeholders from the content for the editor (they'll be rendered separately)
@@ -228,6 +244,7 @@ function ContentWithEmbeds({
     .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[DATABASE:[^\]]+\]\n*/g, '\n')
     .trim();
 
   // Check if there are any embeds — shrink editor min-height when embeds exist
@@ -316,6 +333,22 @@ function ContentWithEmbeds({
           );
         }
 
+        if (type === 'database') {
+          const id = match[1];
+          const encodedData = match[2];
+          const dbConfig = decodeDatabaseData(encodedData);
+          return (
+            <div key={`database-${id}`} className="my-2">
+              <InlineDatabase
+                id={id}
+                initialData={dbConfig}
+                onSave={(dbId, data) => onDatabaseSave?.(dbId, data)}
+                onDelete={(dbId) => onDeleteDatabase?.(dbId)}
+              />
+            </div>
+          );
+        }
+
         // chart
         const id = match[1];
         const encodedData = match[2];
@@ -374,6 +407,7 @@ const slashCommands = [
       { id: 'whiteboard', icon: PenNib, label: 'Whiteboard', color: 'text-muted-foreground' },
       { id: 'desmos', icon: ChartLine, label: 'Desmos graph', color: 'text-muted-foreground' },
       { id: 'chart', icon: ChartBar, label: 'Chart', color: 'text-muted-foreground' },
+      { id: 'database', icon: Table, label: 'Database', color: 'text-muted-foreground' },
     ],
   },
   {
@@ -412,6 +446,14 @@ export default function JournalEditorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [docProperties, setDocProperties] = useState<DocProperties>({});
+
+  // Sync properties from journal data when loaded
+  const handlePropertiesChange = useCallback((updated: Partial<DocProperties>) => {
+    setDocProperties((prev) => ({ ...prev, ...updated }));
+  }, []);
 
   // Topic prompt modal state
   const [showTopicModal, setShowTopicModal] = useState(false);
@@ -508,6 +550,8 @@ export default function JournalEditorPage() {
   // Embedded content state (whiteboards, desmos graphs, etc.)
   const [embeddedWhiteboards, setEmbeddedWhiteboards] = useState<{ id: string; data?: string }[]>([]);
   const [embeddedDesmos, setEmbeddedDesmos] = useState<{ id: string; expression: string }[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [embeddedDatabases, setEmbeddedDatabases] = useState<{ id: string }[]>([]);
 
   // Inline input state for quick actions (practice problems, flashcards, etc.)
   const [activeInlineInput, setActiveInlineInput] = useState<string | null>(null);
@@ -1124,6 +1168,9 @@ export default function JournalEditorPage() {
         case 'chart':
           handleChartInsert();
           break;
+        case 'database':
+          handleDatabaseInsert();
+          break;
         case 'subjournal':
           handleCreateSubjournal();
           break;
@@ -1303,6 +1350,18 @@ export default function JournalEditorPage() {
       return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
     });
     sileo.success({ title: 'Chart added!' });
+  };
+
+  const handleDatabaseInsert = () => {
+    const dbId = `db-${Date.now()}`;
+    const encodedData = encodeDatabaseData(DEFAULT_DATABASE_CONFIG);
+    const dbPlaceholder = `[DATABASE:${dbId}:${encodedData}]`;
+    setEmbeddedDatabases(prev => [...prev, { id: dbId }]);
+    setContent(prev => {
+      if (prev.includes(dbPlaceholder)) return prev;
+      return prev ? prev + `\n\n${dbPlaceholder}\n` : `${dbPlaceholder}\n`;
+    });
+    sileo.success({ title: 'Database added!' });
   };
 
   // Handle file upload (converts to base64 and embeds)
@@ -1757,10 +1816,18 @@ export default function JournalEditorPage() {
  <Timer weight="duotone" className="h-5 w-5" />
           </button>
           <button
- className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => sileo.info({ title: 'More options coming soon!' })}
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={() => setIsShareOpen(true)}
+            title="Share & Export"
           >
- <DotsThree weight="duotone" className="h-5 w-5" />
+            <ShareNetwork weight="duotone" className="h-5 w-5" />
+          </button>
+          <button
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={() => setIsPropertiesOpen(true)}
+            title="Document properties"
+          >
+            <SlidersHorizontal weight="duotone" className="h-5 w-5" />
           </button>
           {/* Ask Agathon button */}
           <button
@@ -1772,6 +1839,28 @@ export default function JournalEditorPage() {
           </button>
         </div>
       </header>
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        journalId={journal?.id}
+        journalTitle={title}
+        content={content}
+      />
+
+      {/* Document Properties Panel */}
+      <DocPropertiesPanel
+        open={isPropertiesOpen}
+        onClose={() => setIsPropertiesOpen(false)}
+        properties={{
+          ...docProperties,
+          createdAt: journal?.created_at,
+          updatedAt: journal?.updated_at,
+          wordCount: content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0,
+        }}
+        onChange={handlePropertiesChange}
+      />
 
       {/* AI Chat Side Panel */}
       {isAIPanelOpen && (
@@ -2428,6 +2517,17 @@ export default function JournalEditorPage() {
             onDeleteChart={(id) => {
               setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
               sileo.success({ title: 'Chart deleted' });
+            }}
+            onDatabaseSave={(id, data) => {
+              setContent(prev => {
+                const regex = new RegExp(`\\[DATABASE:${id}:[^\\]]*\\]`);
+                return prev.replace(regex, `[DATABASE:${id}:${encodeDatabaseData(data)}]`);
+              });
+            }}
+            onDeleteDatabase={(id) => {
+              setEmbeddedDatabases(prev => prev.filter(d => d.id !== id));
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[DATABASE:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+              sileo.success({ title: 'Database deleted' });
             }}
             onSlashCommand={executeCommand}
           />

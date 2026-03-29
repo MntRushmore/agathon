@@ -3,6 +3,38 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
+import { useAuth } from '@/components/auth/auth-provider';
+
+/** Minimal markdown → HTML for the dark AI panel. No external deps. */
+function renderMd(text: string): string {
+  let h = text
+    // Escape HTML first (protect against injection)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Code blocks (``` ... ```)
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, (_m, code) =>
+      `<pre style="background:rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;font-size:12px;overflow-x:auto;margin:6px 0;font-family:monospace;line-height:1.5">${code.trim()}</pre>`)
+    // Inline code
+    .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace">$1</code>')
+    // Bold + italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:rgba(255,255,255,0.95)">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Headers
+    .replace(/^### (.+)$/gm, '<div style="font-size:13px;font-weight:700;margin:10px 0 4px;color:#fff">$1</div>')
+    .replace(/^## (.+)$/gm, '<div style="font-size:14px;font-weight:700;margin:12px 0 4px;color:#fff">$1</div>')
+    .replace(/^# (.+)$/gm, '<div style="font-size:15px;font-weight:700;margin:12px 0 4px;color:#fff">$1</div>')
+    // Bullet lists
+    .replace(/^[-*] (.+)$/gm, '<div style="display:flex;gap:6px;margin:2px 0"><span style="opacity:0.5;flex-shrink:0">•</span><span>$1</span></div>')
+    // Numbered lists
+    .replace(/^\d+\. (.+)$/gm, '<div style="display:flex;gap:6px;margin:2px 0"><span style="opacity:0.5;flex-shrink:0;min-width:14px">·</span><span>$1</span></div>')
+    // Horizontal rules
+    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:8px 0"/>')
+    // Double newlines → paragraph break
+    .replace(/\n\n/g, '<div style="height:8px"></div>')
+    // Single newlines → <br>
+    .replace(/\n/g, '<br/>');
+  return h;
+}
 
 export type SocraticMode = 'socratic' | 'explain' | 'hint' | 'answer';
 
@@ -18,6 +50,7 @@ interface SocraticPanelProps {
   isOpen: boolean;
   onClose: () => void;
   getCanvasContext: () => string;
+  getCanvasScreenshot?: () => string | null;
   subject?: string;
   selectedText?: string;
   onClearSelection?: () => void;
@@ -47,10 +80,16 @@ export default function SocraticPanel({
   isOpen,
   onClose,
   getCanvasContext,
+  getCanvasScreenshot,
   subject,
   selectedText,
   onClearSelection,
 }: SocraticPanelProps) {
+  const { profile } = useAuth();
+  const isEnterprise = (profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise')
+    && profile?.plan_status === 'active';
+  const [modelLabel, setModelLabel] = useState<string | null>(null);
+
   const [messages, setMessages] = useState<SocraticMessage[]>([]);
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<SocraticMode>('socratic');
@@ -58,6 +97,10 @@ export default function SocraticPanel({
   const [error, setError] = useState<string | null>(null);
   const [showModeMenu, setShowModeMenu] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
+  const [analyzeMode, setAnalyzeMode] = useState<'solve' | 'step-by-step' | 'socratic' | 'example'>('step-by-step');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisImageUrl, setAnalysisImageUrl] = useState<string | null>(null);
+  const [showAnalyzeModeMenu, setShowAnalyzeModeMenu] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -143,6 +186,9 @@ The student's current canvas:
         body: JSON.stringify({ messages: apiMessages, mode: activeMode }),
         signal: abortRef.current.signal,
       });
+      // Capture which model was used from the response header
+      const model = res.headers.get('X-Agathon-Model');
+      if (model) setModelLabel(model);
       if (!res.ok) throw new Error(`API error ${res.status}`);
       if (!res.body) throw new Error('No response body');
 
@@ -196,7 +242,53 @@ The student's current canvas:
     setMessages([]);
     setError(null);
     setIsLoading(false);
+    setAnalysisImageUrl(null);
   };
+
+  const analyzeCanvas = useCallback(async () => {
+    if (!getCanvasScreenshot || !isEnterprise) return;
+    const screenshot = getCanvasScreenshot();
+    if (!screenshot) {
+      setError('Could not capture canvas. Try drawing something first.');
+      return;
+    }
+    setIsAnalyzing(true);
+    setAnalysisImageUrl(null);
+    setError(null);
+    try {
+      const res = await fetch('/api/generate-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: screenshot, mode: analyzeMode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+
+      // Show annotated image if returned (enterprise premium path)
+      if (data.imageUrl) {
+        setAnalysisImageUrl(data.imageUrl);
+      }
+      // Also inject the text feedback as an assistant message
+      const textContent = data.feedback?.annotations?.map((a: { content: string }) => a.content).join('\n\n')
+        || data.feedback?.summary
+        || data.textContent
+        || '';
+      if (textContent) {
+        const assistantMsg: SocraticMessage = {
+          id: `analyze-${Date.now()}`,
+          role: 'assistant',
+          content: `**Canvas Analysis (${analyzeMode})**\n\n${textContent}`,
+          mode: 'explain',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Analysis failed');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [getCanvasScreenshot, isEnterprise, analyzeMode]);
 
   const isEmpty = messages.length === 0;
 
@@ -294,13 +386,37 @@ The student's current canvas:
                 borderBottom: '0.5px solid var(--affine-border-color, rgba(255,255,255,0.1))',
               }}
             >
-              <span style={{
-                fontSize: 14,
-                fontWeight: 500,
-                color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.5))',
-              }}>
-                Agathon AI
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.5))',
+                }}>
+                  Agathon AI
+                </span>
+                {/* Model badge */}
+                {isEnterprise ? (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '2px 6px',
+                    borderRadius: 20,
+                    background: 'rgba(30,110,232,0.18)',
+                    color: 'var(--affine-primary-color, #1e6ee8)',
+                    letterSpacing: '0.02em',
+                    border: '1px solid rgba(30,110,232,0.25)',
+                  }}>
+                    {modelLabel ?? 'Claude Sonnet'}
+                  </span>
+                ) : (
+                  <span style={{
+                    fontSize: 10, fontWeight: 500, padding: '2px 6px',
+                    borderRadius: 20,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.3)',
+                  }}>
+                    {modelLabel ?? 'Gemini Flash'}
+                  </span>
+                )}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <IconBtn onClick={startFresh} title="New chat"><PlusIcon /></IconBtn>
                 <IconBtn title="Pin"><PinIcon /></IconBtn>
@@ -330,7 +446,36 @@ The student's current canvas:
                   padding: isEmpty ? 0 : '16px',
                 }}
               >
-                {isEmpty ? (
+                {/* Enterprise annotated image result */}
+                {analysisImageUrl && (
+                  <div style={{ padding: '12px 16px 0' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--affine-primary-color, #1e6ee8)', textTransform: 'uppercase', marginBottom: 8 }}>
+                      Annotated Canvas
+                    </div>
+                    <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={analysisImageUrl}
+                        alt="AI-annotated canvas"
+                        style={{ width: '100%', display: 'block' }}
+                      />
+                      <button
+                        onClick={() => setAnalysisImageUrl(null)}
+                        style={{
+                          position: 'absolute', top: 6, right: 6,
+                          width: 22, height: 22, borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.5)', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'rgba(255,255,255,0.7)',
+                        }}
+                      >
+                        <XIcon />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {isEmpty && !analysisImageUrl ? (
                   /* messages-placeholder — exact AFFiNE CSS */
                   <div style={{
                     width: '100%',
@@ -400,6 +545,58 @@ The student's current canvas:
                         </div>
                       ))}
                     </div>
+
+                    {/* Enterprise upsell — only shown on free plan */}
+                    {!isEnterprise && (
+                      <div style={{
+                        marginTop: 20,
+                        padding: '12px 14px',
+                        borderRadius: 12,
+                        background: 'linear-gradient(135deg, rgba(30,110,232,0.12) 0%, rgba(124,58,237,0.12) 100%)',
+                        border: '1px solid rgba(30,110,232,0.2)',
+                        width: '100%',
+                      }}>
+                        <div style={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+                          color: 'var(--affine-primary-color, #1e6ee8)',
+                          marginBottom: 4,
+                          textTransform: 'uppercase',
+                        }}>
+                          Enterprise
+                        </div>
+                        <div style={{
+                          fontSize: 12,
+                          color: 'var(--affine-text-primary-color, rgba(255,255,255,0.75))',
+                          lineHeight: 1.5,
+                          marginBottom: 10,
+                        }}>
+                          Upgrade for Claude Sonnet, 2× context, and handwritten visual feedback on your canvas.
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 10 }}>
+                          {[
+                            'Claude Sonnet (vs Gemini Flash)',
+                            '2048 token responses',
+                            'Visual handwriting feedback',
+                          ].map((f) => (
+                            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                              <span style={{ color: 'var(--affine-primary-color, #1e6ee8)', fontSize: 13 }}>✓</span>
+                              {f}
+                            </div>
+                          ))}
+                        </div>
+                        <a
+                          href="/billing"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            background: 'var(--affine-primary-color, #1e6ee8)',
+                            color: '#fff', textDecoration: 'none',
+                          }}
+                        >
+                          Upgrade plan →
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -437,7 +634,11 @@ The student's current canvas:
                             ? '#fff'
                             : 'var(--affine-text-primary-color, rgba(255,255,255,0.85))',
                         }}>
-                          {msg.content || (
+                          {msg.content ? (
+                            msg.role === 'assistant'
+                              ? <span dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }} />
+                              : msg.content
+                          ) : (
                             <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', opacity: 0.5 }}>
                               {[0, 150, 300].map((d) => (
                                 <span key={d} style={{
@@ -554,6 +755,75 @@ The student's current canvas:
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {/* + attach */}
                     <IconBtn title="Add context"><PlusIcon /></IconBtn>
+                    {/* Enterprise: Analyze Canvas button */}
+                    {isEnterprise && getCanvasScreenshot && (
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setShowAnalyzeModeMenu((v) => !v)}
+                          disabled={isAnalyzing}
+                          title="Analyze canvas with AI (Enterprise)"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 4,
+                            height: 28, padding: '0 8px', borderRadius: 6,
+                            fontSize: 11, fontWeight: 600,
+                            color: isAnalyzing ? 'rgba(255,255,255,0.3)' : 'var(--affine-primary-color, #1e6ee8)',
+                            background: 'rgba(30,110,232,0.1)',
+                            border: '1px solid rgba(30,110,232,0.2)',
+                            cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {isAnalyzing ? <SpinnerIcon /> : <ScanIcon />}
+                          {isAnalyzing ? 'Analyzing…' : 'Analyze'}
+                        </button>
+                        <AnimatePresence>
+                          {showAnalyzeModeMenu && !isAnalyzing && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 4 }}
+                              transition={{ duration: 0.1 }}
+                              style={{
+                                position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
+                                width: 160, borderRadius: 12, overflow: 'hidden', zIndex: 50,
+                                background: 'var(--affine-background-overlay-panel-color, #2a2a2a)',
+                                border: '1px solid var(--affine-border-color, rgba(255,255,255,0.12))',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                              }}
+                            >
+                              <div style={{ padding: '8px 12px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' }}>
+                                Analysis mode
+                              </div>
+                              {([
+                                { id: 'step-by-step', label: 'Next step', desc: 'Show one step at a time' },
+                                { id: 'socratic', label: 'Socratic', desc: 'Guide with questions' },
+                                { id: 'solve', label: 'Full solve', desc: 'Complete solution' },
+                                { id: 'example', label: 'Example', desc: 'Similar worked example' },
+                              ] as const).map((opt) => (
+                                <button
+                                  key={opt.id}
+                                  onClick={() => {
+                                    setAnalyzeMode(opt.id);
+                                    setShowAnalyzeModeMenu(false);
+                                    setTimeout(() => analyzeCanvas(), 50);
+                                  }}
+                                  style={{
+                                    width: '100%', padding: '8px 12px', textAlign: 'left',
+                                    background: analyzeMode === opt.id ? 'rgba(30,110,232,0.12)' : 'none',
+                                    color: analyzeMode === opt.id
+                                      ? 'var(--affine-primary-color, #1e6ee8)'
+                                      : 'var(--affine-text-primary-color, rgba(255,255,255,0.7))',
+                                    border: 'none', cursor: 'pointer',
+                                  }}
+                                >
+                                  <div style={{ fontSize: 12, fontWeight: 500 }}>{opt.label}</div>
+                                  <div style={{ fontSize: 10, opacity: 0.55, marginTop: 1 }}>{opt.desc}</div>
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                     {/* Mode picker */}
                     <div style={{ position: 'relative' }}>
                       <button
@@ -813,6 +1083,23 @@ function InfoIcon() {
   return (
     <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx={12} cy={12} r={10} /><path d="M12 16v-4M12 8h.01" />
+    </svg>
+  );
+}
+
+function ScanIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+      <rect x={7} y={7} width={10} height={10} rx={1} />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   );
 }

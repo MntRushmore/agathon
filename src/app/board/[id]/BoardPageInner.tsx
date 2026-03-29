@@ -25,9 +25,10 @@ export default function BoardPageInner() {
   const id = params.id as string;
 
   // We store the raw saved YJS state from Supabase and pass it to the canvas.
-  // The canvas creates the BlockSuite doc AFTER effects are loaded so schemas
-  // are registered before any BlockModel class identity checks run.
-  const [savedYjsState, setSavedYjsState] = useState<string | undefined>();
+  // BlockSuite uses a multi-doc YJS architecture: rootDoc (metadata) and
+  // spaceDoc (block content) must be saved and restored independently.
+  const [savedRootState, setSavedRootState] = useState<string | undefined>();
+  const [savedSpaceState, setSavedSpaceState] = useState<string | undefined>();
   const [title, setBoardTitle] = useState('Untitled board');
   const [subject, setSubject] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,8 @@ export default function BoardPageInner() {
         if (fetchError) throw fetchError;
         setBoardTitle(data.title || 'Untitled board');
         setSubject(data.metadata?.subject);
-        if (data.data?.yjsState) setSavedYjsState(data.data.yjsState);
+        if (data.data?.rootState) setSavedRootState(data.data.rootState);
+        if (data.data?.spaceState) setSavedSpaceState(data.data.spaceState);
       } catch (e) {
         console.error('Error loading board:', e);
         setError('Could not load this board.');
@@ -66,18 +68,46 @@ export default function BoardPageInner() {
     loadBoard();
   }, [id]);
 
-  // Save doc state when canvas reports a new doc instance
+  // Save doc state when canvas reports a new doc instance.
+  // BlockSuite multi-doc architecture: save rootDoc (metadata/structure) and
+  // spaceDoc (block content) independently — they are separate Y.Doc instances.
   const persistDoc = useCallback(async (d: BSDoc) => {
     if (id.startsWith('temp-') || !d) return;
     try {
       setIsSaving(true);
       const { encodeStateAsUpdate } = await import('yjs');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const yjsDoc = (d as any).spaceDoc ?? (d as any).doc ?? d;
-      const update = encodeStateAsUpdate(yjsDoc);
-      const yjsState = btoa(String.fromCharCode(...update));
+      const da = d as any;
+      // rootDoc: holds collection metadata, spaces map
+      const rootYjsDoc = da.collection?.doc ?? da.rootDoc;
+      // spaceDoc: subdoc where all blocks actually live
+      const spaceYjsDoc = da.spaceDoc;
+
+      if (!rootYjsDoc || !spaceYjsDoc) {
+        console.warn('[persistDoc] Could not find rootDoc or spaceDoc — skipping save', {
+          hasCollectionDoc: !!da.collection?.doc,
+          hasRootDoc: !!da.rootDoc,
+          hasSpaceDoc: !!da.spaceDoc,
+        });
+        return;
+      }
+
+      const encodeToB64 = (yjsDoc: { encode?: unknown }) => {
+        const update = encodeStateAsUpdate(yjsDoc as Parameters<typeof encodeStateAsUpdate>[0]);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < update.length; i += chunkSize) {
+          binary += String.fromCharCode(...update.subarray(i, i + chunkSize));
+        }
+        return btoa(binary);
+      };
+
+      const rootState = encodeToB64(rootYjsDoc);
+      const spaceState = encodeToB64(spaceYjsDoc);
+
       const sb = createClient();
-      await sb.from('whiteboards').update({ data: { yjsState } }).eq('id', id);
+      const { error } = await sb.from('whiteboards').update({ data: { rootState, spaceState } }).eq('id', id);
+      if (error) throw error;
     } catch (e) {
       console.error('Save failed:', e);
       sileo.error({ title: 'Failed to save changes', duration: 3000 });
@@ -86,9 +116,14 @@ export default function BoardPageInner() {
     }
   }, [id]);
 
+  // Keep a stable ref so the beforeunload handler can access latest doc without
+  // needing to be recreated each time doc changes.
+  const docRef = useRef<BSDoc>(null);
+  useEffect(() => { docRef.current = doc; }, [doc]);
+
   // Debounced auto-save when doc updates.
-  // blockUpdated fires on doc.slots for any block add/update/delete.
-  // collection.slots.docUpdated fires at the collection level — use whichever is available.
+  // BlockSuite exposes updates via yjs observe on the underlying yjsDoc.
+  // We also try doc.slots.blockUpdated / collection.slots.docUpdated as fallbacks.
   useEffect(() => {
     if (!doc || id.startsWith('temp-')) return;
 
@@ -99,16 +134,57 @@ export default function BoardPageInner() {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const d = doc as any;
-    // Prefer doc-level blockUpdated (fires on every edit), fall back to collection-level
-    const sub =
-      d.slots?.blockUpdated?.on(schedSave) ??
-      d.collection?.slots?.docUpdated?.on(schedSave);
+
+    // Block content lives in spaceDoc — listen there for changes.
+    // Also listen on rootDoc in case collection-level changes happen.
+    const rootYjsDoc = d.collection?.doc ?? d.rootDoc;
+    const spaceDoc = d.spaceDoc;
+
+    let unobserveRoot: (() => void) | null = null;
+    let unobserveSpace: (() => void) | null = null;
+
+    if (rootYjsDoc?.on) {
+      rootYjsDoc.on('update', schedSave);
+      unobserveRoot = () => rootYjsDoc.off('update', schedSave);
+    }
+
+    if (spaceDoc?.on) {
+      spaceDoc.on('update', schedSave);
+      unobserveSpace = () => spaceDoc.off('update', schedSave);
+    }
 
     return () => {
-      sub?.dispose?.();
+      unobserveRoot?.();
+      unobserveSpace?.();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [doc, id, persistDoc]);
+
+  // Force-save on tab/window close so we don't lose the debounce window
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const d = docRef.current;
+      if (!d || id.startsWith('temp-')) return;
+      // Best-effort sync save using sendBeacon — fire and forget
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const yjsDoc = (d as any).spaceDoc ?? (d as any).doc ?? d;
+        // We can't await here, so schedule immediate flush via persistDoc
+        // The timer cleanup in the previous effect already handles the debounce;
+        // this is a belt-and-suspenders for hard refreshes.
+        persistDoc(d).catch(() => {});
+        // Also cancel any pending timer so persistDoc runs immediately
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        void yjsDoc; // reference to avoid lint warning
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [id, persistDoc]);
 
   const handleTitleChange = useCallback(async (newTitle: string) => {
     setBoardTitle(newTitle);
@@ -143,11 +219,15 @@ export default function BoardPageInner() {
     );
   }
 
+  const savedState = (savedRootState && savedSpaceState)
+    ? { rootState: savedRootState, spaceState: savedSpaceState }
+    : null;
+
   return (
     <WorkbenchLayout
       key={id}
       boardId={id}
-      savedYjsState={savedYjsState}
+      savedState={savedState}
       title={title}
       subject={subject}
       onBack={() => router.push('/')}

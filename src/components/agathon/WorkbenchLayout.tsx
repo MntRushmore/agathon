@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
-import type { AffineCanvasHandle } from './AffineCanvas';
+import type { AffineCanvasHandle, SavedDocState } from './AffineCanvas';
 import SocraticPanel from './SocraticPanel';
 import InlineAIAffordance from './InlineAIAffordance';
 
@@ -15,7 +15,7 @@ const AffineCanvas = dynamic(() => import('./AffineCanvas'), { ssr: false });
 
 interface WorkbenchLayoutProps {
   boardId: string;
-  savedYjsState?: string;
+  savedState?: SavedDocState | null;
   title: string;
   subject?: string;
   onBack: () => void;
@@ -27,7 +27,7 @@ interface WorkbenchLayoutProps {
 
 export default function WorkbenchLayout({
   boardId,
-  savedYjsState,
+  savedState,
   title,
   subject,
   onBack,
@@ -51,6 +51,10 @@ export default function WorkbenchLayout({
 
   const getCanvasContext = useCallback((): string => {
     return canvasRef.current?.getTextContent() ?? '';
+  }, []);
+
+  const getCanvasScreenshot = useCallback((): string | null => {
+    return canvasRef.current?.getScreenshot() ?? null;
   }, []);
 
   const handleSelectionChange = useCallback((text: string) => {
@@ -126,15 +130,15 @@ export default function WorkbenchLayout({
         </button>
       </div>
 
-      {/* BlockSuite canvas — sits below the top bar */}
+      {/* BlockSuite canvas — full screen, our top bar overlays it with z-40 */}
       <div
-        className="absolute bottom-0 left-0 transition-all duration-300 ease-out"
-        style={{ top: 44, right: isAIPanelOpen ? 360 : 0 }}
+        className="absolute inset-0 transition-all duration-300 ease-out"
+        style={{ right: isAIPanelOpen ? 360 : 0 }}
       >
         <AffineCanvas
           ref={canvasRef}
           boardId={boardId}
-          savedYjsState={savedYjsState}
+          savedState={savedState}
           onDocReady={onDocReady}
           onSelectionChange={handleSelectionChange}
           className="w-full h-full"
@@ -145,6 +149,7 @@ export default function WorkbenchLayout({
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
         getCanvasContext={getCanvasContext}
+        getCanvasScreenshot={getCanvasScreenshot}
         subject={subject}
         selectedText={selectedText}
         onClearSelection={() => setSelectedText(undefined)}

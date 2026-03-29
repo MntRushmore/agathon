@@ -130,10 +130,10 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
             <span>Profile</span>
             <CommandShortcut>G P</CommandShortcut>
           </CommandItem>
-          <CommandItem value="settings" onSelect={() => navigate('/settings')}>
+          <CommandItem value="settings" onSelect={() => { setOpen(false); window.dispatchEvent(new Event('agathon-open-settings')); }}>
             <GearSix className="mr-2 size-4" />
             <span>Settings</span>
-            <CommandShortcut>G S</CommandShortcut>
+            <CommandShortcut>⌘ ,</CommandShortcut>
           </CommandItem>
           <CommandItem value="billing" onSelect={() => navigate('/billing')}>
             <CreditCard className="mr-2 size-4" />
