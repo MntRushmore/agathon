@@ -1081,6 +1081,70 @@ export function RichTextEditor({
           outline: none;
         }
 
+        /* ==========================================
+           Body typography — AFFiNE-quality prose
+           ========================================== */
+        .ProseMirror {
+          font-size: 15px;
+          line-height: 1.75;
+          color: #1a1d2b;
+          caret-color: #007ba5;
+        }
+        .ProseMirror p {
+          margin: 0 0 0.2em;
+          line-height: 1.75;
+        }
+        .ProseMirror p + p {
+          margin-top: 0.1em;
+        }
+
+        /* Headings */
+        .ProseMirror h1 {
+          font-size: 1.875rem;
+          font-weight: 700;
+          line-height: 1.25;
+          margin: 1.4em 0 0.5em;
+          color: #0d0f1a;
+          letter-spacing: -0.02em;
+        }
+        .ProseMirror h2 {
+          font-size: 1.375rem;
+          font-weight: 700;
+          line-height: 1.3;
+          margin: 1.25em 0 0.45em;
+          color: #0d0f1a;
+          letter-spacing: -0.015em;
+        }
+        .ProseMirror h3 {
+          font-size: 1.125rem;
+          font-weight: 600;
+          line-height: 1.35;
+          margin: 1.1em 0 0.4em;
+          color: #1a1d2b;
+        }
+        .ProseMirror h4 {
+          font-size: 1rem;
+          font-weight: 600;
+          line-height: 1.4;
+          margin: 1em 0 0.3em;
+          color: #1a1d2b;
+        }
+
+        /* Lists */
+        .ProseMirror ul,
+        .ProseMirror ol {
+          margin: 0.5em 0 0.75em;
+          padding-left: 1.6em;
+          line-height: 1.75;
+        }
+        .ProseMirror li {
+          margin: 0.15em 0;
+          line-height: 1.75;
+        }
+        .ProseMirror li p {
+          margin: 0;
+        }
+
         /* Notion-style block hover effect */
         .ProseMirror > * {
           transition: background-color 0.1s ease;

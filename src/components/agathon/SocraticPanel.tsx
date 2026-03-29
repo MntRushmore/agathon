@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * SocraticPanel — AFFiNE-style AI chat sidebar with Socratic workflow engine.
- *
- * Implements a simple workflow graph:
- *   captureContext → socraticQuestion → assessResponse → branch(explain|followUp|moveOn)
- *
- * The AI reads live canvas blocks as context (like AFFiNE's docRead tool).
- * Modes: socratic (default), explain, hint, answer.
- */
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
@@ -18,7 +8,7 @@ export type SocraticMode = 'socratic' | 'explain' | 'hint' | 'answer';
 
 export interface SocraticMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant';
   content: string;
   mode?: SocraticMode;
   timestamp: Date;
@@ -33,27 +23,24 @@ interface SocraticPanelProps {
   onClearSelection?: () => void;
 }
 
-const MODE_CONFIG: Record<SocraticMode, { label: string; description: string; color: string }> = {
-  socratic: {
-    label: 'Socratic',
-    description: 'Guide me with questions',
-    color: 'bg-violet-100 text-violet-700',
-  },
-  explain: {
-    label: 'Explain',
-    description: 'Explain this to me',
-    color: 'bg-blue-100 text-blue-700',
-  },
-  hint: {
-    label: 'Hint',
-    description: 'Give me a nudge',
-    color: 'bg-amber-100 text-amber-700',
-  },
-  answer: {
-    label: 'Answer',
-    description: 'Show me the answer',
-    color: 'bg-green-100 text-green-700',
-  },
+// Agathon's 5 onboarding items — same structure as AFFiNE's AIPreloadConfig
+const PRELOAD_CONFIG: Array<{
+  icon: React.ReactNode;
+  text: string;
+  mode: SocraticMode;
+}> = [
+  { icon: <LanguageIcon />,  text: 'Guide me through this with questions',   mode: 'socratic' },
+  { icon: <MindmapIcon />,   text: 'Map out the concepts on my canvas',      mode: 'explain'  },
+  { icon: <ImageIcon />,     text: 'Explain this with examples and analogies', mode: 'explain' },
+  { icon: <PenIcon />,       text: 'Give me a hint without the answer',      mode: 'hint'     },
+  { icon: <SendIcon />,      text: 'Show me the full solution',              mode: 'answer'   },
+];
+
+const MODE_LABELS: Record<SocraticMode, string> = {
+  socratic: 'Socratic',
+  explain:  'Explain',
+  hint:     'Hint',
+  answer:   'Answer',
 };
 
 export default function SocraticPanel({
@@ -69,19 +56,17 @@ export default function SocraticPanel({
   const [mode, setMode] = useState<SocraticMode>('socratic');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showModeMenu, setShowModeMenu] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  useEffect(() => {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  // Pre-fill input when user selects text on canvas
   useEffect(() => {
     if (selectedText && isOpen) {
       setInput(`"${selectedText}"`);
@@ -89,47 +74,40 @@ export default function SocraticPanel({
     }
   }, [selectedText, isOpen]);
 
+  // Scroll tracking — matches AFFiNE's _onScroll
+  const handleScroll = useCallback(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 200);
+  }, []);
+
+  const scrollToEnd = useCallback(() => {
+    requestAnimationFrame(() => {
+      messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) scrollToEnd();
+  }, [messages, scrollToEnd]);
+
   const buildSystemPrompt = useCallback((m: SocraticMode, context: string): string => {
     const base = `You are Agathon, a Socratic AI tutor${subject ? ` for ${subject}` : ''}.
-The student's current canvas content:
-<canvas_context>
-${context || '(empty canvas)'}
-</canvas_context>`;
-
-    const modeInstructions: Record<SocraticMode, string> = {
-      socratic: `${base}
-
-Your role: NEVER give direct answers. Ask probing questions that guide the student to discover the answer themselves.
-- Start with what they already know
-- Ask one focused question at a time
-- When they're close, ask "what would happen if...?"
-- Celebrate partial understanding, then push deeper`,
-      explain: `${base}
-
-Your role: Explain concepts clearly using analogies, examples, and visual descriptions.
-- Build from what they understand
-- Use the canvas context to make explanations concrete
-- End each explanation with a check-for-understanding question`,
-      hint: `${base}
-
-Your role: Give minimal hints that unlock the next step without revealing the full solution.
-- Point to the relevant concept without solving it
-- Use "think about..." or "consider..." framing
-- One hint per response`,
-      answer: `${base}
-
-Your role: Provide clear, complete answers with step-by-step reasoning.
-- Show all work
-- Explain why each step follows
-- After answering, ask if they'd like to explore a related concept`,
+The student's current canvas:
+<canvas_context>${context || '(empty canvas)'}</canvas_context>`;
+    const instructions: Record<SocraticMode, string> = {
+      socratic: `${base}\n\nNEVER give direct answers. Ask one focused probing question at a time.`,
+      explain:  `${base}\n\nExplain clearly using analogies and examples. End with a check-for-understanding question.`,
+      hint:     `${base}\n\nGive minimal hints that unlock the next step without the full solution.`,
+      answer:   `${base}\n\nProvide clear, complete answers with step-by-step reasoning.`,
     };
-
-    return modeInstructions[m];
+    return instructions[m];
   }, [subject]);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, overrideMode?: SocraticMode) => {
     if (!content.trim() || isLoading) return;
     setError(null);
+    const activeMode = overrideMode ?? mode;
 
     const userMsg: SocraticMessage = {
       id: `u-${Date.now()}`,
@@ -137,90 +115,69 @@ Your role: Provide clear, complete answers with step-by-step reasoning.
       content: content.trim(),
       timestamp: new Date(),
     };
-
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
-
     if (onClearSelection) onClearSelection();
 
     const context = getCanvasContext();
-    const systemPrompt = buildSystemPrompt(mode, context);
-
-    // Build conversation history for API
+    const systemPrompt = buildSystemPrompt(activeMode, context);
     const apiMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...updatedMessages.map((m) => ({
-        role: m.role === 'system' ? 'assistant' as const : m.role,
-        content: m.content,
-      })),
+      ...updatedMessages.map((m) => ({ role: m.role, content: m.content })),
     ];
 
     const assistantId = `a-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
-      { id: assistantId, role: 'assistant', content: '', mode, timestamp: new Date() },
+      { id: assistantId, role: 'assistant', content: '', mode: activeMode, timestamp: new Date() },
     ]);
 
     try {
       abortRef.current?.abort();
       abortRef.current = new AbortController();
-
       const res = await fetch('/api/socratic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, mode }),
+        body: JSON.stringify({ messages: apiMessages, mode: activeMode }),
         signal: abortRef.current.signal,
       });
-
       if (!res.ok) throw new Error(`API error ${res.status}`);
       if (!res.body) throw new Error('No response body');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        // Parse SSE data lines
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-            if (data === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content ?? parsed.delta?.text ?? '';
-              if (delta) {
-                accumulated += delta;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: accumulated } : m
-                  )
-                );
-              }
-            } catch {
-              // Not JSON — raw text chunk
-              if (data && data !== '[DONE]') {
-                accumulated += data;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantId ? { ...m, content: accumulated } : m
-                  )
-                );
-              }
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content ?? parsed.delta?.text ?? '';
+            if (delta) {
+              accumulated += delta;
+              setMessages((prev) =>
+                prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m)
+              );
+            }
+          } catch {
+            if (data) {
+              accumulated += data;
+              setMessages((prev) =>
+                prev.map((m) => m.id === assistantId ? { ...m, content: accumulated } : m)
+              );
             }
           }
         }
       }
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
-      const errMsg = e instanceof Error ? e.message : 'Something went wrong';
-      setError(errMsg);
+      setError(e instanceof Error ? e.message : 'Something went wrong');
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
     } finally {
       setIsLoading(false);
@@ -241,176 +198,446 @@ Your role: Provide clear, complete answers with step-by-step reasoning.
     setIsLoading(false);
   };
 
+  const isEmpty = messages.length === 0;
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ x: 320, opacity: 0 }}
+          initial={{ x: 360, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 320, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 38 }}
-          className="absolute right-0 top-0 bottom-0 w-80 z-30 flex flex-col
-            bg-white/97 backdrop-blur-sm
-            border-l border-[#e8e8e8]
-            shadow-[-8px_0_32px_rgba(0,0,0,0.06)]"
+          exit={{ x: 360, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 40 }}
+          className="absolute right-0 top-0 bottom-0 z-30 flex"
+          style={{ width: 360 }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f0f0]">
-            <div className="flex items-center gap-2">
-              <SparkleIcon className="text-[#1e6ee8]" />
-              <span className="font-semibold text-[#1a1a1a] text-sm">Agathon AI</span>
-            </div>
-            <div className="flex items-center gap-1">
+          {/* Left icon rail — matches AFFiNE's sidebar tab switcher */}
+          <div
+            style={{
+              width: 44,
+              background: 'var(--affine-background-primary-color, #1a1a1a)',
+              borderLeft: '1px solid var(--affine-border-color, rgba(255,255,255,0.1))',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              paddingTop: 8,
+              gap: 2,
+            }}
+          >
+            <button
+              title="Agathon AI"
+              style={{
+                width: 32, height: 32, borderRadius: 8, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                color: 'var(--affine-primary-color, #1e6ee8)',
+                background: 'var(--affine-hover-color, rgba(255,255,255,0.08))',
+                border: 'none', cursor: 'pointer',
+              }}
+            >
+              <AffineAIIcon color="var(--affine-primary-color, #1e6ee8)" size={16} />
+            </button>
+            {[
+              { title: 'Table of contents', icon: <TOCIcon /> },
+              { title: 'Journal', icon: <CalendarIcon /> },
+              { title: 'Frame navigator', icon: <FrameIcon /> },
+              { title: 'Template', icon: <GridIcon /> },
+            ].map(({ title, icon }) => (
               <button
-                title="New conversation"
-                onClick={startFresh}
-                className="p-1.5 rounded-lg text-[#8a8a8a] hover:bg-[#f5f5f5] hover:text-[#3d3d3d] transition-colors"
-              >
-                <ResetIcon />
-              </button>
-              <button
-                title="Close"
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-[#8a8a8a] hover:bg-[#f5f5f5] hover:text-[#3d3d3d] transition-colors"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-          </div>
-
-          {/* Mode selector */}
-          <div className="flex gap-1 px-3 py-2 border-b border-[#f0f0f0] overflow-x-auto scrollbar-none">
-            {(Object.keys(MODE_CONFIG) as SocraticMode[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={cn(
-                  'flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-150',
-                  mode === m
-                    ? MODE_CONFIG[m].color
-                    : 'text-[#666] hover:bg-[#f5f5f5]'
-                )}
-              >
-                {MODE_CONFIG[m].label}
-              </button>
-            ))}
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center gap-3 px-4">
-                <div className="w-10 h-10 rounded-2xl bg-[#e8f2ff] flex items-center justify-center">
-                  <SparkleIcon className="text-[#1e6ee8]" size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[#1a1a1a]">
-                    {MODE_CONFIG[mode].label} mode
-                  </p>
-                  <p className="text-xs text-[#8a8a8a] mt-1">
-                    {MODE_CONFIG[mode].description}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 gap-1.5 w-full mt-2">
-                  {getStarterQuestions(mode, subject).map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => sendMessage(q)}
-                      className="text-left text-xs px-3 py-2 rounded-xl bg-[#f7f7f7] hover:bg-[#eef4ff] hover:text-[#1e6ee8] text-[#555] transition-colors border border-transparent hover:border-[#c7dcff]"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  'flex gap-2',
-                  msg.role === 'user' ? 'justify-end' : 'justify-start'
-                )}
-              >
-                {msg.role === 'assistant' && (
-                  <div className="w-6 h-6 rounded-full bg-[#e8f2ff] flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <SparkleIcon className="text-[#1e6ee8]" size={12} />
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    'max-w-[88%] rounded-2xl px-3 py-2 text-sm leading-relaxed',
-                    msg.role === 'user'
-                      ? 'bg-[#1e6ee8] text-white rounded-tr-sm'
-                      : 'bg-[#f7f7f7] text-[#1a1a1a] rounded-tl-sm'
-                  )}
-                >
-                  {msg.content || (
-                    <span className="inline-flex gap-1 items-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:0ms]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:150ms]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-bounce [animation-delay:300ms]" />
-                    </span>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-
-            {error && (
-              <div className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2">
-                {error}
-              </div>
-            )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="p-3 border-t border-[#f0f0f0]">
-            {selectedText && (
-              <div className="flex items-center gap-2 mb-2 px-2.5 py-1.5 bg-[#f7f7f7] rounded-xl text-xs text-[#666]">
-                <span className="truncate flex-1">Selected: &ldquo;{selectedText.slice(0, 40)}{selectedText.length > 40 ? '…' : ''}&rdquo;</span>
-                <button onClick={onClearSelection} className="text-[#aaa] hover:text-[#555]">
-                  <CloseIcon size={12} />
-                </button>
-              </div>
-            )}
-            <div className="flex gap-2 items-end">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={`Ask in ${MODE_CONFIG[mode].label.toLowerCase()} mode…`}
-                rows={1}
-                className="flex-1 resize-none bg-[#f5f5f5] rounded-xl px-3 py-2 text-sm text-[#1a1a1a] placeholder:text-[#aaa] focus:outline-none focus:ring-2 focus:ring-[#1e6ee8]/20 focus:bg-white transition-colors max-h-32 overflow-y-auto"
-                style={{ lineHeight: '1.5' }}
-                onInput={(e) => {
-                  const el = e.currentTarget;
-                  el.style.height = 'auto';
-                  el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+                key={title}
+                title={title}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--affine-icon-secondary, rgba(255,255,255,0.3))',
+                  background: 'none', border: 'none', cursor: 'pointer',
                 }}
-                disabled={isLoading}
-              />
-              <button
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || isLoading}
-                className={cn(
-                  'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-150',
-                  input.trim() && !isLoading
-                    ? 'bg-[#1e6ee8] text-white hover:bg-[#1a5fcf] active:scale-95'
-                    : 'bg-[#f0f0f0] text-[#ccc] cursor-not-allowed'
-                )}
               >
-                <SendIcon size={14} />
+                {icon}
               </button>
+            ))}
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={onClose}
+              title="Collapse"
+              style={{
+                width: 32, height: 32, marginBottom: 8, borderRadius: 8, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                color: 'var(--affine-icon-secondary, rgba(255,255,255,0.3))',
+                background: 'none', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <CollapseRightIcon />
+            </button>
+          </div>
+
+          {/* Main panel — exact AFFiNE structure */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              background: 'var(--affine-background-primary-color, #1a1a1a)',
+              borderLeft: '1px solid var(--affine-border-color, rgba(255,255,255,0.1))',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Header — "AFFiNE AI" row with +, pin, chevron */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 16px',
+                height: 36,
+                position: 'relative',
+                zIndex: 1,
+                borderBottom: '0.5px solid var(--affine-border-color, rgba(255,255,255,0.1))',
+              }}
+            >
+              <span style={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.5))',
+              }}>
+                Agathon AI
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <IconBtn onClick={startFresh} title="New chat"><PlusIcon /></IconBtn>
+                <IconBtn title="Pin"><PinIcon /></IconBtn>
+                <IconBtn onClick={onClose} title="Close"><ChevronDownIcon /></IconBtn>
+              </div>
             </div>
-            <p className="text-[10px] text-[#bbb] mt-1.5 text-center">
-              Enter to send · Shift+Enter for newline
-            </p>
+
+            {/* Messages area — matches AFFiNE's scrollable messages container */}
+            <div
+              ref={messagesRef}
+              onScroll={handleScroll}
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                position: 'relative',
+                minHeight: 0,
+              }}
+            >
+              {/* chat-panel-messages-container */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 24,
+                  minHeight: '100%',
+                  position: 'relative',
+                  padding: isEmpty ? 0 : '16px',
+                }}
+              >
+                {isEmpty ? (
+                  /* messages-placeholder — exact AFFiNE CSS */
+                  <div style={{
+                    width: '100%',
+                    position: 'absolute',
+                    zIndex: 1,
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '0 16px',
+                  }}>
+                    {/* AFFiNE AI icon — exact SVG from affine/desktop/components/ai-island/icons.tsx */}
+                    <AffineAIIcon size={36} color="var(--affine-primary-color, #1e6ee8)" />
+
+                    {/* messages-placeholder-title */}
+                    <div style={{
+                      fontSize: 18,
+                      fontWeight: 600,
+                      color: 'var(--affine-text-primary-color, #fff)',
+                    }}>
+                      What can I help you with?
+                    </div>
+
+                    {/* onboarding-wrapper — exact AFFiNE structure */}
+                    <div style={{
+                      display: 'flex',
+                      gap: 8,
+                      flexDirection: 'column',
+                      marginTop: 16,
+                      width: '100%',
+                    }}>
+                      {PRELOAD_CONFIG.map((item, i) => (
+                        <div
+                          key={i}
+                          onClick={() => sendMessage(item.text, item.mode)}
+                          style={{
+                            display: 'flex',
+                            height: 28,
+                            gap: 8,
+                            alignItems: 'center',
+                            justifyContent: 'start',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {/* onboarding-item-icon */}
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.4))',
+                          }}>
+                            {item.icon}
+                          </div>
+                          {/* onboarding-item-text */}
+                          <div style={{
+                            fontSize: 12,
+                            fontWeight: 400,
+                            color: 'var(--affine-text-primary-color, #fff)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {item.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((msg) => (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          display: 'flex',
+                          gap: 10,
+                          flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                          alignItems: 'flex-start',
+                        }}
+                      >
+                        {msg.role === 'assistant' && (
+                          <div style={{
+                            width: 24, height: 24, borderRadius: 6, flexShrink: 0, marginTop: 2,
+                            background: 'var(--affine-primary-color, #1e6ee8)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <AffineAIIcon size={13} color="#fff" />
+                          </div>
+                        )}
+                        <div style={{
+                          maxWidth: '85%',
+                          borderRadius: msg.role === 'user' ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
+                          padding: '10px 14px',
+                          fontSize: 13,
+                          lineHeight: 1.55,
+                          background: msg.role === 'user'
+                            ? 'var(--affine-primary-color, #1e6ee8)'
+                            : 'var(--affine-hover-color, rgba(255,255,255,0.06))',
+                          color: msg.role === 'user'
+                            ? '#fff'
+                            : 'var(--affine-text-primary-color, rgba(255,255,255,0.85))',
+                        }}>
+                          {msg.content || (
+                            <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', opacity: 0.5 }}>
+                              {[0, 150, 300].map((d) => (
+                                <span key={d} style={{
+                                  width: 6, height: 6, borderRadius: '50%',
+                                  background: 'currentColor',
+                                  animation: `bounce 1s ${d}ms infinite`,
+                                }} />
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                    {error && (
+                      <div style={{
+                        fontSize: 12, color: '#f87171', padding: '8px 12px',
+                        background: 'rgba(248,113,113,0.1)', borderRadius: 12,
+                      }}>
+                        {error}
+                      </div>
+                    )}
+                    <div ref={bottomRef} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Scroll-down indicator — exact AFFiNE down-indicator */}
+            {canScrollDown && messages.length > 0 && (
+              <button
+                onClick={() => { setCanScrollDown(false); scrollToEnd(); }}
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  transform: 'translate(-50%, 0)',
+                  bottom: 166,
+                  zIndex: 1,
+                  borderRadius: '50%',
+                  width: 32, height: 32,
+                  border: '0.5px solid var(--affine-border-color, rgba(255,255,255,0.15))',
+                  background: 'var(--affine-background-primary-color, #1a1a1a)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.5))',
+                }}
+              >
+                <ArrowDownIcon />
+              </button>
+            )}
+
+            {/* Composer footer — chat-panel-footer */}
+            <div style={{
+              margin: '0 0 0 0',
+              display: 'flex',
+              flexDirection: 'column',
+              borderTop: '0.5px solid var(--affine-border-color, rgba(255,255,255,0.1))',
+              padding: '8px 12px 12px',
+              gap: 4,
+            }}>
+              {/* Selected text chip */}
+              {selectedText && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6,
+                  padding: '6px 10px', borderRadius: 8, fontSize: 12,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.4))',
+                }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    &ldquo;{selectedText.slice(0, 40)}{selectedText.length > 40 ? '…' : ''}&rdquo;
+                  </span>
+                  <button
+                    onClick={onClearSelection}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', display: 'flex' }}
+                  >
+                    <XIcon />
+                  </button>
+                </div>
+              )}
+
+              {/* Input card — ai-chat-input style */}
+              <div style={{
+                borderRadius: 12,
+                background: 'var(--affine-hover-color, rgba(255,255,255,0.06))',
+                border: '1px solid var(--affine-border-color, rgba(255,255,255,0.12))',
+                overflow: 'hidden',
+              }}>
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="What are your thoughts?"
+                  rows={2}
+                  disabled={isLoading}
+                  style={{
+                    width: '100%', resize: 'none', background: 'transparent',
+                    padding: '12px 14px 4px', fontSize: 13, lineHeight: 1.55,
+                    color: 'var(--affine-text-primary-color, #fff)',
+                    border: 'none', outline: 'none',
+                    fontFamily: 'inherit',
+                  }}
+                  onInput={(e) => {
+                    const el = e.currentTarget;
+                    el.style.height = 'auto';
+                    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+                  }}
+                />
+
+                {/* Bottom action bar */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '4px 8px 8px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {/* + attach */}
+                    <IconBtn title="Add context"><PlusIcon /></IconBtn>
+                    {/* Mode picker */}
+                    <div style={{ position: 'relative' }}>
+                      <button
+                        onClick={() => setShowModeMenu((v) => !v)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          height: 28, padding: '0 8px', borderRadius: 6,
+                          fontSize: 11, fontWeight: 500,
+                          color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.4))',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        {MODE_LABELS[mode]}
+                        <SmallChevronIcon />
+                      </button>
+                      <AnimatePresence>
+                        {showModeMenu && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 4 }}
+                            transition={{ duration: 0.1 }}
+                            style={{
+                              position: 'absolute', bottom: '100%', left: 0, marginBottom: 4,
+                              width: 140, borderRadius: 12, overflow: 'hidden', zIndex: 50,
+                              background: 'var(--affine-background-overlay-panel-color, #2a2a2a)',
+                              border: '1px solid var(--affine-border-color, rgba(255,255,255,0.12))',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                            }}
+                          >
+                            {(Object.keys(MODE_LABELS) as SocraticMode[]).map((m) => (
+                              <button
+                                key={m}
+                                onClick={() => { setMode(m); setShowModeMenu(false); }}
+                                style={{
+                                  width: '100%', padding: '9px 12px', fontSize: 12, textAlign: 'left',
+                                  background: mode === m ? 'rgba(30,110,232,0.12)' : 'none',
+                                  color: mode === m
+                                    ? 'var(--affine-primary-color, #1e6ee8)'
+                                    : 'var(--affine-text-primary-color, rgba(255,255,255,0.7))',
+                                  border: 'none', cursor: 'pointer',
+                                }}
+                              >
+                                {MODE_LABELS[m]}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Send — round filled button like AFFiNE */}
+                  <button
+                    onClick={() => sendMessage(input)}
+                    disabled={!input.trim() || isLoading}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: input.trim() && !isLoading
+                        ? 'var(--affine-primary-color, #1e6ee8)'
+                        : 'var(--affine-hover-color, rgba(255,255,255,0.08))',
+                      color: input.trim() && !isLoading ? '#fff' : 'rgba(255,255,255,0.2)',
+                      border: 'none', cursor: input.trim() && !isLoading ? 'pointer' : 'not-allowed',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    <SendUpIcon />
+                  </button>
+                </div>
+              </div>
+
+              {/* chat-panel-footer tip — exact AFFiNE text */}
+              <div style={{
+                marginTop: 4,
+                fontSize: 12,
+                color: 'var(--affine-text-secondary-color, rgba(255,255,255,0.3))',
+                userSelect: 'none',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                <InfoIcon />
+                <span>AI outputs can be misleading or wrong</span>
+              </div>
+            </div>
           </div>
         </motion.div>
       )}
@@ -418,64 +645,174 @@ Your role: Provide clear, complete answers with step-by-step reasoning.
   );
 }
 
-function getStarterQuestions(mode: SocraticMode, subject?: string): string[] {
-  const sub = subject ?? 'this topic';
-  const starters: Record<SocraticMode, string[]> = {
-    socratic: [
-      `What do you already know about ${sub}?`,
-      "Walk me through your thinking so far",
-      "What's the first step you'd try?",
-    ],
-    explain: [
-      `Can you explain the main concept here?`,
-      "What does this formula mean?",
-      "Break down this step for me",
-    ],
-    hint: [
-      "I'm stuck — give me a nudge",
-      "What should I focus on next?",
-      "Am I on the right track?",
-    ],
-    answer: [
-      "Show me the full solution",
-      "What's the answer and why?",
-      "Solve this step by step",
-    ],
-  };
-  return starters[mode];
+// Tiny reusable icon button matching AFFiNE header buttons
+function IconBtn({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: 28, height: 28, borderRadius: 6,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--affine-icon-color, rgba(255,255,255,0.35))',
+        background: 'none', border: 'none', cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  );
 }
 
-// Icon components
-function SparkleIcon({ className, size = 16 }: { className?: string; size?: number }) {
+// ─── Exact AFFiNE AI star icon from packages/frontend/core/src/desktop/components/ai-island/icons.tsx ───
+
+function AffineAIIcon({ size = 24, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 2l2.4 7.2H22l-6.2 4.5 2.4 7.2L12 17l-6.2 3.9 2.4-7.2L2 9.2h7.6L12 2z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clipPath="url(#affine-ai-clip)">
+        <path d="M11.2812 5.49104C11.2403 5.13024 10.9353 4.85751 10.5722 4.85714C10.2091 4.85677 9.90345 5.12887 9.86185 5.48959C9.59131 7.83515 8.89003 9.48448 7.75868 10.6158C6.62734 11.7472 4.97801 12.4485 2.63244 12.719C2.27173 12.7606 1.99963 13.0662 2 13.4293C2.00037 13.7924 2.2731 14.0975 2.63389 14.1383C4.94069 14.3996 6.62508 15.1006 7.78328 16.2379C8.93713 17.3709 9.65305 19.0198 9.85994 21.3489C9.89271 21.7178 10.2019 22.0004 10.5722 22C10.9425 21.9996 11.2511 21.7162 11.2831 21.3473C11.4813 19.0565 12.1966 17.3729 13.3562 16.2133C14.5157 15.0537 16.1994 14.3385 18.4902 14.1402C18.8591 14.1083 19.1424 13.7997 19.1429 13.4294C19.1433 13.0591 18.8606 12.7499 18.4918 12.7171C16.1627 12.5102 14.5137 11.7943 13.3807 10.6404C12.2435 9.48222 11.5425 7.79783 11.2812 5.49104Z" fill={color}/>
+        <path d="M18.9427 2.24651C18.9268 2.1062 18.8082 2.00014 18.667 2C18.5257 1.99986 18.4069 2.10567 18.3907 2.24595C18.2855 3.15811 18.0128 3.79952 17.5728 4.23949C17.1329 4.67946 16.4914 4.95218 15.5793 5.05739C15.439 5.07356 15.3332 5.19241 15.3333 5.33362C15.3335 5.47482 15.4395 5.59345 15.5798 5.60935C16.4769 5.71096 17.132 5.98357 17.5824 6.42584C18.0311 6.86644 18.3095 7.50771 18.39 8.41347C18.4027 8.55691 18.523 8.66683 18.667 8.66667C18.811 8.6665 18.931 8.55632 18.9434 8.41284C19.0205 7.52199 19.2987 6.86723 19.7496 6.41629C20.2006 5.96534 20.8553 5.68719 21.7462 5.61008C21.8896 5.59766 21.9998 5.47765 22 5.33365C22.0002 5.18964 21.8902 5.06939 21.7468 5.05664C20.841 4.97619 20.1998 4.69777 19.7592 4.24905C19.3169 3.79864 19.0443 3.1436 18.9427 2.24651Z" fill={color}/>
+      </g>
+      <defs>
+        <clipPath id="affine-ai-clip">
+          <rect width="24" height="24" fill="white"/>
+        </clipPath>
+      </defs>
     </svg>
   );
 }
 
-function CloseIcon({ size = 16 }: { size?: number }) {
+// ─── Icons matching AFFiNE's @blocksuite/icons ───────────────────────────────
+
+function LanguageIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6" />
+    </svg>
+  );
+}
+function MindmapIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x={2} y={10} width={5} height={4} rx={1} />
+      <rect x={17} y={4} width={5} height={4} rx={1} />
+      <rect x={17} y={10} width={5} height={4} rx={1} />
+      <rect x={17} y={16} width={5} height={4} rx={1} />
+      <path d="M7 12h4M11 12V6h6M11 12v6h6M11 12h6" />
+    </svg>
+  );
+}
+function ImageIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x={3} y={3} width={18} height={18} rx={2} />
+      <circle cx={8.5} cy={8.5} r={1.5} />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  );
+}
+function PenIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </svg>
+  );
+}
+function SendIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="m22 2-11 11M22 2l-7 20-4-9-9-4 20-7z" />
+    </svg>
+  );
+}
+function TOCIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  );
+}
+function CalendarIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x={3} y={4} width={18} height={18} rx={2} /><path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+function FrameIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+      <path d="M5 3H3v2M19 3h2v2M5 21H3v-2M19 21h2v-2M9 3h6M9 21h6M3 9v6M21 9v6" />
+    </svg>
+  );
+}
+function GridIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <rect x={3} y={3} width={7} height={7} /><rect x={14} y={3} width={7} height={7} />
+      <rect x={3} y={14} width={7} height={7} /><rect x={14} y={14} width={7} height={7} />
+    </svg>
+  );
+}
+function CollapseRightIcon() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 19V5M13 19l7-7-7-7M20 12H7" />
+    </svg>
+  );
+}
+function PlusIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function PinIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 17v5M8 11V5h8v6l2 3H6l2-3z" />
+    </svg>
+  );
+}
+function ChevronDownIcon() {
+  return (
+    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+function SmallChevronIcon() {
+  return (
+    <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+function XIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
       <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
 }
-
-function ResetIcon({ size = 16 }: { size?: number }) {
+function SendUpIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-      <path d="M3 3v5h5" />
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19V5M5 12l7-7 7 7" />
     </svg>
   );
 }
-
-function SendIcon({ size = 16 }: { size?: number }) {
+function ArrowDownIcon() {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12l7 7 7-7" />
+    </svg>
+  );
+}
+function InfoIcon() {
+  return (
+    <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx={12} cy={12} r={10} /><path d="M12 16v-4M12 8h.01" />
     </svg>
   );
 }

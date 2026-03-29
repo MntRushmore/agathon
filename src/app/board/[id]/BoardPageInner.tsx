@@ -86,13 +86,24 @@ export default function BoardPageInner() {
     }
   }, [id]);
 
-  // Debounced auto-save when doc updates
+  // Debounced auto-save when doc updates.
+  // blockUpdated fires on doc.slots for any block add/update/delete.
+  // collection.slots.docUpdated fires at the collection level — use whichever is available.
   useEffect(() => {
     if (!doc || id.startsWith('temp-')) return;
-    const sub = doc.slots?.docUpdated?.on(() => {
+
+    const schedSave = () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => persistDoc(doc), 2000);
-    });
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const d = doc as any;
+    // Prefer doc-level blockUpdated (fires on every edit), fall back to collection-level
+    const sub =
+      d.slots?.blockUpdated?.on(schedSave) ??
+      d.collection?.slots?.docUpdated?.on(schedSave);
+
     return () => {
       sub?.dispose?.();
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);

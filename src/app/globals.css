@@ -1168,3 +1168,13 @@ kbd {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Agathon panel textarea placeholder color */
+.agathon-input::placeholder {
+  color: var(--affine-placeholder-color, rgba(255,255,255,0.25));
+}

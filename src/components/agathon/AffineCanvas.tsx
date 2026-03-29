@@ -33,13 +33,16 @@ interface AffineCanvasProps {
   onSelectionChange?: (text: string) => void;
 }
 
-// Load effects exactly once — this registers all block schemas + custom elements
+// Load effects exactly once — this registers all block schemas + custom elements.
+// IMPORTANT: the effects modules export a function; we must CALL it, not just import it.
 let effectsPromise: Promise<void> | null = null;
 function loadEffects(): Promise<void> {
   if (!effectsPromise) {
     effectsPromise = (async () => {
-      await import('@blocksuite/presets/effects');
-      await import('@blocksuite/blocks/effects');
+      const { effects: blocksEffects } = await import('@blocksuite/blocks/effects');
+      blocksEffects();
+      const { effects: presetsEffects } = await import('@blocksuite/presets/effects');
+      presetsEffects();
     })();
   }
   return effectsPromise;
@@ -96,10 +99,15 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
         onDocReady?.(doc);
 
         // Step 4: mount the native BlockSuite editor element
-        const tag = mode === 'edgeless' ? 'edgeless-editor' : 'page-editor';
-        const el = document.createElement(tag) as HTMLElement & { doc: BSDoc };
+        // Use affine-editor-container (higher-level) which properly handles mode switching
+        // and uses signals for reactivity — more reliable than edgeless-editor directly
+        const el = document.createElement('affine-editor-container') as HTMLElement & {
+          doc: BSDoc;
+          mode: string;
+        };
         el.doc = doc;
-        el.style.cssText = 'width:100%;height:100%;display:block;';
+        el.mode = mode === 'edgeless' ? 'edgeless' : 'page';
+        el.style.cssText = 'width:100%;height:100%;display:block;position:relative;';
 
         if (onSelectionChange) {
           el.addEventListener('selectionchange', () => {

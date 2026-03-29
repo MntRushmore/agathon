@@ -411,6 +411,7 @@ export default function JournalEditorPage() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
 
   // Topic prompt modal state
   const [showTopicModal, setShowTopicModal] = useState(false);
@@ -1688,7 +1689,7 @@ export default function JournalEditorPage() {
       </Dialog>
 
       {/* Header controls */}
- <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border">
+ <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border bg-background/95 backdrop-blur-sm">
         {/* Left - Navigation */}
  <div className="flex items-center gap-3">
           <button
@@ -1698,257 +1699,6 @@ export default function JournalEditorPage() {
           >
  <CaretLeft weight="bold" className="h-5 w-5" />
           </button>
-        </div>
-
-        {/* Center - Chat/Command bar */}
- <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
- <div className="relative" ref={chatBarRef}>
-            {/* Main chat bar */}
- <div className="flex flex-col">
-              <div
-                onClick={() => {
-                  if (!searchExpanded) {
-                    setSearchExpanded(true);
-                  }
-                }}
- className={cn(
-                  'flex items-center gap-2.5 border border-border px-3 cursor-pointer',
-                  'transition-all duration-300 ease-out',
-                  searchExpanded
-                    ? 'min-w-[560px] bg-card shadow-lg border-b-0 py-2'
-                    : 'min-w-[320px] bg-foreground/5 hover:bg-foreground/10 py-1.5'
-                )}
-              >
-                {searchExpanded ? (
-                  <>
-                    {isChatting ? (
- <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin flex-shrink-0" />
-                    ) : (
- <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
- <Plus weight="bold" className="h-4 w-4 text-foreground" />
-                      </div>
-                    )}
-                    <input
-                      ref={commandInputRef}
-                      type="text"
-                      autoFocus
-                      value={showSlashMenu ? commandInput : chatInput}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.startsWith('/')) {
-                          setCommandInput(value);
-                          setChatInput('');
-                          setSlashFilter(value.slice(1));
-                          setShowSlashMenu(true);
-                          setSelectedCommandIndex(0);
-                        } else {
-                          setChatInput(value);
-                          setCommandInput('');
-                          setShowSlashMenu(false);
-                          setSlashFilter('');
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (showSlashMenu) {
-                          handleCommandKeyDown(e);
-                        } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
-                          e.preventDefault();
-                          handleChatSubmit();
-                        } else if (e.key === 'Escape') {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }
-                      }}
-                      placeholder='Ask anything or type "/" for commands...'
- className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
-                      disabled={isChatting}
-                    />
-                    {chatInput.trim() && !showSlashMenu && (
-                      <button
-                        onClick={handleChatSubmit}
-                        disabled={isChatting}
- className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
-                      >
- <ArrowUp className="h-4 w-4" />
-                      </button>
-                    )}
-                    {chatMessages.length > 0 && !chatInput.trim() && (
-                      <button
-                        onClick={() => {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }}
- className="p-1.5 hover:bg-foreground/10 transition-colors"
-                      >
- <X className="h-4 w-4 text-foreground" />
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
- <Sparkle weight="duotone" className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
- <span className="flex-1 text-muted-foreground text-xs transition-opacity duration-500">
-                      {placeholderTexts[placeholderIndex]}
-                    </span>
- <div className="w-6 h-6 bg-foreground text-background flex items-center justify-center flex-shrink-0">
- <ArrowUp className="h-3 w-3" />
-                    </div>
-                  </>
-                )}
-              </div>
-              {/* Chat label below the bar - only show when expanded */}
-            </div>
-
-            {/* Chat conversation panel - only show when there are messages */}
-            {searchExpanded && !showSlashMenu && chatMessages.length > 0 && (
- <div className="absolute top-full left-0 right-0 bg-card border border-t-0 border-border shadow-xl overflow-hidden z-[100]">
-                {/* Chat messages */}
-                <div
-                  ref={chatContainerRef}
- className="max-h-[350px] overflow-y-auto px-4 py-3 space-y-3"
-                >
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx}>
-                      {msg.role === 'user' ? (
- <div className="flex justify-end mb-2">
- <div className="bg-muted text-foreground px-4 py-1.5 text-sm border border-border">
-                            {msg.content}
-                          </div>
-                        </div>
-                      ) : (
- <div className="space-y-2">
- <div className="flex gap-2.5">
- <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
- <Sparkle className="h-3 w-3 text-background" />
-                            </div>
- <div className="flex-1 min-w-0">
-                              <div
- className="text-[13px] text-foreground/80 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                              />
-                              {/* Action buttons for assistant messages */}
- <div className="flex items-center gap-2 mt-2">
-                                {msg.written ? (
-                                  <>
- <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-medium">
- <Check className="h-3 w-3" />
-                                      Written!
-                                    </span>
-                                    <button
-                                      onClick={() => handleReapplyContent(msg.content, idx)}
- className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
- <ArrowsClockwise className="h-3 w-3" />
-                                      Reapply changes
-                                    </button>
-                                  </>
-                                ) : pendingMessageIndex === idx ? (
- <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={handleAcceptContent}
- className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
-                                    >
- <Check className="h-3 w-3" />
-                                      Add to Journal
-                                    </button>
-                                    <button
-                                      onClick={handleDismissContent}
- className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
-                                      Dismiss
-                                    </button>
-                                  </div>
-                                ) : null}
-                                <button
-                                  onClick={() => handleCopyMessage(msg.content)}
- className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
-                                  title="Copy to clipboard"
-                                >
- <Copy className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {isChatting && (
- <div className="flex gap-2.5">
- <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0">
- <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
-                      </div>
- <div className="text-[13px] text-muted-foreground">
-                        Thinking...
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Clear chat button at the bottom */}
- <div className="border-t border-border px-4 py-2 flex justify-end bg-muted/50">
-                  <button
-                    onClick={handleClearChat}
- className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
-                  >
- <X className="h-3 w-3" />
-                    Clear chat
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Slash Command Menu */}
-            {showSlashMenu && searchExpanded && (
- <div className="absolute top-full left-0 right-0 z-[100] bg-card border border-t-0 border-border shadow-2xl py-2 max-h-[420px] overflow-y-auto">
-                {slashCommands.map((category, catIndex) => {
-                  const filteredItems = category.items.filter(item =>
-                    item.label.toLowerCase().includes(slashFilter.toLowerCase())
-                  );
-
-                  if (filteredItems.length === 0) return null;
-
-                  return (
- <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
- <div className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        {category.category}
-                      </div>
-                      {filteredItems.map((item) => {
-                        const globalIndex = allCommands.findIndex(c => c.id === item.id);
-                        const isSelected = globalIndex === selectedCommandIndex;
-                        const Icon = item.icon;
-
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => executeCommand(item.id)}
- className={cn(
-                              'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
-                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                            )}
-                          >
- <Icon className="h-4 w-4" />
- <span className={cn(
-                              'text-sm',
-                              isSelected && 'font-medium'
-                            )}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right - Actions */}
@@ -2012,17 +1762,244 @@ export default function JournalEditorPage() {
           >
  <DotsThree weight="duotone" className="h-5 w-5" />
           </button>
+          {/* Ask Agathon button */}
           <button
-            onClick={() => sileo.info({ title: 'Sharing is coming soon!' })}
- className="ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
+            onClick={() => setIsAIPanelOpen(true)}
+ className="ml-2 flex items-center gap-2 bg-[#1e6ee8] hover:bg-[#1a5fcf] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors shadow-[0_2px_12px_rgba(30,110,232,0.3)]"
           >
-            Share
+ <Sparkle weight="fill" className="h-3.5 w-3.5" />
+            Ask Agathon
           </button>
         </div>
       </header>
 
+      {/* AI Chat Side Panel */}
+      {isAIPanelOpen && (
+ <div className="fixed inset-y-0 right-0 z-[80] flex">
+ <div
+            className="absolute inset-0 -left-[9999px]"
+            onClick={() => setIsAIPanelOpen(false)}
+          />
+ <div className="relative w-[360px] bg-card border-l border-border flex flex-col shadow-2xl">
+            {/* Panel header */}
+ <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+ <div className="flex items-center gap-2">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center">
+ <Sparkle className="h-3.5 w-3.5 text-white" weight="fill" />
+                </div>
+ <span className="font-semibold text-sm text-foreground">Ask Agathon</span>
+              </div>
+              <button
+                onClick={() => setIsAIPanelOpen(false)}
+ className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+              >
+ <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Chat messages */}
+ <div
+              ref={chatContainerRef}
+ className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+            >
+              {chatMessages.length === 0 && (
+ <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+ <div className="w-12 h-12 bg-[#eef3fd] rounded-2xl flex items-center justify-center mb-4">
+ <Sparkle className="h-6 w-6 text-[#1e6ee8]" weight="fill" />
+                  </div>
+ <p className="text-[15px] font-semibold text-foreground mb-1">Ask me anything</p>
+ <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[220px]">
+                    I can explain concepts, generate notes, create flashcards, and more.
+                  </p>
+ <div className="mt-6 w-full space-y-2">
+                    {[
+                      'Explain this topic in simple terms',
+                      'Generate notes from my content',
+                      'Create practice problems',
+                      'What should I study next?',
+                    ].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => { setChatInput(suggestion); }}
+ className="w-full text-left px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-lg transition-colors border border-border/50"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div key={idx}>
+                  {msg.role === 'user' ? (
+ <div className="flex justify-end">
+ <div className="bg-[#1e6ee8] text-white px-3.5 py-2 rounded-2xl rounded-br-sm text-sm max-w-[240px] leading-relaxed">
+                        {msg.content}
+                      </div>
+                    </div>
+                  ) : (
+ <div className="flex gap-2.5">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+ <Sparkle className="h-3 w-3 text-white" weight="fill" />
+                      </div>
+ <div className="flex-1 min-w-0">
+ <div
+ className="text-[13px] text-foreground/85 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                          />
+ <div className="flex items-center gap-2 mt-2">
+                            {msg.written ? (
+                              <>
+ <span className="inline-flex items-center gap-1 text-[11px] text-[#1e6ee8] font-medium">
+ <Check className="h-3 w-3" />
+                                  Written!
+                                </span>
+                                <button
+                                  onClick={() => handleReapplyContent(msg.content, idx)}
+ className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                >
+ <ArrowsClockwise className="h-3 w-3" />
+                                  Reapply
+                                </button>
+                              </>
+                            ) : pendingMessageIndex === idx ? (
+ <div className="flex items-center gap-2">
+                                <button
+                                  onClick={handleAcceptContent}
+ className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-[#1e6ee8] text-white rounded-lg hover:bg-[#1a5fcf] transition-colors font-medium"
+                                >
+ <Check className="h-3 w-3" />
+                                  Add to Journal
+                                </button>
+                                <button
+                                  onClick={handleDismissContent}
+ className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            ) : null}
+                            <button
+                              onClick={() => handleCopyMessage(msg.content)}
+ className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
+                              title="Copy"
+                            >
+ <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                  )}
+                </div>
+              ))}
+              {isChatting && (
+ <div className="flex gap-2.5">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center flex-shrink-0">
+ <div className="h-3 w-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                  </div>
+ <div className="text-[13px] text-muted-foreground">Thinking...</div>
+                </div>
+              )}
+            </div>
+
+            {/* Slash Command Menu (inside panel) */}
+            {showSlashMenu && searchExpanded && (
+ <div className="mx-4 mb-2 bg-card border border-border shadow-xl rounded-xl py-2 max-h-[300px] overflow-y-auto">
+                {slashCommands.map((category, catIndex) => {
+                  const filteredItems = category.items.filter(item =>
+                    item.label.toLowerCase().includes(slashFilter.toLowerCase())
+                  );
+                  if (filteredItems.length === 0) return null;
+                  return (
+ <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
+ <div className="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {category.category}
+                      </div>
+                      {filteredItems.map((item) => {
+                        const globalIndex = allCommands.findIndex(c => c.id === item.id);
+                        const isSelected = globalIndex === selectedCommandIndex;
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => executeCommand(item.id)}
+ className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
+                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+ <Icon className="h-4 w-4" />
+ <span className={cn('text-sm', isSelected && 'font-medium')}>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Input area */}
+ <div className="px-4 py-3 border-t border-border flex-shrink-0" ref={chatBarRef}>
+              {chatMessages.length > 0 && (
+                <button
+                  onClick={() => { handleClearChat(); }}
+ className="mb-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear conversation
+                </button>
+              )}
+ <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 border border-border focus-within:border-[#1e6ee8]/40 transition-colors">
+                <input
+                  ref={commandInputRef}
+                  type="text"
+                  value={showSlashMenu ? commandInput : chatInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.startsWith('/')) {
+                      setCommandInput(value);
+                      setChatInput('');
+                      setSlashFilter(value.slice(1));
+                      setShowSlashMenu(true);
+                      setSearchExpanded(true);
+                      setSelectedCommandIndex(0);
+                    } else {
+                      setChatInput(value);
+                      setCommandInput('');
+                      setShowSlashMenu(false);
+                      setSlashFilter('');
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (showSlashMenu) {
+                      handleCommandKeyDown(e);
+                    } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
+                      e.preventDefault();
+                      handleChatSubmit();
+                    }
+                  }}
+                  placeholder='Ask anything or "/" for commands…'
+ className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
+                  disabled={isChatting}
+                />
+                <button
+                  onClick={handleChatSubmit}
+                  disabled={!chatInput.trim() || isChatting}
+ className="w-7 h-7 bg-[#1e6ee8] text-white rounded-lg flex items-center justify-center hover:bg-[#1a5fcf] transition-colors disabled:opacity-30"
+                >
+ <ArrowUp className="h-4 w-4" />
+                </button>
+              </div>
+ <p className="mt-2 text-[11px] text-muted-foreground/60 text-center">
+                AI can make mistakes. Verify important information.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
- <main className="px-8 py-8 max-w-3xl mx-auto">
+ <main className={cn("px-8 py-10 max-w-3xl mx-auto transition-all duration-300", isAIPanelOpen ? "mr-[360px]" : "")}>
 
         {/* Large serif title */}
  <div className="mb-8">
@@ -2030,43 +2007,75 @@ export default function JournalEditorPage() {
             type="text"
             value={title}
             onChange={handleTitleChange}
- className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
+ className="text-[2rem] font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/30 focus:ring-0 w-full tracking-tight leading-tight"
             style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
-            placeholder="New Journal"
+            placeholder="Untitled"
           />
  <div className="h-px bg-border mt-4" />
+          {/* Metadata row */}
+ <div className="flex items-center gap-3 mt-2.5">
+            {journal && (
+ <span className="text-xs text-muted-foreground">
+                {new Date(journal.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
+            {content.trim() && (
+              <>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground">
+                  {content.trim().split(/\s+/).filter(Boolean).length} words
+                </span>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground">
+                  {Math.max(1, Math.ceil(content.trim().split(/\s+/).filter(Boolean).length / 200))} min read
+                </span>
+              </>
+            )}
+            {isSaving && (
+              <>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground/60">Saving…</span>
+              </>
+            )}
+          </div>
         </div>
         {/* Start with section - only show when empty */}
         {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
- <div className="mb-8">
- <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
- <div className="grid grid-cols-3 gap-px bg-border border border-border">
+ <div className="mb-10">
+ <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4">Start with</p>
+ <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => handleQuickAction('Agathon Method')}
+                onClick={() => { setIsAIPanelOpen(true); }}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <Sparkle weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Ask Agathon</p>
- <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <Sparkle weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Ask Agathon</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">Generate notes with AI</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Flashcards')}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <Stack weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Flashcards</p>
- <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <Stack weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Flashcards</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">Spaced repetition study</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Practice Problems')}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <ClipboardText weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Practice</p>
- <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <ClipboardText weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Practice</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">AI practice problems</p>
               </button>
             </div>
           </div>
