@@ -223,6 +223,7 @@ export default function BoardPageInner() {
       onTitleChange={handleTitleChange}
       isSaving={isSaving}
       activeUsers={activeUsers}
+      key={id}
     />
   );
 }

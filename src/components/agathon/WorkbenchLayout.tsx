@@ -1,24 +1,27 @@
 'use client';
 
 /**
- * WorkbenchLayout — AFFiNE-style workbench.
- * Canvas fills the left area; SocraticPanel slides in from the right.
- * Uses the same layout pattern as AFFiNE's workbench with ViewScope separation.
+ * WorkbenchLayout — Agathon × BlockSuite workbench.
+ *
+ * BlockSuite's edgeless-editor / page-editor web components render their own
+ * full native UI (top chrome, toolbar, canvas). We let them fill the screen
+ * completely and overlay only our Socratic AI panel + inline affordance on top.
+ *
+ * The "Ask AI" button is injected into the bottom-right corner so it doesn't
+ * clash with BlockSuite's own toolbar.
  */
 
 import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '@/lib/utils';
 import type { AffineCanvasHandle, CanvasMode } from './AffineCanvas';
-import type { ActiveTool } from './EditorToolbar';
-import AgathonTopBar from './AgathonTopBar';
-import EditorToolbar from './EditorToolbar';
 import SocraticPanel from './SocraticPanel';
 import InlineAIAffordance from './InlineAIAffordance';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BSDoc = any;
 
-// Dynamic import — BlockSuite is DOM-only
 const AffineCanvas = dynamic(() => import('./AffineCanvas'), { ssr: false });
 
 interface WorkbenchLayoutProps {
@@ -33,15 +36,9 @@ interface WorkbenchLayoutProps {
 
 export default function WorkbenchLayout({
   doc,
-  title,
   subject,
-  onBack,
-  onTitleChange,
-  isSaving,
-  activeUsers,
 }: WorkbenchLayoutProps) {
-  const [mode, setMode] = useState<CanvasMode>('edgeless');
-  const [activeTool, setActiveTool] = useState<ActiveTool>('default');
+  const [mode] = useState<CanvasMode>('edgeless');
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string | undefined>();
   const [inlineAI, setInlineAI] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -53,7 +50,6 @@ export default function WorkbenchLayout({
   }, []);
 
   const handleSelectionChange = useCallback((text: string) => {
-    // Show inline affordance near cursor
     const sel = window.getSelection();
     if (sel && sel.rangeCount > 0) {
       const rect = sel.getRangeAt(0).getBoundingClientRect();
@@ -69,66 +65,75 @@ export default function WorkbenchLayout({
   }, []);
 
   return (
-    <div className="relative w-full h-screen bg-[#fafafa] overflow-hidden flex flex-col">
-      {/* Top bar */}
-      <AgathonTopBar
-        title={title}
-        mode={mode}
-        onModeChange={setMode}
-        onBack={onBack}
-        onTitleChange={onTitleChange}
-        isSaving={isSaving}
-        activeUsers={activeUsers}
-        subject={subject}
-      />
+    // Full-screen — BlockSuite renders its own chrome inside
+    <div className="relative w-full h-screen overflow-hidden">
 
-      {/* Canvas area + slide-in panel */}
-      <div className="relative flex-1 mt-11 overflow-hidden">
-        {/* BlockSuite canvas — shrinks when panel is open */}
-        <div
-          className="absolute inset-0 transition-all duration-300"
-          style={{ right: isAIPanelOpen ? 320 : 0 }}
-        >
-          <AffineCanvas
-            ref={canvasRef}
-            doc={doc}
-            mode={mode}
-            activeTool={activeTool}
-            onSelectionChange={handleSelectionChange}
-            className="w-full h-full"
-          />
-        </div>
-
-        {/* Socratic AI panel */}
-        <SocraticPanel
-          isOpen={isAIPanelOpen}
-          onClose={() => setIsAIPanelOpen(false)}
-          getCanvasContext={getCanvasContext}
-          subject={subject}
-          selectedText={selectedText}
-          onClearSelection={() => setSelectedText(undefined)}
-        />
-
-        {/* Inline AI affordance (bubble above selection) */}
-        {inlineAI && !isAIPanelOpen && (
-          <InlineAIAffordance
-            text={inlineAI.text}
-            x={inlineAI.x}
-            y={inlineAI.y}
-            onAsk={handleInlineAskAI}
-            onDismiss={() => setInlineAI(null)}
-          />
-        )}
-
-        {/* AFFiNE-style floating bottom toolbar */}
-        <EditorToolbar
+      {/* BlockSuite editor fills everything — shrinks right when AI panel opens */}
+      <div
+        className="absolute inset-0 transition-all duration-300 ease-out"
+        style={{ right: isAIPanelOpen ? 360 : 0 }}
+      >
+        <AffineCanvas
+          ref={canvasRef}
+          doc={doc}
           mode={mode}
-          activeTool={activeTool}
-          onToolSelect={setActiveTool}
-          onAIClick={() => setIsAIPanelOpen((v) => !v)}
-          isAIPanelOpen={isAIPanelOpen}
+          onSelectionChange={handleSelectionChange}
+          className="w-full h-full"
         />
       </div>
+
+      {/* Socratic AI panel — slides in from right */}
+      <SocraticPanel
+        isOpen={isAIPanelOpen}
+        onClose={() => setIsAIPanelOpen(false)}
+        getCanvasContext={getCanvasContext}
+        subject={subject}
+        selectedText={selectedText}
+        onClearSelection={() => setSelectedText(undefined)}
+      />
+
+      {/* Inline AI bubble above selected text */}
+      {inlineAI && !isAIPanelOpen && (
+        <InlineAIAffordance
+          text={inlineAI.text}
+          x={inlineAI.x}
+          y={inlineAI.y}
+          onAsk={handleInlineAskAI}
+          onDismiss={() => setInlineAI(null)}
+        />
+      )}
+
+      {/* Ask AI FAB — bottom-right, doesn't overlap BlockSuite's toolbar */}
+      <AnimatePresence>
+        {!isAIPanelOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setIsAIPanelOpen(true)}
+            className={cn(
+              'absolute bottom-6 right-6 z-50',
+              'flex items-center gap-2 px-4 py-2.5 rounded-2xl',
+              'bg-[#1e6ee8] text-white text-sm font-semibold',
+              'shadow-[0_4px_20px_rgba(30,110,232,0.4)]',
+              'hover:bg-[#1a5fcf] active:scale-95 transition-all duration-150',
+            )}
+          >
+            <SparkleIcon />
+            Ask Agathon
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l2.09 6.26L20 10l-5.91 1.74L12 18l-2.09-6.26L4 10l5.91-1.74L12 2z" />
+      <path d="M5 16l.73 2.27L8 19l-2.27.73L5 22l-.73-2.27L2 19l2.27-.73L5 16zM19 3l.5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5L19 3z" />
+    </svg>
   );
 }

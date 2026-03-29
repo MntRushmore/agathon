@@ -1,25 +1,16 @@
 'use client';
 
 /**
- * AffineCanvas — React wrapper for BlockSuite's AffineEditorContainer web component.
+ * AffineCanvas — embeds BlockSuite's EdgelessEditor / PageEditor web components.
  *
- * The editor is Lit-based; we mount it imperatively into a div ref.
- * Tool selection is forwarded to the BlockSuite editor's tool controller via
- * the same tool name mapping that AFFiNE uses internally.
+ * Uses the exact same setup as BlockSuite's own playground examples:
+ *   const doc = createEmptyDoc().init();
+ *   const editor = new EdgelessEditor();
+ *   editor.doc = doc;
+ *   document.body.append(editor);
  *
- * Tool name mapping (our ActiveTool → BlockSuite GfxToolsFullOptionMap keys):
- *   default  → default (select)
- *   pan      → pan
- *   frame    → affine:frame
- *   connector→ connector
- *   note     → affine:note
- *   pen      → brush
- *   eraser   → eraser
- *   shape    → affine:shape
- *   text     → affine:edgeless-text
- *   sticky   → affine:note  (opens note-type menu in AFFiNE — we reuse note)
- *   mindmap  → mindmap
- *   template → template
+ * The editor renders its own full UI (top bar, toolbar, canvas) — we just
+ * provide a container div and let BlockSuite handle everything inside it.
  */
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
@@ -46,61 +37,45 @@ interface AffineCanvasProps {
   onSelectionChange?: (text: string) => void;
 }
 
-// Map our toolbar IDs → BlockSuite tool names
-const TOOL_MAP: Record<ActiveTool, string> = {
+// Map our toolbar tool IDs → BlockSuite edgeless tool type strings
+const TOOL_MAP: Partial<Record<ActiveTool, string>> = {
   default:   'default',
   pan:       'pan',
   frame:     'affine:frame',
   connector: 'connector',
   note:      'affine:note',
-  link:      'affine:bookmark',
   pen:       'brush',
   eraser:    'eraser',
   shape:     'affine:shape',
   text:      'affine:edgeless-text',
   sticky:    'affine:note',
   mindmap:   'mindmap',
-  template:  'template',
 };
 
-// Register BlockSuite custom elements once globally
 let effectsLoaded = false;
 async function ensureEffects() {
   if (effectsLoaded) return;
   effectsLoaded = true;
-  try { await import('@blocksuite/presets/effects'); } catch { /* optional */ }
-  try { await import('@blocksuite/blocks/effects'); } catch { /* optional */ }
+  // Import theme CSS
+  await import('@toeverything/theme/style.css');
+  // Register all BlockSuite custom elements
+  await import('@blocksuite/presets/effects');
+  await import('@blocksuite/blocks/effects');
 }
 
-type EditorEl = HTMLElement & {
-  doc: BSDoc;
-  mode: CanvasMode;
-  autofocus: boolean;
-  switchEditor: (mode: CanvasMode) => void;
-  // host gives access to the block-std scope where tool controllers live
-  host?: {
-    std?: {
-      get?: (id: unknown) => unknown;
-    };
-  };
-};
+type EditorEl = HTMLElement & { doc: BSDoc };
 
-// Try to activate a tool via BlockSuite's GfxToolsFullOptionMap controller
-function activateBSTool(el: EditorEl, toolId: ActiveTool) {
+function trySetTool(container: HTMLDivElement, tool: ActiveTool) {
+  const bsTool = TOOL_MAP[tool];
+  if (!bsTool) return;
   try {
-    const bsTool = TOOL_MAP[toolId];
-    if (!bsTool || !el.host?.std?.get) return;
-
-    // BlockSuite exposes EditorLifeCycleExtension or GfxControllerIdentifier
-    // Attempt the edgeless tool controller approach used in AFFiNE source
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const edgelessRoot = (el as any).host?.querySelector?.('affine-edgeless-root');
-    if (edgelessRoot?.tools?.setEdgelessTool) {
-      edgelessRoot.tools.setEdgelessTool({ type: bsTool });
-    }
-  } catch {
-    // Safe to ignore — tool may not be registered in this mode
-  }
+    // BlockSuite's edgeless root exposes a `tools` controller
+    const root = container.querySelector('affine-edgeless-root') as HTMLElement & {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools?: { setEdgelessTool?: (t: { type: string }) => void };
+    };
+    root?.tools?.setEdgelessTool?.({ type: bsTool });
+  } catch { /* ignore — tool may not be registered in this mode */ }
 }
 
 const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
@@ -112,21 +87,27 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
       getTextContent() {
         if (!doc) return '';
         try {
-          const blocks = doc.getBlocksByFlavour?.('affine:paragraph') ?? [];
+          const blocks = doc.getBlockByFlavour?.('affine:paragraph') ?? [];
           return (blocks as { model: { text?: { toString(): string } } }[])
             .map((b) => b.model?.text?.toString() ?? '')
             .filter(Boolean)
             .join('\n');
         } catch { return ''; }
       },
-      getDoc() { return doc as BSDoc; },
-      switchMode(m: CanvasMode) { editorRef.current?.switchEditor(m); },
+      getDoc() { return doc; },
+      switchMode(m: CanvasMode) {
+        // Swap the editor element
+        const container = containerRef.current;
+        if (!container) return;
+        mountEditor(container, doc, m, activeTool, onSelectionChange).then((el) => {
+          editorRef.current = el;
+        });
+      },
       setTool(t: ActiveTool) {
-        if (editorRef.current) activateBSTool(editorRef.current, t);
+        if (containerRef.current) trySetTool(containerRef.current, t);
       },
     }));
 
-    // Mount the editor
     useEffect(() => {
       const container = containerRef.current;
       if (!container || !doc) return;
@@ -134,40 +115,34 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
 
       ensureEffects().then(() => {
         if (destroyed || !container) return;
-        const el = document.createElement('affine-editor-container') as EditorEl;
-        el.doc = doc;
-        el.mode = mode;
-        el.autofocus = true;
-
-        if (onSelectionChange) {
-          el.addEventListener('selectionchange', () => {
-            const sel = window.getSelection();
-            if (sel?.toString().trim()) onSelectionChange(sel.toString().trim());
-          });
-        }
-
-        container.appendChild(el);
-        editorRef.current = el;
+        mountEditor(container, doc, mode, activeTool, onSelectionChange).then((el) => {
+          if (!destroyed) editorRef.current = el;
+        });
       });
 
       return () => {
         destroyed = true;
-        if (editorRef.current && container.contains(editorRef.current)) {
-          container.removeChild(editorRef.current);
-        }
+        container.innerHTML = '';
         editorRef.current = null;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [doc]);
 
-    // Mode switch without remount
+    // Mode changes: remount with new element type
     useEffect(() => {
-      editorRef.current?.switchEditor(mode);
+      const container = containerRef.current;
+      if (!container || !doc || !editorRef.current) return;
+      container.innerHTML = '';
+      editorRef.current = null;
+      mountEditor(container, doc, mode, activeTool, onSelectionChange).then((el) => {
+        editorRef.current = el;
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mode]);
 
-    // Forward tool selection to BlockSuite
+    // Tool changes: forward to BlockSuite without remounting
     useEffect(() => {
-      if (editorRef.current) activateBSTool(editorRef.current, activeTool);
+      if (containerRef.current) trySetTool(containerRef.current, activeTool);
     }, [activeTool]);
 
     return (
@@ -179,6 +154,38 @@ const AffineCanvas = forwardRef<AffineCanvasHandle, AffineCanvasProps>(
     );
   }
 );
+
+async function mountEditor(
+  container: HTMLDivElement,
+  doc: BSDoc,
+  mode: CanvasMode,
+  activeTool: ActiveTool,
+  onSelectionChange?: (text: string) => void,
+): Promise<EditorEl> {
+  container.innerHTML = '';
+  const tag = mode === 'edgeless' ? 'edgeless-editor' : 'page-editor';
+  const el = document.createElement(tag) as EditorEl;
+  el.doc = doc;
+  // Fill the container
+  el.style.cssText = 'width:100%;height:100%;display:block;';
+
+  if (onSelectionChange) {
+    el.addEventListener('selectionchange', () => {
+      const sel = window.getSelection();
+      if (sel?.toString().trim()) onSelectionChange(sel.toString().trim());
+    });
+  }
+
+  container.appendChild(el);
+
+  // After mount, set initial tool
+  if (mode === 'edgeless') {
+    // Give the Lit element one frame to initialise before forwarding the tool
+    requestAnimationFrame(() => trySetTool(container, activeTool));
+  }
+
+  return el;
+}
 
 AffineCanvas.displayName = 'AffineCanvas';
 export default AffineCanvas;

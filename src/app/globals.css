@@ -1,7 +1,7 @@
 @import"tailwindcss";
 @source"../../node_modules/better-cmdk";
 @plugin"tailwindcss-animate";
-@import"tldraw/tldraw.css";
+@import"@toeverything/theme/style.css";
 @import"tw-animate-css";
 @import"mathlive/static.css";
 @import"mathlive/fonts.css";
