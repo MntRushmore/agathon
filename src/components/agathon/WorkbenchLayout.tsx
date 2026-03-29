@@ -9,13 +9,14 @@
 import { useState, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import type { AffineCanvasHandle, CanvasMode } from './AffineCanvas';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type BSDoc = any;
+import type { ActiveTool } from './EditorToolbar';
 import AgathonTopBar from './AgathonTopBar';
 import EditorToolbar from './EditorToolbar';
 import SocraticPanel from './SocraticPanel';
 import InlineAIAffordance from './InlineAIAffordance';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BSDoc = any;
 
 // Dynamic import — BlockSuite is DOM-only
 const AffineCanvas = dynamic(() => import('./AffineCanvas'), { ssr: false });
@@ -40,7 +41,7 @@ export default function WorkbenchLayout({
   activeUsers,
 }: WorkbenchLayoutProps) {
   const [mode, setMode] = useState<CanvasMode>('edgeless');
-  const [activeTool, setActiveTool] = useState('default');
+  const [activeTool, setActiveTool] = useState<ActiveTool>('default');
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [selectedText, setSelectedText] = useState<string | undefined>();
   const [inlineAI, setInlineAI] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -92,6 +93,7 @@ export default function WorkbenchLayout({
             ref={canvasRef}
             doc={doc}
             mode={mode}
+            activeTool={activeTool}
             onSelectionChange={handleSelectionChange}
             className="w-full h-full"
           />
