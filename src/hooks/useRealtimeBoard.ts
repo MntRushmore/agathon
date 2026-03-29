@@ -1,131 +1,182 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase";
 
 interface UseRealtimeBoardProps {
-  boardId: string;
-  userId: string;
-  onBoardUpdate?: (data: any) => void;
+	boardId: string;
+	userId: string;
+	onBoardUpdate?: (data: any) => void;
+	onError?: (error: string) => void;
 }
 
 interface ActiveUser {
-  userId: string;
-  userName: string;
-  lastSeen: string;
+	userId: string;
+	userName: string;
+	lastSeen: string;
 }
 
-export function useRealtimeBoard({ boardId, userId, onBoardUpdate }: UseRealtimeBoardProps) {
-  const supabase = createClient();
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const onBoardUpdateRef = useRef(onBoardUpdate);
-  const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
 
-  // Keep callback ref up to date without re-subscribing
-  useEffect(() => {
-    onBoardUpdateRef.current = onBoardUpdate;
-  }, [onBoardUpdate]);
+export function useRealtimeBoard({
+	boardId,
+	userId,
+	onBoardUpdate,
+	onError,
+}: UseRealtimeBoardProps) {
+	const supabase = useMemo(() => createClient(), []);
+	const channelRef = useRef<RealtimeChannel | null>(null);
+	const onBoardUpdateRef = useRef(onBoardUpdate);
+	const onErrorRef = useRef(onError);
+	const retryCountRef = useRef(0);
+	const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
+	const [isConnected, setIsConnected] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!boardId || !userId) return;
+	// Keep callback refs up to date without re-subscribing
+	useEffect(() => {
+		onBoardUpdateRef.current = onBoardUpdate;
+	}, [onBoardUpdate]);
 
-    // Create a channel for this board
-    const channel = supabase.channel(`board:${boardId}`, {
-      config: {
-        presence: {
-          key: userId,
-        },
-      },
-    });
+	useEffect(() => {
+		onErrorRef.current = onError;
+	}, [onError]);
 
-    channelRef.current = channel;
+	useEffect(() => {
+		if (!boardId || !userId) return;
 
-    // Subscribe to board updates
-    channel
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'whiteboards',
-        filter: `id=eq.${boardId}`,
-      }, (payload) => {
-        // Only notify if update was from another user
-        onBoardUpdateRef.current?.(payload.new);
-      })
-      // Track presence (who's online)
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users: ActiveUser[] = [];
+		// Create a channel for this board
+		const channel = supabase.channel(`board:${boardId}`, {
+			config: {
+				presence: {
+					key: userId,
+				},
+			},
+		});
 
-        Object.keys(state).forEach((key) => {
-          const presences = state[key];
-          if (presences && presences.length > 0) {
-            const presence = presences[0] as any;
-            users.push({
-              userId: key,
-              userName: presence.userName || 'Anonymous',
-              lastSeen: presence.lastSeen || new Date().toISOString(),
-            });
-          }
-        });
+		channelRef.current = channel;
 
-        setActiveUsers(users);
-      })
-      .subscribe(async (status) => {
-        setIsConnected(status === 'SUBSCRIBED');
+		// Subscribe to board updates
+		channel
+			.on(
+				"postgres_changes",
+				{
+					event: "UPDATE",
+					schema: "public",
+					table: "whiteboards",
+					filter: `id=eq.${boardId}`,
+				},
+				(payload) => {
+					// Only notify if update was from another user
+					onBoardUpdateRef.current?.(payload.new);
+				},
+			)
+			// Track presence (who's online)
+			.on("presence", { event: "sync" }, () => {
+				const state = channel.presenceState();
+				const users: ActiveUser[] = [];
 
-        if (status === 'SUBSCRIBED') {
-          // Track our presence
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', userId)
-              .single();
+				Object.keys(state).forEach((key) => {
+					const presences = state[key];
+					if (presences && presences.length > 0) {
+						const presence = presences[0] as any;
+						users.push({
+							userId: key,
+							userName: presence.userName || "Anonymous",
+							lastSeen: presence.lastSeen || new Date().toISOString(),
+						});
+					}
+				});
 
-            await channel.track({
-              userId,
-              userName: profile?.full_name || user?.email || 'Anonymous',
-              lastSeen: new Date().toISOString(),
-            });
-          } catch {
-            // Profile fetch failed — track with fallback name
-            await channel.track({
-              userId,
-              userName: 'Anonymous',
-              lastSeen: new Date().toISOString(),
-            });
-          }
-        }
-      });
+				setActiveUsers(users);
+			})
+			.subscribe(async (status, err) => {
+				if (status === "SUBSCRIBED") {
+					setIsConnected(true);
+					setError(null);
+					retryCountRef.current = 0;
 
-    // Cleanup on unmount
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-    };
-  }, [boardId, userId]);
+					// Track our presence
+					const { data: userData, error: userError } =
+						await supabase.auth.getUser();
+					const user = userData?.user ?? null;
+					if (userError) {
+						// Authentication/user fetch failed — track with fallback name
+						await channel.track({
+							userId,
+							userName: user?.email || "Anonymous",
+							lastSeen: new Date().toISOString(),
+						});
+						return;
+					}
+					const { data: profile } = await supabase
+						.from("profiles")
+						.select("full_name")
+						.eq("id", userId)
+						.single();
 
-  // Send heartbeat every 30 seconds
-  useEffect(() => {
-    if (!isConnected || !channelRef.current) return;
+					await channel.track({
+						userId,
+						userName: profile?.full_name || user?.email || "Anonymous",
+						lastSeen: new Date().toISOString(),
+					});
+				} else if (
+					status === "CHANNEL_ERROR" ||
+					status === "TIMED_OUT" ||
+					status === "CLOSED"
+				) {
+					setIsConnected(false);
+					const message =
+						err?.message ??
+						`Realtime subscription ${status.toLowerCase().replace("_", " ")}`;
+					setError(message);
+					onErrorRef.current?.(message);
 
-    const interval = setInterval(() => {
-      channelRef.current?.track({
-        userId,
-        lastSeen: new Date().toISOString(),
-      });
-    }, 30000);
+					// Retry with exponential back-off
+					if (retryCountRef.current < MAX_RETRIES) {
+						const delay =
+							RETRY_DELAY_MS * 2 ** retryCountRef.current;
+						retryCountRef.current += 1;
+						retryTimeoutRef.current = setTimeout(() => {
+							channel.subscribe();
+						}, delay);
+					}
+				}
+			});
 
-    return () => clearInterval(interval);
-  }, [isConnected, userId]);
+			// Cleanup on unmount
+			return () => {
+				if (retryTimeoutRef.current) {
+					clearTimeout(retryTimeoutRef.current);
+					retryTimeoutRef.current = null;
+				}
+				if (channelRef.current) {
+					channelRef.current.unsubscribe();
+					channelRef.current = null;
+				}
+			};
+			}, [boardId, userId, supabase.from, supabase.auth.getUser, supabase.channel]);
 
-  return {
-    activeUsers: activeUsers.filter(u => u.userId !== userId), // Exclude self
-    isConnected,
-  };
+	// Send heartbeat every 30 seconds
+	useEffect(() => {
+		if (!isConnected || !channelRef.current) return;
+
+		const interval = setInterval(() => {
+			channelRef.current?.track({
+				userId,
+				lastSeen: new Date().toISOString(),
+			});
+		}, 30000);
+
+		return () => clearInterval(interval);
+	}, [isConnected, userId]);
+
+	return {
+		activeUsers: activeUsers.filter((u) => u.userId !== userId), // Exclude self
+		isConnected,
+		error,
+	};
 }
