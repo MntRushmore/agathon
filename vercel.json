@@ -1,3 +1,9 @@
 {
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps",
+  "alias": ["beta.agathon.app"],
+  "git": {
+    "deploymentEnabled": {
+      "feat/agathon-affine-rewrite": true
+    }
+  }
 }
