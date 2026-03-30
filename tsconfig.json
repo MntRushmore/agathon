@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     "expo-app",
-    "remotion-video"
+    "remotion-video",
+    "reference"
   ]
 }

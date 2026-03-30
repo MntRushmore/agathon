@@ -1,7 +1,7 @@
 'use client';
 // TODO: M23 — Wrap RichTextEditor in <ComponentErrorBoundary>
 
-import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, KeyboardEvent, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -195,6 +195,67 @@ interface EmbeddedDesmosGraph {
   expression: string;
 }
 
+// ── Bookmark Card ─────────────────────────────────────────────────────────────
+function BookmarkCard({ url }: { url: string }) {
+  const [meta, setMeta] = useState<{ title: string; description: string; image: string; favicon: string; hostname: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/journal/bookmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.title) setMeta(data); else setError(true); })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [url]);
+
+  if (loading) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground animate-pulse my-2 no-underline"
+      >
+        <div className="h-4 w-4 rounded bg-muted" />
+        <span className="truncate">{url}</span>
+      </a>
+    );
+  }
+
+  if (error || !meta) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/30 text-sm text-blue-600 hover:underline my-2"
+      >
+        <ArrowSquareOut className="h-4 w-4 shrink-0" />
+        <span className="truncate">{url}</span>
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      className="flex gap-3 p-3 rounded-xl border border-border bg-white hover:shadow-md transition-shadow my-3 no-underline group"
+      style={{ boxShadow: 'var(--affine-shadow-card)' }}
+    >
+      {meta.image && (
+        <img src={meta.image} alt="" className="h-16 w-24 object-cover rounded-lg shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
+          <img src={meta.favicon} alt="" className="h-4 w-4 rounded shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <span className="text-xs text-muted-foreground truncate">{meta.hostname}</span>
+        </div>
+        <p className="font-medium text-sm text-foreground truncate leading-snug">{meta.title}</p>
+        {meta.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{meta.description}</p>}
+      </div>
+      <ArrowSquareOut className="h-4 w-4 text-muted-foreground shrink-0 self-start mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </a>
+  );
+}
+
 // Component that renders content with embedded whiteboards and Desmos graphs
 function ContentWithEmbeds({
   content,
@@ -230,13 +291,15 @@ function ContentWithEmbeds({
   const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
   const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
   const databaseMatches = [...content.matchAll(/\[DATABASE:([^:\]]+):([^\]]*)\]/g)];
+  const bookmarkMatches = [...content.matchAll(/\[BOOKMARK:([^\]]+)\]/g)];
 
   // Build a unified, position-ordered list of all embeds
-  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart' | 'database'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
+  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart' | 'database' | 'bookmark'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
   whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
   desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
   chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
   databaseMatches.forEach(m => allEmbeds.push({ type: 'database', match: m, position: m.index ?? 0 }));
+  bookmarkMatches.forEach(m => allEmbeds.push({ type: 'bookmark', match: m, position: m.index ?? 0 }));
   allEmbeds.sort((a, b) => a.position - b.position);
 
   // Remove placeholders from the content for the editor (they'll be rendered separately)
@@ -245,6 +308,7 @@ function ContentWithEmbeds({
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[DATABASE:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[BOOKMARK:[^\]]+\]\n*/g, '\n')
     .trim();
 
   // Check if there are any embeds — shrink editor min-height when embeds exist
@@ -345,6 +409,15 @@ function ContentWithEmbeds({
                 onSave={(dbId, data) => onDatabaseSave?.(dbId, data)}
                 onDelete={(dbId) => onDeleteDatabase?.(dbId)}
               />
+            </div>
+          );
+        }
+
+        if (type === 'bookmark') {
+          const bookmarkUrl = match[1];
+          return (
+            <div key={`bookmark-${bookmarkUrl}`} className="my-2">
+              <BookmarkCard url={bookmarkUrl} />
             </div>
           );
         }
@@ -450,6 +523,37 @@ export default function JournalEditorPage() {
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
   const [docProperties, setDocProperties] = useState<DocProperties>({});
 
+  // Find in page state
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findIndex, setFindIndex] = useState(0);
+  const findMatches = useMemo(() => {
+    if (!findQuery.trim() || !content) return [];
+    const regex = new RegExp(findQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const matches: number[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(content)) !== null) matches.push(m.index);
+    return matches;
+  }, [findQuery, content]);
+  const findInputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+F → open find bar
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'f' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setFindOpen(true);
+        setTimeout(() => findInputRef.current?.focus(), 50);
+      }
+      if (e.key === 'Escape' && findOpen) {
+        setFindOpen(false);
+        setFindQuery('');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [findOpen]);
+
   // Sync properties from journal data when loaded
   const handlePropertiesChange = useCallback((updated: Partial<DocProperties>) => {
     setDocProperties((prev) => ({ ...prev, ...updated }));
@@ -481,6 +585,7 @@ export default function JournalEditorPage() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const transcribeAudioRef = useRef<HTMLInputElement>(null);
 
   // Chat state
   const [chatInput, setChatInput] = useState('');
@@ -1091,13 +1196,275 @@ export default function JournalEditorPage() {
     }
   };
 
+  // ── Export: Markdown + PDF (ported from AFFiNE's export system) ─────────────
+  const exportMarkdown = () => {
+    // Strip embedded block placeholders, keep plain text + markdown
+    const clean = content
+      .replace(/\[WHITEBOARD:[^\]]*\]/g, '*[Whiteboard embedded]*')
+      .replace(/\[DESMOS:[^\]]*\]/g, '*[Desmos graph embedded]*')
+      .replace(/\[CHART:[^\]]*\]/g, '*[Chart embedded]*')
+      .replace(/\[YOUTUBE:[^\]]*\]/g, '*[YouTube video embedded]*')
+      .replace(/\[DATABASE:[^\]]*\]/g, '*[Database embedded]*')
+      .replace(/\[JOURNAL_LINK:[^\]]*\]/g, '*[Journal link]*');
+    const md = `# ${title}\n\n${clean}`;
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'journal'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    sileo.success({ title: 'Exported as Markdown' });
+  };
+
+  const exportPDF = () => {
+    // Build a printable HTML page and open the print dialog
+    const clean = content
+      .replace(/\[WHITEBOARD:[^\]]*\]/g, '<p><em>[Whiteboard embedded]</em></p>')
+      .replace(/\[DESMOS:[^\]]*\]/g, '<p><em>[Desmos graph embedded]</em></p>')
+      .replace(/\[CHART:[^\]]*\]/g, '<p><em>[Chart embedded]</em></p>')
+      .replace(/\[YOUTUBE:[^\]]*\]/g, '<p><em>[YouTube video embedded]</em></p>')
+      .replace(/\[DATABASE:[^\]]*\]/g, '<p><em>[Database embedded]</em></p>')
+      .replace(/\[JOURNAL_LINK:[^\]]*\]/g, '<p><em>[Journal link]</em></p>');
+
+    // Convert basic markdown to HTML for the print view
+    const html = clean
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/!\[([^\]]*)\]\((data:image[^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
+      .replace(/\n/g, '<br/>');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { sileo.error({ title: 'Allow popups to export PDF' }); return; }
+    printWindow.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8">
+      <title>${title}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #111; line-height: 1.7; }
+        h1 { font-size: 2em; margin-bottom: 8px; } h2 { font-size: 1.4em; } h3 { font-size: 1.15em; }
+        img { max-width: 100%; border-radius: 8px; }
+        pre { background: #f5f5f5; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+        li { margin: 4px 0; }
+        @media print { body { margin: 0; } }
+      </style>
+    </head><body>
+      <h1>${title}</h1>
+      <p style="color:#888;font-size:13px;margin-bottom:32px">${new Date().toLocaleDateString()}</p>
+      <p>${html}</p>
+    </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 500);
+    sileo.success({ title: 'PDF export opened' });
+  };
+
+  // ── Presentation Mode ────────────────────────────────────────────────────────
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const [presentationSlide, setPresentationSlide] = useState(0);
+
+  const presentationSlides = useMemo(() => {
+    if (!content) return [];
+    // Split on ## or # headings — each heading starts a new slide
+    const parts = content.split(/\n(?=#{1,2} )/);
+    return parts.map(part => {
+      const lines = part.trim().split('\n');
+      const heading = lines[0]?.replace(/^#{1,2} /, '') || 'Slide';
+      const body = lines.slice(1).join('\n').trim();
+      return { heading, body };
+    }).filter(s => s.heading || s.body);
+  }, [content]);
+
+  const openPresentation = () => {
+    if (presentationSlides.length === 0) {
+      sileo.info({ title: 'Add headings (## Section) to create slides!' });
+      return;
+    }
+    setPresentationSlide(0);
+    setPresentationOpen(true);
+  };
+
+  // Keyboard navigation for presentation
+  useEffect(() => {
+    if (!presentationOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        setPresentationSlide(i => Math.max(0, i - 1));
+      } else if (e.key === 'Escape') {
+        setPresentationOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [presentationOpen, presentationSlides.length]);
+
+  // ── AI Text Actions (ported from AFFiNE's action system) ────────────────────
+  const handleAITextAction = async (
+    action: string,
+    opts?: { lang?: string; tone?: string }
+  ) => {
+    // Use selected text if available, fall back to full content
+    const selectedText = window.getSelection()?.toString().trim() || '';
+    const text = selectedText || content;
+    if (!text.trim()) {
+      sileo.info({ title: 'Add some content first!' });
+      return;
+    }
+
+    const toastId = sileo.show({ title: `Running: ${action.replace(/([A-Z])/g, ' $1').toLowerCase()}…` });
+    try {
+      const res = await fetch('/api/journal/ai-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, text, ...opts }),
+      });
+      if (!res.ok) throw new Error('AI action failed');
+
+      // Stream the response
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let result = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            result += parsed.choices?.[0]?.delta?.content ?? '';
+          } catch { /* skip */ }
+        }
+      }
+
+      if (!result.trim()) throw new Error('Empty response');
+
+      // Replace selection or append to content
+      if (selectedText) {
+        setContent(prev => prev.replace(selectedText, result.trim()));
+      } else {
+        setContent(prev => prev ? prev + '\n\n' + result.trim() : result.trim());
+      }
+
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Done!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'AI action failed' });
+      console.error('[ai-action]', err);
+    }
+  };
+
+  // ── Image AI actions (explainImage, generateCaption) ────────────────────────
+  const handleImageAIAction = async (action: 'explainImage' | 'generateCaption') => {
+    // Extract the first base64 image from content
+    const imgMatch = content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/);
+    if (!imgMatch) {
+      sileo.info({ title: 'No image found in this journal. Upload an image first.' });
+      return;
+    }
+    const imageBase64 = imgMatch[1];
+    const toastId = sileo.show({ title: action === 'explainImage' ? 'Explaining image…' : 'Generating caption…' });
+    try {
+      const res = await fetch('/api/journal/ai-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, imageBase64 }),
+      });
+      if (!res.ok) throw new Error('Image AI action failed');
+      const { result } = await res.json();
+      if (!result?.trim()) throw new Error('Empty response');
+      const prefix = action === 'explainImage' ? '\n\n**Image Explanation:**\n' : '\n\n*Caption:* ';
+      setContent(prev => prev + prefix + result.trim());
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Done!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Image AI action failed' });
+      console.error('[image-ai]', err);
+    }
+  };
+
+  // ── Audio transcription ──────────────────────────────────────────────────────
+  const handleAudioTranscribe = () => {
+    transcribeAudioRef.current?.click();
+  };
+
+  const handleTranscribeFile = async (file: File) => {
+    const toastId = sileo.show({ title: 'Transcribing audio…' });
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+      const res = await fetch('/api/journal/transcribe', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Transcription failed');
+      const { transcript } = await res.json();
+      if (!transcript?.trim()) throw new Error('Empty transcript');
+      const header = `\n\n**Transcription of ${file.name}:**\n\n`;
+      setContent(prev => prev + header + transcript.trim());
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Transcription added!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Transcription failed' });
+      console.error('[transcribe]', err);
+    }
+  };
+
+  // ── Mind map generation ──────────────────────────────────────────────────────
+  const handleMindmap = async () => {
+    const text = window.getSelection()?.toString().trim() || content;
+    if (!text.trim()) {
+      sileo.info({ title: 'Add some content first!' });
+      return;
+    }
+    const toastId = sileo.show({ title: 'Generating mind map…' });
+    try {
+      const res = await fetch('/api/journal/mindmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 3000) }),
+      });
+      if (!res.ok) throw new Error('Mind map generation failed');
+      const { mindmap } = await res.json();
+
+      // Render mind map as a simple ASCII/text representation in the journal
+      const renderMindmapText = (mm: { root: { text: string }; children: Array<{ text: string; children?: Array<{ text: string }> }> }) => {
+        let out = `## 🗺 Mind Map: ${mm.root.text}\n\n`;
+        for (const branch of mm.children) {
+          out += `**${branch.text}**\n`;
+          for (const leaf of (branch.children || [])) {
+            out += `  - ${leaf.text}\n`;
+          }
+          out += '\n';
+        }
+        return out.trim();
+      };
+
+      const mindmapText = renderMindmapText(mindmap);
+      setContent(prev => prev ? prev + '\n\n' + mindmapText : mindmapText);
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Mind map generated!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Failed to generate mind map' });
+      console.error('[mindmap]', err);
+    }
+  };
+
   // Execute a slash command
   const executeCommand = async (commandId: string) => {
     setShowSlashMenu(false);
     setCommandInput('');
 
     const aiCommands = ['notes', 'practice', 'flashcards', 'generate-image'];
-    const formatCommands = ['text', 'h1', 'h2', 'h3', 'bullet', 'numbered', 'quote', 'divider', 'code', 'latex', 'table', 'details'];
+    const formatCommands = ['text', 'h1', 'h2', 'h3', 'bullet', 'numbered', 'quote', 'divider', 'code', 'latex', 'table', 'details', 'callout', 'callout-warning', 'callout-tip', 'mermaid', 'bookmark'];
 
     if (aiCommands.includes(commandId)) {
       // For flashcards and practice problems, use inline input instead of modal
@@ -1152,6 +1519,26 @@ export default function JournalEditorPage() {
         case 'details':
           insertText = '\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here...\n\n</details>\n';
           break;
+        case 'callout':
+          insertText = '\n:::info\n💡 **Note:** Write your callout content here.\n:::\n';
+          break;
+        case 'callout-warning':
+          insertText = '\n:::warning\n⚠️ **Warning:** Write your warning here.\n:::\n';
+          break;
+        case 'callout-tip':
+          insertText = '\n:::tip\n✅ **Tip:** Write your tip here.\n:::\n';
+          break;
+        case 'mermaid': {
+          insertText = '\n```mermaid\nflowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Result 1]\n  B -->|No| D[Result 2]\n```\n';
+          break;
+        }
+        case 'bookmark': {
+          const bookmarkUrl = window.prompt('Paste a URL to create a bookmark card:');
+          if (bookmarkUrl?.trim()) {
+            insertText = `\n[BOOKMARK:${bookmarkUrl.trim()}]\n`;
+          }
+          break;
+        }
         default:
           insertText = '';
       }
@@ -1200,6 +1587,37 @@ export default function JournalEditorPage() {
         case 'pdf':
           pdfInputRef.current?.click();
           break;
+        // ── AFFiNE AI text actions ─────────────────────────────
+        case 'ai-continue':     handleAITextAction('continueWriting'); break;
+        case 'ai-improve':      handleAITextAction('improveWriting'); break;
+        case 'ai-summarize':    handleAITextAction('summary'); break;
+        case 'ai-explain':      handleAITextAction('explain'); break;
+        case 'ai-fix-grammar':  handleAITextAction('fixGrammar'); break;
+        case 'ai-fix-spelling': handleAITextAction('fixSpelling'); break;
+        case 'ai-make-longer':  handleAITextAction('makeLonger'); break;
+        case 'ai-make-shorter': handleAITextAction('makeShorter'); break;
+        case 'ai-headings':     handleAITextAction('createHeadings'); break;
+        case 'ai-find-actions': handleAITextAction('findActions'); break;
+        case 'ai-mindmap':      handleMindmap(); break;
+        case 'ai-translate': {
+          const lang = window.prompt('Translate to (e.g. Spanish, French, Japanese):', 'Spanish');
+          if (lang) handleAITextAction('translate', { lang });
+          break;
+        }
+        case 'ai-tone': {
+          const tone = window.prompt('Tone (Professional, Informal, Friendly, Critical, Humorous):', 'Friendly');
+          if (tone) handleAITextAction('changeTone', { tone });
+          break;
+        }
+        case 'ai-brainstorm':    handleAITextAction('brainstorm'); break;
+        case 'ai-outline':       handleAITextAction('writeOutline'); break;
+        case 'ai-write-article': handleAITextAction('writeArticle'); break;
+        case 'ai-write-blog':    handleAITextAction('writeBlog'); break;
+        case 'ai-explain-code':  handleAITextAction('explainCode'); break;
+        case 'ai-check-code':    handleAITextAction('checkCodeErrors'); break;
+        case 'ai-transcribe':    handleAudioTranscribe(); break;
+        case 'ai-explain-image': handleImageAIAction('explainImage'); break;
+        case 'ai-caption':       handleImageAIAction('generateCaption'); break;
         default:
           sileo.info({ title: 'This feature is coming soon!' });
       }
@@ -1815,10 +2233,42 @@ export default function JournalEditorPage() {
           >
  <Timer weight="duotone" className="h-5 w-5" />
           </button>
+          {/* Export dropdown */}
+          <div className="relative group">
+            <button
+              className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+              title="Export"
+            >
+              <ArrowSquareOut weight="duotone" className="h-5 w-5" />
+            </button>
+            <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[150px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <button
+                onClick={exportMarkdown}
+                className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <FileText weight="duotone" className="h-4 w-4 text-muted-foreground" />
+                Export Markdown
+              </button>
+              <button
+                onClick={exportPDF}
+                className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <FileDoc weight="duotone" className="h-4 w-4 text-muted-foreground" />
+                Export PDF
+              </button>
+            </div>
+          </div>
+          <button
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={openPresentation}
+            title="Presentation mode"
+          >
+            <FilmSlate weight="duotone" className="h-5 w-5" />
+          </button>
           <button
             className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
             onClick={() => setIsShareOpen(true)}
-            title="Share & Export"
+            title="Share"
           >
             <ShareNetwork weight="duotone" className="h-5 w-5" />
           </button>
@@ -1861,6 +2311,93 @@ export default function JournalEditorPage() {
         }}
         onChange={handlePropertiesChange}
       />
+
+      {/* Presentation Mode */}
+      {presentationOpen && presentationSlides.length > 0 && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col" onClick={() => setPresentationOpen(false)}>
+          <div className="absolute top-4 right-4 flex gap-2 z-10" onClick={e => e.stopPropagation()}>
+            <span className="text-white/60 text-sm self-center">{presentationSlide + 1} / {presentationSlides.length}</span>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationSlide(i => Math.max(0, i - 1))}
+              disabled={presentationSlide === 0}
+            ><CaretLeft className="h-5 w-5" /></button>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1))}
+              disabled={presentationSlide === presentationSlides.length - 1}
+            ><CaretRight className="h-5 w-5" /></button>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationOpen(false)}
+            ><X className="h-5 w-5" /></button>
+          </div>
+
+          {/* Slide content */}
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-16 py-20"
+            onClick={e => { e.stopPropagation(); setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1)); }}
+          >
+            <h1 className="text-5xl font-bold text-white mb-8 text-center leading-tight max-w-4xl">
+              {presentationSlides[presentationSlide].heading}
+            </h1>
+            {presentationSlides[presentationSlide].body && (
+              <div className="text-xl text-white/80 text-center max-w-3xl whitespace-pre-wrap leading-relaxed">
+                {presentationSlides[presentationSlide].body
+                  .replace(/^[*-] /gm, '• ')
+                  .replace(/\*\*(.+?)\*\*/g, '$1')
+                  .replace(/\*(.+?)\*/g, '$1')
+                  .replace(/#{1,3} /g, '')}
+              </div>
+            )}
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex justify-center gap-2 pb-8">
+            {presentationSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setPresentationSlide(i); }}
+                className={`h-2 rounded-full transition-all ${i === presentationSlide ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Find in Page Bar */}
+      {findOpen && (
+        <div className="fixed top-16 right-4 z-[90] bg-white rounded-xl shadow-lg border border-border flex items-center gap-2 px-3 py-2" style={{ border: 'var(--affine-border)', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+          <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            ref={findInputRef}
+            value={findQuery}
+            onChange={e => { setFindQuery(e.target.value); setFindIndex(0); }}
+            placeholder="Find in page…"
+            className="text-sm outline-none w-48 bg-transparent"
+            onKeyDown={e => {
+              if (e.key === 'Enter') setFindIndex(i => (i + 1) % Math.max(findMatches.length, 1));
+              if (e.key === 'Escape') { setFindOpen(false); setFindQuery(''); }
+            }}
+          />
+          {findQuery.trim() && (
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {findMatches.length > 0 ? `${findIndex + 1}/${findMatches.length}` : '0 results'}
+            </span>
+          )}
+          <div className="flex gap-0.5">
+            <button onClick={() => setFindIndex(i => (i - 1 + Math.max(findMatches.length, 1)) % Math.max(findMatches.length, 1))} className="p-1 hover:bg-muted rounded" disabled={findMatches.length === 0}>
+              <CaretUp className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setFindIndex(i => (i + 1) % Math.max(findMatches.length, 1))} className="p-1 hover:bg-muted rounded" disabled={findMatches.length === 0}>
+              <CaretDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <button onClick={() => { setFindOpen(false); setFindQuery(''); }} className="p-1 hover:bg-muted rounded ml-1">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* AI Chat Side Panel */}
       {isAIPanelOpen && (
@@ -2741,6 +3278,17 @@ export default function JournalEditorPage() {
         accept="audio/*"
  className="hidden"
         onChange={(e) => handleFileUpload(e, 'audio')}
+      />
+      <input
+        ref={transcribeAudioRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleTranscribeFile(file);
+          e.target.value = '';
+        }}
       />
       <input
         ref={videoInputRef}

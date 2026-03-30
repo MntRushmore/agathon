@@ -110,15 +110,38 @@ const slashCommandItems: SlashCommandItem[] = [
   { id: 'generate-image', label: 'Generate image', icon: ImageSquare, category: 'Build with Feynman', description: 'AI-generated diagram' },
   // AI Actions
   { id: 'ai-continue', label: 'Continue writing', icon: Robot, category: 'AI Actions', description: 'AI continues your text' },
+  { id: 'ai-improve', label: 'Improve writing', icon: Sparkle, category: 'AI Actions', description: 'Polish and improve selected text' },
   { id: 'ai-summarize', label: 'Summarize', icon: TextAa, category: 'AI Actions', description: 'Summarize selected content' },
+  { id: 'ai-explain', label: 'Explain', icon: Robot, category: 'AI Actions', description: 'Explain the selected text simply' },
   { id: 'ai-fix-grammar', label: 'Fix grammar', icon: Eraser, category: 'AI Actions', description: 'Fix spelling & grammar' },
+  { id: 'ai-fix-spelling', label: 'Fix spelling', icon: Eraser, category: 'AI Actions', description: 'Fix spelling errors only' },
+  { id: 'ai-make-longer', label: 'Make longer', icon: Robot, category: 'AI Actions', description: 'Expand with more detail' },
+  { id: 'ai-make-shorter', label: 'Make shorter', icon: Robot, category: 'AI Actions', description: 'Condense to key points' },
+  { id: 'ai-headings', label: 'Add headings', icon: TextAa, category: 'AI Actions', description: 'Structure with headings' },
+  { id: 'ai-find-actions', label: 'Find action items', icon: ClipboardText, category: 'AI Actions', description: 'Extract tasks and to-dos' },
   { id: 'ai-translate', label: 'Translate', icon: Translate, category: 'AI Actions', description: 'Translate to another language' },
+  { id: 'ai-tone', label: 'Change tone', icon: Robot, category: 'AI Actions', description: 'Rewrite in a different tone' },
+  { id: 'ai-mindmap', label: 'Generate mind map', icon: Stack, category: 'AI Actions', description: 'Visualize as a mind map' },
+  { id: 'ai-brainstorm', label: 'Brainstorm ideas', icon: Sparkle, category: 'AI Actions', description: 'Generate a list of ideas on a topic' },
+  { id: 'ai-outline', label: 'Write outline', icon: TextAa, category: 'AI Actions', description: 'Create a structured outline' },
+  { id: 'ai-write-article', label: 'Write article', icon: Robot, category: 'AI Actions', description: 'Generate a full article' },
+  { id: 'ai-write-blog', label: 'Write blog post', icon: Robot, category: 'AI Actions', description: 'Generate a blog post' },
+  { id: 'ai-explain-code', label: 'Explain code', icon: Code, category: 'AI Actions', description: 'Explain the selected code' },
+  { id: 'ai-check-code', label: 'Check code errors', icon: Code, category: 'AI Actions', description: 'Find bugs in the selected code' },
+  { id: 'ai-transcribe', label: 'Transcribe audio', icon: Waveform, category: 'AI Actions', description: 'Transcribe audio to text in this journal' },
+  { id: 'ai-explain-image', label: 'Explain image', icon: ImageSquare, category: 'AI Actions', description: 'AI explains the image in this journal' },
+  { id: 'ai-caption', label: 'Generate caption', icon: ImageSquare, category: 'AI Actions', description: 'Auto-caption the image in this journal' },
   // Advanced editing
   { id: 'task-list', label: 'To-do list', icon: ListChecks, category: 'Advanced editing', description: 'Checkbox task list' },
   { id: 'table', label: 'Table', icon: Table, category: 'Advanced editing', description: 'Data table' },
+  { id: 'callout', label: 'Callout', icon: Sparkle, category: 'Advanced editing', description: 'Highlighted callout box' },
+  { id: 'callout-warning', label: 'Warning callout', icon: Sparkle, category: 'Advanced editing', description: 'Warning / caution box' },
+  { id: 'callout-tip', label: 'Tip callout', icon: Sparkle, category: 'Advanced editing', description: 'Tip or best-practice box' },
   { id: 'details', label: 'Details', icon: CaretDown, category: 'Advanced editing', description: 'Collapsible section' },
   { id: 'code', label: 'Code block', icon: Code, category: 'Advanced editing', description: 'Code snippet' },
+  { id: 'mermaid', label: 'Mermaid diagram', icon: ChartBar, category: 'Advanced editing', description: 'Flowchart / sequence diagram' },
   { id: 'latex', label: 'LaTeX block', icon: MathOperations, category: 'Advanced editing', description: 'Math equation' },
+  { id: 'bookmark', label: 'Bookmark', icon: LinkIcon, category: 'Advanced editing', description: 'Paste a URL for a rich card' },
   // Interactive editing
   { id: 'whiteboard', label: 'Whiteboard', icon: PenNib, category: 'Interactive editing', description: 'Drawing canvas' },
   { id: 'desmos', label: 'Desmos graph', icon: ChartLine, category: 'Interactive editing', description: 'Interactive graph' },
@@ -1522,6 +1545,30 @@ function parseContentToHTML(markdown: string): string {
     return `__DISPLAY_MATH_${displayMathBlocks.length - 1}__`;
   });
 
+  // Handle callout blocks (:::info, :::warning, :::tip) before code blocks
+  const calloutBlocks: string[] = [];
+  processed = processed.replace(/:::(\w+)\n([\s\S]*?):::/g, (_match, type: string, body: string) => {
+    const typeMap: Record<string, { bg: string; border: string; icon: string }> = {
+      info:    { bg: '#eff6ff', border: '#bfdbfe', icon: '💡' },
+      warning: { bg: '#fffbeb', border: '#fde68a', icon: '⚠️' },
+      tip:     { bg: '#f0fdf4', border: '#bbf7d0', icon: '✅' },
+      error:   { bg: '#fef2f2', border: '#fecaca', icon: '🚫' },
+    };
+    const style = typeMap[type.toLowerCase()] || typeMap.info;
+    const html = `<div class="callout callout-${type.toLowerCase()}" style="background:${style.bg};border-left:3px solid ${style.border};padding:12px 16px;border-radius:6px;margin:12px 0;">${body.trim().split('\n').map((l: string) => `<p style="margin:4px 0;">${l || '&nbsp;'}</p>`).join('')}</div>`;
+    calloutBlocks.push(html);
+    return `__CALLOUT_${calloutBlocks.length - 1}__`;
+  });
+
+  // Handle mermaid code blocks — render as a placeholder div (client renders via mermaid.js)
+  const mermaidBlocks: string[] = [];
+  processed = processed.replace(/```mermaid\n([\s\S]*?)```/g, (_match, diagram: string) => {
+    const escaped = diagram.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const html = `<div class="mermaid-block" data-diagram="${escaped}" style="background:#f8fafc;border:0.5px solid #e2e8f0;border-radius:8px;padding:16px;margin:12px 0;font-family:monospace;white-space:pre;font-size:13px;color:#475569;">${escaped}</div>`;
+    mermaidBlocks.push(html);
+    return `__MERMAID_${mermaidBlocks.length - 1}__`;
+  });
+
   // Handle code blocks (``` ... ```) - extract and replace with placeholders
   const codeBlocks: string[] = [];
   processed = processed.replace(/```[\s\S]*?```/g, (match) => {
@@ -1609,6 +1656,20 @@ function parseContentToHTML(markdown: string): string {
       const idx = parseInt(line.match(/__TABLE_(\d+)__/)?.[1] || '0');
       closeOpenBlocks();
       processedLines.push(tables[idx]);
+      continue;
+    }
+
+    if (line.match(/__CALLOUT_\d+__/)) {
+      const idx = parseInt(line.match(/__CALLOUT_(\d+)__/)?.[1] || '0');
+      closeOpenBlocks();
+      processedLines.push(calloutBlocks[idx]);
+      continue;
+    }
+
+    if (line.match(/__MERMAID_\d+__/)) {
+      const idx = parseInt(line.match(/__MERMAID_(\d+)__/)?.[1] || '0');
+      closeOpenBlocks();
+      processedLines.push(mermaidBlocks[idx]);
       continue;
     }
 

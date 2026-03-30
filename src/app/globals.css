@@ -446,22 +446,66 @@ select {
    Modern UI Animations & Interactions
    ============================================ */
 
+/* AFFiNE-style design tokens */
+:root {
+  --affine-border: 0.5px solid oklch(0.91 0.003 260);
+  --affine-border-hover: 0.5px solid oklch(0.80 0.04 225);
+  --affine-shadow-card: 0px 2px 3px rgba(0,0,0,0.05);
+  --affine-shadow-panel: 0px 1px 4px rgba(165,165,165,0.25);
+  --affine-transition-color: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --affine-transition-layout: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Card styles - consistent, premium feel */
 .board-card {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
+  box-shadow: var(--affine-shadow-card);
+  border: var(--affine-border);
 }
 
 .board-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: oklch(0.80 0.04 225);
+  transform: translateY(-1px);
+  box-shadow: 0px 4px 8px rgba(0,0,0,0.08);
+  border: var(--affine-border-hover);
 }
 
 .board-card:active {
-  transform: translateY(-1px);
+  transform: translateY(0);
   transition-duration: 50ms;
+}
+
+/* AFFiNE-style doc card */
+.doc-card {
+  padding: 16px;
+  border-radius: 12px;
+  border: var(--affine-border);
+  box-shadow: var(--affine-shadow-card);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: box-shadow var(--affine-transition-color), border-color var(--affine-transition-color), transform var(--affine-transition-color);
+}
+
+.doc-card:hover {
+  box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+
+/* AFFiNE-style list item (54px height) */
+.list-item-affine {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: var(--affine-border);
+  transition: background-color var(--affine-transition-color);
+}
+
+.list-item-affine:hover {
+  background-color: oklch(0.97 0.003 260);
 }
 
 /* Feature card with subtle hover */

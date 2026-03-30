@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Plus, BookOpen, ChevronLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, BookOpen, ChevronLeft, Tag } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
 import { Logo } from '@/components/ui/logo';
@@ -21,6 +22,14 @@ interface Journal {
   updated_at: string;
 }
 
+/** Extract #hashtags from journal content blocks */
+function extractTags(content: any[]): string[] {
+  if (!content || content.length === 0) return [];
+  const text = content.map((b: any) => (typeof b === 'string' ? b : b?.content || '')).join(' ');
+  const matches = text.match(/#[a-zA-Z][a-zA-Z0-9_-]*/g) || [];
+  return [...new Set(matches.map((t: string) => t.toLowerCase()))];
+}
+
 export default function JournalsPage() {
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -29,6 +38,7 @@ export default function JournalsPage() {
   const [journals, setJournals] = useState<Journal[]>([]);
   const [loading, setLoading] = useState(true);
   const [upgradeLimitOpen, setUpgradeLimitOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadJournals() {
@@ -92,6 +102,14 @@ export default function JournalsPage() {
     return 'Empty journal';
   };
 
+  // Aggregate all tags across journals
+  const allTags = [...new Set(journals.flatMap(j => extractTags(j.content)))].sort();
+
+  // Filter journals by selected tag
+  const filteredJournals = selectedTag
+    ? journals.filter(j => extractTags(j.content).includes(selectedTag))
+    : journals;
+
   return (
     <div className="min-h-screen bg-background overflow-y-auto" style={{ touchAction: 'pan-y' }}>
       <DesignUpgradeBanner />
@@ -117,10 +135,40 @@ export default function JournalsPage() {
         </div>
 
         {/* Page Title */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-semibold text-foreground">Journals</h1>
           <p className="text-sm text-muted-foreground mt-1">Your study notes and writings</p>
         </div>
+
+        {/* Tag filter bar */}
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-6">
+            <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <button
+              onClick={() => setSelectedTag(null)}
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                selectedTag === null
+                  ? 'bg-foreground text-background'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              All
+            </button>
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                  selectedTag === tag
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* First-visit journal onboarding */}
         <JournalOnboarding />
@@ -146,26 +194,43 @@ export default function JournalsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {journals.map((journal) => (
-              <div
-                key={journal.id}
-                className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-primary/20 active:scale-[0.99] transition-all touch-manipulation"
-                onClick={() => router.push(`/journal/${journal.id}`)}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="h-4 w-4 text-primary" />
+            {filteredJournals.map((journal) => {
+              const tags = extractTags(journal.content).slice(0, 4);
+              return (
+                <div
+                  key={journal.id}
+                  className="bg-card border border-border rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-primary/20 active:scale-[0.99] transition-all touch-manipulation"
+                  style={{ border: 'var(--affine-border)', boxShadow: 'var(--affine-shadow-card)' }}
+                  onClick={() => router.push(`/journal/${journal.id}`)}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                    </div>
+                    <h3 className="font-medium text-foreground truncate flex-1" title={journal.title}>{journal.title}</h3>
                   </div>
-                  <h3 className="font-medium text-foreground truncate flex-1" title={journal.title}>{journal.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    {getPreview(journal.content)}
+                  </p>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {tags.map(tag => (
+                        <span
+                          key={tag}
+                          className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 cursor-pointer"
+                          onClick={e => { e.stopPropagation(); setSelectedTag(tag === selectedTag ? null : tag); }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Updated {formatDistance(new Date(journal.updated_at), new Date(), { addSuffix: true })}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {getPreview(journal.content)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Updated {formatDistance(new Date(journal.updated_at), new Date(), { addSuffix: true })}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

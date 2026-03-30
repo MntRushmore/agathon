@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 // Allowed internal redirect paths after OAuth callback
-const ALLOWED_REDIRECTS = ['/', '/auth/complete-signup', '/teacher', '/admin', '/board', '/journal', '/math', '/profile', '/settings', '/credits', '/billing', '/student/join'];
+const ALLOWED_REDIRECTS = ['/', '/auth/complete-signup', '/teacher', '/admin', '/board', '/journal', '/math', '/profile', '/settings', '/credits', '/billing', '/student'];
 
 function getSafeRedirect(next: string): string {
   // Only allow relative paths that start with /

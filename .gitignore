@@ -47,3 +47,4 @@ remotion-video/node_modules/
 remotion-video/out/
 .env*.local
 
+reference/

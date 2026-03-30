@@ -54,6 +54,10 @@ interface SocraticPanelProps {
   subject?: string;
   selectedText?: string;
   onClearSelection?: () => void;
+  /** Optional grounding context — journal content, notes, etc. (RAG) */
+  docContext?: string;
+  /** Label for the doc context source, e.g. "Journal: Derivatives" */
+  docContextLabel?: string;
 }
 
 // Agathon's 5 onboarding items — same structure as AFFiNE's AIPreloadConfig
@@ -84,6 +88,8 @@ export default function SocraticPanel({
   subject,
   selectedText,
   onClearSelection,
+  docContext,
+  docContextLabel,
 }: SocraticPanelProps) {
   const { profile } = useAuth();
   const isEnterprise = (profile?.plan_tier === 'premium' || profile?.plan_tier === 'enterprise')
@@ -101,6 +107,10 @@ export default function SocraticPanel({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisImageUrl, setAnalysisImageUrl] = useState<string | null>(null);
   const [showAnalyzeModeMenu, setShowAnalyzeModeMenu] = useState(false);
+  // Session ID — persists across messages in this panel open, resets on startFresh
+  const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  // Web search state
+  const [isSearching, setIsSearching] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -135,17 +145,24 @@ export default function SocraticPanel({
   }, [messages, scrollToEnd]);
 
   const buildSystemPrompt = useCallback((m: SocraticMode, context: string): string => {
+    // Doc context (journal/notes) as grounding — ported from AFFiNE's ChatOptions.contexts
+    const docSection = docContext
+      ? `\n\nThe student's notes/journal (use this to ground your answers):\n<doc_context label="${docContextLabel || 'Notes'}">${docContext.slice(0, 4000)}</doc_context>`
+      : '';
+
     const base = `You are Agathon, a Socratic AI tutor${subject ? ` for ${subject}` : ''}.
+Session ID: ${sessionIdRef.current}
 The student's current canvas:
-<canvas_context>${context || '(empty canvas)'}</canvas_context>`;
+<canvas_context>${context || '(empty canvas)'}</canvas_context>${docSection}`;
+
     const instructions: Record<SocraticMode, string> = {
-      socratic: `${base}\n\nNEVER give direct answers. Ask one focused probing question at a time.`,
-      explain:  `${base}\n\nExplain clearly using analogies and examples. End with a check-for-understanding question.`,
-      hint:     `${base}\n\nGive minimal hints that unlock the next step without the full solution.`,
-      answer:   `${base}\n\nProvide clear, complete answers with step-by-step reasoning.`,
+      socratic: `${base}\n\nNEVER give direct answers. Ask one focused probing question at a time. Reference their notes when relevant.`,
+      explain:  `${base}\n\nExplain clearly using analogies and examples. Reference their notes to connect concepts. End with a check-for-understanding question.`,
+      hint:     `${base}\n\nGive minimal hints that unlock the next step without the full solution. You may reference their notes to point them in the right direction.`,
+      answer:   `${base}\n\nProvide clear, complete answers with step-by-step reasoning. Reference their notes and canvas to make the answer concrete.`,
     };
     return instructions[m];
-  }, [subject]);
+  }, [subject, docContext, docContextLabel]);
 
   const sendMessage = useCallback(async (content: string, overrideMode?: SocraticMode) => {
     if (!content.trim() || isLoading) return;
@@ -243,7 +260,44 @@ The student's current canvas:
     setError(null);
     setIsLoading(false);
     setAnalysisImageUrl(null);
+    // New session ID — fresh context window
+    sessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   };
+
+  // Web search — ported from AFFiNE's WebSearchTool
+  const handleWebSearch = useCallback(async () => {
+    const query = input.trim() || getCanvasContext().slice(0, 100);
+    if (!query) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) throw new Error('Search failed');
+      const { results } = await res.json();
+      if (!results?.length) return;
+
+      // Format results as a message injected into the chat
+      const formatted = results
+        .map((r: { title: string; url: string; snippet: string }, i: number) =>
+          `**${i + 1}. ${r.title}**\n${r.snippet}${r.url ? `\n[Source](${r.url})` : ''}`)
+        .join('\n\n');
+
+      const searchMsg: SocraticMessage = {
+        id: `search-${Date.now()}`,
+        role: 'assistant',
+        content: `🔍 **Web search results for "${query}":**\n\n${formatted}`,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, searchMsg]);
+    } catch {
+      // silently fail — web search is best-effort
+    } finally {
+      setIsSearching(false);
+    }
+  }, [input, getCanvasContext]);
 
   const analyzeCanvas = useCallback(async () => {
     if (!getCanvasScreenshot || !isEnterprise) return;
@@ -423,6 +477,23 @@ The student's current canvas:
                 <IconBtn onClick={onClose} title="Close"><ChevronDownIcon /></IconBtn>
               </div>
             </div>
+
+            {/* Doc context chip — shows when journal/notes are grounding the chat */}
+            {docContext && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '5px 14px',
+                borderBottom: '0.5px solid rgba(255,255,255,0.07)',
+                background: 'rgba(30,110,232,0.07)',
+              }}>
+                <span style={{ fontSize: 10, color: 'rgba(30,110,232,0.9)', fontWeight: 500, letterSpacing: '0.02em' }}>
+                  📄 Context:
+                </span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                  {docContextLabel || 'Document'}
+                </span>
+              </div>
+            )}
 
             {/* Messages area — matches AFFiNE's scrollable messages container */}
             <div
@@ -755,6 +826,22 @@ The student's current canvas:
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {/* + attach */}
                     <IconBtn title="Add context"><PlusIcon /></IconBtn>
+                    {/* Web search */}
+                    <button
+                      onClick={handleWebSearch}
+                      disabled={isSearching || isLoading}
+                      title="Search the web"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        height: 28, padding: '0 8px', borderRadius: 6,
+                        fontSize: 11, fontWeight: 500,
+                        color: isSearching ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.4)',
+                        background: 'none', border: 'none',
+                        cursor: isSearching || isLoading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {isSearching ? '⏳' : '🔍'}
+                    </button>
                     {/* Enterprise: Analyze Canvas button */}
                     {isEnterprise && getCanvasScreenshot && (
                       <div style={{ position: 'relative' }}>

@@ -872,12 +872,12 @@ export default function Dashboard() {
   } else if (profile?.role === 'student') {
     featureCards.push({
       id: 'join',
-      title: 'Join a Class',
-      description: 'Enter a class code from your teacher',
+      title: 'My Classes',
+      description: 'View assignments and track your progress',
       detail: 'Access assignments & get help',
  icon: <GraduationCap className="h-5 w-5" weight="duotone" />,
       color: 'green' as ColorVariant,
-      onClick: () => { router.push('/student/join'); },
+      onClick: () => { router.push('/student'); },
     });
   }
 
@@ -973,8 +973,8 @@ export default function Dashboard() {
               {/* Search Bar */}
               {!sidebarCollapsed && (
                 <div
- className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] border"
-                  style={{ backgroundColor: '#FFFFFF', borderColor: '#E7E7E7', boxShadow: '0px 1px 1px 0px rgba(165, 165, 165, 0.25)' }}
+                  className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px]"
+                  style={{ backgroundColor: '#FFFFFF', border: 'var(--affine-border)', boxShadow: 'var(--affine-shadow-card)' }}
                 >
  <MagnifyingGlass className="w-[15px] h-[15px] flex-shrink-0" style={{ color: '#B8B8B4' }} />
                   <input
@@ -997,60 +997,38 @@ export default function Dashboard() {
             </div>
 
             {/* Primary Navigation */}
- <div className="flex flex-col gap-2.5">
-              <button
-                onClick={() => setActiveView('home')}
- className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
-                  activeView === 'home'
-                    ? "bg-[#FCFCFC]"
-                    : "hover:bg-white/60"
-                )}
-                style={{ boxShadow: activeView === 'home' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
-              >
- <House className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
- {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Home</span>}
-              </button>
-              <button
-                onClick={() => setActiveView('boards')}
- className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
-                  activeView === 'boards'
-                    ? "bg-[#FCFCFC]"
-                    : "hover:bg-white/60"
-                )}
-                style={{ boxShadow: activeView === 'boards' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
-              >
- <FolderOpen className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
- {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>My Boards</span>}
-              </button>
-              <button
-                onClick={() => setActiveView('journals')}
- className={cn(
-                  "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left",
-                  activeView === 'journals'
-                    ? "bg-[#FCFCFC]"
-                    : "hover:bg-white/60"
-                )}
-                style={{ boxShadow: activeView === 'journals' ? '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' : 'none' }}
-              >
- <BookOpenText className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
- {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Journals</span>}
-              </button>
-              <button
-                onClick={() => router.push('/annotate/files')}
- className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
-              >
- <HighlighterCircle className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
- {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>My Annotations</span>}
-              </button>
-              <button
-                onClick={() => router.push('/knowledge')}
- className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
-              >
- <Lightning className="h-4 w-4 flex-shrink-0" weight="duotone" style={{ color: '#06313A' }} />
- {!sidebarCollapsed && <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>Integrations</span>}
-              </button>
+            <div className="flex flex-col gap-[3px]">
+              {[
+                { id: 'home' as const, label: 'Home', icon: <House className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" />, onClick: () => setActiveView('home'), active: activeView === 'home' },
+                { id: 'boards' as const, label: 'My Boards', icon: <FolderOpen className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" />, onClick: () => setActiveView('boards'), active: activeView === 'boards' },
+                { id: 'journals' as const, label: 'My Journals', icon: <BookOpenText className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" />, onClick: () => setActiveView('journals'), active: activeView === 'journals' },
+                { id: 'annotate', label: 'My Annotations', icon: <HighlighterCircle className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" />, onClick: () => router.push('/annotate/files'), active: false },
+                { id: 'knowledge', label: 'Integrations', icon: <Lightning className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" />, onClick: () => router.push('/knowledge'), active: false },
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={item.onClick}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] text-left",
+                    item.active
+                      ? "bg-white"
+                      : "hover:bg-white/70"
+                  )}
+                  style={{
+                    transition: 'background-color 0.15s cubic-bezier(0.4,0,0.2,1)',
+                    border: item.active ? 'var(--affine-border)' : '0.5px solid transparent',
+                    boxShadow: item.active ? 'var(--affine-shadow-card)' : 'none',
+                    color: '#06313A',
+                  }}
+                >
+                  {item.icon}
+                  {!sidebarCollapsed && (
+                    <span className="text-[14px]" style={{ fontFamily: 'Manrope, sans-serif', color: item.active ? '#06313A' : 'rgba(6,49,58,0.75)', fontWeight: item.active ? 500 : 400 }}>
+                      {item.label}
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
 
             {/* Tools Section */}
@@ -1063,8 +1041,7 @@ export default function Dashboard() {
  <CollapsibleContent className="mt-[5px]">
                   <button
                     onClick={() => setPomodoroActive(!pomodoroActive)}
- className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
-                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] transition-colors text-left hover:bg-white/70"
                   >
  <Timer className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
  <span className="text-[15px] flex-1" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Pomodoro</span>
@@ -1096,16 +1073,14 @@ export default function Dashboard() {
                   )}
                   <button
                     onClick={() => router.push('/settings')}
- className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
-                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] transition-colors text-left hover:bg-white/70"
                   >
  <GearSix className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
  <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Preferences</span>
                   </button>
                   <button
                     onClick={() => sileo.info({ title: 'Help center coming soon!' })}
- className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] transition-all duration-150 text-left hover:bg-white/60"
-                    style={{ boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+ className="w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-[8px] transition-colors text-left hover:bg-white/70"
                   >
  <Question className="h-[15px] w-[15px] flex-shrink-0" weight="duotone" style={{ color: '#05313A' }} />
  <span className="text-[15px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#05313A' }}>Help</span>
@@ -1120,8 +1095,8 @@ export default function Dashboard() {
             {/* Usage indicators */}
             {!sidebarCollapsed && user && (
               <div
- className="rounded-[10px] p-[15px_13px] space-y-2.5"
-                style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                className="rounded-[10px] p-[15px_13px] space-y-2.5"
+                style={{ backgroundColor: '#FFFFFF', border: 'var(--affine-border)', boxShadow: 'var(--affine-shadow-card)' }}
               >
                 <div>
  <div className="flex items-center justify-between mb-1.5">
@@ -1161,8 +1136,8 @@ export default function Dashboard() {
             {/* User Profile */}
             {!sidebarCollapsed && (
               <div
- className="rounded-[10px] p-[15px_13px]"
-                style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)' }}
+                className="rounded-[10px] p-[15px_13px]"
+                style={{ backgroundColor: '#FFFFFF', border: 'var(--affine-border)', boxShadow: 'var(--affine-shadow-card)' }}
               >
                 {user ? (
                   <button
@@ -1341,11 +1316,11 @@ export default function Dashboard() {
                   viewMode === 'grid' ? (
                     <motion.div
                       layout
-                      initial={{ opacity: 0, scale: 0.96 }}
+                      initial={{ opacity: 0, scale: 0.97 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.18 }}
                       key={board.id}
- className="group board-card bg-card rounded-xl overflow-hidden cursor-pointer"
+                      className="group board-card bg-card rounded-[12px] overflow-hidden cursor-pointer"
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
  <div className="aspect-[4/3] bg-muted relative overflow-hidden">
@@ -1482,7 +1457,10 @@ export default function Dashboard() {
                     /* List view */
                     <div
                       key={board.id}
- className="group flex items-center gap-4 p-3 bg-card rounded-lg border border-border hover:border-primary/20 cursor-pointer transition-all"
+                      className="group flex items-center gap-4 bg-card rounded-[8px] cursor-pointer"
+                      style={{ height: 54, padding: '0 12px 0 16px', border: 'var(--affine-border)', transition: 'background-color 0.2s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s cubic-bezier(0.4,0,0.2,1)' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'oklch(0.97 0.003 260)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = ''; }}
                       onClick={() => router.push(`/board/${board.id}`)}
                     >
  <div className="w-16 h-12 bg-muted rounded-md overflow-hidden flex-shrink-0">
@@ -1994,44 +1972,50 @@ export default function Dashboard() {
             </div>
 
             {/* Feature Cards Row */}
- <div className="grid grid-cols-4 gap-[15px]" style={{ padding: '41px 70px 0 70px' }}>
+ <div className="grid grid-cols-4 gap-[12px]" style={{ padding: '36px 70px 0 70px' }}>
               {featureCards.map((card, index) => {
                 const gradientMap: Record<string, string> = {
-                  blue: 'linear-gradient(180deg, #4F88F1 0%, #90B6FC 100%)',
-                  green: 'linear-gradient(180deg, #3AD53F 0%, #87FB8B 100%)',
-                  purple: 'linear-gradient(180deg, #EB8633 0%, #FFCFA8 100%)',
-                  amber: 'linear-gradient(180deg, #7929F9 0%, #B588FE 100%)',
+                  blue: 'linear-gradient(145deg, #4F88F1 0%, #90B6FC 100%)',
+                  green: 'linear-gradient(145deg, #3AD53F 0%, #87FB8B 100%)',
+                  purple: 'linear-gradient(145deg, #EB8633 0%, #FFCFA8 100%)',
+                  amber: 'linear-gradient(145deg, #7929F9 0%, #B588FE 100%)',
                 };
                 const gradient = gradientMap[card.color] || gradientMap.blue;
-                const isLast = card.id === 'join';
                 return (
                   <motion.button
                     key={card.id}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    transition={{ duration: 0.25, delay: index * 0.05 }}
                     onClick={card.onClick}
                     disabled={(creating && card.id === 'whiteboard') || card.comingSoon}
- className="text-left rounded-[15px] p-[5px] transition-all duration-150 hover:scale-[1.01] disabled:cursor-not-allowed"
-                    style={{ backgroundColor: isLast ? '#F4F7F6' : '#F5F8F7' }}
+                    className="text-left group disabled:cursor-not-allowed"
+                    style={{
+                      borderRadius: 12,
+                      border: 'var(--affine-border)',
+                      boxShadow: 'var(--affine-shadow-card)',
+                      backgroundColor: '#FFFFFF',
+                      padding: '18px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 14,
+                      transition: 'box-shadow 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1)',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0px 4px 12px rgba(0,0,0,0.08)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'var(--affine-shadow-card)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
                   >
                     <div
- className="rounded-[10px] flex flex-col gap-[15px] h-full"
-                      style={{ backgroundColor: '#FFFFFF', boxShadow: '0px 1px 4px 0px rgba(165, 165, 165, 0.25)', padding: '20px 11px' }}
+                      className="w-[32px] h-[32px] rounded-[7px] flex items-center justify-center flex-shrink-0"
+                      style={{ background: gradient }}
                     >
-                      <div
- className="w-[29px] h-[30px] rounded-[5px] flex items-center justify-center flex-shrink-0"
-                        style={{ background: gradient }}
-                      >
- <div className="text-white">{card.icon}</div>
-                      </div>
- <h3 className="text-[20px] font-medium leading-tight" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A' }}>
-                        {card.title}
-                      </h3>
- <p className="text-[17px] leading-snug" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.6)' }}>
-                        {card.description}
-                      </p>
+                      <div className="text-white">{card.icon}</div>
                     </div>
+                    <h3 className="text-[17px] font-semibold leading-tight" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
+                      {card.title}
+                    </h3>
+                    <p className="text-[13px] leading-snug" style={{ fontFamily: 'Manrope, sans-serif', fontWeight: 400, color: 'rgba(6, 49, 58, 0.55)' }}>
+                      {card.description}
+                    </p>
                   </motion.button>
                 );
               })}
@@ -2065,42 +2049,50 @@ export default function Dashboard() {
 
             {/* Recents Cards Grid */}
             {user && recentItems.length > 0 && (
- <div className="grid grid-cols-4 gap-[15px] pb-[40px]" style={{ padding: '30px 70px 40px 70px' }}>
+ <div className="grid grid-cols-4 gap-[15px]" style={{ padding: '18px 70px 40px 70px' }}>
                 {recentItems.slice(0, 4).map((item, index) => (
                   <motion.button
                     key={`${item.type}-${item.id}`}
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    transition={{ duration: 0.2, delay: index * 0.04 }}
                     onClick={() => router.push(item.type === 'board' ? `/board/${item.id}` : `/journal/${item.id}`)}
- className="text-left rounded-[15px] border p-[10px] flex flex-col transition-all duration-150 hover:shadow-md relative"
-                    style={{ backgroundColor: '#F5F8F7', borderColor: '#E7E7E7' }}
+                    className="doc-card text-left group"
                   >
                     {/* Preview area */}
                     <div
- className="w-full rounded-[10px] overflow-hidden flex-shrink-0"
-                      style={{ backgroundColor: '#FFFFFF', height: 213 }}
+                      className="w-full rounded-[8px] overflow-hidden flex-shrink-0"
+                      style={{ backgroundColor: '#F5F8F7', height: 160 }}
                     >
                       {item.type === 'board' && item.preview ? (
- <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                        <img src={item.preview} alt="" className="w-full h-full object-cover" />
+                      ) : item.type === 'journal' && item.snippet ? (
+                        <div className="w-full h-full p-3 overflow-hidden">
+                          <p className="text-[11px] leading-relaxed line-clamp-6" style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.45)', letterSpacing: '-0.01em' }}>
+                            {item.snippet}
+                          </p>
+                        </div>
                       ) : (
- <div className="w-full h-full flex items-center justify-center">
- <BookOpenText className="w-8 h-8" weight="duotone" style={{ color: '#05313A', opacity: 0.15 }} />
+                        <div className="w-full h-full flex items-center justify-center">
+                          {item.type === 'board'
+                            ? <PencilLine className="w-7 h-7" weight="duotone" style={{ color: '#05313A', opacity: 0.12 }} />
+                            : <BookOpenText className="w-7 h-7" weight="duotone" style={{ color: '#05313A', opacity: 0.12 }} />
+                          }
                         </div>
                       )}
                     </div>
                     {/* Title */}
- <h3 className="text-[20px] font-medium truncate mt-[20px]" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
-                      {item.title}
+                    <h3 className="text-[14px] font-medium truncate" style={{ fontFamily: 'Manrope, sans-serif', color: '#06313A', letterSpacing: '-0.02em' }}>
+                      {item.title || 'Untitled'}
                     </h3>
                     {/* Timestamp + badge row */}
- <div className="flex items-center justify-between mt-[8px]">
- <span className="text-[12px]" style={{ fontFamily: 'Inter, sans-serif', color: '#6A8389', letterSpacing: '-0.02em' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px]" style={{ fontFamily: 'Inter, sans-serif', color: '#8A9BA3', letterSpacing: '-0.01em' }}>
                         {getFriendlyTimestamp(new Date(item.updated_at))}
                       </span>
                       <span
- className="rounded-[30px] border px-[5px] py-[3px] text-[10px] font-light"
-                        style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.6)', backgroundColor: '#FFFFFF', borderColor: '#F1F1F1', letterSpacing: '-0.02em' }}
+                        className="rounded-full border px-[6px] py-[2px] text-[10px]"
+                        style={{ fontFamily: 'Manrope, sans-serif', color: 'rgba(6, 49, 58, 0.5)', backgroundColor: '#F5F8F7', borderColor: '#E8E8E8', letterSpacing: '-0.01em' }}
                       >
                         {item.type === 'board' ? 'Board' : 'Journal'}
                       </span>
