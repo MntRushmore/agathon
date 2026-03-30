@@ -67,6 +67,7 @@ import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
+import { JournalRightPanel, type RightPanelTab } from '@/components/journal/JournalRightPanel';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
 import { decodeDatabaseData, encodeDatabaseData, DEFAULT_DATABASE_CONFIG, type DatabaseConfig } from '@/components/journal/InlineDatabase';
 import { ShareDialog } from '@/components/ui/share-dialog';
@@ -519,8 +520,10 @@ export default function JournalEditorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('ai');
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [linkedWhiteboardId, setLinkedWhiteboardId] = useState<string | undefined>();
   const [docProperties, setDocProperties] = useState<DocProperties>({});
 
   // Find in page state
@@ -574,6 +577,12 @@ export default function JournalEditorPage() {
   // Modal states for various commands
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [showTranslateModal, setShowTranslateModal] = useState(false);
+  const [translateLang, setTranslateLang] = useState('Spanish');
+  const [showToneModal, setShowToneModal] = useState(false);
+  const [toneChoice, setToneChoice] = useState('Friendly');
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [bookmarkUrlInput, setBookmarkUrlInput] = useState('');
   const [showJournalLinkModal, setShowJournalLinkModal] = useState(false);
   const [journalSearchQuery, setJournalSearchQuery] = useState('');
   const [searchedJournals, setSearchedJournals] = useState<JournalData[]>([]);
@@ -702,6 +711,7 @@ export default function JournalEditorPage() {
 
       setJournal(data);
       setTitle(data.title);
+      if (data.metadata?.linked_whiteboard_id) setLinkedWhiteboardId(data.metadata.linked_whiteboard_id);
       const textContent = Array.isArray(data.content)
         ? data.content.map((block: any) =>
             typeof block === 'string' ? block : block?.content || ''
@@ -1533,11 +1543,9 @@ export default function JournalEditorPage() {
           break;
         }
         case 'bookmark': {
-          const bookmarkUrl = window.prompt('Paste a URL to create a bookmark card:');
-          if (bookmarkUrl?.trim()) {
-            insertText = `\n[BOOKMARK:${bookmarkUrl.trim()}]\n`;
-          }
-          break;
+          setBookmarkUrlInput('');
+          setShowBookmarkModal(true);
+          return; // modal handles the content insertion
         }
         default:
           insertText = '';
@@ -1600,13 +1608,13 @@ export default function JournalEditorPage() {
         case 'ai-find-actions': handleAITextAction('findActions'); break;
         case 'ai-mindmap':      handleMindmap(); break;
         case 'ai-translate': {
-          const lang = window.prompt('Translate to (e.g. Spanish, French, Japanese):', 'Spanish');
-          if (lang) handleAITextAction('translate', { lang });
+          setTranslateLang('Spanish');
+          setShowTranslateModal(true);
           break;
         }
         case 'ai-tone': {
-          const tone = window.prompt('Tone (Professional, Informal, Friendly, Critical, Humorous):', 'Friendly');
-          if (tone) handleAITextAction('changeTone', { tone });
+          setToneChoice('Friendly');
+          setShowToneModal(true);
           break;
         }
         case 'ai-brainstorm':    handleAITextAction('brainstorm'); break;
@@ -2178,6 +2186,62 @@ export default function JournalEditorPage() {
           </button>
         </div>
 
+        {/* Centre - Journal ↔ Whiteboard switcher + right panel tabs */}
+        <div className="flex items-center gap-2">
+          {/* Mode switcher */}
+          <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+            <button
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-background text-foreground shadow-sm"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Journal
+            </button>
+            <button
+              onClick={() => router.push(linkedWhiteboardId ? `/board/${linkedWhiteboardId}` : '/')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={3} width={18} height={18} rx={2}/><line x1={3} y1={9} x2={21} y2={9}/><line x1={9} y1={21} x2={9} y2={9}/></svg>
+              Whiteboard
+            </button>
+          </div>
+          <div className="w-px h-5 bg-border" />
+        </div>
+
+        {/* Right panel tab icons */}
+        <div className="flex items-center gap-0.5">
+          {([
+            { tab: 'ai' as RightPanelTab,    icon: <Sparkle weight="fill" className="h-4 w-4" />,       title: 'AI Assistant' },
+            { tab: 'toc' as RightPanelTab,   icon: <ListBullets className="h-4 w-4" />,                 title: 'Table of Contents' },
+            { tab: 'cal' as RightPanelTab,   icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2}/><line x1={16} y1={2} x2={16} y2={6}/><line x1={8} y1={2} x2={8} y2={6}/><line x1={3} y1={10} x2={21} y2={10}/></svg>, title: 'Calendar' },
+            { tab: 'tpl' as RightPanelTab,   icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={3} width={7} height={7}/><rect x={14} y={3} width={7} height={7}/><rect x={14} y={14} width={7} height={7}/><rect x={3} y={14} width={7} height={7}/></svg>, title: 'Templates' },
+            { tab: 'frame' as RightPanelTab, icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>, title: 'Frame Navigator' },
+            { tab: 'chat' as RightPanelTab,  icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: 'Comments' },
+          ]).map(({ tab, icon, title }) => (
+            <button
+              key={tab}
+              title={title}
+              onClick={() => {
+                if (isAIPanelOpen && rightPanelTab === tab) {
+                  setIsAIPanelOpen(false);
+                } else {
+                  setRightPanelTab(tab);
+                  setIsAIPanelOpen(true);
+                }
+              }}
+              className={cn(
+                'p-2 transition-colors rounded-lg',
+                isAIPanelOpen && rightPanelTab === tab
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+            >
+              {icon}
+            </button>
+          ))}
+          {/* Sidebar toggle */}
+          <div className="w-px h-5 bg-border mx-1" />
+        </div>
+
         {/* Right - Actions */}
  <div className="flex items-center gap-0.5">
           {/* Proactive AI Lightbulb Button with Dropdown */}
@@ -2399,12 +2463,58 @@ export default function JournalEditorPage() {
         </div>
       )}
 
-      {/* AI Chat Side Panel */}
-      {isAIPanelOpen && (
+      {/* AFFiNE-style right panel — AI, ToC, Calendar, Templates */}
+      <JournalRightPanel
+        isOpen={isAIPanelOpen}
+        onClose={() => setIsAIPanelOpen(false)}
+        activeTab={rightPanelTab}
+        onTabChange={(tab) => { setRightPanelTab(tab); if (!isAIPanelOpen) setIsAIPanelOpen(true); }}
+        chatMessages={chatMessages}
+        isChatting={isChatting}
+        onSendMessage={(msg) => { setChatInput(msg); setTimeout(() => handleChatSubmit(), 0); }}
+        onClearChat={handleClearChat}
+        pendingMessageIndex={pendingMessageIndex}
+        onAcceptContent={handleAcceptContent}
+        onDismissContent={handleDismissContent}
+        onReapplyContent={handleReapplyContent}
+        onCopyMessage={handleCopyMessage}
+        renderMarkdown={renderMarkdown}
+        showSlashMenu={showSlashMenu}
+        commandInput={commandInput}
+        chatInput={chatInput}
+        onCommandInputChange={(v) => {
+          setCommandInput(v);
+          setChatInput('');
+          setSlashFilter(v.slice(1));
+          setShowSlashMenu(true);
+          setSearchExpanded(true);
+          setSelectedCommandIndex(0);
+        }}
+        onChatInputChange={(v) => {
+          setChatInput(v);
+          setCommandInput('');
+          setShowSlashMenu(false);
+          setSlashFilter('');
+        }}
+        onChatKeyDown={(e) => {
+          if (showSlashMenu) {
+            handleCommandKeyDown(e as unknown as KeyboardEvent<HTMLInputElement>);
+          } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
+            e.preventDefault();
+            handleChatSubmit();
+          }
+        }}
+        onSubmitChat={handleChatSubmit}
+        content={content}
+        journalId={journal?.id}
+        journalTitle={title}
+      />
+
+      {/* DEAD CODE STUB — kept to satisfy closing braces below */}
+      {false && (
  <div className="fixed inset-y-0 right-0 z-[80] flex">
  <div
             className="absolute inset-0 -left-[9999px]"
-            onClick={() => setIsAIPanelOpen(false)}
           />
  <div className="relative w-[360px] bg-card border-l border-border flex flex-col shadow-2xl">
             {/* Panel header */}
@@ -3165,6 +3275,138 @@ export default function JournalEditorPage() {
  <button onClick={handleYoutubeEmbed} disabled={!youtubeUrl.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Embed
               </button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Bookmark URL Modal */}
+      <Dialog open={showBookmarkModal} onClose={() => setShowBookmarkModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Link className="h-5 w-5 text-muted-foreground" />
+                  Add Bookmark Card
+                </DialogTitle>
+                <button onClick={() => setShowBookmarkModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">Paste any URL to create a rich link preview card.</p>
+              <input
+                type="url"
+                autoFocus
+                value={bookmarkUrlInput}
+                onChange={(e) => setBookmarkUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && bookmarkUrlInput.trim()) {
+                    setContent(prev => prev ? prev + `\n\n[BOOKMARK:${bookmarkUrlInput.trim()}]\n` : `[BOOKMARK:${bookmarkUrlInput.trim()}]\n`);
+                    setShowBookmarkModal(false);
+                  }
+                }}
+                placeholder="https://example.com"
+                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowBookmarkModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => {
+                  if (bookmarkUrlInput.trim()) {
+                    setContent(prev => prev ? prev + `\n\n[BOOKMARK:${bookmarkUrlInput.trim()}]\n` : `[BOOKMARK:${bookmarkUrlInput.trim()}]\n`);
+                    setShowBookmarkModal(false);
+                  }
+                }}
+                disabled={!bookmarkUrlInput.trim()}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              >Add Bookmark</button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Translate Modal */}
+      <Dialog open={showTranslateModal} onClose={() => setShowTranslateModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground">Translate</DialogTitle>
+                <button onClick={() => setShowTranslateModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">Choose target language:</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['Spanish', 'French', 'German', 'Japanese', 'Chinese', 'Korean', 'Portuguese', 'Italian', 'Russian'].map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setTranslateLang(lang)}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors ${translateLang === lang ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
+                  >{lang}</button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={translateLang}
+                onChange={(e) => setTranslateLang(e.target.value)}
+                placeholder="Or type a language…"
+                className="w-full px-4 py-2.5 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-all text-sm"
+              />
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowTranslateModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => { handleAITextAction('translate', { lang: translateLang }); setShowTranslateModal(false); }}
+                disabled={!translateLang.trim()}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              >Translate</button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Change Tone Modal */}
+      <Dialog open={showToneModal} onClose={() => setShowToneModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground">Change Tone</DialogTitle>
+                <button onClick={() => setShowToneModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { id: 'Professional', desc: 'Formal and precise' },
+                  { id: 'Informal', desc: 'Casual and conversational' },
+                  { id: 'Friendly', desc: 'Warm and approachable' },
+                  { id: 'Critical', desc: 'Analytical and rigorous' },
+                  { id: 'Humorous', desc: 'Light-hearted and witty' },
+                ].map(({ id, desc }) => (
+                  <button
+                    key={id}
+                    onClick={() => setToneChoice(id)}
+                    className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-colors text-left ${toneChoice === id ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
+                  >
+                    <span className="font-medium text-sm">{id}</span>
+                    <span className={`text-xs ${toneChoice === id ? 'text-background/70' : 'text-muted-foreground'}`}>{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowToneModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => { handleAITextAction('changeTone', { tone: toneChoice }); setShowToneModal(false); }}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors"
+              >Apply Tone</button>
             </div>
           </DialogPanel>
         </div>

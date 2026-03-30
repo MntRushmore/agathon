@@ -16,7 +16,6 @@ import {
   ChartBar,
   ClipboardText,
   GraduationCap,
-  MagnifyingGlass,
 } from '@phosphor-icons/react';
 import {
   CommandMenu,

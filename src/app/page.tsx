@@ -474,6 +474,15 @@ export default function Dashboard() {
     try {
       const metadata = getTemplateMetadata(templateId);
 
+      // Create linked journal first
+      const { data: journalData, error: journalError } = await supabase
+        .from('journals')
+        .insert([{ user_id: user.id, title: metadata.title, content: [] }])
+        .select()
+        .single();
+      if (journalError) throw journalError;
+
+      // Create whiteboard with linked_journal_id in metadata
       const { data, error } = await supabase
         .from('whiteboards')
         .insert([
@@ -482,7 +491,7 @@ export default function Dashboard() {
             title: metadata.title,
             user_id: user.id,
             data: {},
-            metadata: metadata,
+            metadata: { ...metadata, linked_journal_id: journalData.id },
           }
         ])
         .select()
@@ -490,7 +499,10 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      sileo.success({ title: 'Board created' });
+      // Back-link whiteboard id into the journal metadata
+      await supabase.from('journals').update({ metadata: { linked_whiteboard_id: data.id } }).eq('id', journalData.id);
+
+      sileo.success({ title: 'Project created' });
 
       // Store file data in memory if present (avoids sessionStorage quota limits)
       if (fileData) {
@@ -500,8 +512,8 @@ export default function Dashboard() {
         router.push(`/board/${data.id}`);
       }
     } catch (error: unknown) {
-      console.error('Error creating whiteboard:', error);
-      sileo.error({ title: 'Failed to create whiteboard' });
+      console.error('Error creating project:', error);
+      sileo.error({ title: 'Failed to create project' });
     } finally {
       setCreating(false);
       setTemplateDialogOpen(false);

@@ -31,6 +31,7 @@ export default function BoardPageInner() {
   const [savedSpaceState, setSavedSpaceState] = useState<string | undefined>();
   const [title, setBoardTitle] = useState('Untitled board');
   const [subject, setSubject] = useState<string | undefined>();
+  const [linkedJournalId, setLinkedJournalId] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -56,6 +57,7 @@ export default function BoardPageInner() {
         if (fetchError) throw fetchError;
         setBoardTitle(data.title || 'Untitled board');
         setSubject(data.metadata?.subject);
+        setLinkedJournalId(data.metadata?.linked_journal_id);
         if (data.data?.rootState) setSavedRootState(data.data.rootState);
         if (data.data?.spaceState) setSavedSpaceState(data.data.spaceState);
       } catch (e) {
@@ -230,6 +232,7 @@ export default function BoardPageInner() {
       savedState={savedState}
       title={title}
       subject={subject}
+      linkedJournalId={linkedJournalId}
       onBack={() => router.push('/')}
       onTitleChange={handleTitleChange}
       onDocReady={setDoc}

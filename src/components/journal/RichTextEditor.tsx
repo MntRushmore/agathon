@@ -1749,8 +1749,35 @@ function htmlToMarkdown(html: string): string {
 
   let markdown = html;
 
-  // Preserve HTML embeds
+  // Preserve HTML embeds — extract before any stripping
   const htmlEmbeds: string[] = [];
+
+  // Callout divs → convert back to :::type\ncontent\n::: markdown
+  markdown = markdown.replace(/<div class="callout callout-(\w+)"[^>]*>([\s\S]*?)<\/div>/g, (_match, type: string, inner: string) => {
+    // Extract text from inner <p> tags
+    const body = inner
+      .replace(/<p[^>]*>/g, '')
+      .replace(/<\/p>/g, '\n')
+      .replace(/&nbsp;/g, '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+    const restored = `:::${type}\n${body}\n:::`;
+    htmlEmbeds.push(restored);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
+
+  // Mermaid divs → convert back to ```mermaid\ncontent\n```
+  markdown = markdown.replace(/<div class="mermaid-block"[^>]*data-diagram="([^"]*)"[^>]*>[\s\S]*?<\/div>/g, (_match, escaped: string) => {
+    const diagram = escaped
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"');
+    const restored = `\`\`\`mermaid\n${diagram}\n\`\`\``;
+    htmlEmbeds.push(restored);
+    return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;
+  });
+
   markdown = markdown.replace(/<details[^>]*>[\s\S]*?<\/details>/g, (match) => {
     htmlEmbeds.push(match);
     return `__PRESERVE_HTML_${htmlEmbeds.length - 1}__`;

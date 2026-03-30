@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Plus, BookOpen, ChevronLeft, Tag } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { sileo } from 'sileo';
