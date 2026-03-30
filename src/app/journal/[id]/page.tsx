@@ -527,6 +527,11 @@ export default function JournalEditorPage() {
   const [docProperties, setDocProperties] = useState<DocProperties>({});
 
   // Find in page state
+  const wordCount = useMemo(() => {
+    if (!content.trim()) return 0;
+    return content.trim().split(/\s+/).filter(Boolean).length;
+  }, [content]);
+
   const [findOpen, setFindOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
   const [findIndex, setFindIndex] = useState(0);
@@ -605,6 +610,7 @@ export default function JournalEditorPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasAutoTitled = useRef(false);
+  const journalRef = useRef<typeof journal>(null);
 
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
@@ -710,8 +716,29 @@ export default function JournalEditorPage() {
       }
 
       setJournal(data);
+      journalRef.current = data;
       setTitle(data.title);
-      if (data.metadata?.linked_whiteboard_id) setLinkedWhiteboardId(data.metadata.linked_whiteboard_id);
+
+      // Load linked whiteboard — check metadata first, then search whiteboards that link back
+      if (data.metadata?.linked_whiteboard_id) {
+        setLinkedWhiteboardId(data.metadata.linked_whiteboard_id);
+      } else {
+        // Legacy: find a whiteboard whose metadata.linked_journal_id points to this journal
+        const { data: boards } = await supabase
+          .from('whiteboards')
+          .select('id, metadata')
+          .eq('user_id', user.id);
+        const match = boards?.find((b: any) => b.metadata?.linked_journal_id === params.id);
+        if (match) {
+          setLinkedWhiteboardId(match.id);
+          // Back-fill so future loads are instant
+          await supabase
+            .from('journals')
+            .update({ metadata: { ...(data.metadata ?? {}), linked_whiteboard_id: match.id } })
+            .eq('id', params.id);
+        }
+      }
+
       const textContent = Array.isArray(data.content)
         ? data.content.map((block: any) =>
             typeof block === 'string' ? block : block?.content || ''
@@ -725,13 +752,10 @@ export default function JournalEditorPage() {
     loadJournal();
   }, [params.id, user, supabase, router]);
 
-  // Auto-save with debounce
-  const saveJournal = useCallback(
-    debounce(async (newTitle: string, newContent: string) => {
-      if (!journal) return;
-
+  // Auto-save with debounce — stable ref pattern so debounce is never recreated
+  const saveJournal = useRef(
+    debounce(async (newTitle: string, newContent: string, journalId: string) => {
       setIsSaving(true);
-
       const { error } = await supabase
         .from('journals')
         .update({
@@ -739,25 +763,23 @@ export default function JournalEditorPage() {
           content: [{ type: 'text', content: newContent }],
           updated_at: new Date().toISOString(),
         })
-        .eq('id', journal.id);
-
+        .eq('id', journalId);
       if (error) {
         console.error('Failed to save journal:', error);
       } else {
         setLastSaved(new Date());
       }
-
       setIsSaving(false);
-    }, 1000),
-    [journal, supabase]
-  );
+    }, 1000)
+  ).current;
 
-  // Save on changes
+  // Save on changes — only re-runs when title/content change, not on journal object identity change
   useEffect(() => {
-    if (journal && !loading) {
-      saveJournal(title, content);
+    const id = journalRef.current?.id;
+    if (id && !loading) {
+      saveJournal(title, content, id);
     }
-  }, [title, content, journal, loading, saveJournal]);
+  }, [title, content, loading, saveJournal]);
 
   // Auto-generate title from content when title is still default
   useEffect(() => {
@@ -1058,48 +1080,44 @@ export default function JournalEditorPage() {
   };
 
   // Proactive AI - analyze content and provide suggestions
-  const analyzeContentForSuggestions = useCallback(
+  // Use a ref for title so the debounce is stable and never recreated
+  const titleRef = useRef(title);
+  useEffect(() => { titleRef.current = title; }, [title]);
+  const proactiveAIEnabledRef = useRef(proactiveAIEnabled);
+  useEffect(() => { proactiveAIEnabledRef.current = proactiveAIEnabled; }, [proactiveAIEnabled]);
+
+  const analyzeContentForSuggestions = useRef(
     debounce(async (currentContent: string) => {
-      if (!proactiveAIEnabled || !currentContent || currentContent.length < 50) {
+      if (!proactiveAIEnabledRef.current || !currentContent || currentContent.length < 50) {
         setProactiveSuggestion(null);
         return;
       }
-
-      // Don't re-analyze if content hasn't changed significantly
       if (currentContent === lastAnalyzedContent.current) return;
-
-      // Only analyze every ~200 characters of change
       const contentDiff = Math.abs(currentContent.length - lastAnalyzedContent.current.length);
       if (contentDiff < 100 && lastAnalyzedContent.current.length > 0) return;
 
       lastAnalyzedContent.current = currentContent;
       setIsGeneratingSuggestion(true);
-
       try {
         const response = await fetch('/api/journal/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'proactive',
-            content: currentContent.slice(-1500), // Last 1500 chars for context
-            topic: title || 'Study notes',
+            content: currentContent.slice(-1500),
+            topic: titleRef.current || 'Study notes',
           }),
         });
-
         if (!response.ok) throw new Error('Failed to get suggestion');
-
         const data = await response.json();
-        if (data.content && data.content.trim()) {
-          setProactiveSuggestion(data.content);
-        }
+        if (data.content && data.content.trim()) setProactiveSuggestion(data.content);
       } catch (error) {
         console.error('Proactive AI error:', error);
       } finally {
         setIsGeneratingSuggestion(false);
       }
-    }, 3000), // 3 second debounce
-    [proactiveAIEnabled, title]
-  );
+    }, 3000)
+  ).current;
 
   // Effect to trigger proactive analysis when content changes
   useEffect(() => {
@@ -1690,7 +1708,7 @@ export default function JournalEditorPage() {
   };
 
   // Search journals for linking
-  const searchJournals = async (query: string) => {
+  const searchJournals = useCallback(debounce(async (query: string) => {
     if (!user) return;
 
     try {
@@ -1713,7 +1731,7 @@ export default function JournalEditorPage() {
     } catch (error) {
       console.error('Failed to search journals:', error);
     }
-  };
+  }, 300), [user, journal?.id, supabase]);
 
   // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
@@ -2371,7 +2389,7 @@ export default function JournalEditorPage() {
           ...docProperties,
           createdAt: journal?.created_at,
           updatedAt: journal?.updated_at,
-          wordCount: content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0,
+          wordCount: wordCount,
         }}
         onChange={handlePropertiesChange}
       />
@@ -2759,11 +2777,11 @@ export default function JournalEditorPage() {
               <>
  <span className="text-muted-foreground/40">·</span>
  <span className="text-xs text-muted-foreground">
-                  {content.trim().split(/\s+/).filter(Boolean).length} words
+                  {wordCount} words
                 </span>
  <span className="text-muted-foreground/40">·</span>
  <span className="text-xs text-muted-foreground">
-                  {Math.max(1, Math.ceil(content.trim().split(/\s+/).filter(Boolean).length / 200))} min read
+                  {Math.max(1, Math.ceil(wordCount / 200))} min read
                 </span>
               </>
             )}
