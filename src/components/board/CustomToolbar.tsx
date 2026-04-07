@@ -38,25 +38,35 @@ function ButtonTooltip({ label, shortcut, anchorRef, vertical }: {
   vertical?: boolean;
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
+  // First effect: initial positioning
   useEffect(() => {
     const el = anchorRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     if (vertical) {
-      setPos({ x: rect.right + 8, y: rect.top + rect.height / 2 });
+      setPos({ x: rect.right + 12, y: rect.top + rect.height / 2 });
     } else {
       setPos({ x: rect.left + rect.width / 2, y: rect.bottom + 6 });
     }
   }, [anchorRef, vertical]);
 
+  // Second effect: fine-tune vertical positioning to center tooltip
+  useEffect(() => {
+    if (!vertical || !pos || !tooltipRef.current) return;
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    setPos(prev => prev ? { ...prev, y: prev.y - tooltipRect.height / 2 } : null);
+  }, [pos, vertical]);
+
   if (!pos) return null;
 
   return createPortal(
     <div
+      ref={tooltipRef}
       className="fixed z-[99999] pointer-events-none bg-gray-900 text-white text-[11px] font-medium rounded-md px-2 py-1 whitespace-nowrap shadow-sm"
       style={vertical
-        ? { left: pos.x, top: pos.y, transform: 'translateY(-50%)' }
+        ? { left: pos.x, top: pos.y }
         : { left: pos.x, top: pos.y, transform: 'translateX(-50%)' }
       }
     >
