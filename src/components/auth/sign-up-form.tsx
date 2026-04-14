@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { getLoginTokenUrl } from '@/lib/auth-urls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -111,7 +113,9 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
             full_name: fullName,
             role,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/auth/complete-signup`,
+          emailRedirectTo: getLoginTokenUrl({
+            next: '/auth/complete-signup',
+          }),
         },
       });
 
@@ -131,39 +135,6 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
       const message = error instanceof Error ? error.message : 'Failed to sign up';
       sileo.error({ title: message });
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    if (codeStatus !== 'valid') {
-      sileo.error({ title: 'Please enter a valid invite code first' });
-      return;
-    }
-
-    setLoading(true);
-
-    // Store code in localStorage for the OAuth callback to redeem
-    const cleaned = inviteCode.replace(/[-\s]/g, '').toUpperCase();
-    localStorage.setItem('agathon_pending_invite_code', cleaned);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/auth/complete-signup`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) throw error;
-    } catch (error) {
-      localStorage.removeItem('agathon_pending_invite_code');
-      const message = error instanceof Error ? error.message : 'Failed to sign up with Google';
-      sileo.error({ title: message });
       setLoading(false);
     }
   };
@@ -210,9 +181,9 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
           {codeStatus === 'invalid' && (
             <p className="text-xs text-muted-foreground mt-1">
               Don&apos;t have a code?{' '}
-              <a href="/?waitlist=true" className="text-foreground font-medium hover:underline">
+              <Link href="/?waitlist=true" className="text-foreground font-medium hover:underline">
                 Join the waitlist
-              </a>{' '}
+              </Link>{' '}
               to get one.
             </p>
           )}

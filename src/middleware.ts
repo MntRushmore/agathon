@@ -97,7 +97,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
             request,
           });
@@ -115,7 +115,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Public paths that don't require invite verification
-  const publicPaths = ['/', '/login', '/signup', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/api/referral/', '/referral/', '/terms', '/privacy', '/demo', '/pitch'];
+  const publicPaths = ['/', '/login', '/signup', '/logintoken', '/auth/', '/api/auth/', '/api/polar/', '/api/waitlist', '/api/referral/', '/referral/', '/terms', '/privacy', '/demo', '/pitch'];
   const isPublicPath = publicPaths.some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path));
 
   // For authenticated users on protected routes, fetch profile once for all checks
