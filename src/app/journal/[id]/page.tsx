@@ -1,7 +1,7 @@
 'use client';
 // TODO: M23 — Wrap RichTextEditor in <ComponentErrorBoundary>
 
-import { useEffect, useState, useCallback, useRef, KeyboardEvent, ChangeEvent } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo, KeyboardEvent, ChangeEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -52,6 +52,8 @@ import {
   Trash,
   CaretLeft,
   CaretRight,
+  ShareNetwork,
+  SlidersHorizontal,
 } from '@phosphor-icons/react';
 import {
   Dialog, DialogPanel, DialogTitle, DialogBackdrop,
@@ -65,7 +67,11 @@ import { sileo } from 'sileo';
 import { cn } from '@/lib/utils';
 import { RichTextEditor } from '@/components/journal/RichTextEditor';
 import { JournalSidebar } from '@/components/journal/JournalSidebar';
+import { JournalRightPanel, type RightPanelTab } from '@/components/journal/JournalRightPanel';
 import { decodeChartData, encodeChartData, DEFAULT_CHART_DATA, type ChartConfig } from '@/components/journal/InlineChart';
+import { decodeDatabaseData, encodeDatabaseData, DEFAULT_DATABASE_CONFIG, type DatabaseConfig } from '@/components/journal/InlineDatabase';
+import { ShareDialog } from '@/components/ui/share-dialog';
+import { DocPropertiesPanel, type DocProperties } from '@/components/ui/doc-properties-panel';
 import dynamic from 'next/dynamic';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
@@ -166,6 +172,11 @@ const InlineChart = dynamic(
  { ssr: false, loading: () => <div className="h-[400px] bg-muted animate-pulse" /> }
 );
 
+const InlineDatabase = dynamic(
+  () => import('@/components/journal/InlineDatabase').then(mod => mod.InlineDatabase),
+  { ssr: false, loading: () => <div className="h-[200px] bg-muted animate-pulse rounded-2xl" /> }
+);
+
 interface JournalData {
   id: string;
   user_id: string;
@@ -185,6 +196,67 @@ interface EmbeddedDesmosGraph {
   expression: string;
 }
 
+// ── Bookmark Card ─────────────────────────────────────────────────────────────
+function BookmarkCard({ url }: { url: string }) {
+  const [meta, setMeta] = useState<{ title: string; description: string; image: string; favicon: string; hostname: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/journal/bookmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.title) setMeta(data); else setError(true); })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [url]);
+
+  if (loading) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 text-sm text-muted-foreground animate-pulse my-2 no-underline"
+      >
+        <div className="h-4 w-4 rounded bg-muted" />
+        <span className="truncate">{url}</span>
+      </a>
+    );
+  }
+
+  if (error || !meta) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/30 text-sm text-blue-600 hover:underline my-2"
+      >
+        <ArrowSquareOut className="h-4 w-4 shrink-0" />
+        <span className="truncate">{url}</span>
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      className="flex gap-3 p-3 rounded-xl border border-border bg-white hover:shadow-md transition-shadow my-3 no-underline group"
+      style={{ boxShadow: 'var(--affine-shadow-card)' }}
+    >
+      {meta.image && (
+        <img src={meta.image} alt="" className="h-16 w-24 object-cover rounded-lg shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
+          <img src={meta.favicon} alt="" className="h-4 w-4 rounded shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <span className="text-xs text-muted-foreground truncate">{meta.hostname}</span>
+        </div>
+        <p className="font-medium text-sm text-foreground truncate leading-snug">{meta.title}</p>
+        {meta.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{meta.description}</p>}
+      </div>
+      <ArrowSquareOut className="h-4 w-4 text-muted-foreground shrink-0 self-start mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </a>
+  );
+}
+
 // Component that renders content with embedded whiteboards and Desmos graphs
 function ContentWithEmbeds({
   content,
@@ -198,6 +270,8 @@ function ContentWithEmbeds({
   onDeleteDesmos,
   onChartSave,
   onDeleteChart,
+  onDatabaseSave,
+  onDeleteDatabase,
 }: {
   content: string;
   onChange: (content: string) => void;
@@ -210,17 +284,23 @@ function ContentWithEmbeds({
   onDeleteDesmos?: (id: string) => void;
   onChartSave?: (id: string, data: ChartConfig) => void;
   onDeleteChart?: (id: string) => void;
+  onDatabaseSave?: (id: string, data: DatabaseConfig) => void;
+  onDeleteDatabase?: (id: string) => void;
 }) {
   // Extract placeholders from content for rendering embedded components
   const whiteboardMatches = [...content.matchAll(/\[WHITEBOARD:([^\]]+)\]/g)];
   const desmosMatches = [...content.matchAll(/\[DESMOS:([^:\]]+):([^\]]*)\]/g)];
   const chartMatches = [...content.matchAll(/\[CHART:([^:\]]+):([^\]]*)\]/g)];
+  const databaseMatches = [...content.matchAll(/\[DATABASE:([^:\]]+):([^\]]*)\]/g)];
+  const bookmarkMatches = [...content.matchAll(/\[BOOKMARK:([^\]]+)\]/g)];
 
   // Build a unified, position-ordered list of all embeds
-  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
+  const allEmbeds: { type: 'whiteboard' | 'desmos' | 'chart' | 'database' | 'bookmark'; match: RegExpExecArray | RegExpMatchArray; position: number }[] = [];
   whiteboardMatches.forEach(m => allEmbeds.push({ type: 'whiteboard', match: m, position: m.index ?? 0 }));
   desmosMatches.forEach(m => allEmbeds.push({ type: 'desmos', match: m, position: m.index ?? 0 }));
   chartMatches.forEach(m => allEmbeds.push({ type: 'chart', match: m, position: m.index ?? 0 }));
+  databaseMatches.forEach(m => allEmbeds.push({ type: 'database', match: m, position: m.index ?? 0 }));
+  bookmarkMatches.forEach(m => allEmbeds.push({ type: 'bookmark', match: m, position: m.index ?? 0 }));
   allEmbeds.sort((a, b) => a.position - b.position);
 
   // Remove placeholders from the content for the editor (they'll be rendered separately)
@@ -228,6 +308,8 @@ function ContentWithEmbeds({
     .replace(/\n*\[WHITEBOARD:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[DESMOS:[^\]]+\]\n*/g, '\n')
     .replace(/\n*\[CHART:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[DATABASE:[^\]]+\]\n*/g, '\n')
+    .replace(/\n*\[BOOKMARK:[^\]]+\]\n*/g, '\n')
     .trim();
 
   // Check if there are any embeds — shrink editor min-height when embeds exist
@@ -316,6 +398,31 @@ function ContentWithEmbeds({
           );
         }
 
+        if (type === 'database') {
+          const id = match[1];
+          const encodedData = match[2];
+          const dbConfig = decodeDatabaseData(encodedData);
+          return (
+            <div key={`database-${id}`} className="my-2">
+              <InlineDatabase
+                id={id}
+                initialData={dbConfig}
+                onSave={(dbId, data) => onDatabaseSave?.(dbId, data)}
+                onDelete={(dbId) => onDeleteDatabase?.(dbId)}
+              />
+            </div>
+          );
+        }
+
+        if (type === 'bookmark') {
+          const bookmarkUrl = match[1];
+          return (
+            <div key={`bookmark-${bookmarkUrl}`} className="my-2">
+              <BookmarkCard url={bookmarkUrl} />
+            </div>
+          );
+        }
+
         // chart
         const id = match[1];
         const encodedData = match[2];
@@ -374,6 +481,7 @@ const slashCommands = [
       { id: 'whiteboard', icon: PenNib, label: 'Whiteboard', color: 'text-muted-foreground' },
       { id: 'desmos', icon: ChartLine, label: 'Desmos graph', color: 'text-muted-foreground' },
       { id: 'chart', icon: ChartBar, label: 'Chart', color: 'text-muted-foreground' },
+      { id: 'database', icon: Table, label: 'Database', color: 'text-muted-foreground' },
     ],
   },
   {
@@ -411,6 +519,53 @@ export default function JournalEditorPage() {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>('ai');
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isPropertiesOpen, setIsPropertiesOpen] = useState(false);
+  const [linkedWhiteboardId, setLinkedWhiteboardId] = useState<string | undefined>();
+  const [docProperties, setDocProperties] = useState<DocProperties>({});
+
+  // Find in page state
+  const wordCount = useMemo(() => {
+    if (!content.trim()) return 0;
+    return content.trim().split(/\s+/).filter(Boolean).length;
+  }, [content]);
+
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findIndex, setFindIndex] = useState(0);
+  const findMatches = useMemo(() => {
+    if (!findQuery.trim() || !content) return [];
+    const regex = new RegExp(findQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const matches: number[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(content)) !== null) matches.push(m.index);
+    return matches;
+  }, [findQuery, content]);
+  const findInputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+F → open find bar
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'f' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setFindOpen(true);
+        setTimeout(() => findInputRef.current?.focus(), 50);
+      }
+      if (e.key === 'Escape' && findOpen) {
+        setFindOpen(false);
+        setFindQuery('');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [findOpen]);
+
+  // Sync properties from journal data when loaded
+  const handlePropertiesChange = useCallback((updated: Partial<DocProperties>) => {
+    setDocProperties((prev) => ({ ...prev, ...updated }));
+  }, []);
 
   // Topic prompt modal state
   const [showTopicModal, setShowTopicModal] = useState(false);
@@ -427,6 +582,12 @@ export default function JournalEditorPage() {
   // Modal states for various commands
   const [showYoutubeModal, setShowYoutubeModal] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [showTranslateModal, setShowTranslateModal] = useState(false);
+  const [translateLang, setTranslateLang] = useState('Spanish');
+  const [showToneModal, setShowToneModal] = useState(false);
+  const [toneChoice, setToneChoice] = useState('Friendly');
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [bookmarkUrlInput, setBookmarkUrlInput] = useState('');
   const [showJournalLinkModal, setShowJournalLinkModal] = useState(false);
   const [journalSearchQuery, setJournalSearchQuery] = useState('');
   const [searchedJournals, setSearchedJournals] = useState<JournalData[]>([]);
@@ -438,6 +599,7 @@ export default function JournalEditorPage() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const transcribeAudioRef = useRef<HTMLInputElement>(null);
 
   // Chat state
   const [chatInput, setChatInput] = useState('');
@@ -448,6 +610,7 @@ export default function JournalEditorPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasAutoTitled = useRef(false);
+  const journalRef = useRef<typeof journal>(null);
 
   // Pending content blocks for diff-style accept/deny
   const [pendingBlocks, setPendingBlocks] = useState<Array<{ id: string; content: string; status: 'pending' | 'accepted' | 'denied' }>>([]);
@@ -507,6 +670,8 @@ export default function JournalEditorPage() {
   // Embedded content state (whiteboards, desmos graphs, etc.)
   const [embeddedWhiteboards, setEmbeddedWhiteboards] = useState<{ id: string; data?: string }[]>([]);
   const [embeddedDesmos, setEmbeddedDesmos] = useState<{ id: string; expression: string }[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [embeddedDatabases, setEmbeddedDatabases] = useState<{ id: string }[]>([]);
 
   // Inline input state for quick actions (practice problems, flashcards, etc.)
   const [activeInlineInput, setActiveInlineInput] = useState<string | null>(null);
@@ -551,7 +716,29 @@ export default function JournalEditorPage() {
       }
 
       setJournal(data);
+      journalRef.current = data;
       setTitle(data.title);
+
+      // Load linked whiteboard — check metadata first, then search whiteboards that link back
+      if (data.metadata?.linked_whiteboard_id) {
+        setLinkedWhiteboardId(data.metadata.linked_whiteboard_id);
+      } else {
+        // Legacy: find a whiteboard whose metadata.linked_journal_id points to this journal
+        const { data: boards } = await supabase
+          .from('whiteboards')
+          .select('id, metadata')
+          .eq('user_id', user.id);
+        const match = boards?.find((b: any) => b.metadata?.linked_journal_id === params.id);
+        if (match) {
+          setLinkedWhiteboardId(match.id);
+          // Back-fill so future loads are instant
+          await supabase
+            .from('journals')
+            .update({ metadata: { ...(data.metadata ?? {}), linked_whiteboard_id: match.id } })
+            .eq('id', params.id);
+        }
+      }
+
       const textContent = Array.isArray(data.content)
         ? data.content.map((block: any) =>
             typeof block === 'string' ? block : block?.content || ''
@@ -565,13 +752,10 @@ export default function JournalEditorPage() {
     loadJournal();
   }, [params.id, user, supabase, router]);
 
-  // Auto-save with debounce
-  const saveJournal = useCallback(
-    debounce(async (newTitle: string, newContent: string) => {
-      if (!journal) return;
-
+  // Auto-save with debounce — stable ref pattern so debounce is never recreated
+  const saveJournal = useRef(
+    debounce(async (newTitle: string, newContent: string, journalId: string) => {
       setIsSaving(true);
-
       const { error } = await supabase
         .from('journals')
         .update({
@@ -579,25 +763,23 @@ export default function JournalEditorPage() {
           content: [{ type: 'text', content: newContent }],
           updated_at: new Date().toISOString(),
         })
-        .eq('id', journal.id);
-
+        .eq('id', journalId);
       if (error) {
         console.error('Failed to save journal:', error);
       } else {
         setLastSaved(new Date());
       }
-
       setIsSaving(false);
-    }, 1000),
-    [journal, supabase]
-  );
+    }, 1000)
+  ).current;
 
-  // Save on changes
+  // Save on changes — only re-runs when title/content change, not on journal object identity change
   useEffect(() => {
-    if (journal && !loading) {
-      saveJournal(title, content);
+    const id = journalRef.current?.id;
+    if (id && !loading) {
+      saveJournal(title, content, id);
     }
-  }, [title, content, journal, loading, saveJournal]);
+  }, [title, content, loading, saveJournal]);
 
   // Auto-generate title from content when title is still default
   useEffect(() => {
@@ -898,48 +1080,44 @@ export default function JournalEditorPage() {
   };
 
   // Proactive AI - analyze content and provide suggestions
-  const analyzeContentForSuggestions = useCallback(
+  // Use a ref for title so the debounce is stable and never recreated
+  const titleRef = useRef(title);
+  useEffect(() => { titleRef.current = title; }, [title]);
+  const proactiveAIEnabledRef = useRef(proactiveAIEnabled);
+  useEffect(() => { proactiveAIEnabledRef.current = proactiveAIEnabled; }, [proactiveAIEnabled]);
+
+  const analyzeContentForSuggestions = useRef(
     debounce(async (currentContent: string) => {
-      if (!proactiveAIEnabled || !currentContent || currentContent.length < 50) {
+      if (!proactiveAIEnabledRef.current || !currentContent || currentContent.length < 50) {
         setProactiveSuggestion(null);
         return;
       }
-
-      // Don't re-analyze if content hasn't changed significantly
       if (currentContent === lastAnalyzedContent.current) return;
-
-      // Only analyze every ~200 characters of change
       const contentDiff = Math.abs(currentContent.length - lastAnalyzedContent.current.length);
       if (contentDiff < 100 && lastAnalyzedContent.current.length > 0) return;
 
       lastAnalyzedContent.current = currentContent;
       setIsGeneratingSuggestion(true);
-
       try {
         const response = await fetch('/api/journal/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'proactive',
-            content: currentContent.slice(-1500), // Last 1500 chars for context
-            topic: title || 'Study notes',
+            content: currentContent.slice(-1500),
+            topic: titleRef.current || 'Study notes',
           }),
         });
-
         if (!response.ok) throw new Error('Failed to get suggestion');
-
         const data = await response.json();
-        if (data.content && data.content.trim()) {
-          setProactiveSuggestion(data.content);
-        }
+        if (data.content && data.content.trim()) setProactiveSuggestion(data.content);
       } catch (error) {
         console.error('Proactive AI error:', error);
       } finally {
         setIsGeneratingSuggestion(false);
       }
-    }, 3000), // 3 second debounce
-    [proactiveAIEnabled, title]
-  );
+    }, 3000)
+  ).current;
 
   // Effect to trigger proactive analysis when content changes
   useEffect(() => {
@@ -1046,13 +1224,275 @@ export default function JournalEditorPage() {
     }
   };
 
+  // ── Export: Markdown + PDF (ported from AFFiNE's export system) ─────────────
+  const exportMarkdown = () => {
+    // Strip embedded block placeholders, keep plain text + markdown
+    const clean = content
+      .replace(/\[WHITEBOARD:[^\]]*\]/g, '*[Whiteboard embedded]*')
+      .replace(/\[DESMOS:[^\]]*\]/g, '*[Desmos graph embedded]*')
+      .replace(/\[CHART:[^\]]*\]/g, '*[Chart embedded]*')
+      .replace(/\[YOUTUBE:[^\]]*\]/g, '*[YouTube video embedded]*')
+      .replace(/\[DATABASE:[^\]]*\]/g, '*[Database embedded]*')
+      .replace(/\[JOURNAL_LINK:[^\]]*\]/g, '*[Journal link]*');
+    const md = `# ${title}\n\n${clean}`;
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'journal'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    sileo.success({ title: 'Exported as Markdown' });
+  };
+
+  const exportPDF = () => {
+    // Build a printable HTML page and open the print dialog
+    const clean = content
+      .replace(/\[WHITEBOARD:[^\]]*\]/g, '<p><em>[Whiteboard embedded]</em></p>')
+      .replace(/\[DESMOS:[^\]]*\]/g, '<p><em>[Desmos graph embedded]</em></p>')
+      .replace(/\[CHART:[^\]]*\]/g, '<p><em>[Chart embedded]</em></p>')
+      .replace(/\[YOUTUBE:[^\]]*\]/g, '<p><em>[YouTube video embedded]</em></p>')
+      .replace(/\[DATABASE:[^\]]*\]/g, '<p><em>[Database embedded]</em></p>')
+      .replace(/\[JOURNAL_LINK:[^\]]*\]/g, '<p><em>[Journal link]</em></p>');
+
+    // Convert basic markdown to HTML for the print view
+    const html = clean
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/!\[([^\]]*)\]\((data:image[^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%" />')
+      .replace(/\n/g, '<br/>');
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) { sileo.error({ title: 'Allow popups to export PDF' }); return; }
+    printWindow.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8">
+      <title>${title}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 720px; margin: 40px auto; padding: 0 24px; color: #111; line-height: 1.7; }
+        h1 { font-size: 2em; margin-bottom: 8px; } h2 { font-size: 1.4em; } h3 { font-size: 1.15em; }
+        img { max-width: 100%; border-radius: 8px; }
+        pre { background: #f5f5f5; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+        li { margin: 4px 0; }
+        @media print { body { margin: 0; } }
+      </style>
+    </head><body>
+      <h1>${title}</h1>
+      <p style="color:#888;font-size:13px;margin-bottom:32px">${new Date().toLocaleDateString()}</p>
+      <p>${html}</p>
+    </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); }, 500);
+    sileo.success({ title: 'PDF export opened' });
+  };
+
+  // ── Presentation Mode ────────────────────────────────────────────────────────
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const [presentationSlide, setPresentationSlide] = useState(0);
+
+  const presentationSlides = useMemo(() => {
+    if (!content) return [];
+    // Split on ## or # headings — each heading starts a new slide
+    const parts = content.split(/\n(?=#{1,2} )/);
+    return parts.map(part => {
+      const lines = part.trim().split('\n');
+      const heading = lines[0]?.replace(/^#{1,2} /, '') || 'Slide';
+      const body = lines.slice(1).join('\n').trim();
+      return { heading, body };
+    }).filter(s => s.heading || s.body);
+  }, [content]);
+
+  const openPresentation = () => {
+    if (presentationSlides.length === 0) {
+      sileo.info({ title: 'Add headings (## Section) to create slides!' });
+      return;
+    }
+    setPresentationSlide(0);
+    setPresentationOpen(true);
+  };
+
+  // Keyboard navigation for presentation
+  useEffect(() => {
+    if (!presentationOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        setPresentationSlide(i => Math.max(0, i - 1));
+      } else if (e.key === 'Escape') {
+        setPresentationOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [presentationOpen, presentationSlides.length]);
+
+  // ── AI Text Actions (ported from AFFiNE's action system) ────────────────────
+  const handleAITextAction = async (
+    action: string,
+    opts?: { lang?: string; tone?: string }
+  ) => {
+    // Use selected text if available, fall back to full content
+    const selectedText = window.getSelection()?.toString().trim() || '';
+    const text = selectedText || content;
+    if (!text.trim()) {
+      sileo.info({ title: 'Add some content first!' });
+      return;
+    }
+
+    const toastId = sileo.show({ title: `Running: ${action.replace(/([A-Z])/g, ' $1').toLowerCase()}…` });
+    try {
+      const res = await fetch('/api/journal/ai-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, text, ...opts }),
+      });
+      if (!res.ok) throw new Error('AI action failed');
+
+      // Stream the response
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let result = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') break;
+          try {
+            const parsed = JSON.parse(data);
+            result += parsed.choices?.[0]?.delta?.content ?? '';
+          } catch { /* skip */ }
+        }
+      }
+
+      if (!result.trim()) throw new Error('Empty response');
+
+      // Replace selection or append to content
+      if (selectedText) {
+        setContent(prev => prev.replace(selectedText, result.trim()));
+      } else {
+        setContent(prev => prev ? prev + '\n\n' + result.trim() : result.trim());
+      }
+
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Done!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'AI action failed' });
+      console.error('[ai-action]', err);
+    }
+  };
+
+  // ── Image AI actions (explainImage, generateCaption) ────────────────────────
+  const handleImageAIAction = async (action: 'explainImage' | 'generateCaption') => {
+    // Extract the first base64 image from content
+    const imgMatch = content.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/);
+    if (!imgMatch) {
+      sileo.info({ title: 'No image found in this journal. Upload an image first.' });
+      return;
+    }
+    const imageBase64 = imgMatch[1];
+    const toastId = sileo.show({ title: action === 'explainImage' ? 'Explaining image…' : 'Generating caption…' });
+    try {
+      const res = await fetch('/api/journal/ai-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, imageBase64 }),
+      });
+      if (!res.ok) throw new Error('Image AI action failed');
+      const { result } = await res.json();
+      if (!result?.trim()) throw new Error('Empty response');
+      const prefix = action === 'explainImage' ? '\n\n**Image Explanation:**\n' : '\n\n*Caption:* ';
+      setContent(prev => prev + prefix + result.trim());
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Done!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Image AI action failed' });
+      console.error('[image-ai]', err);
+    }
+  };
+
+  // ── Audio transcription ──────────────────────────────────────────────────────
+  const handleAudioTranscribe = () => {
+    transcribeAudioRef.current?.click();
+  };
+
+  const handleTranscribeFile = async (file: File) => {
+    const toastId = sileo.show({ title: 'Transcribing audio…' });
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
+      const res = await fetch('/api/journal/transcribe', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Transcription failed');
+      const { transcript } = await res.json();
+      if (!transcript?.trim()) throw new Error('Empty transcript');
+      const header = `\n\n**Transcription of ${file.name}:**\n\n`;
+      setContent(prev => prev + header + transcript.trim());
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Transcription added!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Transcription failed' });
+      console.error('[transcribe]', err);
+    }
+  };
+
+  // ── Mind map generation ──────────────────────────────────────────────────────
+  const handleMindmap = async () => {
+    const text = window.getSelection()?.toString().trim() || content;
+    if (!text.trim()) {
+      sileo.info({ title: 'Add some content first!' });
+      return;
+    }
+    const toastId = sileo.show({ title: 'Generating mind map…' });
+    try {
+      const res = await fetch('/api/journal/mindmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 3000) }),
+      });
+      if (!res.ok) throw new Error('Mind map generation failed');
+      const { mindmap } = await res.json();
+
+      // Render mind map as a simple ASCII/text representation in the journal
+      const renderMindmapText = (mm: { root: { text: string }; children: Array<{ text: string; children?: Array<{ text: string }> }> }) => {
+        let out = `## 🗺 Mind Map: ${mm.root.text}\n\n`;
+        for (const branch of mm.children) {
+          out += `**${branch.text}**\n`;
+          for (const leaf of (branch.children || [])) {
+            out += `  - ${leaf.text}\n`;
+          }
+          out += '\n';
+        }
+        return out.trim();
+      };
+
+      const mindmapText = renderMindmapText(mindmap);
+      setContent(prev => prev ? prev + '\n\n' + mindmapText : mindmapText);
+      sileo.dismiss(toastId);
+      sileo.success({ title: 'Mind map generated!' });
+    } catch (err) {
+      sileo.dismiss(toastId);
+      sileo.error({ title: 'Failed to generate mind map' });
+      console.error('[mindmap]', err);
+    }
+  };
+
   // Execute a slash command
   const executeCommand = async (commandId: string) => {
     setShowSlashMenu(false);
     setCommandInput('');
 
     const aiCommands = ['notes', 'practice', 'flashcards', 'generate-image'];
-    const formatCommands = ['text', 'h1', 'h2', 'h3', 'bullet', 'numbered', 'quote', 'divider', 'code', 'latex', 'table', 'details'];
+    const formatCommands = ['text', 'h1', 'h2', 'h3', 'bullet', 'numbered', 'quote', 'divider', 'code', 'latex', 'table', 'details', 'callout', 'callout-warning', 'callout-tip', 'mermaid', 'bookmark'];
 
     if (aiCommands.includes(commandId)) {
       // For flashcards and practice problems, use inline input instead of modal
@@ -1107,6 +1547,24 @@ export default function JournalEditorPage() {
         case 'details':
           insertText = '\n<details>\n<summary>Click to expand</summary>\n\nHidden content goes here...\n\n</details>\n';
           break;
+        case 'callout':
+          insertText = '\n:::info\n💡 **Note:** Write your callout content here.\n:::\n';
+          break;
+        case 'callout-warning':
+          insertText = '\n:::warning\n⚠️ **Warning:** Write your warning here.\n:::\n';
+          break;
+        case 'callout-tip':
+          insertText = '\n:::tip\n✅ **Tip:** Write your tip here.\n:::\n';
+          break;
+        case 'mermaid': {
+          insertText = '\n```mermaid\nflowchart TD\n  A[Start] --> B{Decision}\n  B -->|Yes| C[Result 1]\n  B -->|No| D[Result 2]\n```\n';
+          break;
+        }
+        case 'bookmark': {
+          setBookmarkUrlInput('');
+          setShowBookmarkModal(true);
+          return; // modal handles the content insertion
+        }
         default:
           insertText = '';
       }
@@ -1122,6 +1580,9 @@ export default function JournalEditorPage() {
           break;
         case 'chart':
           handleChartInsert();
+          break;
+        case 'database':
+          handleDatabaseInsert();
           break;
         case 'subjournal':
           handleCreateSubjournal();
@@ -1152,6 +1613,37 @@ export default function JournalEditorPage() {
         case 'pdf':
           pdfInputRef.current?.click();
           break;
+        // ── AFFiNE AI text actions ─────────────────────────────
+        case 'ai-continue':     handleAITextAction('continueWriting'); break;
+        case 'ai-improve':      handleAITextAction('improveWriting'); break;
+        case 'ai-summarize':    handleAITextAction('summary'); break;
+        case 'ai-explain':      handleAITextAction('explain'); break;
+        case 'ai-fix-grammar':  handleAITextAction('fixGrammar'); break;
+        case 'ai-fix-spelling': handleAITextAction('fixSpelling'); break;
+        case 'ai-make-longer':  handleAITextAction('makeLonger'); break;
+        case 'ai-make-shorter': handleAITextAction('makeShorter'); break;
+        case 'ai-headings':     handleAITextAction('createHeadings'); break;
+        case 'ai-find-actions': handleAITextAction('findActions'); break;
+        case 'ai-mindmap':      handleMindmap(); break;
+        case 'ai-translate': {
+          setTranslateLang('Spanish');
+          setShowTranslateModal(true);
+          break;
+        }
+        case 'ai-tone': {
+          setToneChoice('Friendly');
+          setShowToneModal(true);
+          break;
+        }
+        case 'ai-brainstorm':    handleAITextAction('brainstorm'); break;
+        case 'ai-outline':       handleAITextAction('writeOutline'); break;
+        case 'ai-write-article': handleAITextAction('writeArticle'); break;
+        case 'ai-write-blog':    handleAITextAction('writeBlog'); break;
+        case 'ai-explain-code':  handleAITextAction('explainCode'); break;
+        case 'ai-check-code':    handleAITextAction('checkCodeErrors'); break;
+        case 'ai-transcribe':    handleAudioTranscribe(); break;
+        case 'ai-explain-image': handleImageAIAction('explainImage'); break;
+        case 'ai-caption':       handleImageAIAction('generateCaption'); break;
         default:
           sileo.info({ title: 'This feature is coming soon!' });
       }
@@ -1216,7 +1708,7 @@ export default function JournalEditorPage() {
   };
 
   // Search journals for linking
-  const searchJournals = async (query: string) => {
+  const searchJournals = useCallback(debounce(async (query: string) => {
     if (!user) return;
 
     try {
@@ -1239,7 +1731,7 @@ export default function JournalEditorPage() {
     } catch (error) {
       console.error('Failed to search journals:', error);
     }
-  };
+  }, 300), [user, journal?.id, supabase]);
 
   // Handle journal link insertion
   const handleJournalLink = (linkedJournal: JournalData) => {
@@ -1302,6 +1794,18 @@ export default function JournalEditorPage() {
       return prev ? prev + `\n\n${chartPlaceholder}\n` : `${chartPlaceholder}\n`;
     });
     sileo.success({ title: 'Chart added!' });
+  };
+
+  const handleDatabaseInsert = () => {
+    const dbId = `db-${Date.now()}`;
+    const encodedData = encodeDatabaseData(DEFAULT_DATABASE_CONFIG);
+    const dbPlaceholder = `[DATABASE:${dbId}:${encodedData}]`;
+    setEmbeddedDatabases(prev => [...prev, { id: dbId }]);
+    setContent(prev => {
+      if (prev.includes(dbPlaceholder)) return prev;
+      return prev ? prev + `\n\n${dbPlaceholder}\n` : `${dbPlaceholder}\n`;
+    });
+    sileo.success({ title: 'Database added!' });
   };
 
   // Handle file upload (converts to base64 and embeds)
@@ -1688,7 +2192,7 @@ export default function JournalEditorPage() {
       </Dialog>
 
       {/* Header controls */}
- <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border">
+ <header className="flex items-center justify-between px-5 py-3 relative z-[60] border-b border-border bg-background/95 backdrop-blur-sm">
         {/* Left - Navigation */}
  <div className="flex items-center gap-3">
           <button
@@ -1700,255 +2204,60 @@ export default function JournalEditorPage() {
           </button>
         </div>
 
-        {/* Center - Chat/Command bar */}
- <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
- <div className="relative" ref={chatBarRef}>
-            {/* Main chat bar */}
- <div className="flex flex-col">
-              <div
-                onClick={() => {
-                  if (!searchExpanded) {
-                    setSearchExpanded(true);
-                  }
-                }}
- className={cn(
-                  'flex items-center gap-2.5 border border-border px-3 cursor-pointer',
-                  'transition-all duration-300 ease-out',
-                  searchExpanded
-                    ? 'min-w-[560px] bg-card shadow-lg border-b-0 py-2'
-                    : 'min-w-[320px] bg-foreground/5 hover:bg-foreground/10 py-1.5'
-                )}
-              >
-                {searchExpanded ? (
-                  <>
-                    {isChatting ? (
- <div className="h-5 w-5 border-2 border-foreground/20 border-t-foreground animate-spin flex-shrink-0" />
-                    ) : (
- <div className="w-7 h-7 bg-foreground/10 flex items-center justify-center flex-shrink-0">
- <Plus weight="bold" className="h-4 w-4 text-foreground" />
-                      </div>
-                    )}
-                    <input
-                      ref={commandInputRef}
-                      type="text"
-                      autoFocus
-                      value={showSlashMenu ? commandInput : chatInput}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.startsWith('/')) {
-                          setCommandInput(value);
-                          setChatInput('');
-                          setSlashFilter(value.slice(1));
-                          setShowSlashMenu(true);
-                          setSelectedCommandIndex(0);
-                        } else {
-                          setChatInput(value);
-                          setCommandInput('');
-                          setShowSlashMenu(false);
-                          setSlashFilter('');
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (showSlashMenu) {
-                          handleCommandKeyDown(e);
-                        } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
-                          e.preventDefault();
-                          handleChatSubmit();
-                        } else if (e.key === 'Escape') {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }
-                      }}
-                      placeholder='Ask anything or type "/" for commands...'
- className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
-                      disabled={isChatting}
-                    />
-                    {chatInput.trim() && !showSlashMenu && (
-                      <button
-                        onClick={handleChatSubmit}
-                        disabled={isChatting}
- className="w-7 h-7 bg-foreground text-background flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-50"
-                      >
- <ArrowUp className="h-4 w-4" />
-                      </button>
-                    )}
-                    {chatMessages.length > 0 && !chatInput.trim() && (
-                      <button
-                        onClick={() => {
-                          setSearchExpanded(false);
-                          setChatInput('');
-                          setCommandInput('');
-                          setChatMessages([]);
-                          setPendingContent(null);
-                        }}
- className="p-1.5 hover:bg-foreground/10 transition-colors"
-                      >
- <X className="h-4 w-4 text-foreground" />
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <>
- <Sparkle weight="duotone" className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
- <span className="flex-1 text-muted-foreground text-xs transition-opacity duration-500">
-                      {placeholderTexts[placeholderIndex]}
-                    </span>
- <div className="w-6 h-6 bg-foreground text-background flex items-center justify-center flex-shrink-0">
- <ArrowUp className="h-3 w-3" />
-                    </div>
-                  </>
-                )}
-              </div>
-              {/* Chat label below the bar - only show when expanded */}
-            </div>
-
-            {/* Chat conversation panel - only show when there are messages */}
-            {searchExpanded && !showSlashMenu && chatMessages.length > 0 && (
- <div className="absolute top-full left-0 right-0 bg-card border border-t-0 border-border shadow-xl overflow-hidden z-[100]">
-                {/* Chat messages */}
-                <div
-                  ref={chatContainerRef}
- className="max-h-[350px] overflow-y-auto px-4 py-3 space-y-3"
-                >
-                  {chatMessages.map((msg, idx) => (
-                    <div key={idx}>
-                      {msg.role === 'user' ? (
- <div className="flex justify-end mb-2">
- <div className="bg-muted text-foreground px-4 py-1.5 text-sm border border-border">
-                            {msg.content}
-                          </div>
-                        </div>
-                      ) : (
- <div className="space-y-2">
- <div className="flex gap-2.5">
- <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0 mt-0.5">
- <Sparkle className="h-3 w-3 text-background" />
-                            </div>
- <div className="flex-1 min-w-0">
-                              <div
- className="text-[13px] text-foreground/80 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                              />
-                              {/* Action buttons for assistant messages */}
- <div className="flex items-center gap-2 mt-2">
-                                {msg.written ? (
-                                  <>
- <span className="inline-flex items-center gap-1 text-[11px] text-foreground font-medium">
- <Check className="h-3 w-3" />
-                                      Written!
-                                    </span>
-                                    <button
-                                      onClick={() => handleReapplyContent(msg.content, idx)}
- className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
- <ArrowsClockwise className="h-3 w-3" />
-                                      Reapply changes
-                                    </button>
-                                  </>
-                                ) : pendingMessageIndex === idx ? (
- <div className="flex items-center gap-2">
-                                    <button
-                                      onClick={handleAcceptContent}
- className="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-foreground text-background hover:bg-foreground/90 transition-colors font-medium"
-                                    >
- <Check className="h-3 w-3" />
-                                      Add to Journal
-                                    </button>
-                                    <button
-                                      onClick={handleDismissContent}
- className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
-                                    >
-                                      Dismiss
-                                    </button>
-                                  </div>
-                                ) : null}
-                                <button
-                                  onClick={() => handleCopyMessage(msg.content)}
- className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
-                                  title="Copy to clipboard"
-                                >
- <Copy className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {isChatting && (
- <div className="flex gap-2.5">
- <div className="w-6 h-6 bg-foreground flex items-center justify-center flex-shrink-0">
- <div className="h-3 w-3 border border-background/30 border-t-background animate-spin" />
-                      </div>
- <div className="text-[13px] text-muted-foreground">
-                        Thinking...
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Clear chat button at the bottom */}
- <div className="border-t border-border px-4 py-2 flex justify-end bg-muted/50">
-                  <button
-                    onClick={handleClearChat}
- className="inline-flex items-center gap-1 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
-                  >
- <X className="h-3 w-3" />
-                    Clear chat
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Slash Command Menu */}
-            {showSlashMenu && searchExpanded && (
- <div className="absolute top-full left-0 right-0 z-[100] bg-card border border-t-0 border-border shadow-2xl py-2 max-h-[420px] overflow-y-auto">
-                {slashCommands.map((category, catIndex) => {
-                  const filteredItems = category.items.filter(item =>
-                    item.label.toLowerCase().includes(slashFilter.toLowerCase())
-                  );
-
-                  if (filteredItems.length === 0) return null;
-
-                  return (
- <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
- <div className="px-4 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        {category.category}
-                      </div>
-                      {filteredItems.map((item) => {
-                        const globalIndex = allCommands.findIndex(c => c.id === item.id);
-                        const isSelected = globalIndex === selectedCommandIndex;
-                        const Icon = item.icon;
-
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => executeCommand(item.id)}
- className={cn(
-                              'w-full flex items-center gap-3 px-4 py-2 text-left transition-colors',
-                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
-                            )}
-                          >
- <Icon className="h-4 w-4" />
- <span className={cn(
-                              'text-sm',
-                              isSelected && 'font-medium'
-                            )}>
-                              {item.label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* Centre - Journal ↔ Whiteboard switcher + right panel tabs */}
+        <div className="flex items-center gap-2">
+          {/* Mode switcher */}
+          <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+            <button
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-background text-foreground shadow-sm"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Journal
+            </button>
+            <button
+              onClick={() => router.push(linkedWhiteboardId ? `/board/${linkedWhiteboardId}` : '/')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={3} width={18} height={18} rx={2}/><line x1={3} y1={9} x2={21} y2={9}/><line x1={9} y1={21} x2={9} y2={9}/></svg>
+              Whiteboard
+            </button>
           </div>
+          <div className="w-px h-5 bg-border" />
+        </div>
+
+        {/* Right panel tab icons */}
+        <div className="flex items-center gap-0.5">
+          {([
+            { tab: 'ai' as RightPanelTab,    icon: <Sparkle weight="fill" className="h-4 w-4" />,       title: 'AI Assistant' },
+            { tab: 'toc' as RightPanelTab,   icon: <ListBullets className="h-4 w-4" />,                 title: 'Table of Contents' },
+            { tab: 'cal' as RightPanelTab,   icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={4} width={18} height={18} rx={2}/><line x1={16} y1={2} x2={16} y2={6}/><line x1={8} y1={2} x2={8} y2={6}/><line x1={3} y1={10} x2={21} y2={10}/></svg>, title: 'Calendar' },
+            { tab: 'tpl' as RightPanelTab,   icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={3} y={3} width={7} height={7}/><rect x={14} y={3} width={7} height={7}/><rect x={14} y={14} width={7} height={7}/><rect x={3} y={14} width={7} height={7}/></svg>, title: 'Templates' },
+            { tab: 'frame' as RightPanelTab, icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>, title: 'Frame Navigator' },
+            { tab: 'chat' as RightPanelTab,  icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: 'Comments' },
+          ]).map(({ tab, icon, title }) => (
+            <button
+              key={tab}
+              title={title}
+              onClick={() => {
+                if (isAIPanelOpen && rightPanelTab === tab) {
+                  setIsAIPanelOpen(false);
+                } else {
+                  setRightPanelTab(tab);
+                  setIsAIPanelOpen(true);
+                }
+              }}
+              className={cn(
+                'p-2 transition-colors rounded-lg',
+                isAIPanelOpen && rightPanelTab === tab
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+            >
+              {icon}
+            </button>
+          ))}
+          {/* Sidebar toggle */}
+          <div className="w-px h-5 bg-border mx-1" />
         </div>
 
         {/* Right - Actions */}
@@ -2006,23 +2315,445 @@ export default function JournalEditorPage() {
           >
  <Timer weight="duotone" className="h-5 w-5" />
           </button>
+          {/* Export dropdown */}
+          <div className="relative group">
+            <button
+              className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+              title="Export"
+            >
+              <ArrowSquareOut weight="duotone" className="h-5 w-5" />
+            </button>
+            <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-lg py-1 min-w-[150px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <button
+                onClick={exportMarkdown}
+                className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <FileText weight="duotone" className="h-4 w-4 text-muted-foreground" />
+                Export Markdown
+              </button>
+              <button
+                onClick={exportPDF}
+                className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+              >
+                <FileDoc weight="duotone" className="h-4 w-4 text-muted-foreground" />
+                Export PDF
+              </button>
+            </div>
+          </div>
           <button
- className="p-2 hover:bg-muted transition-colors text-muted-foreground"
-            onClick={() => sileo.info({ title: 'More options coming soon!' })}
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={openPresentation}
+            title="Presentation mode"
           >
- <DotsThree weight="duotone" className="h-5 w-5" />
+            <FilmSlate weight="duotone" className="h-5 w-5" />
           </button>
           <button
-            onClick={() => sileo.info({ title: 'Sharing is coming soon!' })}
- className="ml-2 bg-foreground hover:bg-foreground/90 text-background text-xs font-medium px-4 py-2 transition-colors"
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={() => setIsShareOpen(true)}
+            title="Share"
           >
-            Share
+            <ShareNetwork weight="duotone" className="h-5 w-5" />
+          </button>
+          <button
+            className="p-2 hover:bg-muted transition-colors text-muted-foreground rounded-lg"
+            onClick={() => setIsPropertiesOpen(true)}
+            title="Document properties"
+          >
+            <SlidersHorizontal weight="duotone" className="h-5 w-5" />
+          </button>
+          {/* Ask Agathon button */}
+          <button
+            onClick={() => setIsAIPanelOpen(true)}
+ className="ml-2 flex items-center gap-2 bg-[#1e6ee8] hover:bg-[#1a5fcf] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors shadow-[0_2px_12px_rgba(30,110,232,0.3)]"
+          >
+ <Sparkle weight="fill" className="h-3.5 w-3.5" />
+            Ask Agathon
           </button>
         </div>
       </header>
 
+      {/* Share Dialog */}
+      <ShareDialog
+        open={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        journalId={journal?.id}
+        journalTitle={title}
+        content={content}
+      />
+
+      {/* Document Properties Panel */}
+      <DocPropertiesPanel
+        open={isPropertiesOpen}
+        onClose={() => setIsPropertiesOpen(false)}
+        properties={{
+          ...docProperties,
+          createdAt: journal?.created_at,
+          updatedAt: journal?.updated_at,
+          wordCount: wordCount,
+        }}
+        onChange={handlePropertiesChange}
+      />
+
+      {/* Presentation Mode */}
+      {presentationOpen && presentationSlides.length > 0 && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col" onClick={() => setPresentationOpen(false)}>
+          <div className="absolute top-4 right-4 flex gap-2 z-10" onClick={e => e.stopPropagation()}>
+            <span className="text-white/60 text-sm self-center">{presentationSlide + 1} / {presentationSlides.length}</span>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationSlide(i => Math.max(0, i - 1))}
+              disabled={presentationSlide === 0}
+            ><CaretLeft className="h-5 w-5" /></button>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1))}
+              disabled={presentationSlide === presentationSlides.length - 1}
+            ><CaretRight className="h-5 w-5" /></button>
+            <button
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPresentationOpen(false)}
+            ><X className="h-5 w-5" /></button>
+          </div>
+
+          {/* Slide content */}
+          <div
+            className="flex-1 flex flex-col items-center justify-center px-16 py-20"
+            onClick={e => { e.stopPropagation(); setPresentationSlide(i => Math.min(presentationSlides.length - 1, i + 1)); }}
+          >
+            <h1 className="text-5xl font-bold text-white mb-8 text-center leading-tight max-w-4xl">
+              {presentationSlides[presentationSlide].heading}
+            </h1>
+            {presentationSlides[presentationSlide].body && (
+              <div className="text-xl text-white/80 text-center max-w-3xl whitespace-pre-wrap leading-relaxed">
+                {presentationSlides[presentationSlide].body
+                  .replace(/^[*-] /gm, '• ')
+                  .replace(/\*\*(.+?)\*\*/g, '$1')
+                  .replace(/\*(.+?)\*/g, '$1')
+                  .replace(/#{1,3} /g, '')}
+              </div>
+            )}
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex justify-center gap-2 pb-8">
+            {presentationSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setPresentationSlide(i); }}
+                className={`h-2 rounded-full transition-all ${i === presentationSlide ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/50'}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Find in Page Bar */}
+      {findOpen && (
+        <div className="fixed top-16 right-4 z-[90] bg-white rounded-xl shadow-lg border border-border flex items-center gap-2 px-3 py-2" style={{ border: 'var(--affine-border)', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+          <MagnifyingGlass className="h-4 w-4 text-muted-foreground shrink-0" />
+          <input
+            ref={findInputRef}
+            value={findQuery}
+            onChange={e => { setFindQuery(e.target.value); setFindIndex(0); }}
+            placeholder="Find in page…"
+            className="text-sm outline-none w-48 bg-transparent"
+            onKeyDown={e => {
+              if (e.key === 'Enter') setFindIndex(i => (i + 1) % Math.max(findMatches.length, 1));
+              if (e.key === 'Escape') { setFindOpen(false); setFindQuery(''); }
+            }}
+          />
+          {findQuery.trim() && (
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              {findMatches.length > 0 ? `${findIndex + 1}/${findMatches.length}` : '0 results'}
+            </span>
+          )}
+          <div className="flex gap-0.5">
+            <button onClick={() => setFindIndex(i => (i - 1 + Math.max(findMatches.length, 1)) % Math.max(findMatches.length, 1))} className="p-1 hover:bg-muted rounded" disabled={findMatches.length === 0}>
+              <CaretUp className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={() => setFindIndex(i => (i + 1) % Math.max(findMatches.length, 1))} className="p-1 hover:bg-muted rounded" disabled={findMatches.length === 0}>
+              <CaretDown className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <button onClick={() => { setFindOpen(false); setFindQuery(''); }} className="p-1 hover:bg-muted rounded ml-1">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* AFFiNE-style right panel — AI, ToC, Calendar, Templates */}
+      <JournalRightPanel
+        isOpen={isAIPanelOpen}
+        onClose={() => setIsAIPanelOpen(false)}
+        activeTab={rightPanelTab}
+        onTabChange={(tab) => { setRightPanelTab(tab); if (!isAIPanelOpen) setIsAIPanelOpen(true); }}
+        chatMessages={chatMessages}
+        isChatting={isChatting}
+        onSendMessage={(msg) => { setChatInput(msg); setTimeout(() => handleChatSubmit(), 0); }}
+        onClearChat={handleClearChat}
+        pendingMessageIndex={pendingMessageIndex}
+        onAcceptContent={handleAcceptContent}
+        onDismissContent={handleDismissContent}
+        onReapplyContent={handleReapplyContent}
+        onCopyMessage={handleCopyMessage}
+        renderMarkdown={renderMarkdown}
+        showSlashMenu={showSlashMenu}
+        commandInput={commandInput}
+        chatInput={chatInput}
+        onCommandInputChange={(v) => {
+          setCommandInput(v);
+          setChatInput('');
+          setSlashFilter(v.slice(1));
+          setShowSlashMenu(true);
+          setSearchExpanded(true);
+          setSelectedCommandIndex(0);
+        }}
+        onChatInputChange={(v) => {
+          setChatInput(v);
+          setCommandInput('');
+          setShowSlashMenu(false);
+          setSlashFilter('');
+        }}
+        onChatKeyDown={(e) => {
+          if (showSlashMenu) {
+            handleCommandKeyDown(e as unknown as KeyboardEvent<HTMLInputElement>);
+          } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
+            e.preventDefault();
+            handleChatSubmit();
+          }
+        }}
+        onSubmitChat={handleChatSubmit}
+        content={content}
+        journalId={journal?.id}
+        journalTitle={title}
+      />
+
+      {/* DEAD CODE STUB — kept to satisfy closing braces below */}
+      {false && (
+ <div className="fixed inset-y-0 right-0 z-[80] flex">
+ <div
+            className="absolute inset-0 -left-[9999px]"
+          />
+ <div className="relative w-[360px] bg-card border-l border-border flex flex-col shadow-2xl">
+            {/* Panel header */}
+ <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+ <div className="flex items-center gap-2">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center">
+ <Sparkle className="h-3.5 w-3.5 text-white" weight="fill" />
+                </div>
+ <span className="font-semibold text-sm text-foreground">Ask Agathon</span>
+              </div>
+              <button
+                onClick={() => setIsAIPanelOpen(false)}
+ className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground"
+              >
+ <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Chat messages */}
+ <div
+              ref={chatContainerRef}
+ className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+            >
+              {chatMessages.length === 0 && (
+ <div className="flex flex-col items-center justify-center h-full py-12 text-center">
+ <div className="w-12 h-12 bg-[#eef3fd] rounded-2xl flex items-center justify-center mb-4">
+ <Sparkle className="h-6 w-6 text-[#1e6ee8]" weight="fill" />
+                  </div>
+ <p className="text-[15px] font-semibold text-foreground mb-1">Ask me anything</p>
+ <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[220px]">
+                    I can explain concepts, generate notes, create flashcards, and more.
+                  </p>
+ <div className="mt-6 w-full space-y-2">
+                    {[
+                      'Explain this topic in simple terms',
+                      'Generate notes from my content',
+                      'Create practice problems',
+                      'What should I study next?',
+                    ].map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        onClick={() => { setChatInput(suggestion); }}
+ className="w-full text-left px-3 py-2 text-[12px] text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-lg transition-colors border border-border/50"
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {chatMessages.map((msg, idx) => (
+                <div key={idx}>
+                  {msg.role === 'user' ? (
+ <div className="flex justify-end">
+ <div className="bg-[#1e6ee8] text-white px-3.5 py-2 rounded-2xl rounded-br-sm text-sm max-w-[240px] leading-relaxed">
+                        {msg.content}
+                      </div>
+                    </div>
+                  ) : (
+ <div className="flex gap-2.5">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+ <Sparkle className="h-3 w-3 text-white" weight="fill" />
+                      </div>
+ <div className="flex-1 min-w-0">
+ <div
+ className="text-[13px] text-foreground/85 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                          />
+ <div className="flex items-center gap-2 mt-2">
+                            {msg.written ? (
+                              <>
+ <span className="inline-flex items-center gap-1 text-[11px] text-[#1e6ee8] font-medium">
+ <Check className="h-3 w-3" />
+                                  Written!
+                                </span>
+                                <button
+                                  onClick={() => handleReapplyContent(msg.content, idx)}
+ className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                >
+ <ArrowsClockwise className="h-3 w-3" />
+                                  Reapply
+                                </button>
+                              </>
+                            ) : pendingMessageIndex === idx ? (
+ <div className="flex items-center gap-2">
+                                <button
+                                  onClick={handleAcceptContent}
+ className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] bg-[#1e6ee8] text-white rounded-lg hover:bg-[#1a5fcf] transition-colors font-medium"
+                                >
+ <Check className="h-3 w-3" />
+                                  Add to Journal
+                                </button>
+                                <button
+                                  onClick={handleDismissContent}
+ className="text-[11px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                                >
+                                  Dismiss
+                                </button>
+                              </div>
+                            ) : null}
+                            <button
+                              onClick={() => handleCopyMessage(msg.content)}
+ className="inline-flex items-center p-0.5 text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
+                              title="Copy"
+                            >
+ <Copy className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                  )}
+                </div>
+              ))}
+              {isChatting && (
+ <div className="flex gap-2.5">
+ <div className="w-6 h-6 bg-[#1e6ee8] rounded-lg flex items-center justify-center flex-shrink-0">
+ <div className="h-3 w-3 border border-white/40 border-t-white rounded-full animate-spin" />
+                  </div>
+ <div className="text-[13px] text-muted-foreground">Thinking...</div>
+                </div>
+              )}
+            </div>
+
+            {/* Slash Command Menu (inside panel) */}
+            {showSlashMenu && searchExpanded && (
+ <div className="mx-4 mb-2 bg-card border border-border shadow-xl rounded-xl py-2 max-h-[300px] overflow-y-auto">
+                {slashCommands.map((category, catIndex) => {
+                  const filteredItems = category.items.filter(item =>
+                    item.label.toLowerCase().includes(slashFilter.toLowerCase())
+                  );
+                  if (filteredItems.length === 0) return null;
+                  return (
+ <div key={category.category} className={catIndex > 0 ? 'mt-1' : ''}>
+ <div className="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                        {category.category}
+                      </div>
+                      {filteredItems.map((item) => {
+                        const globalIndex = allCommands.findIndex(c => c.id === item.id);
+                        const isSelected = globalIndex === selectedCommandIndex;
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => executeCommand(item.id)}
+ className={cn(
+                              'w-full flex items-center gap-3 px-3 py-2 text-left transition-colors',
+                              isSelected ? 'bg-accent text-foreground' : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+ <Icon className="h-4 w-4" />
+ <span className={cn('text-sm', isSelected && 'font-medium')}>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Input area */}
+ <div className="px-4 py-3 border-t border-border flex-shrink-0" ref={chatBarRef}>
+              {chatMessages.length > 0 && (
+                <button
+                  onClick={() => { handleClearChat(); }}
+ className="mb-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear conversation
+                </button>
+              )}
+ <div className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2 border border-border focus-within:border-[#1e6ee8]/40 transition-colors">
+                <input
+                  ref={commandInputRef}
+                  type="text"
+                  value={showSlashMenu ? commandInput : chatInput}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.startsWith('/')) {
+                      setCommandInput(value);
+                      setChatInput('');
+                      setSlashFilter(value.slice(1));
+                      setShowSlashMenu(true);
+                      setSearchExpanded(true);
+                      setSelectedCommandIndex(0);
+                    } else {
+                      setChatInput(value);
+                      setCommandInput('');
+                      setShowSlashMenu(false);
+                      setSlashFilter('');
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (showSlashMenu) {
+                      handleCommandKeyDown(e);
+                    } else if (e.key === 'Enter' && chatInput.trim() && !isChatting) {
+                      e.preventDefault();
+                      handleChatSubmit();
+                    }
+                  }}
+                  placeholder='Ask anything or "/" for commands…'
+ className="flex-1 bg-transparent border-none outline-none text-foreground text-sm placeholder:text-muted-foreground focus:ring-0"
+                  disabled={isChatting}
+                />
+                <button
+                  onClick={handleChatSubmit}
+                  disabled={!chatInput.trim() || isChatting}
+ className="w-7 h-7 bg-[#1e6ee8] text-white rounded-lg flex items-center justify-center hover:bg-[#1a5fcf] transition-colors disabled:opacity-30"
+                >
+ <ArrowUp className="h-4 w-4" />
+                </button>
+              </div>
+ <p className="mt-2 text-[11px] text-muted-foreground/60 text-center">
+                AI can make mistakes. Verify important information.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
- <main className="px-8 py-8 max-w-3xl mx-auto">
+ <main className={cn("px-8 py-10 max-w-3xl mx-auto transition-all duration-300", isAIPanelOpen ? "mr-[360px]" : "")}>
 
         {/* Large serif title */}
  <div className="mb-8">
@@ -2030,43 +2761,75 @@ export default function JournalEditorPage() {
             type="text"
             value={title}
             onChange={handleTitleChange}
- className="text-3xl font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/50 focus:ring-0 w-full tracking-tight"
+ className="text-[2rem] font-bold bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground/30 focus:ring-0 w-full tracking-tight leading-tight"
             style={{ fontFamily: 'var(--font-serif), Georgia, serif' }}
-            placeholder="New Journal"
+            placeholder="Untitled"
           />
  <div className="h-px bg-border mt-4" />
+          {/* Metadata row */}
+ <div className="flex items-center gap-3 mt-2.5">
+            {journal && (
+ <span className="text-xs text-muted-foreground">
+                {new Date(journal.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
+            )}
+            {content.trim() && (
+              <>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground">
+                  {wordCount} words
+                </span>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground">
+                  {Math.max(1, Math.ceil(wordCount / 200))} min read
+                </span>
+              </>
+            )}
+            {isSaving && (
+              <>
+ <span className="text-muted-foreground/40">·</span>
+ <span className="text-xs text-muted-foreground/60">Saving…</span>
+              </>
+            )}
+          </div>
         </div>
         {/* Start with section - only show when empty */}
         {isEmpty && !activeInlineInput && !isGeneratingFlashcards && flashcards.length === 0 && (
- <div className="mb-8">
- <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Start with</p>
- <div className="grid grid-cols-3 gap-px bg-border border border-border">
+ <div className="mb-10">
+ <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4">Start with</p>
+ <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => handleQuickAction('Agathon Method')}
+                onClick={() => { setIsAIPanelOpen(true); }}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <Sparkle weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Ask Agathon</p>
- <p className="text-xs text-muted-foreground mt-0.5">Generate study notes</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <Sparkle weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Ask Agathon</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">Generate notes with AI</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Flashcards')}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <Stack weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Flashcards</p>
- <p className="text-xs text-muted-foreground mt-0.5">Study with spaced repetition</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <Stack weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Flashcards</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">Spaced repetition study</p>
               </button>
               <button
                 onClick={() => handleOpenInlineInput('Practice Problems')}
                 disabled={isGenerating}
- className="bg-card hover:bg-accent p-4 text-left transition-colors disabled:opacity-50 group"
+ className="bg-card border border-border hover:border-[#1e6ee8]/40 hover:bg-[#f0f6ff] p-4 text-left rounded-xl transition-all duration-150 disabled:opacity-50 group shadow-sm"
               >
- <ClipboardText weight="duotone" className="h-5 w-5 text-muted-foreground group-hover:text-foreground mb-2" />
- <p className="text-sm font-medium text-foreground">Practice</p>
- <p className="text-xs text-muted-foreground mt-0.5">Generate practice problems</p>
+ <div className="w-8 h-8 bg-[#eef3fd] rounded-lg flex items-center justify-center mb-3">
+ <ClipboardText weight="fill" className="h-4 w-4 text-[#1e6ee8]" />
+                </div>
+ <p className="text-sm font-semibold text-foreground">Practice</p>
+ <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">AI practice problems</p>
               </button>
             </div>
           </div>
@@ -2420,6 +3183,17 @@ export default function JournalEditorPage() {
               setContent(prev => prev.replace(new RegExp(`\\n*\\[CHART:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
               sileo.success({ title: 'Chart deleted' });
             }}
+            onDatabaseSave={(id, data) => {
+              setContent(prev => {
+                const regex = new RegExp(`\\[DATABASE:${id}:[^\\]]*\\]`);
+                return prev.replace(regex, `[DATABASE:${id}:${encodeDatabaseData(data)}]`);
+              });
+            }}
+            onDeleteDatabase={(id) => {
+              setEmbeddedDatabases(prev => prev.filter(d => d.id !== id));
+              setContent(prev => prev.replace(new RegExp(`\\n*\\[DATABASE:${id}:[^\\]]*\\]\\n*`, 'g'), '\n'));
+              sileo.success({ title: 'Database deleted' });
+            }}
             onSlashCommand={executeCommand}
           />
 
@@ -2519,6 +3293,138 @@ export default function JournalEditorPage() {
  <button onClick={handleYoutubeEmbed} disabled={!youtubeUrl.trim()} className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Embed
               </button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Bookmark URL Modal */}
+      <Dialog open={showBookmarkModal} onClose={() => setShowBookmarkModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Link className="h-5 w-5 text-muted-foreground" />
+                  Add Bookmark Card
+                </DialogTitle>
+                <button onClick={() => setShowBookmarkModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">Paste any URL to create a rich link preview card.</p>
+              <input
+                type="url"
+                autoFocus
+                value={bookmarkUrlInput}
+                onChange={(e) => setBookmarkUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && bookmarkUrlInput.trim()) {
+                    setContent(prev => prev ? prev + `\n\n[BOOKMARK:${bookmarkUrlInput.trim()}]\n` : `[BOOKMARK:${bookmarkUrlInput.trim()}]\n`);
+                    setShowBookmarkModal(false);
+                  }
+                }}
+                placeholder="https://example.com"
+                className="w-full px-4 py-3 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowBookmarkModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => {
+                  if (bookmarkUrlInput.trim()) {
+                    setContent(prev => prev ? prev + `\n\n[BOOKMARK:${bookmarkUrlInput.trim()}]\n` : `[BOOKMARK:${bookmarkUrlInput.trim()}]\n`);
+                    setShowBookmarkModal(false);
+                  }
+                }}
+                disabled={!bookmarkUrlInput.trim()}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              >Add Bookmark</button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Translate Modal */}
+      <Dialog open={showTranslateModal} onClose={() => setShowTranslateModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground">Translate</DialogTitle>
+                <button onClick={() => setShowTranslateModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">Choose target language:</p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['Spanish', 'French', 'German', 'Japanese', 'Chinese', 'Korean', 'Portuguese', 'Italian', 'Russian'].map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setTranslateLang(lang)}
+                    className={`px-3 py-2 text-sm rounded-lg border transition-colors ${translateLang === lang ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
+                  >{lang}</button>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={translateLang}
+                onChange={(e) => setTranslateLang(e.target.value)}
+                placeholder="Or type a language…"
+                className="w-full px-4 py-2.5 border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground/20 transition-all text-sm"
+              />
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowTranslateModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => { handleAITextAction('translate', { lang: translateLang }); setShowTranslateModal(false); }}
+                disabled={!translateLang.trim()}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              >Translate</button>
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
+
+      {/* Change Tone Modal */}
+      <Dialog open={showToneModal} onClose={() => setShowToneModal(false)} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-black/30" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <DialogPanel className="bg-card border border-border shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-lg font-semibold text-foreground">Change Tone</DialogTitle>
+                <button onClick={() => setShowToneModal(false)} className="p-1 hover:bg-muted transition-colors">
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { id: 'Professional', desc: 'Formal and precise' },
+                  { id: 'Informal', desc: 'Casual and conversational' },
+                  { id: 'Friendly', desc: 'Warm and approachable' },
+                  { id: 'Critical', desc: 'Analytical and rigorous' },
+                  { id: 'Humorous', desc: 'Light-hearted and witty' },
+                ].map(({ id, desc }) => (
+                  <button
+                    key={id}
+                    onClick={() => setToneChoice(id)}
+                    className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-colors text-left ${toneChoice === id ? 'bg-foreground text-background border-foreground' : 'border-border hover:bg-muted'}`}
+                  >
+                    <span className="font-medium text-sm">{id}</span>
+                    <span className={`text-xs ${toneChoice === id ? 'text-background/70' : 'text-muted-foreground'}`}>{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3 p-4 bg-muted border-t border-border">
+              <button onClick={() => setShowToneModal(false)} className="flex-1 px-4 py-2.5 text-muted-foreground font-medium hover:bg-muted transition-colors">Cancel</button>
+              <button
+                onClick={() => { handleAITextAction('changeTone', { tone: toneChoice }); setShowToneModal(false); }}
+                className="flex-1 px-4 py-2.5 bg-foreground text-background font-medium hover:bg-foreground/90 transition-colors"
+              >Apply Tone</button>
             </div>
           </DialogPanel>
         </div>
@@ -2632,6 +3538,17 @@ export default function JournalEditorPage() {
         accept="audio/*"
  className="hidden"
         onChange={(e) => handleFileUpload(e, 'audio')}
+      />
+      <input
+        ref={transcribeAudioRef}
+        type="file"
+        accept="audio/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleTranscribeFile(file);
+          e.target.value = '';
+        }}
       />
       <input
         ref={videoInputRef}

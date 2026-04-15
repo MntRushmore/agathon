@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   House,
@@ -27,6 +27,7 @@ import {
   CommandShortcut,
 } from 'better-cmdk';
 import { useAuth } from '@/components/auth/auth-provider';
+import { createClient } from '@/lib/supabase/client';
 
 interface Board {
   id: string;
@@ -44,10 +45,16 @@ interface CommandPaletteProps {
   userRole?: string;
 }
 
-export function CommandPalette({ boards, journals, userRole }: CommandPaletteProps) {
+export function CommandPalette({ userRole }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [searchBoards, setSearchBoards] = useState<Board[]>([]);
+  const [searchJournals, setSearchJournals] = useState<Journal[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
   const { profile } = useAuth();
+  const supabase = createClient();
 
   const role = userRole ?? profile?.role;
 
@@ -63,47 +70,95 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Live search when query changes
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!open) return;
+    if (!query.trim()) {
+      // Load recent items when palette opens with no query
+      loadRecent();
+      return;
+    }
+    searchTimeout.current = setTimeout(() => runSearch(query), 200);
+  }, [query, open]);
+
+  const loadRecent = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const [boardsRes, journalsRes] = await Promise.all([
+      supabase.from('whiteboards').select('id, title').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
+      supabase.from('journals').select('id, title').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(5),
+    ]);
+    setSearchBoards((boardsRes.data || []) as Board[]);
+    setSearchJournals((journalsRes.data || []) as Journal[]);
+  };
+
+  const runSearch = async (q: string) => {
+    setSearching(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [boardsRes, journalsRes] = await Promise.all([
+        supabase.from('whiteboards').select('id, title').eq('user_id', user.id).ilike('title', `%${q}%`).limit(5),
+        supabase.from('journals').select('id, title').eq('user_id', user.id).ilike('title', `%${q}%`).limit(5),
+      ]);
+      setSearchBoards((boardsRes.data || []) as Board[]);
+      setSearchJournals((journalsRes.data || []) as Journal[]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const navigate = useCallback(
     (path: string) => {
       setOpen(false);
+      setQuery('');
       router.push(path);
     },
     [router]
   );
 
-  const hasRecentItems = (boards && boards.length > 0) || (journals && journals.length > 0);
+  const hasResults = searchBoards.length > 0 || searchJournals.length > 0;
 
   return (
     <CommandMenu
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(v) => { setOpen(v); if (!v) setQuery(''); }}
       chatEndpoint="/api/command-chat"
       askAILabel="Ask Agathon"
     >
-      <CommandInput placeholder="Type a command or search..." showSendButton />
+      <div onChange={(e) => {
+        const val = (e.target as HTMLInputElement).value;
+        setQuery(val);
+      }}>
+        <CommandInput
+          placeholder="Search journals, boards, or type a command…"
+          showSendButton
+        />
+      </div>
       <CommandList>
-        <CommandEmpty />
+        <CommandEmpty>{searching ? 'Searching…' : 'No results found.'}</CommandEmpty>
 
-        {hasRecentItems && (
-          <CommandGroup heading="Recent">
-            {boards?.map((board) => (
+        {hasResults && (
+          <CommandGroup heading={query.trim() ? 'Search results' : 'Recent'}>
+            {searchBoards.map((board) => (
               <CommandItem
                 key={`board-${board.id}`}
-                value={`board-${board.id}`}
+                value={`board-${board.id}-${board.title}`}
                 onSelect={() => navigate(`/board/${board.id}`)}
               >
-                <FolderOpen className="mr-2 size-4" />
-                <span>{board.title}</span>
+                <FolderOpen className="mr-2 size-4 text-purple-500" />
+                <span>{board.title || 'Untitled board'}</span>
               </CommandItem>
             ))}
-            {journals?.map((journal) => (
+            {searchJournals.map((journal) => (
               <CommandItem
                 key={`journal-${journal.id}`}
-                value={`journal-${journal.id}`}
+                value={`journal-${journal.id}-${journal.title}`}
                 onSelect={() => navigate(`/journal/${journal.id}`)}
               >
-                <BookOpenText className="mr-2 size-4" />
-                <span>{journal.title}</span>
+                <BookOpenText className="mr-2 size-4 text-blue-500" />
+                <span>{journal.title || 'Untitled journal'}</span>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -130,10 +185,10 @@ export function CommandPalette({ boards, journals, userRole }: CommandPalettePro
             <span>Profile</span>
             <CommandShortcut>G P</CommandShortcut>
           </CommandItem>
-          <CommandItem value="settings" onSelect={() => navigate('/settings')}>
+          <CommandItem value="settings" onSelect={() => { setOpen(false); window.dispatchEvent(new Event('agathon-open-settings')); }}>
             <GearSix className="mr-2 size-4" />
             <span>Settings</span>
-            <CommandShortcut>G S</CommandShortcut>
+            <CommandShortcut>⌘ ,</CommandShortcut>
           </CommandItem>
           <CommandItem value="billing" onSelect={() => navigate('/billing')}>
             <CreditCard className="mr-2 size-4" />

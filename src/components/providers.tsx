@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { AuthProvider } from './auth/auth-provider';
 import { Toaster } from 'sileo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { CommandPalette } from './CommandPalette';
 import { ImpersonationBar } from './admin/ImpersonationBar';
+import { SettingsDialog } from './ui/settings-dialog';
 
 function useAnimationPreference() {
   useEffect(() => {
@@ -24,8 +25,32 @@ function useAnimationPreference() {
   }, []);
 }
 
+function useGlobalShortcuts(onOpenSettings: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // ⌘, → open settings
+      if (e.key === ',' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        onOpenSettings();
+      }
+    };
+    // Custom event from anywhere in the app (e.g. command palette)
+    const onEvent = () => onOpenSettings();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('agathon-open-settings', onEvent);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('agathon-open-settings', onEvent);
+    };
+  }, [onOpenSettings]);
+}
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
   useAnimationPreference();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
+  useGlobalShortcuts(openSettings);
 
   return (
     <ErrorBoundary>
@@ -34,6 +59,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         {children}
         <Toaster options={{ fill: '#1a1a1a', duration: 2000 }} />
         <CommandPalette />
+        <SettingsDialog open={settingsOpen} onClose={closeSettings} />
       </AuthProvider>
     </ErrorBoundary>
   );

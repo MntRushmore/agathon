@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth/auth-provider';
 import { sileo } from 'sileo';
 import { mapSupabaseError } from '@/lib/error-utils';
 import { logger } from '@/lib/logger';
+import { getLoginTokenUrl } from '@/lib/auth-urls';
 import { Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,9 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback${nextPath !== '/' ? `?next=${encodeURIComponent(nextPath)}` : ''}`,
+          redirectTo: getLoginTokenUrl({
+            next: nextPath !== '/' ? nextPath : undefined,
+          }),
         },
       });
       if (error) throw error;
@@ -84,7 +87,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        redirectTo: getLoginTokenUrl({ type: 'recovery' }),
       });
 
       if (error) throw error;

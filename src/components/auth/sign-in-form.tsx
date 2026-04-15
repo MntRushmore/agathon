@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { getLoginTokenUrl } from '@/lib/auth-urls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +47,7 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: getLoginTokenUrl(),
         },
       });
 
