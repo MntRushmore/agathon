@@ -7,8 +7,23 @@ import { useAuth } from '@/components/auth/auth-provider';
 
 /** Minimal markdown → HTML for the dark AI panel. No external deps. */
 function renderMd(text: string): string {
+  // Stash block math ($$...$$) and inline math ($...$) before escaping HTML,
+  // then restore them as styled spans so equations render visibly.
+  const mathBlocks: string[] = [];
   let h = text
-    // Escape HTML first (protect against injection)
+    // Extract block math first ($$...$$) — multiline
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_m, expr) => {
+      mathBlocks.push(`<div style="text-align:center;margin:8px 0;padding:8px;background:rgba(255,255,255,0.05);border-radius:8px;font-family:monospace;font-size:13px;color:rgba(255,255,255,0.9);overflow-x:auto">${expr.trim()}</div>`);
+      return `\x00math${mathBlocks.length - 1}\x00`;
+    })
+    // Extract inline math ($...$)
+    .replace(/\$([^$\n]+?)\$/g, (_m, expr) => {
+      mathBlocks.push(`<code style="background:rgba(30,110,232,0.15);padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace;color:rgba(180,200,255,0.9)">${expr.trim()}</code>`);
+      return `\x00math${mathBlocks.length - 1}\x00`;
+    });
+
+  h = h
+    // Escape HTML (now safe — math is stashed)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     // Code blocks (``` ... ```)
     .replace(/```[\w]*\n?([\s\S]*?)```/g, (_m, code) =>
@@ -33,6 +48,9 @@ function renderMd(text: string): string {
     .replace(/\n\n/g, '<div style="height:8px"></div>')
     // Single newlines → <br>
     .replace(/\n/g, '<br/>');
+
+  // Restore stashed math (un-escaped)
+  h = h.replace(/\x00math(\d+)\x00/g, (_m, i) => mathBlocks[Number(i)]);
   return h;
 }
 
@@ -144,22 +162,25 @@ export default function SocraticPanel({
     if (messages.length > 0) scrollToEnd();
   }, [messages, scrollToEnd]);
 
-  const buildSystemPrompt = useCallback((m: SocraticMode, context: string): string => {
+  const buildSystemPrompt = useCallback((m: SocraticMode, context: string, hasImage: boolean): string => {
     // Doc context (journal/notes) as grounding — ported from AFFiNE's ChatOptions.contexts
     const docSection = docContext
       ? `\n\nThe student's notes/journal (use this to ground your answers):\n<doc_context label="${docContextLabel || 'Notes'}">${docContext.slice(0, 4000)}</doc_context>`
       : '';
 
+    const canvasSection = hasImage
+      ? `A screenshot of the student's canvas is attached to their message. Use it to see exactly what they've written or drawn.`
+      : `The student's current canvas text:\n<canvas_context>${context || '(empty canvas)'}</canvas_context>`;
+
     const base = `You are Agathon, a Socratic AI tutor${subject ? ` for ${subject}` : ''}.
 Session ID: ${sessionIdRef.current}
-The student's current canvas:
-<canvas_context>${context || '(empty canvas)'}</canvas_context>${docSection}`;
+${canvasSection}${docSection}`;
 
     const instructions: Record<SocraticMode, string> = {
-      socratic: `${base}\n\nNEVER give direct answers. Ask one focused probing question at a time. Reference their notes when relevant.`,
-      explain:  `${base}\n\nExplain clearly using analogies and examples. Reference their notes to connect concepts. End with a check-for-understanding question.`,
-      hint:     `${base}\n\nGive minimal hints that unlock the next step without the full solution. You may reference their notes to point them in the right direction.`,
-      answer:   `${base}\n\nProvide clear, complete answers with step-by-step reasoning. Reference their notes and canvas to make the answer concrete.`,
+      socratic: `${base}\n\nNEVER give direct answers. Ask one focused probing question at a time. Reference their canvas when relevant.`,
+      explain:  `${base}\n\nExplain clearly using analogies and examples. Reference the canvas to connect concepts. End with a check-for-understanding question.`,
+      hint:     `${base}\n\nGive minimal hints that unlock the next step without the full solution. Reference what you see on the canvas to point them in the right direction.`,
+      answer:   `${base}\n\nProvide clear, complete answers with step-by-step reasoning. Reference what you see on the canvas to make the answer concrete.`,
     };
     return instructions[m];
   }, [subject, docContext, docContextLabel]);
@@ -182,10 +203,22 @@ The student's current canvas:
     if (onClearSelection) onClearSelection();
 
     const context = getCanvasContext();
-    const systemPrompt = buildSystemPrompt(activeMode, context);
+    const screenshot = getCanvasScreenshot?.() ?? null;
+    const systemPrompt = buildSystemPrompt(activeMode, context, !!screenshot);
+
+    // Build messages — attach screenshot to the last user message so the model can see the canvas
+    const baseMessages = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
+    const messagesWithImage = screenshot
+      ? baseMessages.map((m, i) =>
+          i === baseMessages.length - 1
+            ? { ...m, image: screenshot }
+            : m
+        )
+      : baseMessages;
+
     const apiMessages = [
       { role: 'system' as const, content: systemPrompt },
-      ...updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+      ...messagesWithImage,
     ];
 
     const assistantId = `a-${Date.now()}`;

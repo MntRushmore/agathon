@@ -5,10 +5,17 @@ function trimTrailingSlash(url: string): string {
 }
 
 export function getSiteUrl(fallbackOrigin?: string): string {
+  // On the client, always use the actual origin so auth callbacks work
+  // regardless of which domain the app is deployed to (e.g. old.agathon.app vs agathon.app).
+  // Only fall back to env vars when running server-side.
+  if (typeof window !== 'undefined') {
+    return trimTrailingSlash(window.location.origin);
+  }
+
   const configuredUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    (typeof window !== 'undefined' ? window.location.origin : fallbackOrigin) ||
+    fallbackOrigin ||
     DEFAULT_SITE_URL;
 
   return trimTrailingSlash(configuredUrl);

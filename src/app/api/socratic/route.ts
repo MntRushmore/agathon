@@ -6,6 +6,8 @@ import { callHackClubAI } from '@/lib/ai/hackclub';
 interface SocraticMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  /** base64 PNG data URL — attached to user messages that include a canvas screenshot */
+  image?: string;
 }
 
 /** Enterprise users get a higher-quality model with longer context */
@@ -63,12 +65,26 @@ export async function POST(req: NextRequest) {
       answer: 0.3,
     };
 
+    // Convert messages — attach canvas screenshot as vision content where present
+    const hackClubMessages = messages.map((m) => {
+      if (m.image && m.role === 'user') {
+        return {
+          role: m.role as 'user',
+          content: [
+            { type: 'text', text: m.content },
+            { type: 'image_url', image_url: { url: m.image } },
+          ],
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     // Enterprise: higher token limit + better model; free: standard
     const model = isEnterprise ? ENTERPRISE_MODEL : FREE_MODEL;
     const maxTokens = isEnterprise ? 2048 : 1024;
 
     const response = await callHackClubAI({
-      messages,
+      messages: hackClubMessages,
       stream: true,
       model,
       temperature: temperatureByMode[mode] ?? 0.75,
