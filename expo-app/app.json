@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.agathon.app",
+      "bundleIdentifier": "com.aiwhiteboard.app",
       "buildNumber": "1.0.0",
       "infoPlist": {
         "UISupportsDocumentBrowser": true,

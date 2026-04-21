@@ -12,6 +12,11 @@
       "url": "https://u.expo.dev/17e48060-14f4-44df-b7b7-07a5e85fbc62"
     },
     "android": {},
-    "ios": {}
+    "ios": {
+      "bundleIdentifier": "com.agathon.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
   }
 }
